@@ -1,0 +1,172 @@
+# ---------------------------------------------------------------------------
+# .NET / MSBuild build artifacts
+# ---------------------------------------------------------------------------
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+artifacts/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.sln.iml
+*.userprefs
+*.psess
+*.vsp
+*.vspx
+*.sap
+*.svclog
+*.scc
+*.vssscc
+*.vspscc
+*.pidb
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+# .NET tooling caches
+.dotnet/
+*.tlog
+*.cache
+*.lock.json
+
+# JetBrains Rider / ReSharper
+_ReSharper*/
+*.DotSettings.user
+*.dotCover
+.idea/
+*.iml
+.fleet/
+
+# VS Code (keep settings.json/launch.json if intentionally committed)
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+# Other editors
+.history/
+*.swp
+*.swo
+*~
+
+# Build logs
+[Ll]og/
+[Ll]ogs/
+*.log
+*.binlog
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Test results / coverage
+[Tt]est[Rr]esult*/
+[Cc]overage*/
+*.trx
+*.coverage
+*.coveragexml
+*.gcov
+*.opencover.xml
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+.nuget/
+packages/
+!**/packages/build/
+
+# MSIX / appx packaging output
+AppPackages/
+BundleArtifacts/
+*.msix
+*.msixupload
+*.msixbundle
+*.appx
+*.appxbundle
+*.appxupload
+*.appinstaller
+
+# Publish output
+publish/
+PublishScripts/
+*.pubxml
+*.pubxml.user
+Generated\ Files/
+*_wpftmp.csproj
+
+# Code signing / certificates (NEVER commit these)
+*.pfx
+*.p12
+*.snk
+*.cer
+*.crt
+*.key
+*.pem
+
+# Environment / secrets
+.env
+.env.*
+secrets.json
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# AI / agent tooling artifacts
+.claude/
+.agents/
+.cursor/
+.cursorrules
+.aider*
+.codeium/
+.continue/
+.windsurf/
+.specstory/
+.copilot/
+.codex*
+windows_app/.agents/
+
+# ---------------------------------------------------------------------------
+# Project: native binary dependencies (download separately — see README)
+# ---------------------------------------------------------------------------
+ffmpeg_bin/
+llama_bin/
+whisper_bin/
+models/
+
+# ---------------------------------------------------------------------------
+# Project: local runtime data / personal files
+# ---------------------------------------------------------------------------
+history.json
+winui_settings.json
+texts.json
+share_debug.txt
+test_prompt.txt
+user_memory.txt
+AITranscriber_Release/

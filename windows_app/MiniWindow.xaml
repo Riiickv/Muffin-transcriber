@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="AITranscriber_WinUI.MiniWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="using:AITranscriber_WinUI"
+    mc:Ignorable="d"
+    Title="{x:Bind local:AppStrings.App_Title}">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid Padding="16" RowSpacing="12" PointerPressed="Grid_PointerPressed" Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <TextBlock x:Name="StatusText" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
+            <Button x:Name="OpenMainButton" Click="OpenMainButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTipService.ToolTip="Open Full App">
+                <FontIcon Glyph="&#xE8A7;" FontSize="16" />
+            </Button>
+        </Grid>
+
+        <TextBox x:Name="TranscriptBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="False" />
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <Button x:Name="CopyButton" Content="{x:Bind local:AppStrings.Mini_Tooltip_Copy}" Click="CopyButton_Click" IsEnabled="False" />
+            <Button x:Name="FormatButton" Content="{x:Bind local:AppStrings.Mini_Tooltip_Format}" Click="FormatButton_Click" IsEnabled="False" />
+        </StackPanel>
+    </Grid>
+</Window>

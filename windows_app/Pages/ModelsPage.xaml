@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="AITranscriber_WinUI.Pages.ModelsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:AITranscriber_WinUI"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    NavigationCacheMode="Required"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel
+                Width="780"
+                MaxWidth="780"
+                Padding="28,20,28,28"
+                Spacing="18"
+                HorizontalAlignment="Left">
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Models_Title}" />
+
+                <toolkit:SettingsExpander Header="{x:Bind local:AppStrings.Models_WhisperSectionTitle}" Description="{x:Bind local:AppStrings.Models_WhisperSectionDesc}" IsExpanded="True">
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Whisper [tiny]" Description="~1GB VRAM">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock x:Name="TinyStatus" VerticalAlignment="Center" />
+                                <TextBlock Text="74 MB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <Button x:Name="TinyButton" Tag="ggml-tiny.bin" Click="ModelButton_Click" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+
+                        <toolkit:SettingsCard Header="Whisper [base]" Description="~1.5GB VRAM">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock x:Name="BaseStatus" VerticalAlignment="Center" />
+                                <TextBlock Text="142 MB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <Button x:Name="BaseButton" Tag="ggml-base.bin" Click="ModelButton_Click" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+
+                        <toolkit:SettingsCard Header="Whisper [small]" Description="~2.5GB VRAM">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock x:Name="SmallStatus" VerticalAlignment="Center" />
+                                <TextBlock Text="466 MB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <Button x:Name="SmallButton" Tag="ggml-small.bin" Click="ModelButton_Click" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+
+                        <toolkit:SettingsCard Header="Whisper [high]" Description="~5GB VRAM">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock x:Name="HighStatus" VerticalAlignment="Center" />
+                                <TextBlock Text="2.9 GB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <Button x:Name="HighButton" Tag="ggml-large-v3.bin" Click="ModelButton_Click" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <toolkit:SettingsExpander Header="{x:Bind local:AppStrings.Models_FormatterSectionTitle}" Description="{x:Bind local:AppStrings.Models_FormatterSectionDesc}" IsExpanded="True">
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Llama 3.2 [3B]" Description="~3.2GB VRAM">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock x:Name="LlamaStatus" VerticalAlignment="Center" />
+                                <TextBlock Text="2.0 GB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <Button x:Name="LlamaButton" Tag="Llama-3.2-3B-Instruct-Q4_K_M.gguf" Click="ModelButton_Click" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+
+                        <toolkit:SettingsCard Header="Qwen 2.5 [1.5B]" Description="~1.2GB VRAM">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock x:Name="QwenStatus" VerticalAlignment="Center" />
+                                <TextBlock Text="1.1 GB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <Button x:Name="QwenButton" Tag="qwen2.5-1.5b-instruct-q4_k_m.gguf" Click="ModelButton_Click" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+
+                        <toolkit:SettingsCard Header="Phi-3 Mini [3.8B]" Description="~2.4GB VRAM">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock x:Name="PhiStatus" VerticalAlignment="Center" />
+                                <TextBlock Text="2.4 GB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <Button x:Name="PhiButton" Tag="Phi-3-mini-4k-instruct-q4.gguf" Click="ModelButton_Click" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <ProgressBar x:Name="DownloadProgress" Visibility="Collapsed" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Floating Notification -->
+        <InfoBar
+            x:Name="StatusBar"
+            IsOpen="False"
+            IsClosable="True"
+            Severity="Informational"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Margin="0,0,0,32">
+            <InfoBar.Shadow>
+                <ThemeShadow />
+            </InfoBar.Shadow>
+        </InfoBar>
+    </Grid>
+</Page>
