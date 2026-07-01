@@ -16,8 +16,8 @@ public sealed class UserSettings
     public bool NormalizeAudio { get; set; } = true;
     public bool AutoCopyTranscript { get; set; }
     public double SidebarWidth { get; set; } = 320;
-    public int WindowWidth { get; set; } = 0;
-    public int WindowHeight { get; set; } = 0;
+    public int WindowWidth { get; set; } = 1000;
+    public int WindowHeight { get; set; } = 650;
     public string AutoDeleteCacheDuration { get; set; } = "Never"; // Options: Never, 1 Week, 1 Month
     public string CustomFormatSystemPrompt { get; set; } = string.Empty;
     public string CustomSummarySystemPrompt { get; set; } = string.Empty;
