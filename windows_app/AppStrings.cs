@@ -1,23 +1,23 @@
-namespace AITranscriber_WinUI;
+namespace MuffinTranscriber;
 
 public static class AppStrings
 {
     // ==========================================
     // GLOBAL / NAVIGATION
     // ==========================================
-    public static string Nav_Home => "Home";
+    public static string Nav_Home => "Muffin!";
     public static string Nav_Record => "Record";
     public static string Nav_History => "History";
     public static string Nav_Models => "Models";
     public static string Nav_Settings => "Settings";
 
-    public static string App_Title => "AITranscriber";
+    public static string App_Title => "Muffin Transcriber";
 
     // ==========================================
     // MAIN WINDOW
     // ==========================================
-    public static string Main_Status_MiniWindowOpen => "Mini-window is open.";
-    public static string Main_Status_ModelsNotInstalled => "Models missing. Check Models tab.";
+    public static string Main_Status_MiniWindowOpen => "Mini-Muffin is open.";
+    public static string Main_Status_ModelsNotInstalled => "You have not installed any model, go to the Models tab to get started.";
 
     // ==========================================
     // MINI WINDOW
@@ -25,26 +25,26 @@ public static class AppStrings
     public static string Mini_DropFileHere => "Drop File Here";
     public static string Mini_Tooltip_Copy => "Copy";
     public static string Mini_Tooltip_Format => "Format";
-    public static string Mini_Status_Transcribing => "Transcribing...";
+    public static string Mini_Status_Transcribing => "Mini Muffin is transcribing...";
     public static string Mini_Status_Done => "Done";
     public static string Mini_Status_Error => "Error: ";
-    public static string Mini_Status_NoWhisper => "No Whisper model found!";
-    public static string Mini_Status_NoFormatter => "No Formatter model found!";
+    public static string Mini_Status_NoWhisper => "No Whisper model installed!";
+    public static string Mini_Status_NoFormatter => "No Formatter model installed!";
 
     // ==========================================
     // HOME PAGE
     // ==========================================
     public static string Home_Title => "Home";
-    
+
     // Drop Zone
-    public static string Home_DropZoneText => "Drag & Drop Audio/Video File";
+    public static string Home_DropZoneText => "Drag & Drop any audio or video file";
     public static string Home_OrClickToBrowse => "or click to browse";
-    
+
     // Configuration
     public static string Home_ConfigurationTitle => "Configuration";
     public static string Home_LanguageLabel => "Language:";
     public static string Home_WhisperModelLabel => "Whisper Model:";
-    
+
     // Actions
     public static string Home_TranscribeButton => "Transcribe";
     public static string Home_ProcessAllButton => "Process All";
@@ -55,7 +55,7 @@ public static class AppStrings
     public static string Home_FormatModelLabel => "Format Model";
     public static string Home_FormatLanguageLabel => "Format Language";
     public static string Home_CustomPromptLabel => "Custom Instruction (Optional)";
-    
+
     // Transcript Output
     public static string Home_TranscriptTitle => "Transcript";
     public static string Home_TabRaw => "Raw";
@@ -94,7 +94,7 @@ public static class AppStrings
     // HISTORY PAGE
     // ==========================================
     public static string History_Title => "Transcription History";
-    
+
     // Actions
     public static string History_BtnReTranscribe => "Re-Transcribe";
     public static string History_LanguageLabel => "Language";
@@ -105,7 +105,7 @@ public static class AppStrings
     public static string History_ExportText => "Export as Text (.txt)";
     public static string History_ExportSrt => "Export as Subtitles (.srt)";
     public static string History_ExportVtt => "Export as WebVTT (.vtt)";
-    
+
     public static string History_EmptyDetailsText => "Select a transcription to view details.";
 
     // ==========================================
@@ -113,59 +113,59 @@ public static class AppStrings
     // ==========================================
     public static string Models_Title => "Manage Models";
     public static string Models_Instructions => "Download at least one Whisper model (for transcription) and one LLM (for formatting/summarization) to use the app.";
-    
+
     // Whisper Models
     public static string Models_WhisperSectionTitle => "Whisper Models (Transcription)";
     public static string Models_WhisperSectionDesc => "Download or remove local Whisper models.";
-    
+
     // Formatter Models
     public static string Models_FormatterSectionTitle => "Formatter Models (Local LLMs)";
     public static string Models_FormatterSectionDesc => "Download local LLMs for formatting.";
-    
+
     // Button States
     public static string Models_BtnDownload => "Download";
     public static string Models_BtnCancel => "Cancel";
     public static string Models_BtnDelete => "Delete";
     public static string Models_Downloaded => "Downloaded";
-    
+
     // Model Status Messages
     public static string Models_Status_DownloadFailed => "Download failed!";
     public static string Models_Status_Cancelled => "Download cancelled.";
     public static string Models_Status_Installed => "Installed";
     public static string Models_Status_Broken => "Broken Download";
     public static string Models_Status_NotInstalled => "Not Installed";
-    
+
     // Dynamic Formats
     public static string Models_Status_DeletedFormat => "{0} deleted.";
     public static string Models_Status_DownloadingFormat => "Downloading {0}...";
     public static string Models_Status_DownloadingProgressFormat => "Downloading {0} ({1} GB / {2} GB) - {3} MB/s - {4} remaining";
     public static string Models_Status_InstalledFormat => "{0} installed.";
-    
+
     // ==========================================
     // SETTINGS PAGE
     // ==========================================
     public static string Settings_Title => "Settings";
-    
+
     public static string Settings_DefaultsHeader => "Defaults";
     public static string Settings_DefaultLanguageTitle => "Default language";
     public static string Settings_DefaultLanguageDesc => "Preselect this language when opening Transcription.";
-    
+
     public static string Settings_PrefWhisperTitle => "Preferred Whisper model";
     public static string Settings_PrefWhisperDesc => "Use this installed model first when available.";
-    
+
     public static string Settings_FormattingHeader => "Formatting";
     public static string Settings_FormatByDefaultTitle => "Format by default";
     public static string Settings_FormatByDefaultDesc => "Enable transcript cleanup automatically.";
     public static string Settings_FormatLanguageTitle => "Default format language";
     public static string Settings_FormatLanguageDesc => "Used when formatting is enabled.";
-    
+
     public static string Settings_BehaviorHeader => "Transcription Behavior";
     public static string Settings_AudioNormTitle => "Normalize audio";
     public static string Settings_AudioNormDesc => "Apply high-pass, low-pass, and loudness normalization before Whisper.";
-    
+
     public static string Settings_AutoCopyTitle => "Auto-copy finished transcript";
     public static string Settings_AutoCopyDesc => "Copy the final transcript to the clipboard when processing completes.";
-    
+
     public static string Settings_PromptsHeader => "Custom System Prompts";
     public static string Settings_CustomFormatTitle => "Custom Format Prompt";
     public static string Settings_CustomFormatDesc => "Override the default system prompt used for formatting. Leave empty to use the default.";
@@ -173,7 +173,7 @@ public static class AppStrings
     public static string Settings_CustomSummaryDesc => "Override the default system prompt used for summarization. Leave empty to use the default.";
     public static string Settings_BtnResetPrompt => "Reset format prompt";
     public static string Settings_BtnResetSummary => "Reset summary prompt";
-    
+
     public static string Settings_MemoryHeader => "AI Context Memory";
     public static string Settings_ContextLearnTitle => "Enable context learning";
     public static string Settings_ContextLearnDesc => "Automatically learn and remember your specific jargon and transcription habits to improve accuracy over time.";
@@ -181,7 +181,7 @@ public static class AppStrings
     public static string Settings_ManageMemoryDesc => "View, edit, or clear the terms the AI has learned from your previous transcriptions.";
     public static string Settings_BtnEditMemory => "Edit Memory";
     public static string Settings_BtnClear => "Clear";
-    
+
     public static string Settings_StorageHeader => "Storage";
     public static string Settings_AutoDeleteTitle => "Auto-delete media cache";
     public static string Settings_AutoDeleteDesc => "Automatically delete cached audio and video files.";
@@ -189,27 +189,27 @@ public static class AppStrings
     public static string Settings_AudioCacheDesc => "Clear original audio files saved for re-transcription.";
     public static string Settings_VideoCacheTitle => "Video cache";
     public static string Settings_VideoCacheDesc => "Clear original video files saved for re-transcription.";
-    
+
     public static string Settings_ModelsFolderTitle => "Models folder";
     public static string Settings_ModelsFolderDesc => "Open the folder where Whisper and formatter models are stored.";
     public static string Settings_BtnOpen => "Open";
-    
+
     public static string Settings_MicHeader => "Permissions";
     public static string Settings_MicTitle => "Microphone access";
     public static string Settings_MicDesc => "Windows requires you to enable 'Let desktop apps access your microphone' to use the Voice Memos feature.";
     public static string Settings_BtnOpenMic => "Open Windows Settings";
-    
+
     public static string Settings_ResetTitle => "Reset settings";
     public static string Settings_ResetDesc => "Restore all WinUI app preferences to defaults.";
     public static string Settings_BtnReset => "Reset";
-    
+
     // Status Messages
     public static string Settings_Status_Reset => "Settings reset.";
     public static string Settings_Status_AudioCacheCleared => "Audio cache cleared.";
     public static string Settings_Status_VideoCacheCleared => "Video cache cleared.";
     public static string Settings_Status_MemoryUpdated => "AI memory updated.";
     public static string Settings_Status_MemoryCleared => "AI memory cleared.";
-    
+
     // Dialog Strings
     public static string Settings_Dialog_EditMemoryTitle => "Edit AI Memory Bank";
     public static string Settings_Dialog_Save => "Save";

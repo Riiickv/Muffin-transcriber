@@ -3,12 +3,11 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
-namespace AITranscriber_WinUI.Pages;
+namespace MuffinTranscriber.Pages;
 
 public sealed partial class ModelsPage : Page
 {
-    // One shared HttpClient — creating per-request churns sockets and per-chunk
-    // creation (8x at once) used to blow the connection pool on every download.
+    // HTTP client
     private static readonly HttpClient SharedHttpClient = new() { Timeout = Timeout.InfiniteTimeSpan };
 
     private readonly Dictionary<string, (TextBlock Status, Button Button)> _controls;
@@ -145,7 +144,7 @@ public sealed partial class ModelsPage : Page
             }
         });
 
-        // Check if server supports range requests
+        // Check range
         if (totalHeader is null or <= 0 || headResponse.Headers.AcceptRanges?.Contains("bytes") != true)
         {
             await using Stream source = await headResponse.Content.ReadAsStreamAsync();
@@ -163,7 +162,7 @@ public sealed partial class ModelsPage : Page
             return;
         }
 
-        // Parallel chunk download
+        // Fast download
         int maxConnections = 8;
         long chunkSize = totalBytes / maxConnections;
         

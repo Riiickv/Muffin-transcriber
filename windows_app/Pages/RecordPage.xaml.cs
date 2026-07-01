@@ -9,7 +9,7 @@ using System.IO;
 using System;
 using System.Linq;
 
-namespace AITranscriber_WinUI.Pages;
+namespace MuffinTranscriber.Pages;
 
 public sealed partial class RecordPage : Page
 {
@@ -133,9 +133,9 @@ public sealed partial class RecordPage : Page
 
         if (_recorder != null && _recorder.IsRecording)
         {
-            // STOP RECORDING
+            // Stop recording
             RecordButton.Background = (SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"];
-            RecordIcon.Glyph = "\uE720"; // Mic
+            RecordIcon.Glyph = "\uE720";
             RecordStatusText.Text = "Processing...";
             RecordTimerText.Text = "Wait...";
             
@@ -152,7 +152,7 @@ public sealed partial class RecordPage : Page
         }
         else
         {
-            // START RECORDING
+            // Start recording
             RecordButton.Background = new SolidColorBrush(Microsoft.UI.Colors.Firebrick);
             RecordIcon.Glyph = "\uE71A"; // Stop
             RecordStatusText.Text = "Stop Recording";
@@ -169,23 +169,23 @@ public sealed partial class RecordPage : Page
                 {
                     RecordTimerText.Text = data.Time.ToString(@"hh\:mm\:ss");
                     
-                    // Smooth the overall volume peak
+                    // Smooth volume
                     _smoothedPeak = _smoothedPeak + (data.PeakLevel - _smoothedPeak) * 0.3;
                     
                     for (int i = 0; i < 20; i++)
                     {
-                        // Calculate distance from center to create a bell curve
+                        // Calculate bell
                         double distance = Math.Abs(9.5 - i) / 9.5;
                         double multiplier = 1.0 - (distance * distance);
                         
-                        // Add some randomized jitter so it feels alive like an EQ
+                        // Add jitter
                         double jitter = 0.7 + (_vizRandom.NextDouble() * 0.6); 
                         
                         double targetHeight = 4 + (_smoothedPeak * 1200 * multiplier * jitter);
                         if (targetHeight > 40) targetHeight = 40;
                         if (targetHeight < 4) targetHeight = 4;
                         
-                        // Smoothly interpolate the bar's height
+                        // Smooth bar
                         _visualizerBars[i].Height = _visualizerBars[i].Height + (targetHeight - _visualizerBars[i].Height) * 0.5;
                     }
                 });
@@ -218,7 +218,7 @@ public sealed partial class RecordPage : Page
         {
             ShowStatus(AppStrings.Home_Status_PreparingAudio, InfoBarSeverity.Informational);
             
-            // Re-encode through ffmpeg just in case Whisper gets picky, or normalize
+            // Fix audio
             string processedWavPath = Path.Combine(Path.GetTempPath(), "ai_transcriber_record.wav");
             string ffmpegArgs = _settings.NormalizeAudio
                 ? $"-y -i \"{filePath}\" -vn -af highpass=f=80,lowpass=f=7800,loudnorm=I=-16:TP=-1.5:LRA=11 -ar 16000 -ac 1 -c:a pcm_s16le \"{processedWavPath}\""

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AITranscriber_WinUI;
+namespace MuffinTranscriber;
 
 public static class LLMFormatter
 {

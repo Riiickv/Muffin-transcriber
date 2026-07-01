@@ -1,90 +1,18 @@
-# AI Transcriber
+# Muffin Transcriber
 
-A private, local-first Windows transcriber. Drag an audio or video file (or record from your mic) and get an accurate transcript powered by [whisper.cpp](https://github.com/ggerganov/whisper.cpp). Optionally clean it up and summarize it with a small local LLM via [llama.cpp](https://github.com/ggerganov/llama.cpp) — nothing leaves your machine.
+This is a fully local and private transcriber I'm making in my free time. I simply hate voice messages, especially long ones, and this app helps with it.
 
-> Built with WinUI 3 + .NET 10. No cloud APIs, no telemetry, no subscriptions.
+It uses ChatGPT Whisper to transcribe, but it might not be perfect, so another local LLM can format the text or even summarize it. Summarization supports custom prompts; it's not 100% perfect though and doesn't always accurately follow instructions, especially because they're open source models and consumer computers might not have the right capabilities to run heavier models. If anyone needs it, I might add more models to the downloadable list or simply allow for custom directories.
 
-## Features
+## With Muffin you can:
+- **Share from any app** that uses `.mp3`, `.mp4` and `.ogg` files or file explorer, it works with Windows sharing. Or just drag and drop or even select a file.
+- **Record anything** and transcribe it.
+- **Transcribe, format and summarize** the text. If you want to summarize you can input a prompt to the LLM and it will summarize the text the way you want it.
+- There's also a **History section** where you can review old transcriptions and edit them.
 
-- **Local transcription** with Whisper (tiny → large-v3)
-- **Local LLM cleanup** that adds punctuation, paragraphs, and corrects Whisper hallucinations (Llama 3.2 3B, Qwen 2.5 1.5B, or Phi-3 Mini)
-- **Local summarization** of long transcripts
-- **Microphone recording** with live audio visualizer
-- **Drag-and-drop** + Windows **Share Target** (right-click → Share → AI Transcriber from any file)
-- **Subtitle export** (`.srt` / `.vtt`) for transcribed videos
-- **History** with content-hash deduping
-- **Optional context learning** — extracts domain jargon from past transcripts to improve future ones (toggleable)
-- Custom system prompts for the formatter and summarizer
+## About the Project
+This project is like 100% vibecoded, I don't really like it but as a developer myself I realize that I cannot code everything I want or need to make especially because I have other ongoing projects which are NOT vibecoded. And not unlimited time, so basically I wanted a transcriber because I hate voice notes and made one, just that. I will keep improving it if I get new ideas or someone reports a feature they want.
 
-## Project layout
+The code is mostly reviewed by me when I feel like doing it, right now I have reviewed what I think needed to be ensured was still private and local. I might have missed a lot of stuff, so please let me know if there's anything that has to be adjusted.
 
-```
-.
-├── windows_app/        WinUI 3 app source
-├── ffmpeg_bin/         FFmpeg binaries (not in repo — see below)
-├── whisper_bin/        whisper.cpp CLI (not in repo — see below)
-├── llama_bin/          llama.cpp CLI (not in repo — see below)
-└── models/             Downloaded model weights (managed by the app)
-```
-
-## Building from source
-
-### Prerequisites
-- Windows 10 1809+ / Windows 11
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- A C++ desktop workload for Visual Studio (only needed for WinUI tooling)
-
-### Native dependencies
-
-The app shells out to three CLI executables that are not redistributed in this repository (so the source tree stays small and the licensing stays clean). Download or build them yourself and drop them into the matching folders:
-
-| Folder         | What to put in it                                                                                   |
-| -------------- | --------------------------------------------------------------------------------------------------- |
-| `whisper_bin/` | `whisper-cli.exe` from [whisper.cpp releases](https://github.com/ggerganov/whisper.cpp/releases)     |
-| `llama_bin/`   | `llama-cli.exe` from [llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases)           |
-| `ffmpeg_bin/`  | `ffmpeg.exe` from [ffmpeg.org](https://ffmpeg.org/download.html) (LGPL build recommended)            |
-
-If you want GPU acceleration, use the CUDA / Vulkan builds and place their accompanying DLLs next to the exe.
-
-The model weights themselves are downloaded on demand from inside the app's **Models** page.
-
-### Build
-
-```powershell
-cd windows_app
-dotnet restore
-dotnet build -c Release
-```
-
-To produce a standalone release folder:
-
-```powershell
-dotnet publish -c Release -p:WindowsPackageType=None -p:WindowsAppSDKSelfContained=true -r win-x64 -o publish
-```
-
-## Models
-
-Downloaded into `%LOCALAPPDATA%\AITranscriber\models\`:
-
-| Type      | Model                | Size    | Approx VRAM |
-| --------- | -------------------- | ------- | ----------- |
-| Whisper   | tiny                 | 74 MB   | ~1 GB       |
-| Whisper   | base                 | 142 MB  | ~1.5 GB     |
-| Whisper   | small                | 466 MB  | ~2.5 GB     |
-| Whisper   | large-v3             | 2.9 GB  | ~5 GB       |
-| Formatter | Llama 3.2 3B Q4_K_M  | 2.0 GB  | ~3.2 GB     |
-| Formatter | Qwen 2.5 1.5B Q4_K_M | 1.1 GB  | ~1.2 GB     |
-| Formatter | Phi-3 Mini 3.8B Q4   | 2.4 GB  | ~2.4 GB     |
-
-## Privacy
-
-Everything runs locally. The only network traffic is:
-- Downloading model weights from Hugging Face (on user request, from the Models page)
-
-There is no telemetry, no analytics, no account, no cloud sync.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
-
-Third-party components are credited in [NOTICES.md](NOTICES.md).
+Still, I HATE how AI writes so I have rewritten most of the texts myself in both the installer and the app. If you find any typo please let me know.

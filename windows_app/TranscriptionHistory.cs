@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace AITranscriber_WinUI;
+namespace MuffinTranscriber;
 
 public sealed record TranscriptionHistoryItem(
     string Id,

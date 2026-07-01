@@ -1,7 +1,7 @@
 #define MyAppName "Muffin Transcriber"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Muffin Open Source"
-#define MyAppExeName "AITranscriber.WinUI.exe"
+#define MyAppExeName "MuffinTranscriber.exe"
 
 ; EDIT THIS URL TO POINT TO YOUR GITHUB RELEASE!
 #define EnginesUrl "https://github.com/Riiickv/Muffin-transcriber/releases/download/v1.0.0/muffin-engines.zip"
