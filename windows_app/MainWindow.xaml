@@ -83,5 +83,22 @@
             PointerMoved="PaneResizeGrip_PointerMoved"
             PointerReleased="PaneResizeGrip_PointerReleased"
             PointerCanceled="PaneResizeGrip_PointerReleased" />
+
+        <InfoBar x:Name="UpdateBanner"
+                 Grid.RowSpan="2"
+                 IsOpen="False"
+                 IsClosable="True"
+                 Severity="Success"
+                 Title="{x:Bind local:AppStrings.Update_BannerTitle}"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Top"
+                 Margin="0,56,0,0">
+            <InfoBar.ActionButton>
+                <Button x:Name="UpdateActionButton" Content="{x:Bind local:AppStrings.Update_BtnUpdate}" Click="UpdateActionButton_Click" />
+            </InfoBar.ActionButton>
+            <InfoBar.Content>
+                <ProgressBar x:Name="UpdateProgressBar" Visibility="Collapsed" Maximum="100" Margin="0,8,0,0"/>
+            </InfoBar.Content>
+        </InfoBar>
     </Grid>
 </Window>
