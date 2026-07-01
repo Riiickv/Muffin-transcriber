@@ -12,6 +12,8 @@ public static class AppStrings
     public static string Nav_Settings => "Settings";
 
     public static string App_Title => "Muffin Transcriber";
+    public static string AppVersion => "v1.0.0";
+    public static string Credits => "made by Rick in his free time";
 
     // ==========================================
     // MAIN WINDOW
@@ -48,13 +50,13 @@ public static class AppStrings
     // Actions
     public static string Home_TranscribeButton => "Transcribe";
     public static string Home_ProcessAllButton => "Process All";
-    public static string Home_FormatSwitch => "Auto-format with local LLM";
-    public static string Home_SummarizeSwitch => "Auto-summarize with local LLM";
+    public static string Home_FormatSwitch => "Auto format";
+    public static string Home_SummarizeSwitch => "Auto summarize";
 
     // LLM Formatter Config
     public static string Home_FormatModelLabel => "Format Model";
     public static string Home_FormatLanguageLabel => "Format Language";
-    public static string Home_CustomPromptLabel => "Custom Instruction (Optional)";
+    public static string Home_CustomPromptLabel => "Custom Instruction";
 
     // Transcript Output
     public static string Home_TranscriptTitle => "Transcript";
@@ -72,9 +74,9 @@ public static class AppStrings
     public static string Home_Status_LoadedFromHistoryCopied => "Loaded from history and copied.";
     public static string Home_Status_CachingMedia => "Caching media file to internal storage...";
     public static string Home_Status_PreparingAudio => "Preparing audio...";
-    public static string Home_Status_TranscribingWhisper => "Transcribing with Whisper...";
-    public static string Home_Status_FormattingLLM => "Formatting transcript with local LLM...";
-    public static string Home_Status_SummarizingLLM => "Summarizing transcript with local LLM...";
+    public static string Home_Status_TranscribingWhisper => "Transcribing";
+    public static string Home_Status_FormattingLLM => "Formatting transcript";
+    public static string Home_Status_SummarizingLLM => "Summarizing transcript";
     public static string Home_Status_TranscriptionCompleteCopied => "Transcription complete and copied.";
     public static string Home_Status_TranscriptionComplete => "Transcription complete.";
     public static string Home_Status_CopiedToClipboard => "Copied to clipboard.";
@@ -88,7 +90,7 @@ public static class AppStrings
     public static string Record_Title => "Voice Memos";
     public static string Record_StartButton => "Start Recording";
     public static string Record_StopButton => "Stop Recording";
-    public static string Record_Instructions => "Click Start Recording to dictate a voice memo. It will be transcribed instantly when you stop.";
+    public static string Record_Instructions => "";
 
     // ==========================================
     // HISTORY PAGE
@@ -112,7 +114,7 @@ public static class AppStrings
     // MODELS PAGE
     // ==========================================
     public static string Models_Title => "Manage Models";
-    public static string Models_Instructions => "Download at least one Whisper model (for transcription) and one LLM (for formatting/summarization) to use the app.";
+    public static string Models_Instructions => "Download at least one Whisper model (for transcription) and one LLM (for formatting/summarization).";
 
     // Whisper Models
     public static string Models_WhisperSectionTitle => "Whisper Models (Transcription)";
@@ -211,7 +213,24 @@ public static class AppStrings
     public static string Settings_Status_MemoryCleared => "AI memory cleared.";
 
     // Dialog Strings
-    public static string Settings_Dialog_EditMemoryTitle => "Edit AI Memory Bank";
+    public static string Settings_Dialog_EditMemoryTitle => "Edit Memory";
     public static string Settings_Dialog_Save => "Save";
     public static string Settings_Dialog_Cancel => "Cancel";
+
+    // ==========================================
+    // AUTO UPDATER
+    // ==========================================
+    public static string Update_BannerTitle => "Update Available";
+    public static string Update_BtnUpdate => "Update";
+    public static string Update_BtnRestart => "Restart & Install";
+    public static string Update_BtnDownloading => "Downloading...";
+    public static string Update_StatusReady => "Update ready to install!";
+    public static string Update_StatusAvailableFormat => "Version {0} is available.";
+    public static string Update_StatusFailedFormat => "Download failed: {0}";
+    
+    public static string Settings_AboutHeader => "About";
+    public static string Settings_BtnCheckUpdates => "Check for updates";
+    public static string Settings_UpdateChecking => "Checking...";
+    public static string Settings_UpdateFound => "Update found!";
+    public static string Settings_UpdateUpToDate => "Up to date";
 }

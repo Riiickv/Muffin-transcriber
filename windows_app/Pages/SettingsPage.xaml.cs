@@ -254,4 +254,28 @@ public sealed partial class SettingsPage : Page
         }
         catch { }
     }
+
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        CheckUpdatesButton.Content = AppStrings.Settings_UpdateChecking;
+        CheckUpdatesButton.IsEnabled = false;
+
+        var (available, latestVersion, url) = await AutoUpdater.CheckForUpdatesAsync();
+
+        if (available)
+        {
+            CheckUpdatesButton.Content = AppStrings.Settings_UpdateFound;
+            if (App.MainWindow is MainWindow mainWindow)
+            {
+                mainWindow.ShowUpdateBanner(latestVersion, url);
+            }
+        }
+        else
+        {
+            CheckUpdatesButton.Content = AppStrings.Settings_UpdateUpToDate;
+            await Task.Delay(2000);
+            CheckUpdatesButton.Content = AppStrings.Settings_BtnCheckUpdates;
+            CheckUpdatesButton.IsEnabled = true;
+        }
+    }
 }

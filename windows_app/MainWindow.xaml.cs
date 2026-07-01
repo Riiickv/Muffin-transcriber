@@ -3,6 +3,8 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using MuffinTranscriber.Pages;
+using System;
+using System.Threading.Tasks;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -17,11 +19,14 @@ public sealed partial class MainWindow : Window
     private bool _isResizingPane;
     private double _resizeStartX;
     private double _resizeStartPaneLength;
+    private string _updateDownloadUrl = "";
+    private string _installerPath = "";
 
     public MainWindow(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation = null)
     {
         InitializeComponent();
         _ = System.Threading.Tasks.Task.Run(() => AppModel.CleanCache());
+        _ = CheckForUpdatesAsync();
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
@@ -158,5 +163,53 @@ public sealed partial class MainWindow : Window
     {
         PaneResizeGrip.Visibility = NavView.IsPaneOpen ? Visibility.Visible : Visibility.Collapsed;
         PaneResizeGrip.Margin = new Thickness(Math.Max(0, NavView.OpenPaneLength - PaneResizeGrip.Width / 2), 0, 0, 0);
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        var (available, latestVersion, url) = await AutoUpdater.CheckForUpdatesAsync();
+        if (available)
+        {
+            ShowUpdateBanner(latestVersion, url);
+        }
+    }
+
+    public void ShowUpdateBanner(string latestVersion, string url)
+    {
+        _updateDownloadUrl = url;
+        UpdateBanner.Message = string.Format(AppStrings.Update_StatusAvailableFormat, latestVersion);
+        UpdateBanner.IsOpen = true;
+    }
+
+    private async void UpdateActionButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (UpdateActionButton.Content.ToString() == AppStrings.Update_BtnRestart)
+        {
+            AutoUpdater.InstallAndRestart(_installerPath);
+            return;
+        }
+
+        UpdateActionButton.IsEnabled = false;
+        UpdateActionButton.Content = AppStrings.Update_BtnDownloading;
+        UpdateProgressBar.Visibility = Visibility.Visible;
+        UpdateProgressBar.Value = 0;
+
+        try
+        {
+            var progress = new Progress<int>(p => UpdateProgressBar.Value = p);
+            _installerPath = await AutoUpdater.DownloadUpdateAsync(_updateDownloadUrl, progress);
+
+            UpdateActionButton.Content = AppStrings.Update_BtnRestart;
+            UpdateActionButton.IsEnabled = true;
+            UpdateBanner.Message = AppStrings.Update_StatusReady;
+        }
+        catch (Exception ex)
+        {
+            UpdateBanner.Severity = InfoBarSeverity.Error;
+            UpdateBanner.Message = string.Format(AppStrings.Update_StatusFailedFormat, ex.Message);
+            UpdateProgressBar.Visibility = Visibility.Collapsed;
+            UpdateActionButton.Content = AppStrings.Update_BtnUpdate;
+            UpdateActionButton.IsEnabled = true;
+        }
     }
 }
