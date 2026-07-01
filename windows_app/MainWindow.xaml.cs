@@ -33,10 +33,10 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
-        if (_settings.WindowWidth > 0 && _settings.WindowHeight > 0)
-        {
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(_settings.WindowWidth, _settings.WindowHeight));
-        }
+        int startWidth = _settings.WindowWidth > 800 ? _settings.WindowWidth : 1000;
+        int startHeight = _settings.WindowHeight > 600 ? _settings.WindowHeight : 650;
+        
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(startWidth, startHeight));
 
         Closed += MainWindow_Closed;
 
