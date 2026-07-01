@@ -42,8 +42,18 @@ var
   DownloadPage: TDownloadWizardPage;
 
 function IsAutoUpdate: Boolean;
+var
+  i: Integer;
 begin
-  Result := CmdLineParamExists('/AUTOUPDATE');
+  Result := False;
+  for i := 1 to ParamCount do
+  begin
+    if CompareText(ParamStr(i), '/AUTOUPDATE') = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
 end;
 
 procedure InitializeWizard;
