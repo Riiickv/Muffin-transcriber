@@ -61,6 +61,11 @@ begin
   Result := True;
   
   if CurPageID = wpReady then begin
+    if FileExists(ExpandConstant('{app}\ffmpeg.exe')) then begin
+      Log('Engines already exist, skipping download.');
+      Exit;
+    end;
+
     DownloadPage.Clear;
     DownloadPage.Add('{#EnginesUrl}', 'muffin-engines.zip', '');
     DownloadPage.Show;
