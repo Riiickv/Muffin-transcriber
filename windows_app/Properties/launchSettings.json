@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AITranscriber.WinUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "AITranscriber.WinUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
