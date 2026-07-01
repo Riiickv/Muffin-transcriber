@@ -1,6 +1,6 @@
 # Muffin Transcriber
 
-This is a fully local and private transcriber I'm making in my free time. I simply hate voice messages, especially long ones, and this app helps with it.
+This is a fully local and private transcriber I'm working on in my free time. I simply hate voice messages, especially long ones, and this app helps with it.
 
 It uses ChatGPT Whisper to transcribe, but it might not be perfect, so another local LLM can format the text or even summarize it. Summarization supports custom prompts; it's not 100% perfect though and doesn't always accurately follow instructions, especially because they're open source models and consumer computers might not have the right capabilities to run heavier models. If anyone needs it, I might add more models to the downloadable list or simply allow for custom directories.
 
