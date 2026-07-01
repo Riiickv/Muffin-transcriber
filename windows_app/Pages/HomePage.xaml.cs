@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
 
-namespace AITranscriber_WinUI.Pages;
+namespace MuffinTranscriber.Pages;
 
 public sealed partial class HomePage : Page
 {

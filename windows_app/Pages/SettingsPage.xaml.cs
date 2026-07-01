@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace AITranscriber_WinUI.Pages;
+namespace MuffinTranscriber.Pages;
 
 public sealed partial class SettingsPage : Page
 {

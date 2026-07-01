@@ -3,7 +3,7 @@ using System.Threading;
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
 
-namespace AITranscriber_WinUI;
+namespace MuffinTranscriber;
 
 public static class SingleInstanceProgram
 {

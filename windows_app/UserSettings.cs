@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace AITranscriber_WinUI;
+namespace MuffinTranscriber;
 
 public sealed class UserSettings
 {

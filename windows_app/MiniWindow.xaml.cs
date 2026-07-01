@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 
-namespace AITranscriber_WinUI;
+namespace MuffinTranscriber;
 
 public sealed partial class MiniWindow : Window
 {

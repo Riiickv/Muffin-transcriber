@@ -2,7 +2,7 @@ using NAudio.Wave;
 using System;
 using System.IO;
 
-namespace AITranscriber_WinUI;
+namespace MuffinTranscriber;
 
 public sealed class MicrophoneRecorder : IDisposable
 {

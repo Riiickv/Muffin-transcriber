@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace AITranscriber_WinUI;
+namespace MuffinTranscriber;
 
 public sealed record ModelInfo(string File, string Name, string Url, string Size);
 
@@ -36,7 +36,7 @@ public static class AppModel
     {
         get
         {
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AITranscriber");
+            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MuffinTranscriber");
             Directory.CreateDirectory(path);
             return path;
         }
