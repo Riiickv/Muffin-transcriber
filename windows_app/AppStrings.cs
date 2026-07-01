@@ -12,8 +12,9 @@ public static class AppStrings
     public static string Nav_Settings => "Settings";
 
     public static string App_Title => "Muffin Transcriber";
-    public static string AppVersion => "v1.0.0";
+    public static string AppVersion => "v1.2.0";
     public static string Credits => "made by Rick in his free time";
+    public static string Settings_BtnChangelog => "View Changelog";
 
     // ==========================================
     // MAIN WINDOW
@@ -220,11 +221,11 @@ public static class AppStrings
     // ==========================================
     // AUTO UPDATER
     // ==========================================
-    public static string Update_BannerTitle => "Update Available";
-    public static string Update_BtnUpdate => "Update";
-    public static string Update_BtnRestart => "Restart & Install";
-    public static string Update_BtnDownloading => "Downloading...";
-    public static string Update_StatusReady => "Update ready to install!";
+    public static string Update_BannerTitle => "Muffin update available!";
+    public static string Update_BtnUpdate => "Update!";
+    public static string Update_BtnRestart => "Restart";
+    public static string Update_BtnDownloading => "Downloading update...";
+    public static string Update_StatusReady => "Muffin update ready to install!";
     public static string Update_StatusAvailableFormat => "Version {0} is available.";
     public static string Update_StatusFailedFormat => "Download failed: {0}";
     
