@@ -18,7 +18,7 @@ The code is mostly reviewed by me when I feel like doing it, right now I have re
 Still, I HATE how AI writes so I have rewritten most of the texts myself in both the installer and the app. If you find any typo please let me know.
 
 ## Instructions
-Download ONLY the Installer, not the muffine-engines.zip file, it contains all the AI dependencies.
+Download ONLY the Installer, not the muffin-engines.zip file, it contains all the AI dependencies.
 The installer will fetch the muffine-engines.zip folder automatically and apply its content.
 
 I think the transcriber itself it's pretty straightforward, but if anyone really needs a tutorial or instructions on how to use it, don't hesitate to reach out to me and ask for it. I might even add a tutorial inside the app itself.
