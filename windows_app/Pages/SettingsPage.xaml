@@ -131,7 +131,11 @@
             </toolkit:SettingsCard>
 
             <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_AboutHeader}" />
-            
+
+            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AutoUpdateTitle}" Description="{x:Bind local:AppStrings.Settings_AutoUpdateDesc}">
+                <ToggleSwitch x:Name="AutoUpdateCheckSwitch" Toggled="SaveOnToggled" />
+            </toolkit:SettingsCard>
+
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.App_Title}" Description="{x:Bind local:AppStrings.Credits}">
                 <StackPanel Orientation="Horizontal" Spacing="16">
                     <TextBlock Text="{x:Bind local:AppStrings.AppVersion}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />

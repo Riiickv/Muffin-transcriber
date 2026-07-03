@@ -230,6 +230,8 @@ public static class AppStrings
     public static string Update_StatusFailedFormat => "Download failed: {0}";
     
     public static string Settings_AboutHeader => "About";
+    public static string Settings_AutoUpdateTitle => "Auto-check for updates";
+    public static string Settings_AutoUpdateDesc => "The app pings GitHub on launch just to see if there's a newer version. Turn it off if you'd rather it stayed fully offline.";
     public static string Settings_BtnCheckUpdates => "Check for updates";
     public static string Settings_UpdateChecking => "Checking...";
     public static string Settings_UpdateFound => "Update found!";

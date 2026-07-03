@@ -15,6 +15,8 @@ This project is like 100% vibecoded, I don't really like it but as a developer m
 
 The code is mostly reviewed by me when I feel like doing it, right now I have reviewed what I think needed to be ensured was still private and local. I might have missed a lot of stuff, so please let me know if there's anything that has to be adjusted.
 
+Also, the app does a small check to GitHub when it opens just to see if there's a new version, that's the only thing that isn't offline. If you don't want that you can simply turn it off from the Settings.
+
 Still, I HATE how AI writes so I have rewritten most of the texts myself in both the installer and the app. If you find any typo please let me know.
 
 ## Instructions
