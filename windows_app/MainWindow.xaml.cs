@@ -26,7 +26,10 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         _ = System.Threading.Tasks.Task.Run(() => AppModel.CleanCache());
-        _ = CheckForUpdatesAsync();
+        if (_settings.EnableAutoUpdateCheck)
+        {
+            _ = CheckForUpdatesAsync();
+        }
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);

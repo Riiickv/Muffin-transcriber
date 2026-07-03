@@ -50,6 +50,7 @@ public sealed partial class SettingsPage : Page
         NormalizeAudioSwitch.IsOn = _settings.NormalizeAudio;
         AutoCopySwitch.IsOn = _settings.AutoCopyTranscript;
         ContextLearningSwitch.IsOn = _settings.EnableContextLearning;
+        AutoUpdateCheckSwitch.IsOn = _settings.EnableAutoUpdateCheck;
         SelectComboItem(AutoDeleteBox, _settings.AutoDeleteCacheDuration);
         CustomFormatBox.Text = _settings.CustomFormatSystemPrompt;
         CustomSummaryBox.Text = _settings.CustomSummarySystemPrompt;
@@ -102,6 +103,7 @@ public sealed partial class SettingsPage : Page
         _settings.NormalizeAudio = NormalizeAudioSwitch.IsOn;
         _settings.AutoCopyTranscript = AutoCopySwitch.IsOn;
         _settings.EnableContextLearning = ContextLearningSwitch.IsOn;
+        _settings.EnableAutoUpdateCheck = AutoUpdateCheckSwitch.IsOn;
         _settings.AutoDeleteCacheDuration = SelectedComboText(AutoDeleteBox);
         _settings.CustomFormatSystemPrompt = CustomFormatBox.Text;
         _settings.CustomSummarySystemPrompt = CustomSummaryBox.Text;

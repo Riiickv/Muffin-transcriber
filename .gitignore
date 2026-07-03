@@ -161,6 +161,27 @@ whisper_bin/
 models/
 
 # ---------------------------------------------------------------------------
+# Mobile companion app — kept out of this repo for now.
+# Remove this line when the mobile app is ready to be published.
+# ---------------------------------------------------------------------------
+mobile_app/
+
+# ---------------------------------------------------------------------------
+# Node / Expo / React Native (catch-all for whenever the mobile app is added)
+# ---------------------------------------------------------------------------
+node_modules/
+.expo/
+.expo-shared/
+web-build/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+AGENTS.md
+CLAUDE.md
+
+# ---------------------------------------------------------------------------
 # Project: local runtime data / personal files
 # ---------------------------------------------------------------------------
 history.json

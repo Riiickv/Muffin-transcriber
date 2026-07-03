@@ -22,6 +22,7 @@ public sealed class UserSettings
     public string CustomFormatSystemPrompt { get; set; } = string.Empty;
     public string CustomSummarySystemPrompt { get; set; } = string.Empty;
     public bool EnableContextLearning { get; set; } = true;
+    public bool EnableAutoUpdateCheck { get; set; } = true;
 
     public static string SettingsPath => Path.Combine(AppModel.AppDataDir, "winui_settings.json");
 

@@ -6,6 +6,13 @@
 ; EDIT THIS URL TO POINT TO YOUR GITHUB RELEASE!
 #define EnginesUrl "https://github.com/Riiickv/Muffin-transcriber/releases/download/v1.0.0/muffin-engines.zip"
 
+; Path to the published app files. Override on the command line with
+;   iscc /DAppFilesDir="D:\somewhere\else" muffin_installer.iss
+; if your publish folder lives somewhere other than the default.
+#ifndef AppFilesDir
+  #define AppFilesDir "..\AITranscriber_Release\app_files"
+#endif
+
 [Setup]
 AppId={{8B841A83-F1C5-4845-9892-069E6E9222B5}
 AppName={#MyAppName}
@@ -13,7 +20,7 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-OutputDir=C:\Users\ricky\Desktop
+OutputDir=.\dist
 OutputBaseFilename=Muffin_Setup
 Compression=lzma
 SolidCompression=yes
@@ -24,7 +31,7 @@ PrivilegesRequired=lowest
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "C:\Users\ricky\Desktop\AITranscriber_Release\app_files\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#AppFilesDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
