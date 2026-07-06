@@ -1,0 +1,87 @@
+import { Platform } from 'react-native';
+import type { LlamaContext } from 'llama.rn';
+import { ModelManager, EMBEDDING_MODELS } from './ModelManager';
+
+// llama.rn is a native module — importing it at top level crashes the web
+// bundle. Guard behind a lazy require, same pattern as ChatEngine/LLMEngine.
+let initLlama: any;
+function getInitLlama() {
+  if (!initLlama && Platform.OS !== 'web') {
+    initLlama = require('llama.rn').initLlama;
+  }
+  return initLlama;
+}
+
+let embeddingContext: LlamaContext | null = null;
+let currentModelPath: string | null = null;
+
+export async function loadEmbeddingModel(): Promise<boolean> {
+  // Use the first embedding model we have
+  const modelDef = EMBEDDING_MODELS[0];
+  const isDownloaded = await ModelManager.isModelDownloaded(modelDef.id);
+  
+  if (!isDownloaded) {
+    console.log("Embedding model not downloaded yet.");
+    return false;
+  }
+
+  const modelPath = ModelManager.getModelPath(modelDef.id);
+
+  if (embeddingContext && currentModelPath === modelPath) {
+    return true; // Already loaded
+  }
+
+  if (embeddingContext) {
+    await embeddingContext.release();
+    embeddingContext = null;
+  }
+
+  try {
+    console.log("Loading embedding model...");
+    const init = getInitLlama();
+    if (!init) return false; // web / unsupported platform
+    embeddingContext = await init({
+      model: modelPath,
+      n_ctx: 512, // small context for embedding
+      n_batch: 512,
+      pooling_type: 'mean' // critical for BERT/MiniLM models
+    });
+    currentModelPath = modelPath;
+    console.log("Embedding model loaded successfully.");
+    return true;
+  } catch (e) {
+    console.error("Failed to load embedding model:", e);
+    return false;
+  }
+}
+
+export async function generateEmbedding(text: string): Promise<number[] | null> {
+  const isLoaded = await loadEmbeddingModel();
+  if (!isLoaded || !embeddingContext) return null;
+
+  try {
+    const result = await embeddingContext.embedding(text);
+    return result.embedding;
+  } catch (e) {
+    console.error("Failed to generate embedding:", e);
+    return null;
+  }
+}
+
+/**
+ * Calculates the cosine similarity between two vectors.
+ * Returns a value between -1 and 1, where 1 means identical.
+ */
+export function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  if (vecA.length !== vecB.length || vecA.length === 0) return 0;
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  if (normA === 0 || normB === 0) return 0;
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}

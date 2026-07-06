@@ -161,14 +161,14 @@ whisper_bin/
 models/
 
 # ---------------------------------------------------------------------------
-# Mobile companion app — kept out of this repo for now.
-# Remove this line when the mobile app is ready to be published.
+# Mobile companion app
 # ---------------------------------------------------------------------------
-mobile_app/
 
 # ---------------------------------------------------------------------------
-# Node / Expo / React Native (catch-all for whenever the mobile app is added)
+# Node / Expo / React Native / Android build directories
 # ---------------------------------------------------------------------------
+build/
+.gradle/
 node_modules/
 .expo/
 .expo-shared/

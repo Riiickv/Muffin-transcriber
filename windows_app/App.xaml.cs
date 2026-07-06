@@ -45,15 +45,8 @@ public partial class App : Application
                 {
                     _window.DispatcherQueue.TryEnqueue(() => 
                     {
-                        _window.Activate();
-                        if (_window is MainWindow mw)
-                        {
-                            mw.HandleShareOperation(shareOperation);
-                        }
-                        else if (_window is MiniWindow mini)
-                        {
-                            mini.HandleShareOperation(shareOperation);
-                        }
+                        var miniWindow = new MiniWindow(shareOperation);
+                        miniWindow.Activate();
                     });
                 }
             }
