@@ -12,7 +12,7 @@ public static class AppStrings
     public static string Nav_Settings => "Settings";
 
     public static string App_Title => "Muffin Transcriber";
-    public static string AppVersion => "v1.2.0";
+    public static string AppVersion => "v1.2.1";
     public static string Credits => "made by Rick in his free time";
     public static string Settings_BtnChangelog => "View Changelog";
 
