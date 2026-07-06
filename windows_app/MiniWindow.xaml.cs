@@ -163,8 +163,8 @@ public sealed partial class MiniWindow : Window
             string languageArg = AppModel.LanguageCode(lang);
             string modelPath = AppModel.ModelPath(whisperModel.File);
             string args = languageArg == "auto"
-                ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt"
-                : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
+                ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt -ngl 999"
+                : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt -ngl 999";
             
             ProcessResult result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
             _rawTranscript = result.Stdout.Trim();

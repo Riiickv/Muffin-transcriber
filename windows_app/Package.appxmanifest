@@ -16,8 +16,8 @@
   <mp:PhoneIdentity PhoneProductId="D2952AEB-0C3D-491B-B4F6-E917DBF2928D" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>AITranscriber.WinUI</DisplayName>
-    <PublisherDisplayName>AI Transcriber</PublisherDisplayName>
+    <DisplayName>Muffin Transcriber</DisplayName>
+    <PublisherDisplayName>Muffin Open Source</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -35,8 +35,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="AITranscriber.WinUI"
-        Description="AITranscriber.WinUI"
+        DisplayName="Muffin Transcriber"
+        Description="Muffin Transcriber"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

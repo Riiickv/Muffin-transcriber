@@ -10,7 +10,7 @@
 ;   iscc /DAppFilesDir="D:\somewhere\else" muffin_installer.iss
 ; if your publish folder lives somewhere other than the default.
 #ifndef AppFilesDir
-  #define AppFilesDir "..\AITranscriber_Release\app_files"
+  #define AppFilesDir "windows_app\bin\Release\net10.0-windows10.0.26100.0\win-x64\publish"
 #endif
 
 [Setup]
