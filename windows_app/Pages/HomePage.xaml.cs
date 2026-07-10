@@ -365,7 +365,11 @@ public sealed partial class HomePage : Page
                     string rawTranscript = result.Stdout.Trim();
                     if (string.IsNullOrWhiteSpace(rawTranscript))
                     {
-                        rawTranscript = $"[DEBUG: Stdout was empty. ExitCode={result.ExitCode}]\nStderr:\n{result.Stderr}";
+                        // Whisper found no speech. Don't persist a placeholder/debug blob to
+                        // history — surface a friendly message and move on to the next file.
+                        Debug.WriteLine($"Whisper produced no output for {baseFileName}. ExitCode={result.ExitCode}. Stderr:\n{result.Stderr}");
+                        ShowStatus(string.Format(AppStrings.Home_Status_NoSpeechDetected, baseFileName), InfoBarSeverity.Error);
+                        continue;
                     }
                     
                     string? srtTranscript = null;

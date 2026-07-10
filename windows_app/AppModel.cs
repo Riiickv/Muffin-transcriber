@@ -107,6 +107,9 @@ public static class AppModel
                     File.Delete(file);
                 }
             }
+
+            // Drop history references to any cached media we just deleted.
+            TranscriptionHistory.PurgeMissingSourceFiles();
         }
         catch (Exception ex)
         {
