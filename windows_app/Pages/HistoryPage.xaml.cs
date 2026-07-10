@@ -430,7 +430,12 @@ public sealed partial class HistoryPage : Page
                 : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
                 
             var result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
+            
             string rawTranscript = result.Stdout.Trim();
+            if (string.IsNullOrWhiteSpace(rawTranscript))
+            {
+                rawTranscript = $"[DEBUG: Stdout was empty. ExitCode={result.ExitCode}]\nStderr:\n{result.Stderr}";
+            }
             
             string? srtTranscript = null;
             string expectedSrtPath = wavPath + ".srt";
