@@ -17,15 +17,14 @@ public sealed partial class HomePage : Page
     private string _currentFormattedTranscript = string.Empty;
     private string _currentSummary = string.Empty;
 
-    private DispatcherTimer _statusTimer;
+    private readonly StatusBarController _status;
 
     public HomePage()
     {
         InitializeComponent();
         _settings = UserSettings.Load();
-        
-        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-        _statusTimer.Tick += (s, e) => { StatusBar.IsOpen = false; _statusTimer.Stop(); };
+
+        _status = new StatusBarController(StatusBar);
 
         LoadModels();
         FileButton.AllowDrop = true;
@@ -466,12 +465,7 @@ public sealed partial class HomePage : Page
         ShowStatus(AppStrings.Home_Status_CopiedToClipboard, InfoBarSeverity.Success);
     }
 
-    private void CopyTranscriptToClipboard()
-    {
-        var dataPackage = new DataPackage();
-        dataPackage.SetText(TranscriptBox.Text);
-        Clipboard.SetContent(dataPackage);
-    }
+    private void CopyTranscriptToClipboard() => UiHelpers.CopyToClipboard(TranscriptBox.Text);
 
     private void TabRawButton_Click(object sender, RoutedEventArgs e)
     {
@@ -499,38 +493,10 @@ public sealed partial class HomePage : Page
         selectedButton.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
     }
 
-    private void ShowStatus(string message, InfoBarSeverity severity)
-    {
-        StatusBar.Message = message;
-        StatusBar.Severity = severity;
-        StatusBar.IsOpen = true;
-        
-        if (severity == InfoBarSeverity.Success || severity == InfoBarSeverity.Error)
-        {
-            _statusTimer.Stop();
-            _statusTimer.Start();
-        }
-        else
-        {
-            _statusTimer.Stop();
-        }
-    }
+    private void ShowStatus(string message, InfoBarSeverity severity) => _status.Show(message, severity);
 
-    private static string SelectedComboText(ComboBox box)
-    {
-        return (box.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? box.SelectedItem?.ToString() ?? string.Empty;
-    }
+    private static string SelectedComboText(ComboBox box) => UiHelpers.SelectedComboText(box);
 
-    private static void SelectComboItem(ComboBox box, string value)
-    {
-        foreach (object item in box.Items)
-        {
-            if ((item as ComboBoxItem)?.Content?.ToString() == value || item?.ToString() == value)
-            {
-                box.SelectedItem = item;
-                return;
-            }
-        }
-    }
+    private static void SelectComboItem(ComboBox box, string value) => UiHelpers.SelectComboItem(box, value);
 
 }
