@@ -9,13 +9,12 @@ public sealed partial class SettingsPage : Page
     private bool _loading;
     private UserSettings _settings = UserSettings.Load();
 
-    private DispatcherTimer _statusTimer;
+    private readonly StatusBarController _status;
 
     public SettingsPage()
     {
         InitializeComponent();
-        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-        _statusTimer.Tick += (s, e) => { StatusBar.IsOpen = false; _statusTimer.Stop(); };
+        _status = new StatusBarController(StatusBar);
 
         _settings = UserSettings.Load();
         LoadSettingsIntoControls();
@@ -158,44 +157,11 @@ public sealed partial class SettingsPage : Page
         ShowStatus(AppStrings.Settings_Status_Reset, InfoBarSeverity.Success);
     }
 
-    private void ShowStatus(string message, InfoBarSeverity severity)
-    {
-        StatusBar.Message = message;
-        StatusBar.Severity = severity;
-        StatusBar.IsOpen = true;
-        
-        if (severity == InfoBarSeverity.Success || severity == InfoBarSeverity.Error)
-        {
-            _statusTimer.Stop();
-            _statusTimer.Start();
-        }
-        else
-        {
-            _statusTimer.Stop();
-        }
-    }
+    private void ShowStatus(string message, InfoBarSeverity severity) => _status.Show(message, severity);
 
-    private static void SelectComboItem(ComboBox box, string value)
-    {
-        foreach (object item in box.Items)
-        {
-            if ((item as ComboBoxItem)?.Content?.ToString() == value || item?.ToString() == value)
-            {
-                box.SelectedItem = item;
-                return;
-            }
-        }
+    private static void SelectComboItem(ComboBox box, string value) => UiHelpers.SelectComboItem(box, value, fallbackToFirst: true);
 
-        if (box.Items.Count > 0)
-        {
-            box.SelectedIndex = 0;
-        }
-    }
-
-    private static string SelectedComboText(ComboBox box)
-    {
-        return (box.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? box.SelectedItem?.ToString() ?? string.Empty;
-    }
+    private static string SelectedComboText(ComboBox box) => UiHelpers.SelectedComboText(box);
 
     private void UpdateCacheSizes()
     {
