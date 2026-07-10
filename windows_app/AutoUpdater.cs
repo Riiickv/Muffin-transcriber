@@ -144,7 +144,11 @@ namespace MuffinTranscriber
             return tempFile;
         }
 
-        public static void InstallAndRestart(string installerPath)
+        // Returns false if the installer could not be launched (e.g. the user
+        // cancelled the UAC elevation prompt), so the caller can recover instead
+        // of the app crashing on the unhandled Win32Exception. On success the
+        // process exits and never returns.
+        public static bool InstallAndRestart(string installerPath)
         {
             var processInfo = new ProcessStartInfo
             {
@@ -154,9 +158,18 @@ namespace MuffinTranscriber
                 Verb = "runas"
             };
 
-            Process.Start(processInfo);
-            
+            try
+            {
+                Process.Start(processInfo);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Installer launch failed/cancelled: {ex.Message}");
+                return false;
+            }
+
             Environment.Exit(0);
+            return true; // unreachable
         }
     }
 }

@@ -154,12 +154,6 @@ public sealed partial class HomePage : Page
             }
         };
 
-        if (FormatterModelBox.Items.Count == 0)
-        {
-            FormatSwitch.IsEnabled = false;
-            FormatterModelBox.IsEnabled = false;
-        }
-
         UpdateTranscribeState();
     }
 

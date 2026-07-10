@@ -26,8 +26,6 @@ public sealed partial class SettingsPage : Page
         _loading = true;
         _settings = UserSettings.Load();
 
-        SelectComboItem(DefaultLanguageBox, _settings.DefaultLanguage);
-
         PreferredWhisperBox.Items.Clear();
         PreferredWhisperBox.Items.Add("Auto-select best installed model");
         foreach (ModelInfo model in AppModel.WhisperModels)
@@ -62,7 +60,6 @@ public sealed partial class SettingsPage : Page
         AutoCopySwitch.IsOn = _settings.AutoCopyTranscript;
         ContextLearningSwitch.IsOn = _settings.EnableContextLearning;
         AutoUpdateCheckSwitch.IsOn = _settings.EnableAutoUpdateCheck;
-        SelectComboItem(AutoDeleteBox, _settings.AutoDeleteCacheDuration);
         CustomFormatBox.Text = _settings.CustomFormatSystemPrompt;
         CustomSummaryBox.Text = _settings.CustomSummarySystemPrompt;
 
