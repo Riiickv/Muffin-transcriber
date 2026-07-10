@@ -337,41 +337,20 @@ public sealed partial class HomePage : Page
                     
                     await Task.Run(() => File.Copy(file, cachedPath, true));
 
-                    if (total == 1) ShowStatus(AppStrings.Home_Status_PreparingAudio, InfoBarSeverity.Informational);
-                    string wavPath = Path.Combine(Path.GetTempPath(), "ai_transcriber_input_winui.wav");
-                    string ffmpegArgs = _settings.NormalizeAudio
-                        ? $"-y -i \"{cachedPath}\" -vn -af highpass=f=80,lowpass=f=7800,loudnorm=I=-16:TP=-1.5:LRA=11 -ar 16000 -ac 1 -c:a pcm_s16le \"{wavPath}\""
-                        : $"-y -i \"{cachedPath}\" -vn -ar 16000 -ac 1 -c:a pcm_s16le \"{wavPath}\"";
-                    await LLMFormatter.RunProcessAsync(
-                        AppModel.FfmpegExe,
-                        ffmpegArgs);
-
                     if (total == 1) ShowStatus(AppStrings.Home_Status_TranscribingWhisper, InfoBarSeverity.Informational);
                     string lang = SelectedComboText(LanguageBox);
-                    string languageArg = AppModel.LanguageCode(lang);
-                    string modelPath = AppModel.ModelPath(_selectedWhisperModel.File);
-                    string args = languageArg == "auto"
-                        ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt"
-                        : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
+                    TranscriptionResult tr = await TranscriptionService.TranscribeAsync(cachedPath, _selectedWhisperModel, lang, _settings.NormalizeAudio);
 
-                    ProcessResult result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
-                    
-                    string rawTranscript = result.Stdout.Trim();
+                    string rawTranscript = tr.RawTranscript;
                     if (string.IsNullOrWhiteSpace(rawTranscript))
                     {
                         // No speech: don't persist a debug blob to history, just warn and skip.
-                        Debug.WriteLine($"Whisper produced no output for {baseFileName}. ExitCode={result.ExitCode}. Stderr:\n{result.Stderr}");
+                        Debug.WriteLine($"Whisper produced no output for {baseFileName}. ExitCode={tr.WhisperExitCode}. Stderr:\n{tr.WhisperStderr}");
                         ShowStatus(string.Format(AppStrings.Home_Status_NoSpeechDetected, baseFileName), InfoBarSeverity.Error);
                         continue;
                     }
-                    
-                    string? srtTranscript = null;
-                    string expectedSrtPath = wavPath + ".srt";
-                    if (File.Exists(expectedSrtPath))
-                    {
-                        srtTranscript = await File.ReadAllTextAsync(expectedSrtPath);
-                        File.Delete(expectedSrtPath);
-                    }
+
+                    string? srtTranscript = tr.Srt;
 
                     string? formatted = null;
                     string? summary = null;
