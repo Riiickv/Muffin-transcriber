@@ -33,6 +33,7 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         AppWindow.SetIcon("Assets/AppIcon.ico");
+        ThemeHelper.Apply(this, _settings.ThemeMode);
 
         int startWidth = _settings.WindowWidth > 800 ? _settings.WindowWidth : 1000;
         int startHeight = _settings.WindowHeight > 600 ? _settings.WindowHeight : 650;

@@ -28,6 +28,7 @@ public static class AppCapabilities
         new("DefaultLanguage", "Default language", "Settings", "The spoken language to transcribe. Auto-Detect works for any language.", "enum", WhisperLanguages.TranscriptionNames.ToArray(), "a language name (e.g. English, Spanish) or Auto-Detect"),
         new("FormatLanguage", "Output language", "Settings", "The language the formatted and summarized text is written in.", "enum", WhisperLanguages.FormatNames.ToArray(), "a language name, or \"Auto-Detect / Original\" to keep the source language"),
         new("AutoDeleteCacheDuration", "Auto-delete media cache", "Settings › Storage", "How long to keep cached audio/video before deleting it.", "enum", ["Never", "1 Week", "1 Month"], "Never, 1 Week or 1 Month"),
+        new("ThemeMode", "Theme", "Settings › Appearance", "Light, dark, or pure-black (AMOLED) appearance.", "enum", ThemeHelper.Modes, "System, Light, Dark or AMOLED"),
     ];
 
     public static readonly (string Id, string Name, string Description)[] Screens =
@@ -69,6 +70,11 @@ public static class AppCapabilities
 
         prop.SetValue(settings, value);
         settings.Save();
+
+        if (spec.Key == "ThemeMode")
+        {
+            App.MainWindow?.DispatcherQueue.TryEnqueue(() => ThemeHelper.Apply(App.MainWindow, value.ToString() ?? "System"));
+        }
     }
 
     public static string BuildCapabilitiesBlock()

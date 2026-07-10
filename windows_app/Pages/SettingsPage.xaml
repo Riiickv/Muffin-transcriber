@@ -28,6 +28,12 @@
                 </ComboBox>
             </toolkit:SettingsCard>
 
+            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_AppearanceHeader}" />
+
+            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ThemeTitle}" Description="{x:Bind local:AppStrings.Settings_ThemeDesc}">
+                <ComboBox x:Name="ThemeBox" SelectionChanged="SaveOnSelectionChanged" Width="220" />
+            </toolkit:SettingsCard>
+
             <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_DefaultsHeader}" />
 
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_DefaultLanguageTitle}" Description="{x:Bind local:AppStrings.Settings_DefaultLanguageDesc}">

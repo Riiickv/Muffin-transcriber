@@ -28,6 +28,7 @@ public sealed partial class SettingsPage : Page
 
         DefaultLanguageBox.ItemsSource = WhisperLanguages.TranscriptionNames;
         FormatLanguageBox.ItemsSource = WhisperLanguages.FormatNames;
+        ThemeBox.ItemsSource = ThemeHelper.Modes;
 
         PreferredWhisperBox.Items.Clear();
         PreferredWhisperBox.Items.Add("Auto-select best installed model");
@@ -49,6 +50,7 @@ public sealed partial class SettingsPage : Page
         SelectComboItem(DefaultLanguageBox, _settings.DefaultLanguage);
         SelectComboItem(FormatLanguageBox, _settings.FormatLanguage);
         SelectComboItem(AutoDeleteBox, _settings.AutoDeleteCacheDuration);
+        SelectComboItem(ThemeBox, _settings.ThemeMode);
         
         foreach (var item in AppLanguageBox.Items)
         {
@@ -115,6 +117,7 @@ public sealed partial class SettingsPage : Page
         _settings.AutoCopyTranscript = AutoCopySwitch.IsOn;
         _settings.EnableContextLearning = ContextLearningSwitch.IsOn;
         _settings.EnableAutoUpdateCheck = AutoUpdateCheckSwitch.IsOn;
+        _settings.ThemeMode = SelectedComboText(ThemeBox);
         if (AppLanguageBox.SelectedItem is Microsoft.UI.Xaml.Controls.ComboBoxItem combo && combo.Tag != null)
         {
             _settings.AppLanguage = combo.Tag.ToString()!;
@@ -134,6 +137,7 @@ public sealed partial class SettingsPage : Page
         }
 
         _settings.Save();
+        ThemeHelper.Apply(App.MainWindow, _settings.ThemeMode);
         ShowStatus("Settings saved.", InfoBarSeverity.Success);
     }
 
