@@ -4,6 +4,7 @@ import { loadSettings } from './settingsStore';
 import { loadHistory, HistoryItem } from './historyStore';
 import { loadMemories } from './memoryStore';
 import { generateEmbedding, cosineSimilarity } from './EmbeddingEngine';
+import { buildCapabilitiesBlock, TOOL_INSTRUCTIONS } from './appCapabilities';
 
 let initLlama: any;
 function getInitLlama() {
@@ -139,45 +140,33 @@ async function searchTranscripts(query: string): Promise<HistoryItem[]> {
   return results;
 }
 
-// Build the optimized XML prompt
-function buildRAGPrompt(modelFile: string, messages: ChatMessage[], contextText: string, memoryText: string, historyCount: number): string {
+// Build the system prompt: who the assistant is, what it can see (transcripts +
+// every setting), and what it can do (the tools).
+function buildRAGPrompt(modelFile: string, messages: ChatMessage[], contextText: string, memoryText: string, historyCount: number, capabilitiesBlock: string): string {
   const lower = modelFile.toLowerCase();
-  
-  let systemContent = `You are Muffin Chat, a highly intelligent assistant.
-Your job is to answer questions using the provided <context> and <global_state>.
-The <global_state> contains real-time information about the app and the user's latest transcripts.
-The <context> contains up to 3 relevant transcripts. Each transcript has a <name>, and three variants:
-- <variant_raw>: The exact, unedited literal words spoken.
-- <variant_formatted>: The cleaned up, readable version.
-- <variant_summary>: A short summary.
-Understand the difference between these variants.
+
+  let systemContent = `You are Muffin Chat, the built-in assistant for the Muffin transcription app. You help the user with their transcripts and you can operate the app for them — change settings, jump to a screen, or delete a transcript.
+
+You can see the user's transcripts (<context> and <history_index>) and every app setting with its current value and location (<app_settings>). Use them to answer accurately, including "where is setting X?" and "what is X set to right now?".
+
+Each transcript in <context> has three variants: <variant_raw> (exact words), <variant_formatted> (cleaned up), <variant_summary> (short summary).
 
 CRITICAL RULES:
-1. Be concise and direct.
-2. You MUST use the exact <name> when referring to a transcript so the UI can create a link. For example, instead of saying "In the latest transcript, you said...", you must say "In the transcript called Meeting Notes, you said..."
-3. If you don't know something, say you don't know. Do not hallucinate.
-4. If the user asks you to perform an action (like deleting a transcript or navigating tabs), you MUST output a brief conversational confirmation followed by an XML block.
-5. If the user asks you to do something you cannot do (e.g. send an email), politely explain what you CAN do (delete transcripts and navigate the app).
-6. For deleting transcripts, you MUST use the exact ID from the <history_index>.
+1. Be concise, friendly and direct.
+2. Refer to a transcript by its exact <name> so the UI can link it — say "In the transcript called Meeting Notes..." not "In the latest transcript...".
+3. Never make things up. If you don't know, say so.
+4. Use the exact transcript ID from <history_index> when deleting.
 
-<tools>
-To execute an action, output a JSON object wrapped in <tool_call> tags. 
-You SHOULD output a brief, friendly conversational confirmation before the block.
-Example 1 (Delete):
-Ok! I've deleted the transcript for you.
-<tool_call>{"action": "DELETE_TRANSCRIPT", "transcript_id": "the-transcript-id-here"}</tool_call>
+${capabilitiesBlock}
 
-Example 2 (Navigate):
-<tool_call>{"action": "NAVIGATE_TO", "tab": "settings"}</tool_call>
-(Valid tabs: index, record, history, chat, settings)
-</tools>
+${TOOL_INSTRUCTIONS}
 
 <global_state>
-Current Date and Time: ${new Date().toLocaleString()}
-Total Transcripts Saved: ${historyCount}
+Current date and time: ${new Date().toLocaleString()}
+Total transcripts saved: ${historyCount}
 
 <history_index>
-Below is a chronological list of EVERY transcript you have, from newest to oldest:
+Every transcript you have, newest first:
 ${memoryText ? memoryText.split('\n__HISTORY_INDEX__\n')[1] : ''}
 </history_index>
 </global_state>
@@ -186,10 +175,9 @@ ${memoryText ? memoryText.split('\n__HISTORY_INDEX__\n')[1] : ''}
 ${contextText}
 </context>`;
 
-  // Extract real memory text back
   const realMemory = memoryText ? memoryText.split('\n__HISTORY_INDEX__\n')[0] : '';
   if (realMemory) {
-    systemContent += `\n<memory>\nBe aware of the user's specific jargon:\n${realMemory}\n</memory>`;
+    systemContent += `\n<memory>\nThings you've learned about the user:\n${realMemory}\n</memory>`;
   }
 
   // Build full prompt string based on model type
@@ -220,14 +208,15 @@ ${contextText}
 }
 
 export async function chatStream(
-  messages: ChatMessage[], 
-  modelPath: string, 
+  messages: ChatMessage[],
+  modelPath: string,
   modelFile: string,
-  onToken: (token: string) => void
+  onToken: (token: string) => void,
+  appContext: { themeMode: string; accentColor: string } = { themeMode: 'system', accentColor: 'system' }
 ): Promise<string> {
   await loadChatLLM(modelPath);
   if (!llamaContext) throw new Error("Chat LLM not loaded");
-  
+
   const settings = await loadSettings();
   const history = await loadHistory();
   
@@ -269,22 +258,24 @@ export async function chatStream(
   const historyIndex = sortedHistory.map(h => `- ID: ${h.id} | Name: ${h.sourceFileName.replace(/\.[^/.]+$/, "")} | Date: ${new Date(h.timestampISO).toLocaleString()}`).join('\n');
   memoryText += '\n__HISTORY_INDEX__\n' + historyIndex;
 
-  // 3. Build optimized prompt
-  const prompt = buildRAGPrompt(modelFile, messages, contextText, memoryText, history.length);
-  
+  // 3. Build the prompt (RAG context + app map + tools)
+  const capabilitiesBlock = buildCapabilitiesBlock(settings, appContext);
+  const prompt = buildRAGPrompt(modelFile, messages, contextText, memoryText, history.length, capabilitiesBlock);
+
   // 4. Stream response
   let fullResponse = "";
-  
+
+  // Note: no "```" here — it can appear inside a tool call and would cut it off.
   const stopTokens = [
-    "<|im_end|>", "<|end|>", "<|eot_id|>", "<|endoftext|>", "```"
+    "<|im_end|>", "<|end|>", "<|eot_id|>", "<|endoftext|>"
   ];
-  
+
   try {
     await llamaContext.completion(
       {
         prompt,
-        n_predict: 512,
-        temperature: 0.7, // slightly creative for chat
+        n_predict: 768,
+        temperature: 0.3, // low, so tool-call JSON stays well-formed
       },
       (data) => {
         const text = data.token;
