@@ -141,8 +141,8 @@ public sealed partial class MainWindow : Window
         double currentX = e.GetCurrentPoint(RootGrid).Position.X;
         double nextLength = Math.Clamp(_resizeStartPaneLength + currentX - _resizeStartX, MinPaneLength, MaxPaneLength);
         NavView.OpenPaneLength = nextLength;
-        _settings.SidebarWidth = nextLength;
-        _settings.Save();
+        // Persist only on release (PointerReleased) — saving here wrote the whole
+        // settings JSON to disk on every pointer-move.
         UpdatePaneResizeGrip();
         e.Handled = true;
     }
@@ -188,7 +188,11 @@ public sealed partial class MainWindow : Window
     {
         if (UpdateActionButton.Content.ToString() == AppStrings.Update_BtnRestart)
         {
-            AutoUpdater.InstallAndRestart(_installerPath);
+            if (!AutoUpdater.InstallAndRestart(_installerPath))
+            {
+                UpdateBanner.Severity = InfoBarSeverity.Warning;
+                UpdateBanner.Message = AppStrings.Update_StatusInstallCancelled;
+            }
             return;
         }
 

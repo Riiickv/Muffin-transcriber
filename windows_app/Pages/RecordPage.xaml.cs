@@ -207,6 +207,28 @@ public sealed partial class RecordPage : Page
         }
     }
 
+    protected override void OnNavigatedFrom(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        base.OnNavigatedFrom(e);
+
+        // Stop the mic when leaving the page — otherwise recording keeps running
+        // off-screen (and the device stays hot) until the user comes back.
+        if (_recorder != null)
+        {
+            _recorder.Dispose();
+            _recorder = null;
+
+            RecordButton.Background = (SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+            RecordIcon.Glyph = "";
+            RecordStatusText.Text = "Start Recording";
+            RecordTimerText.Text = "00:00:00";
+            for (int i = 0; i < 20; i++)
+            {
+                _visualizerBars[i].Height = 4;
+            }
+        }
+    }
+
     private async void ProcessRecording(string filePath)
     {
         if (_selectedWhisperModel is null) return;
