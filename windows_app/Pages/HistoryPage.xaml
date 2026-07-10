@@ -190,6 +190,9 @@
                                 <Button x:Name="TabSummaryButton" Content="{x:Bind local:AppStrings.Home_TabSummary}" Click="TabSummaryButton_Click" />
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <Button x:Name="CalendarButton" Click="CalendarButton_Click" ToolTipService.ToolTip="{x:Bind local:AppStrings.History_AddToCalendar}">
+                                    <FontIcon Glyph="&#xE787;" FontSize="14" />
+                                </Button>
                                 <DropDownButton x:Name="ExportButton" Content="{x:Bind local:AppStrings.History_ExportBtn}">
                                     <DropDownButton.Flyout>
                                         <MenuFlyout>

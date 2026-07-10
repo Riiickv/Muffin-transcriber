@@ -116,6 +116,14 @@ public static class AppStrings
 
     public static string History_EmptyDetailsText => LocalizationManager.GetString("History_EmptyDetailsText", "Select a transcription to view details.");
 
+    public static string History_AddToCalendar => LocalizationManager.GetString("History_AddToCalendar", "Find dates & add to calendar");
+    public static string History_FindingDates => LocalizationManager.GetString("History_FindingDates", "Looking for dates and events...");
+    public static string History_NoDatesFound => LocalizationManager.GetString("History_NoDatesFound", "No dates or events found.");
+    public static string History_DatesFoundTitle => LocalizationManager.GetString("History_DatesFoundTitle", "Dates & events");
+    public static string History_AddButton => LocalizationManager.GetString("History_AddButton", "Add");
+    public static string History_CalendarHint => LocalizationManager.GetString("History_CalendarHint", "Opens in your calendar app — set the exact date and time there.");
+    public static string History_Close => LocalizationManager.GetString("History_Close", "Close");
+
     // MODELS PAGE
     public static string Models_Title => LocalizationManager.GetString("Models_Title", "Manage Models");
     public static string Models_Instructions => LocalizationManager.GetString("Models_Instructions", "Download at least one Whisper model (for transcription) and one LLM (for formatting/summarization).");
