@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useRef, useState } from 'react';
+import { createPersistentStore } from './persistentStore';
 
 const SETTINGS_KEY = 'muffin.settings.v1';
 
@@ -35,88 +35,24 @@ export const DEFAULT_SETTINGS: Settings = {
   preferredChatModel: '',
 };
 
-let cachedSettings: Settings | null = null;
-let subscribers: ((settings: Settings) => void)[] = [];
-let inFlightLoad: Promise<Settings> | null = null;
+// hydrate spreads over defaults so settings added in later versions are present
+// on records saved by an older build.
+const store = createPersistentStore<Settings>(SETTINGS_KEY, { ...DEFAULT_SETTINGS }, {
+  hydrate: (parsed) => ({ ...DEFAULT_SETTINGS, ...parsed }),
+});
 
-function notifySubscribers() {
-  if (cachedSettings) {
-    subscribers.forEach((sub) => sub(cachedSettings!));
-  }
-}
-
-export async function loadSettings(): Promise<Settings> {
-  if (cachedSettings) return cachedSettings;
-  if (inFlightLoad) return inFlightLoad;
-
-  inFlightLoad = (async () => {
-    try {
-      const data = await AsyncStorage.getItem(SETTINGS_KEY);
-      if (data) {
-        const parsed = { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
-        cachedSettings = parsed;
-        return parsed;
-      }
-    } catch (e) {
-      console.error('Failed to load settings', e);
-    }
-    const newSettings = { ...DEFAULT_SETTINGS };
-    cachedSettings = newSettings;
-    return newSettings;
-  })();
-
-  try {
-    return await inFlightLoad;
-  } finally {
-    inFlightLoad = null;
-  }
-}
-
-export async function saveSettings(newSettings: Settings) {
-  cachedSettings = { ...newSettings };
-  notifySubscribers();
-  try {
-    await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(cachedSettings));
-  } catch (e) {
-    console.error('Failed to save settings', e);
-  }
-}
+export const loadSettings = () => store.load();
+export const saveSettings = (newSettings: Settings) => store.save({ ...newSettings });
 
 export function useSettings() {
-  const [settings, setLocalSettings] = useState<Settings>(cachedSettings || DEFAULT_SETTINGS);
-
-  useEffect(() => {
-    let isMounted = true;
-    if (!cachedSettings) {
-      loadSettings().then((s) => {
-        if (isMounted) setLocalSettings(s);
-      });
-    }
-
-    const handler = (s: Settings) => {
-      if (isMounted) setLocalSettings(s);
-    };
-    subscribers.push(handler);
-    return () => {
-      isMounted = false;
-      subscribers = subscribers.filter((sub) => sub !== handler);
-    };
-  }, []);
+  const settings = store.useValue();
 
   const setSetting = async <K extends keyof Settings>(key: K, value: Settings[K]) => {
-    let current = cachedSettings;
-    if (!current) current = await loadSettings();
-    const updated = { ...current, [key]: value };
-    setLocalSettings(updated);
-    await saveSettings(updated);
+    const current = store.get() ?? (await store.load());
+    await store.save({ ...current, [key]: value });
   };
 
-  const resetSettings = async () => {
-    setLocalSettings({ ...DEFAULT_SETTINGS });
-    await saveSettings({ ...DEFAULT_SETTINGS });
-  };
-
-  return { settings, setSetting, resetSettings };
+  return { settings, setSetting };
 }
 
 // Binding a text input to a Settings key lags on mobile: every keystroke writes

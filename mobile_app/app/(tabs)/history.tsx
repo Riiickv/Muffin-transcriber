@@ -1,5 +1,5 @@
-import { Modal, ScrollView, StyleSheet, View, Pressable, TextInput } from 'react-native';
-import { useState } from 'react';
+import { FlatList, Modal, StyleSheet, View, Pressable, TextInput } from 'react-native';
+import React, { useState } from 'react';
 import { router } from 'expo-router';
 
 import { Text } from '@/components/Themed';
@@ -11,25 +11,18 @@ import { Icon } from '@/components/Icon';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory, HistoryItem } from '@/utils/historyStore';
 import { useDialog } from '@/components/Dialog';
+import { formatDuration, formatHistoryDate } from '@/utils/format';
 import { t } from '@/utils/i18n';
 
-const formatItem = (item: HistoryItem) => {
-  const dateStr = new Date(item.timestampISO).toLocaleDateString(undefined, {
-    weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-  });
-  const durSecs = item.audioDurationMs ? Math.floor(item.audioDurationMs / 1000) : 0;
-  const min = Math.floor(durSecs / 60);
-  const sec = durSecs % 60;
-  const durStr = `${min}:${sec.toString().padStart(2, '0')}`;
-  const snippet = item.summary || item.rawTranscript || '';
-  return {
-    ...item,
-    date: dateStr,
-    duration: durStr,
-    title: item.sourceFileName.replace(/\.[^/.]+$/, ""),
-    snippet: snippet,
-  };
-};
+const formatItem = (item: HistoryItem) => ({
+  ...item,
+  date: formatHistoryDate(item.timestampISO),
+  // Only show a duration once we actually have one (backfilled on first play),
+  // rather than a fake 0:00.
+  duration: item.audioDurationMs ? formatDuration(item.audioDurationMs / 1000) : null,
+  title: item.sourceFileName.replace(/\.[^/.]+$/, ''),
+  snippet: item.summary || item.rawTranscript || '',
+});
 
 export default function HistoryScreen() {
   const { theme } = useTheme();
@@ -51,31 +44,33 @@ export default function HistoryScreen() {
     });
   };
 
-  const formattedItems = items.map(formatItem);
-
   return (
     <FadeInView index={2} style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView contentContainerStyle={styles.list}>
-        {formattedItems.length === 0 ? (
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        renderItem={({ item }) => {
+          const entry = formatItem(item);
+          return (
+            <HistoryCard
+              entry={entry}
+              onOpen={() => router.push({ pathname: '/history/[id]', params: { id: item.id } })}
+              onDelete={() => confirmDelete(item)}
+              onRename={() => {
+                setRenameInput(entry.title || '');
+                setPendingRename(item);
+              }}
+            />
+          );
+        }}
+        ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }}>
             <Icon name="history" size={64} color={theme.textSubtle} />
             <Text style={{ marginTop: SPACING.md, color: theme.textMuted, fontSize: 16 }}>{t('history.noHistory') || 'No transcripts yet.'}</Text>
           </View>
-        ) : (
-          formattedItems.map((entry) => (
-            <HistoryCard
-              key={entry.id}
-              entry={entry}
-              onOpen={() => router.push({ pathname: '/history/[id]', params: { id: entry.id } })}
-              onDelete={() => confirmDelete(entry)}
-              onRename={() => {
-                setRenameInput(entry.title || '');
-                setPendingRename(entry);
-              }}
-            />
-          ))
-        )}
-      </ScrollView>
+        }
+      />
 
       <Modal
         animationType="fade"
@@ -125,7 +120,7 @@ interface HistoryCardProps {
 }
 
 // Keep the action IconButtons flat — react-native-web forbids <button> nested in <button> (hydration error).
-const HistoryCard = ({ entry, onOpen, onDelete, onRename }: HistoryCardProps) => {
+const HistoryCard = React.memo(({ entry, onOpen, onDelete, onRename }: HistoryCardProps) => {
   const { theme } = useTheme();
   return (
     <Pressable style={({ pressed }) => [styles.card, { borderColor: theme.divider, opacity: pressed ? 0.7 : 1 }]} onPress={onOpen}>
@@ -133,7 +128,7 @@ const HistoryCard = ({ entry, onOpen, onDelete, onRename }: HistoryCardProps) =>
         <View style={{ flex: 1 }}>
           <Text style={styles.titleText}>{entry.title}</Text>
           <Text style={[styles.date, { color: theme.textMuted }]}>
-            {entry.date} • {entry.duration}
+            {entry.date}{entry.duration ? ` • ${entry.duration}` : ''}
           </Text>
         </View>
 
@@ -166,7 +161,7 @@ const HistoryCard = ({ entry, onOpen, onDelete, onRename }: HistoryCardProps) =>
       </Text>
     </Pressable>
   );
-};
+});
 
 const styles = StyleSheet.create({
   list: {

@@ -1,6 +1,6 @@
 import { StyleSheet, TextInput, View, ScrollView } from 'react-native';
-import { useEffect, useState, useCallback } from 'react';
-import { Stack, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
@@ -20,8 +20,11 @@ import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
-import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS } from '@/utils/ModelManager';
+import { ModelManager } from '@/utils/ModelManager';
+import { useModelOptions } from '@/hooks/useModelOptions';
 import { toLanguageCode } from '@/utils/languages';
+import { errorToMessage } from '@/utils/errors';
+import { formatDuration, formatHistoryDate } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
 import { useDialog, DialogCard } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
@@ -34,13 +37,6 @@ const TRANSCRIPT_TABS = [
   { key: 'formatted', label: t('transcribe.formattedTab') || 'Formatted' },
   { key: 'summary', label: t('transcribe.summaryTab') || 'Summary' },
 ] as const satisfies readonly { key: TranscriptTab; label: string }[];
-
-const formatTime = (totalSeconds: number) => {
-  if (!isFinite(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
-  const m = Math.floor(totalSeconds / 60);
-  const s = Math.floor(totalSeconds % 60);
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-};
 
 export default function HistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,30 +51,10 @@ export default function HistoryDetailScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingLabel, setProcessingLabel] = useState<null | 'retranscribe' | 'format' | 'summarize'>(null);
 
-  const [downloadedWhisperIds, setDownloadedWhisperIds] = useState<string[]>([]);
-  const [downloadedLLMIds, setDownloadedLLMIds] = useState<string[]>([]);
-
   const [activeEntity, setActiveEntity] = useState<{ quote: string; name: string; type: 'date' | 'time' } | null>(null);
   const [actionName, setActionName] = useState('');
 
-  useFocusEffect(
-    useCallback(() => {
-      ModelManager.getDownloadedModelIds().then((ids) => {
-        setDownloadedWhisperIds(WHISPER_MODELS.filter((m) => ids.includes(m.id)).map((m) => m.id));
-        setDownloadedLLMIds(FORMATTER_MODELS.filter((m) => ids.includes(m.id)).map((m) => m.id));
-      });
-    }, [])
-  );
-
-  const whisperOptions = WHISPER_MODELS.filter((m) => downloadedWhisperIds.includes(m.id)).map((m) => ({
-    label: m.name,
-    value: m.id,
-  }));
-
-  const formatterOptions = FORMATTER_MODELS.filter((m) => downloadedLLMIds.includes(m.id)).map((m) => ({
-    label: m.name,
-    value: m.id,
-  }));
+  const { whisperOptions, formatterOptions } = useModelOptions();
 
   const transcript =
     transcriptTab === 'summary'
@@ -87,15 +63,7 @@ export default function HistoryDetailScreen() {
       ? item?.formattedTranscript || ''
       : item?.rawTranscript || '';
 
-  const dateStr = item
-    ? new Date(item.timestampISO).toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : '';
+  const dateStr = item ? formatHistoryDate(item.timestampISO) : '';
 
   const player = useAudioPlayer(item?.sourceFilePath || null);
   const playerStatus = useAudioPlayerStatus(player);
@@ -109,6 +77,14 @@ export default function HistoryDetailScreen() {
       player.seekTo(0);
     }
   }, [playerStatus?.didJustFinish, player]);
+
+  // Backfill the audio duration the first time the player reports it, so the
+  // history list can show a real length instead of nothing.
+  useEffect(() => {
+    if (item && duration > 0 && !item.audioDurationMs) {
+      addOrUpdate({ ...item, audioDurationMs: Math.round(duration * 1000) });
+    }
+  }, [duration, item, addOrUpdate]);
 
   const togglePlayback = () => {
     if (!item?.sourceFilePath) {
@@ -168,7 +144,7 @@ export default function HistoryDetailScreen() {
     } catch (e) {
       console.error(e);
       haptics.error();
-      dialog.show({ title: t('dialog.reTranscribeFailed.title') || 'Re-transcribe failed', message: e instanceof Error ? e.message : typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e), icon: 'warning', iconTone: 'danger' });
+      dialog.show({ title: t('dialog.reTranscribeFailed.title') || 'Re-transcribe failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
@@ -202,7 +178,7 @@ export default function HistoryDetailScreen() {
     } catch (e) {
       console.error(e);
       haptics.error();
-      dialog.show({ title: t('dialog.formattingFailed.title') || 'Formatting failed', message: e instanceof Error ? e.message : typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e), icon: 'warning', iconTone: 'danger' });
+      dialog.show({ title: t('dialog.formattingFailed.title') || 'Formatting failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
@@ -227,7 +203,7 @@ export default function HistoryDetailScreen() {
     } catch (e) {
       console.error(e);
       haptics.error();
-      dialog.show({ title: t('dialog.summarizationFailed.title') || 'Summarization failed', message: e instanceof Error ? e.message : typeof e === 'object' && e !== null ? JSON.stringify(e) : String(e), icon: 'warning', iconTone: 'danger' });
+      dialog.show({ title: t('dialog.summarizationFailed.title') || 'Summarization failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
@@ -340,11 +316,11 @@ export default function HistoryDetailScreen() {
             onPress={togglePlayback}
             accessibilityLabel={isPlaying ? (t('historyDetail.pause') || 'Pause') : (t('historyDetail.play') || 'Play')}
           />
-          <Text style={[styles.timeLabel, { color: theme.textMuted }]}>{formatTime(currentTime)}</Text>
+          <Text style={[styles.timeLabel, { color: theme.textMuted }]}>{formatDuration(currentTime)}</Text>
           <View style={[styles.progressTrack, { backgroundColor: theme.surface }]}>
             <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: theme.tint }]} />
           </View>
-          <Text style={[styles.timeLabel, { color: theme.textMuted }]}>{formatTime(duration)}</Text>
+          <Text style={[styles.timeLabel, { color: theme.textMuted }]}>{formatDuration(duration)}</Text>
         </View>
       </Card>
 

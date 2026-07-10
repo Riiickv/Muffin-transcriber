@@ -90,10 +90,6 @@ export async function transcribeFile(
   };
 }
 
-export function isWhisperLoaded(): boolean {
-  return whisperContext !== null;
-}
-
 export async function unloadWhisper(): Promise<void> {
   if (whisperContext) {
     try {

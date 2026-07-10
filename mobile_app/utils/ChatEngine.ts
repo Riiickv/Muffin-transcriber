@@ -64,6 +64,8 @@ export async function unloadChatLLM(): Promise<void> {
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  // Stable key for list rendering; absent on messages loaded from older storage.
+  id?: string;
 }
 
 async function searchTranscripts(query: string): Promise<HistoryItem[]> {

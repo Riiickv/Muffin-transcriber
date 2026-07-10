@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
 import { ChatMessage } from './ChatEngine';
+import { createPersistentStore } from './persistentStore';
 
 const CHATS_KEY = 'muffin.chats.v1';
+const LEGACY_KEY = 'chat_messages';
 
 export interface ChatSession {
   id: string;
@@ -11,123 +12,83 @@ export interface ChatSession {
   updatedAt: string;
 }
 
-let cachedChats: ChatSession[] | null = null;
-let subscribers: ((chats: ChatSession[]) => void)[] = [];
+const store = createPersistentStore<ChatSession[]>(CHATS_KEY, []);
 
-function notifySubscribers() {
-  if (cachedChats) {
-    subscribers.forEach((sub) => sub(cachedChats!));
-  }
-}
-
-async function saveChats(chats: ChatSession[]) {
-  cachedChats = chats;
-  notifySubscribers();
+// One-time migration from the old single-chat key, kicked off at module load.
+// Gated on the ABSENCE of the main key in storage (not on the array being
+// empty): a user who deleted every chat has "[]" stored, and re-running the
+// migration then would resurrect their deleted legacy chats.
+(async () => {
   try {
-    await AsyncStorage.setItem(CHATS_KEY, JSON.stringify(chats));
-  } catch (e) {
-    console.error('Failed to save chats', e);
-  }
-}
-
-AsyncStorage.getItem(CHATS_KEY).then(async (data) => {
-  if (data) {
-    try {
-      cachedChats = JSON.parse(data);
-    } catch (e) {
-      console.error('Failed to parse chats', e);
-      cachedChats = [];
-    }
-  } else {
-    // Migration: try to load old single-chat messages
-    try {
-      const oldData = await AsyncStorage.getItem('chat_messages');
-      if (oldData) {
-        const oldMessages = JSON.parse(oldData);
-        if (oldMessages && oldMessages.length > 0) {
-          cachedChats = [
-            {
-              id: Date.now().toString(),
-              title: 'New Chat',
-              messages: oldMessages,
-              updatedAt: new Date().toISOString(),
-            },
-          ];
-          await AsyncStorage.setItem(CHATS_KEY, JSON.stringify(cachedChats));
-          notifySubscribers();
-          return;
-        }
+    const existing = await AsyncStorage.getItem(CHATS_KEY);
+    if (existing != null) return;
+    const oldData = await AsyncStorage.getItem(LEGACY_KEY);
+    if (oldData) {
+      const oldMessages = JSON.parse(oldData);
+      if (oldMessages && oldMessages.length > 0) {
+        await store.save([
+          {
+            id: Date.now().toString(),
+            title: 'New Chat',
+            messages: oldMessages,
+            updatedAt: new Date().toISOString(),
+          },
+        ]);
       }
-    } catch (e) {
-      console.error('Migration failed', e);
+      // Drop the legacy key so this can never re-run.
+      await AsyncStorage.removeItem(LEGACY_KEY);
     }
-    cachedChats = [];
+  } catch (e) {
+    console.error('Chat migration failed', e);
   }
-  notifySubscribers();
-});
+})();
 
 export function useChats() {
-  const [chats, setChats] = useState<ChatSession[]>(cachedChats || []);
-
-  useEffect(() => {
-    setChats(cachedChats || []);
-    subscribers.push(setChats);
-    return () => {
-      subscribers = subscribers.filter((sub) => sub !== setChats);
-    };
-  }, []);
-
-  return { items: chats };
+  const items = store.useValue();
+  return { items };
 }
 
 export async function addChatSession(title: string): Promise<string> {
+  const current = store.get() ?? (await store.load());
   const newChat: ChatSession = {
     id: Date.now().toString(),
     title,
     messages: [],
     updatedAt: new Date().toISOString(),
   };
-  const next = [newChat, ...(cachedChats || [])];
-  await saveChats(next);
+  await store.save([newChat, ...current]);
   return newChat.id;
 }
 
 export async function updateChatMessages(id: string, messages: ChatMessage[]) {
-  const current = cachedChats || [];
-  const next = current.map((chat) => {
-    if (chat.id === id) {
-      return { ...chat, messages, updatedAt: new Date().toISOString() };
-    }
-    return chat;
-  });
-  await saveChats(next);
+  const current = store.get() ?? (await store.load());
+  await store.save(
+    current.map((chat) =>
+      chat.id === id ? { ...chat, messages, updatedAt: new Date().toISOString() } : chat
+    )
+  );
 }
 
 export async function renameChatSession(id: string, newTitle: string) {
-  const current = cachedChats || [];
-  const next = current.map((chat) => {
-    if (chat.id === id) {
-      return { ...chat, title: newTitle, updatedAt: new Date().toISOString() };
-    }
-    return chat;
-  });
-  await saveChats(next);
+  const current = store.get() ?? (await store.load());
+  await store.save(
+    current.map((chat) =>
+      chat.id === id ? { ...chat, title: newTitle, updatedAt: new Date().toISOString() } : chat
+    )
+  );
 }
 
 export async function deleteChatSession(id: string) {
-  const current = cachedChats || [];
-  const next = current.filter((chat) => chat.id !== id);
-  await saveChats(next);
+  const current = store.get() ?? (await store.load());
+  await store.save(current.filter((chat) => chat.id !== id));
 }
 
 export async function clearAllChats() {
-  cachedChats = [];
-  notifySubscribers();
+  await store.save([]);
   try {
-    await AsyncStorage.removeItem(CHATS_KEY);
-    // Also drop the legacy single-chat key so the migration path can't resurrect it.
-    await AsyncStorage.removeItem('chat_messages');
+    // Also drop the legacy single-chat key so the migration can't resurrect it.
+    await AsyncStorage.removeItem(LEGACY_KEY);
   } catch (e) {
-    console.error('Failed to clear chats', e);
+    console.error('Failed to clear legacy chats', e);
   }
 }

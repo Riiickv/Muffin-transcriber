@@ -3,6 +3,17 @@ import type { LlamaContext } from 'llama.rn';
 import { loadSettings } from './settingsStore';
 import { loadMemories, saveMemories } from './memoryStore';
 
+// Strips the markdown code fences an LLM may wrap JSON in, then parses. Returns
+// null on any failure so callers can fall back gracefully.
+export function parseModelJson<T = any>(raw: string): T | null {
+  const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    return null;
+  }
+}
+
 let initLlama: any;
 function getInitLlama() {
   if (!initLlama && Platform.OS !== 'web') {
@@ -209,9 +220,8 @@ CRITICAL RULES:
     });
     
     const output = extractFormatterOutput(result.text);
-    const jsonStr = output.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(jsonStr);
-    
+    const parsed = parseModelJson<any[]>(output);
+
     if (Array.isArray(parsed) && parsed.length > 0) {
       const current = await loadMemories();
       let next = [...current];
@@ -267,9 +277,8 @@ CRITICAL RULES:
     });
     
     const output = extractFormatterOutput(result.text);
-    const jsonStr = output.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(jsonStr);
-    
+    const parsed = parseModelJson<any[]>(output);
+
     if (Array.isArray(parsed)) {
       return parsed.filter(item => item.quote && item.name && item.type);
     }
@@ -340,9 +349,8 @@ CRITICAL RULES:
     });
     
     const output = extractFormatterOutput(result.text);
-    const jsonStr = output.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(jsonStr);
-    
+    const parsed = parseModelJson<string[]>(output);
+
     if (Array.isArray(parsed) && parsed.length > 0) {
       const newMemories = parsed.map((text: string) => ({
         id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
