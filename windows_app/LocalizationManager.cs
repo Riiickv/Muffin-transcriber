@@ -45,24 +45,24 @@ public static class LocalizationManager
             string stringsDir = Path.Combine(AppModel.AppDataDir, "Strings");
             Directory.CreateDirectory(stringsDir);
             string filePath = Path.Combine(stringsDir, "en.json");
-            
-            if (!File.Exists(filePath))
-            {
-                // Temporarily force fallback mode to collect default values via Reflection
-                _fallbackMode = true;
-                var defaults = new Dictionary<string, string>();
-                foreach (var prop in typeof(AppStrings).GetProperties(BindingFlags.Public | BindingFlags.Static))
-                {
-                    if (prop.PropertyType == typeof(string))
-                    {
-                        string? value = prop.GetValue(null) as string;
-                        if (value != null) defaults[prop.Name] = value;
-                    }
-                }
 
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                File.WriteAllText(filePath, JsonSerializer.Serialize(defaults, options));
+            // Always regenerate en.json from the code. English is the source
+            // language, so it must mirror the current AppStrings defaults — an
+            // older cached copy would otherwise mask code changes (e.g. a
+            // renamed title). Collect defaults with fallback mode forced on.
+            _fallbackMode = true;
+            var defaults = new Dictionary<string, string>();
+            foreach (var prop in typeof(AppStrings).GetProperties(BindingFlags.Public | BindingFlags.Static))
+            {
+                if (prop.PropertyType == typeof(string))
+                {
+                    string? value = prop.GetValue(null) as string;
+                    if (value != null) defaults[prop.Name] = value;
+                }
             }
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            File.WriteAllText(filePath, JsonSerializer.Serialize(defaults, options));
         }
         catch (Exception ex)
         {
