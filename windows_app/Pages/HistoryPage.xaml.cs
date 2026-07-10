@@ -15,6 +15,7 @@ namespace MuffinTranscriber.Pages;
 public sealed partial class HistoryPage : Page
 {
     private TranscriptionHistoryItem? _selectedItem;
+    private bool _dialogOpen;
 
     private readonly StatusBarController _status;
 
@@ -248,7 +249,16 @@ public sealed partial class HistoryPage : Page
             CloseButtonText = AppStrings.History_Close,
             XamlRoot = this.XamlRoot,
         };
-        await dialog.ShowAsync();
+        await ShowDialogAsync(dialog);
+    }
+
+    // Only one ContentDialog can be shown at a time; a second ShowAsync throws.
+    private async Task<ContentDialogResult> ShowDialogAsync(ContentDialog dialog)
+    {
+        if (_dialogOpen) return ContentDialogResult.None;
+        _dialogOpen = true;
+        try { return await dialog.ShowAsync(); }
+        finally { _dialogOpen = false; }
     }
 
     private void DeleteButton_Click(object sender, RoutedEventArgs e)
@@ -282,7 +292,7 @@ public sealed partial class HistoryPage : Page
                     XamlRoot = this.XamlRoot
                 };
 
-                ContentDialogResult result = await dialog.ShowAsync();
+                ContentDialogResult result = await ShowDialogAsync(dialog);
                 if (result == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(inputTextBox.Text))
                 {
                     var updatedItem = item with { SourceFileName = inputTextBox.Text.Trim() };
@@ -302,8 +312,10 @@ public sealed partial class HistoryPage : Page
         if (_selectedItem == null || string.IsNullOrWhiteSpace(_selectedItem.RawTranscript))
             return;
 
+        TranscriptionHistoryItem item = _selectedItem;
         string? selectedFormatter = LLMModelBox.SelectedItem?.ToString();
-        string formatLanguage = (FormatLanguageBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? FormatLanguageBox.SelectedItem?.ToString() ?? "Auto-Detect / Original";
+        string formatLanguage = UiHelpers.SelectedComboText(FormatLanguageBox);
+        if (string.IsNullOrEmpty(formatLanguage)) formatLanguage = "Auto-Detect / Original";
 
         if (selectedFormatter == null)
         {
@@ -317,13 +329,12 @@ public sealed partial class HistoryPage : Page
         try
         {
             string? customPrompt = string.IsNullOrWhiteSpace(HistoryCustomPromptBox.Text) ? null : HistoryCustomPromptBox.Text;
-            string? formatted = await LLMFormatter.FormatTranscriptAsync(_selectedItem.RawTranscript, selectedFormatter, formatLanguage, customPrompt);
+            string? formatted = await LLMFormatter.FormatTranscriptAsync(item.RawTranscript, selectedFormatter, formatLanguage, customPrompt);
             if (!string.IsNullOrWhiteSpace(formatted))
             {
-                var updatedItem = _selectedItem with { FormattedTranscript = formatted };
+                var updatedItem = item with { FormattedTranscript = formatted };
                 TranscriptionHistory.AddOrUpdate(updatedItem);
-                
-                _selectedItem = updatedItem;
+
                 LoadHistory();
                 HistoryListView.SelectedItem = HistoryListView.Items.Cast<TranscriptionHistoryItem>().FirstOrDefault(i => i.Id == updatedItem.Id);
 
@@ -438,8 +449,10 @@ public sealed partial class HistoryPage : Page
         if (_selectedItem == null || string.IsNullOrWhiteSpace(_selectedItem.RawTranscript))
             return;
 
+        TranscriptionHistoryItem item = _selectedItem;
         string? selectedFormatter = LLMModelBox.SelectedItem?.ToString();
-        string formatLanguage = (FormatLanguageBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? FormatLanguageBox.SelectedItem?.ToString() ?? "Auto-Detect / Original";
+        string formatLanguage = UiHelpers.SelectedComboText(FormatLanguageBox);
+        if (string.IsNullOrEmpty(formatLanguage)) formatLanguage = "Auto-Detect / Original";
 
         if (selectedFormatter == null)
         {
@@ -452,16 +465,15 @@ public sealed partial class HistoryPage : Page
 
         try
         {
-            string sourceText = string.IsNullOrWhiteSpace(_selectedItem.FormattedTranscript) ? _selectedItem.RawTranscript : _selectedItem.FormattedTranscript;
+            string sourceText = string.IsNullOrWhiteSpace(item.FormattedTranscript) ? item.RawTranscript : item.FormattedTranscript;
             string? customPrompt = string.IsNullOrWhiteSpace(HistoryCustomPromptBox.Text) ? null : HistoryCustomPromptBox.Text;
             string? summary = await LLMFormatter.SummarizeTranscriptAsync(sourceText, selectedFormatter, formatLanguage, customPrompt);
-            
+
             if (!string.IsNullOrWhiteSpace(summary))
             {
-                var updatedItem = _selectedItem with { Summary = summary };
+                var updatedItem = item with { Summary = summary };
                 TranscriptionHistory.AddOrUpdate(updatedItem);
-                
-                _selectedItem = updatedItem;
+
                 LoadHistory();
                 HistoryListView.SelectedItem = HistoryListView.Items.Cast<TranscriptionHistoryItem>().FirstOrDefault(i => i.Id == updatedItem.Id);
 
@@ -488,8 +500,9 @@ public sealed partial class HistoryPage : Page
     private async void ReTranscribeButton_Click(object sender, RoutedEventArgs e)
     {
         if (_selectedItem == null) return;
-        
-        string? audioPath = _selectedItem.SourceFilePath;
+
+        TranscriptionHistoryItem item = _selectedItem;
+        string? audioPath = item.SourceFilePath;
         if (string.IsNullOrEmpty(audioPath) || !System.IO.File.Exists(audioPath))
         {
             var picker = new Windows.Storage.Pickers.FileOpenPicker();
@@ -520,41 +533,19 @@ public sealed partial class HistoryPage : Page
         
         try
         {
-            string wavPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ai_transcriber_input_winui_hist.wav");
             var settings = UserSettings.Load();
-            string ffmpegArgs = settings.NormalizeAudio
-                ? $"-y -i \"{audioPath}\" -vn -af highpass=f=80,lowpass=f=7800,loudnorm=I=-16:TP=-1.5:LRA=11 -ar 16000 -ac 1 -c:a pcm_s16le \"{wavPath}\""
-                : $"-y -i \"{audioPath}\" -vn -ar 16000 -ac 1 -c:a pcm_s16le \"{wavPath}\"";
-            
-            await LLMFormatter.RunProcessAsync(AppModel.FfmpegExe, ffmpegArgs);
-            
-            string lang = _selectedItem.Language;
-            string languageArg = AppModel.LanguageCode(lang);
-            string modelPath = AppModel.ModelPath(whisperModel.File);
-            string args = languageArg == "auto"
-                ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt"
-                : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
-                
-            var result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
-            
-            string rawTranscript = result.Stdout.Trim();
+            TranscriptionResult tr = await TranscriptionService.TranscribeAsync(audioPath!, whisperModel, item.Language, settings.NormalizeAudio);
+
+            string rawTranscript = tr.RawTranscript;
             if (string.IsNullOrWhiteSpace(rawTranscript))
             {
-                rawTranscript = $"[DEBUG: Stdout was empty. ExitCode={result.ExitCode}]\nStderr:\n{result.Stderr}";
+                ShowStatus(AppStrings.Record_Status_NoAudioDetected, InfoBarSeverity.Error);
+                return;
             }
-            
-            string? srtTranscript = null;
-            string expectedSrtPath = wavPath + ".srt";
-            if (System.IO.File.Exists(expectedSrtPath))
-            {
-                srtTranscript = await System.IO.File.ReadAllTextAsync(expectedSrtPath);
-                System.IO.File.Delete(expectedSrtPath);
-            }
-            
-            var updatedItem = _selectedItem with { RawTranscript = rawTranscript, SourceFilePath = audioPath, SrtTranscript = srtTranscript };
+
+            var updatedItem = item with { RawTranscript = rawTranscript, SourceFilePath = audioPath, SrtTranscript = tr.Srt };
             TranscriptionHistory.AddOrUpdate(updatedItem);
-            
-            _selectedItem = updatedItem;
+
             LoadHistory();
             HistoryListView.SelectedItem = HistoryListView.Items.Cast<TranscriptionHistoryItem>().FirstOrDefault(i => i.Id == updatedItem.Id);
             

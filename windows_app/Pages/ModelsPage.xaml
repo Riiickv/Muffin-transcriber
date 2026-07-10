@@ -13,11 +13,10 @@
     <Grid>
         <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
             <StackPanel
-                Width="780"
                 MaxWidth="780"
                 Padding="28,20,28,28"
                 Spacing="18"
-                HorizontalAlignment="Left">
+                HorizontalAlignment="Stretch">
                 <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Models_Title}" />
 
                 <toolkit:SettingsExpander Header="{x:Bind local:AppStrings.Models_WhisperSectionTitle}" Description="{x:Bind local:AppStrings.Models_WhisperSectionDesc}" IsExpanded="True">

@@ -12,11 +12,10 @@
     <Grid>
         <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
             <StackPanel
-            Width="900"
             MaxWidth="900"
             Padding="24,24,24,24"
             Spacing="18"
-            HorizontalAlignment="Left">
+            HorizontalAlignment="Stretch">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
