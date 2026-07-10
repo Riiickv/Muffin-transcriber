@@ -72,7 +72,7 @@ public static class LocalizationManager
 
     public static string GetString(string key, string fallback)
     {
-        if (!_fallbackMode && _strings.TryGetValue(key, out string value))
+        if (!_fallbackMode && _strings.TryGetValue(key, out string? value) && value is not null)
         {
             return value;
         }
