@@ -89,6 +89,7 @@ public static class AppStrings
 
     // CHAT PAGE
     public static string Chat_Title => LocalizationManager.GetString("Chat_Title", "Chat");
+    public static string Chat_NewChat => LocalizationManager.GetString("Chat_NewChat", "New chat");
     public static string Chat_EmptyHint => LocalizationManager.GetString("Chat_EmptyHint", "Ask me anything about your transcripts — or tell me to change a setting, open a screen, or delete a transcript.");
     public static string Chat_InputPlaceholder => LocalizationManager.GetString("Chat_InputPlaceholder", "Ask about your transcripts...");
     public static string Chat_NoModel => LocalizationManager.GetString("Chat_NoModel", "No local LLM is installed. Download one from the Models tab to use the assistant.");

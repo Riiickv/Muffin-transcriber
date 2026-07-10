@@ -15,13 +15,95 @@ namespace MuffinTranscriber.Pages;
 
 public sealed partial class ChatPage : Page
 {
-    private readonly List<ChatMessage> _messages = new();
+    private List<ChatSession> _sessions = new();
+    private ChatSession? _active;
     private bool _busy;
 
     public ChatPage()
     {
         InitializeComponent();
+        _sessions = WinChatStore.Load();
+        RefreshSessionList();
+        if (_sessions.Count > 0)
+        {
+            _active = _sessions[0];
+            SessionList.SelectedItem = _active;
+        }
+        RenderActive();
     }
+
+    // ---- Sessions ----------------------------------------------------------
+
+    private void TogglePane_Click(object sender, RoutedEventArgs e) => Split.IsPaneOpen = !Split.IsPaneOpen;
+
+    private void NewChat_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is { Messages.Count: 0 }) return; // already on a fresh chat
+
+        _active = new ChatSession();
+        _sessions.Insert(0, _active);
+        RefreshSessionList();
+        RenderActive();
+    }
+
+    private void SessionList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (SessionList.SelectedItem is ChatSession s && !ReferenceEquals(s, _active))
+        {
+            _active = s;
+            RenderActive();
+        }
+    }
+
+    private void DeleteSession_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b && b.Tag is string id)
+        {
+            ChatSession? s = _sessions.FirstOrDefault(x => x.Id == id);
+            if (s is null) return;
+
+            _sessions.Remove(s);
+            if (ReferenceEquals(s, _active)) _active = _sessions.FirstOrDefault();
+            WinChatStore.Save(_sessions);
+            RefreshSessionList();
+            SessionList.SelectedItem = _active;
+            RenderActive();
+        }
+    }
+
+    private void RefreshSessionList()
+    {
+        SessionList.ItemsSource = null;
+        SessionList.ItemsSource = _sessions;
+        SessionList.SelectedItem = _active;
+    }
+
+    private void RenderActive()
+    {
+        MessagesPanel.Children.Clear();
+        bool empty = _active is null || _active.Messages.Count == 0;
+        EmptyHint.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+
+        if (_active is not null)
+        {
+            foreach (ChatMessage m in _active.Messages)
+            {
+                if (m.Role == "user")
+                {
+                    AddUserBubble(m.Content);
+                }
+                else
+                {
+                    TextBlock tb = AddAssistantBubble();
+                    string visible = StripToolCalls(m.Content);
+                    tb.Text = string.IsNullOrWhiteSpace(visible) ? AppStrings.Chat_Done : visible;
+                }
+            }
+        }
+        ScrollToBottom();
+    }
+
+    // ---- Send --------------------------------------------------------------
 
     private void InputBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {
@@ -40,12 +122,20 @@ public sealed partial class ChatPage : Page
         string text = InputBox.Text.Trim();
         if (string.IsNullOrEmpty(text)) return;
 
+        if (_active is null)
+        {
+            _active = new ChatSession();
+            _sessions.Insert(0, _active);
+        }
+
         EmptyHint.Visibility = Visibility.Collapsed;
         InputBox.Text = "";
         _busy = true;
         SendButton.IsEnabled = false;
 
-        _messages.Add(new ChatMessage("user", text));
+        _active.Messages.Add(new ChatMessage("user", text));
+        if (_active.Title == "New chat") _active.Title = text.Length > 40 ? text[..40] : text;
+
         AddUserBubble(text);
         TextBlock assistant = AddAssistantBubble();
         assistant.Text = AppStrings.Chat_Thinking;
@@ -53,7 +143,7 @@ public sealed partial class ChatPage : Page
         try
         {
             bool first = true;
-            string reply = await ChatEngine.ChatAsync(_messages, UserSettings.Load().PreferredFormatterModel, chunk =>
+            string reply = await ChatEngine.ChatAsync(_active.Messages, UserSettings.Load().PreferredFormatterModel, chunk =>
             {
                 DispatcherQueue.TryEnqueue(() =>
                 {
@@ -63,7 +153,8 @@ public sealed partial class ChatPage : Page
                 });
             });
 
-            _messages.Add(new ChatMessage("assistant", reply));
+            _active.Messages.Add(new ChatMessage("assistant", reply));
+            _active.UpdatedAt = DateTime.Now;
 
             string visible = StripToolCalls(reply);
             assistant.Text = string.IsNullOrWhiteSpace(visible) ? AppStrings.Chat_Done : visible;
@@ -78,8 +169,21 @@ public sealed partial class ChatPage : Page
         {
             _busy = false;
             SendButton.IsEnabled = true;
+            MoveActiveToTop();
+            WinChatStore.Save(_sessions);
+            RefreshSessionList();
         }
     }
+
+    private void MoveActiveToTop()
+    {
+        if (_active is not null && _sessions.Remove(_active))
+        {
+            _sessions.Insert(0, _active);
+        }
+    }
+
+    // ---- Message bubbles ---------------------------------------------------
 
     private void AddUserBubble(string text)
     {
@@ -174,6 +278,8 @@ public sealed partial class ChatPage : Page
         ChatScroll.UpdateLayout();
         ChatScroll.ChangeView(null, ChatScroll.ScrollableHeight, null, true);
     }
+
+    // ---- Tool calls --------------------------------------------------------
 
     private static string StripToolCalls(string text)
     {
