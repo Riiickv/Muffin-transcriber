@@ -19,6 +19,7 @@ import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
 import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
+import { useWhisperPreload } from '@/hooks/useWhisperPreload';
 import { errorToMessage } from '@/utils/errors';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
@@ -56,6 +57,8 @@ export default function HomeScreen() {
   const [summaryText, setSummaryText] = useState('');
 
   const { whisperOptions, formatterOptions } = useModelOptions();
+  // Once a file is picked, transcription is imminent — warm the model.
+  useWhisperPreload(!!selectedFileUri);
 
   const selectedWhisperDef = WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel);
   const isEnglishOnly = selectedWhisperDef?.isEnglishOnly ?? false;

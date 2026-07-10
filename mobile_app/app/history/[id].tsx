@@ -22,6 +22,7 @@ import { generateEmbedding } from '@/utils/EmbeddingEngine';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
 import { ModelManager } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
+import { useWhisperPreload } from '@/hooks/useWhisperPreload';
 import { toLanguageCode } from '@/utils/languages';
 import { errorToMessage } from '@/utils/errors';
 import { formatDuration, formatHistoryDate } from '@/utils/format';
@@ -55,6 +56,8 @@ export default function HistoryDetailScreen() {
   const [actionName, setActionName] = useState('');
 
   const { whisperOptions, formatterOptions } = useModelOptions();
+  // Re-Transcribe is one tap away — warm the model while the user reads.
+  useWhisperPreload(!!item?.sourceFilePath);
 
   const transcript =
     transcriptTab === 'summary'

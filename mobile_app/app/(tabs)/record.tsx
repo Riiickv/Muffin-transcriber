@@ -18,6 +18,7 @@ import { useDialog } from '@/components/Dialog';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
 import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
+import { warmWhisperIfReady } from '@/hooks/useWhisperPreload';
 import { errorToMessage } from '@/utils/errors';
 import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
 import { WHISPER_RECORDING_PRESET } from '@/utils/audioRecording';
@@ -186,6 +187,9 @@ export default function RecordScreen() {
       try {
         await recorder.prepareToRecordAsync();
         recorder.record();
+        // Transcription is now guaranteed — load the model while they speak,
+        // so it's warm by the time they hit stop.
+        warmWhisperIfReady(settings.preferredWhisperModel);
       } catch (e) {
         console.error('recorder.record failed:', e);
         dialog.show({ title: t('dialog.recordingFailed.title') || 'Recording failed', message: t('dialog.recordingFailed.messageStart') || 'Could not start recording.', icon: 'warning', iconTone: 'danger' });
