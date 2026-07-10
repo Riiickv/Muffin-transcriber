@@ -15,6 +15,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, ModelDef } from '@/utils/ModelManager';
 import { rollupMemories } from '@/utils/LLMEngine';
+import { clearAllChats } from '@/utils/chatStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { LANGUAGE_OPTIONS } from '@/utils/languages';
 import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
@@ -262,7 +263,7 @@ export default function SettingsScreen() {
               buttons: [
                 { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
                 { label: t('dialog.clearChat.clear') || 'Clear', variant: 'danger', onPress: async () => {
-                  await AsyncStorage.removeItem('chat_messages');
+                  await clearAllChats();
                   dialog.show({ title: t('dialog.clearChat.clearedTitle') || 'Cleared', message: t('dialog.clearChat.clearedMessage') || 'Your conversation history has been deleted.' });
                 }},
               ],

@@ -13,21 +13,38 @@ function getInitLlama() {
 
 let llamaContext: LlamaContext | null = null;
 let currentModelPath = '';
+let loadPromise: Promise<void> | null = null;
 
 export async function loadLLM(modelPath: string): Promise<void> {
   if (llamaContext && currentModelPath === modelPath) return;
-  if (llamaContext) await unloadLLM();
-  
-  try {
+
+  // Coalesce concurrent loads. Without this, Promise.all([format, summarize])
+  // fires two init() calls while the context is still null; the first native
+  // context (hundreds of MB + KV cache) is then orphaned and never released,
+  // which can OOM-crash the device.
+  while (loadPromise) {
+    await loadPromise;
+    if (llamaContext && currentModelPath === modelPath) return;
+  }
+
+  const p = (async () => {
+    if (llamaContext) await unloadLLM();
     const init = getInitLlama();
     llamaContext = await init({
       n_ctx: 4096,
       model: modelPath,
     });
     currentModelPath = modelPath;
+  })();
+  loadPromise = p;
+
+  try {
+    await p;
   } catch (error) {
     console.error("Failed to load LLM:", error);
     throw error;
+  } finally {
+    if (loadPromise === p) loadPromise = null;
   }
 }
 
@@ -117,12 +134,21 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
   
   const result = await llamaContext.completion({
     prompt,
-    n_predict: Math.max(512, Math.min(2048, Math.floor(transcript.length / 3) + 256)),
+    n_predict: Math.max(512, Math.min(3072, Math.floor(transcript.length / 3) + 256)),
     temperature: 0.0,
   });
-  
+
   const formatted = extractFormatterOutput(result.text);
-  if (looksUnstable(formatted, transcript)) return transcript;
+  // Default formatting only adds punctuation/casing, so the output should be
+  // roughly as long as the input. A result well under the raw length means the
+  // model hit the token budget and got cut off — fall back to the raw
+  // transcript rather than storing a silently truncated "formatted" variant.
+  // Skip this check when a custom prompt is set, since it may intentionally
+  // shorten the text (e.g. "remove filler words").
+  const isDefaultFormatting = !customFormat.trim();
+  if (looksUnstable(formatted, transcript) || (isDefaultFormatting && formatted.length < transcript.length * 0.7)) {
+    return transcript;
+  }
   return formatted;
 }
 

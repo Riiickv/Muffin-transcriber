@@ -120,3 +120,15 @@ export async function deleteChatSession(id: string) {
   const next = current.filter((chat) => chat.id !== id);
   await saveChats(next);
 }
+
+export async function clearAllChats() {
+  cachedChats = [];
+  notifySubscribers();
+  try {
+    await AsyncStorage.removeItem(CHATS_KEY);
+    // Also drop the legacy single-chat key so the migration path can't resurrect it.
+    await AsyncStorage.removeItem('chat_messages');
+  } catch (e) {
+    console.error('Failed to clear chats', e);
+  }
+}

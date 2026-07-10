@@ -14,12 +14,13 @@ function getInitLlama() {
 
 let embeddingContext: LlamaContext | null = null;
 let currentModelPath: string | null = null;
+let loadPromise: Promise<boolean> | null = null;
 
 export async function loadEmbeddingModel(): Promise<boolean> {
   // Use the first embedding model we have
   const modelDef = EMBEDDING_MODELS[0];
   const isDownloaded = await ModelManager.isModelDownloaded(modelDef.id);
-  
+
   if (!isDownloaded) {
     console.log("Embedding model not downloaded yet.");
     return false;
@@ -31,12 +32,18 @@ export async function loadEmbeddingModel(): Promise<boolean> {
     return true; // Already loaded
   }
 
-  if (embeddingContext) {
-    await embeddingContext.release();
-    embeddingContext = null;
+  // Coalesce concurrent loads so we never init the native context twice.
+  while (loadPromise) {
+    await loadPromise;
+    if (embeddingContext && currentModelPath === modelPath) return true;
   }
 
-  try {
+  const p = (async (): Promise<boolean> => {
+    if (embeddingContext) {
+      await embeddingContext.release();
+      embeddingContext = null;
+      currentModelPath = null;
+    }
     console.log("Loading embedding model...");
     const init = getInitLlama();
     if (!init) return false; // web / unsupported platform
@@ -49,9 +56,16 @@ export async function loadEmbeddingModel(): Promise<boolean> {
     currentModelPath = modelPath;
     console.log("Embedding model loaded successfully.");
     return true;
+  })();
+  loadPromise = p;
+
+  try {
+    return await p;
   } catch (e) {
     console.error("Failed to load embedding model:", e);
     return false;
+  } finally {
+    if (loadPromise === p) loadPromise = null;
   }
 }
 

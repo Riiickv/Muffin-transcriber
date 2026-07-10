@@ -15,21 +15,36 @@ function getInitLlama() {
 
 let llamaContext: LlamaContext | null = null;
 let currentModelPath = '';
+let loadPromise: Promise<void> | null = null;
 
 export async function loadChatLLM(modelPath: string): Promise<void> {
   if (llamaContext && currentModelPath === modelPath) return;
-  if (llamaContext) await unloadChatLLM();
-  
-  try {
+
+  // Coalesce concurrent loads so we never init the native context twice
+  // (a double-init leaks the first, hundreds-of-MB context).
+  while (loadPromise) {
+    await loadPromise;
+    if (llamaContext && currentModelPath === modelPath) return;
+  }
+
+  const p = (async () => {
+    if (llamaContext) await unloadChatLLM();
     const init = getInitLlama();
     llamaContext = await init({
       n_ctx: 4096, // Increased context window for reading full transcripts
       model: modelPath,
     });
     currentModelPath = modelPath;
+  })();
+  loadPromise = p;
+
+  try {
+    await p;
   } catch (error) {
     console.error("Failed to load Chat LLM:", error);
     throw error;
+  } finally {
+    if (loadPromise === p) loadPromise = null;
   }
 }
 

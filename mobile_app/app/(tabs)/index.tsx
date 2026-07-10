@@ -1,12 +1,11 @@
-import { StyleSheet, TextInput, View } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
 import { FadeInView } from '@/components/FadeInView';
 import ExpressiveSwitch from '@/components/ExpressiveSwitch';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
-import { Icon } from '@/components/Icon';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import * as DocumentPicker from 'expo-document-picker';
@@ -48,6 +47,11 @@ export default function HomeScreen() {
   const { settings, setSetting } = useSettings();
   const [customPrompt, setCustomPrompt] = useDebouncedSetting('customFormatSystemPrompt');
   const dialog = useDialog();
+
+  // Identifies the in-flight transcription. Background LLM work (format/summarize/
+  // title) checks this before touching UI state, so a newer run started while an
+  // older run is still formatting can't overwrite the screen with stale results.
+  const activeRunIdRef = useRef<string | null>(null);
 
   const [transcriptTab, setTranscriptTab] = useState<TranscriptTab>('raw');
   const [selectedFileUri, setSelectedFileUri] = useState<string | null>(null);
@@ -190,6 +194,8 @@ export default function HomeScreen() {
       setIsTranscribing(false);
 
       const newItemId = Date.now().toString();
+      const runId = newItemId;
+      activeRunIdRef.current = runId;
       let currentItem: HistoryItem = {
         id: newItemId,
         timestampISO: new Date().toISOString(),
@@ -201,8 +207,11 @@ export default function HomeScreen() {
       await addOrUpdate(currentItem);
       haptics.success();
 
-      // Run heavy LLM tasks concurrently in the background
+      // Run heavy LLM tasks concurrently in the background. UI writes are gated
+      // on runId so a newer transcription started mid-format can't be clobbered;
+      // history writes are keyed by item id, so they always target this run's item.
       (async () => {
+        const isCurrent = () => activeRunIdRef.current === runId;
         try {
           if (!settings.preferredFormatterModel) return;
           const modelPath = ModelManager.getModelPath(settings.preferredFormatterModel);
@@ -211,9 +220,11 @@ export default function HomeScreen() {
           // transcript and share the same LLM singleton (so they serialize
           // under the hood in llama.rn), but this is cleaner and avoids
           // unnecessary sequential awaiting.
-          setFormattedText(settings.formatByDefault ? (t('transcribe.formatting') || '') : '');
-          setSummaryText(settings.summarizeByDefault ? (t('transcribe.summarizing') || '') : '');
-          if (settings.formatByDefault) setTranscriptTab('formatted');
+          if (isCurrent()) {
+            setFormattedText(settings.formatByDefault ? (t('transcribe.formatting') || '') : '');
+            setSummaryText(settings.summarizeByDefault ? (t('transcribe.summarizing') || '') : '');
+            if (settings.formatByDefault) setTranscriptTab('formatted');
+          }
 
           const [formatted, summarized] = await Promise.all([
             settings.formatByDefault
@@ -225,13 +236,17 @@ export default function HomeScreen() {
           ]);
 
           if (formatted) {
-            setFormattedText(formatted);
-            setTranscriptTab('formatted');
+            if (isCurrent()) {
+              setFormattedText(formatted);
+              setTranscriptTab('formatted');
+            }
             currentItem = { ...currentItem, formattedTranscript: formatted };
           }
           if (summarized) {
-            setSummaryText(summarized);
-            if (!formatted) setTranscriptTab('summary');
+            if (isCurrent()) {
+              setSummaryText(summarized);
+              if (!formatted) setTranscriptTab('summary');
+            }
             currentItem = { ...currentItem, summary: summarized };
           }
           await addOrUpdate(currentItem);
@@ -401,27 +416,10 @@ export default function HomeScreen() {
 
         {isTranscribing ? (
           <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
-            <Icon name="favorite" size={48} color={theme.tint} />
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: SPACING.md, marginBottom: SPACING.sm }}>{t('transcribe.whileWaiting')}</Text>
-            <Text style={{ fontSize: 14, color: theme.textMuted, textAlign: 'center', marginBottom: SPACING.lg }}>
+            <ActivityIndicator size="large" color={theme.tint} />
+            <Text style={{ fontSize: 15, color: theme.textMuted, textAlign: 'center', marginTop: SPACING.lg, paddingHorizontal: SPACING.lg }}>
               {currentText}
             </Text>
-            <Button
-              onPress={() => {
-                haptics.tap();
-                dialog.show({
-                  title: t('transcribe.supportMe'),
-                  message: t('transcribe.supportDesc') || 'This would trigger an ad in production to support development!',
-                  icon: 'favorite',
-                  iconTone: 'primary',
-                  primaryAction: { label: t('transcribe.watchAd') || 'Watch Ad', onPress: () => {} },
-                  secondaryAction: { label: t('dialog.confirmDelete.cancel') || 'Cancel', onPress: () => {} }
-                });
-              }}
-              icon="favorite"
-            >
-              {t('transcribe.supportMe')}
-            </Button>
           </View>
         ) : (
           <TextInput
