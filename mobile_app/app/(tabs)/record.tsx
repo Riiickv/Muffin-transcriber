@@ -1,4 +1,4 @@
-import { Animated, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useAudioRecorder, requestRecordingPermissionsAsync } from 'expo-audio';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -14,7 +14,6 @@ import { MOTION, SPACING } from '@/constants/tokens';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
 import { useHistory, HistoryItem } from '@/utils/historyStore';
 import { useSettings } from '@/utils/settingsStore';
-import { Button } from '@/components/Button';
 import { useDialog } from '@/components/Dialog';
 import { formatTranscript, summarizeTranscript, extractActionableEntities, generateTitle } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
@@ -249,27 +248,10 @@ export default function RecordScreen() {
       <View style={styles.recordContainer}>
         {isBusy ? (
           <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="favorite" size={48} color={theme.tint} />
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: SPACING.md, marginBottom: SPACING.sm }}>{t('record.whileWaiting')}</Text>
-            <Text style={{ fontSize: 14, color: theme.textMuted, textAlign: 'center', marginBottom: SPACING.lg }}>
+            <ActivityIndicator size="large" color={theme.tint} />
+            <Text style={{ fontSize: 15, color: theme.textMuted, textAlign: 'center', marginTop: SPACING.lg, paddingHorizontal: SPACING.lg }}>
               {status}
             </Text>
-            <Button
-              onPress={() => {
-                haptics.tap();
-                dialog.show({
-                  title: t('record.supportMe'),
-                  message: t('transcribe.supportDesc') || 'This would trigger an ad in production to support development!',
-                  icon: 'favorite',
-                  iconTone: 'primary',
-                  primaryAction: { label: t('transcribe.watchAd') || 'Watch Ad', onPress: () => {} },
-                  secondaryAction: { label: t('dialog.confirmDelete.cancel') || 'Cancel', onPress: () => {} }
-                });
-              }}
-              icon="favorite"
-            >
-              {t('record.supportMe')}
-            </Button>
           </View>
         ) : (
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
