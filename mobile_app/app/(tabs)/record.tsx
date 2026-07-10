@@ -12,7 +12,7 @@ import { Card } from '@/components/Card';
 import ExpressiveSwitch from '@/components/ExpressiveSwitch';
 import { MOTION, SPACING } from '@/constants/tokens';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
-import { useHistory, HistoryItem } from '@/utils/historyStore';
+import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings } from '@/utils/settingsStore';
 import { useDialog } from '@/components/Dialog';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
@@ -120,55 +120,65 @@ export default function RecordScreen() {
         const whisperPath = ModelManager.getModelPath(settings.preferredWhisperModel);
         await loadWhisper(whisperPath);
 
-        setStatus(t('record.transcribing') || 'Transcribing... (Screen will stay awake to prevent interruptions)');
-        await activateKeepAwakeAsync();
+        setStatus(t('record.transcribing') || 'Transcribing...');
+        // Tagged so finishing here can't release Home's concurrent wake lock.
+        await activateKeepAwakeAsync('record-transcription');
         const langCode = toLanguageCode(settings.defaultLanguage);
         const result = await transcribeFile(uri, langCode);
 
-        const hasLlm = !!settings.preferredFormatterModel;
-        const llmPath = hasLlm ? ModelManager.getModelPath(settings.preferredFormatterModel) : '';
-
-        setStatus(t('transcribe.formatting') || 'Processing...');
-        const enrich = await runEnrichment({
-          rawText: result.text,
-          modelPath: llmPath,
-          modelFile: settings.preferredFormatterModel,
-          format: settings.formatByDefault && hasLlm,
-          summarize: settings.summarizeByDefault && hasLlm,
-          title: hasLlm,
-          embedding: true,
-          entities: hasLlm,
-          memories: false,
-          onStage: (stage) =>
-            setStatus(
-              stage === 'analyzing'
-                ? t('record.analyzing') || 'Analyzing...'
-                : t('transcribe.formatting') || 'Processing...'
-            ),
-        });
-
-        const newItem: HistoryItem = {
+        // Save the raw transcript right away — the user shouldn't wait through
+        // LLM enrichment (title/format/summary) to see their recording.
+        const baseItem: HistoryItem = {
           id: Date.now().toString(),
           timestampISO: new Date().toISOString(),
-          sourceFileName: enrich.title || (t('transcribe.noTitle') || 'Voice Memo'),
+          sourceFileName: t('transcribe.noTitle') || 'Voice Memo',
           language: settings.defaultLanguage || 'Auto-Detect',
           rawTranscript: result.text,
-          formattedTranscript: enrich.formatted,
-          summary: enrich.summarized,
           sourceFilePath: uri,
-          embedding: enrich.embedding,
-          extractedDates: enrich.extractedDates,
         };
-        await addOrUpdate(newItem);
+        await addOrUpdate(baseItem);
         haptics.success();
         setStatus(t('record.readyToTranscribe') || 'Ready to Transcribe');
+
+        // Enrichment runs in the background and updates the history item as
+        // results land (same pattern as the Home screen).
+        const hasLlm = !!settings.preferredFormatterModel;
+        const llmPath = hasLlm ? ModelManager.getModelPath(settings.preferredFormatterModel) : '';
+        (async () => {
+          try {
+            const enrich = await runEnrichment({
+              rawText: result.text,
+              modelPath: llmPath,
+              modelFile: settings.preferredFormatterModel,
+              format: settings.formatByDefault && hasLlm,
+              summarize: settings.summarizeByDefault && hasLlm,
+              title: hasLlm,
+              embedding: true,
+              entities: hasLlm,
+              memories: false,
+            });
+            // Patch only what enrichment produced; updateHistoryItem merges over
+            // the current item and is a no-op if the user deleted it meanwhile.
+            const patch: Partial<HistoryItem> = {};
+            if (enrich.title) patch.sourceFileName = enrich.title;
+            if (enrich.formatted) patch.formattedTranscript = enrich.formatted;
+            if (enrich.summarized) patch.summary = enrich.summarized;
+            if (enrich.embedding) patch.embedding = enrich.embedding;
+            if (enrich.extractedDates) patch.extractedDates = enrich.extractedDates;
+            if (Object.keys(patch).length > 0) {
+              await updateHistoryItem(baseItem.id, patch);
+            }
+          } catch (err) {
+            console.error('Background enrichment failed:', err);
+          }
+        })();
       } catch (e) {
         console.error('Transcription error:', e);
         haptics.error();
         dialog.show({ title: t('dialog.transcriptionFailed.title') || 'Transcription failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
         setStatus(t('record.readyToTranscribe') || 'Ready to Transcribe');
       } finally {
-        deactivateKeepAwake();
+        deactivateKeepAwake('record-transcription');
         setIsBusy(false);
       }
     } else {

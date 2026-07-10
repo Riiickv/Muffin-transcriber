@@ -65,6 +65,20 @@ async function pruneHistoryAudio(history: HistoryItem[]) {
   }
 }
 
+// Merge a patch into an existing item. Returns false (writes nothing) if the
+// item was deleted in the meantime — background enrichment must never
+// resurrect a memo the user removed, and merging over the CURRENT stored item
+// (not a caller snapshot) preserves concurrent edits like renames or the
+// audio-duration backfill.
+export async function updateHistoryItem(id: string, patch: Partial<HistoryItem>): Promise<boolean> {
+  const current = store.get() ?? (await store.load());
+  const index = current.findIndex((h) => h.id === id);
+  if (index < 0) return false;
+  const next = current.map((h, i) => (i === index ? { ...h, ...patch } : h));
+  await store.save(next);
+  return true;
+}
+
 export function useHistory() {
   const items = store.useValue();
 

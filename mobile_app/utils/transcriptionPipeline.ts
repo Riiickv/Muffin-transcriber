@@ -41,7 +41,19 @@ export interface EnrichmentResult {
 // abort the other, and the swallowed .catch hides it. So every llama step here is
 // awaited sequentially. Embedding uses a SEPARATE native context, so it is kicked
 // off up front and awaited at the end to overlap with the llama work safely.
-export async function runEnrichment(opts: EnrichmentOptions): Promise<EnrichmentResult> {
+//
+// Whole invocations are serialized too: enrichment runs in the background, so a
+// user can start a second recording before the first one's enrichment finishes.
+let enrichmentQueue: Promise<unknown> = Promise.resolve();
+
+export function runEnrichment(opts: EnrichmentOptions): Promise<EnrichmentResult> {
+  const run = enrichmentQueue.then(() => runEnrichmentNow(opts));
+  // Keep the chain alive even when a run rejects.
+  enrichmentQueue = run.catch(() => {});
+  return run;
+}
+
+async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResult> {
   const { rawText, modelPath, modelFile } = opts;
   const result: EnrichmentResult = {};
 
