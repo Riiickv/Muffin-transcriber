@@ -81,9 +81,14 @@ public partial class App : Application
         }
         else
         {
-            _window = new MainWindow(null);
+            _window = new MainWindow();
             MainWindow = _window;
         }
+
+        var settings = UserSettings.Load();
+        LocalizationManager.CreateDefaultLanguageFile();
+        LocalizationManager.LoadLanguage(settings.AppLanguage);
+
         _window.Activate();
     }
 }

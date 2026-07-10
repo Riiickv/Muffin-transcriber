@@ -45,11 +45,17 @@ public sealed partial class MiniWindow : Window
         _ = ProcessShareOperation();
     }
     
+    private bool _hasBeenActivated = false;
+
     private void MiniWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
-        if (args.WindowActivationState == WindowActivationState.Deactivated)
+        if (args.WindowActivationState != WindowActivationState.Deactivated)
         {
-            // Close the mini window when the user clicks away
+            _hasBeenActivated = true;
+        }
+        else if (_hasBeenActivated)
+        {
+            // Close the mini window when the user clicks away, but only after it actually appeared
             this.Close();
         }
     }
@@ -163,11 +169,16 @@ public sealed partial class MiniWindow : Window
             string languageArg = AppModel.LanguageCode(lang);
             string modelPath = AppModel.ModelPath(whisperModel.File);
             string args = languageArg == "auto"
-                ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt -ngl 999"
-                : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt -ngl 999";
+                ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt"
+                : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
             
             ProcessResult result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
+            
             _rawTranscript = result.Stdout.Trim();
+            if (string.IsNullOrWhiteSpace(_rawTranscript))
+            {
+                _rawTranscript = $"[DEBUG: Stdout was empty. ExitCode={result.ExitCode}]\nStderr:\n{result.Stderr}";
+            }
             
             string? srtTranscript = null;
             string expectedSrtPath = wavPath + ".srt";

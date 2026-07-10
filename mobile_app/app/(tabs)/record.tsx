@@ -1,6 +1,7 @@
 import { Animated, StyleSheet, View } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useAudioRecorder, requestRecordingPermissionsAsync } from 'expo-audio';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
@@ -150,7 +151,8 @@ export default function RecordScreen() {
         const whisperPath = ModelManager.getModelPath(settings.preferredWhisperModel);
         await loadWhisper(whisperPath);
 
-        setStatus(t('record.transcribing') || 'Transcribing...');
+        setStatus(t('record.transcribing') || 'Transcribing... (Screen will stay awake to prevent interruptions)');
+        await activateKeepAwakeAsync();
         const langCode = toLanguageCode(settings.defaultLanguage);
         const result = await transcribeFile(uri, langCode);
 
@@ -217,6 +219,7 @@ export default function RecordScreen() {
         dialog.show({ title: t('dialog.transcriptionFailed.title') || 'Transcription failed', message: msg, icon: 'warning', iconTone: 'danger' });
         setStatus(t('record.readyToTranscribe') || 'Ready to Transcribe');
       } finally {
+        deactivateKeepAwake();
         setIsBusy(false);
       }
     } else {

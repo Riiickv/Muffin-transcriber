@@ -1,9 +1,9 @@
 {
   "profiles": {
-    "AITranscriber.WinUI (Package)": {
+    "MuffinTranscriber (Package)": {
       "commandName": "MsixPackage"
     },
-    "AITranscriber.WinUI (Unpackaged)": {
+    "MuffinTranscriber (Unpackaged)": {
       "commandName": "Project"
     }
   }

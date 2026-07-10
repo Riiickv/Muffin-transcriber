@@ -45,8 +45,19 @@ public sealed partial class SettingsPage : Page
             PreferredWhisperBox.SelectedItem = model is null ? "Auto-select best installed model" : AppModel.CompactName(model);
         }
 
-        FormatByDefaultSwitch.IsOn = _settings.FormatByDefault;
+        SelectComboItem(DefaultLanguageBox, _settings.DefaultLanguage);
         SelectComboItem(FormatLanguageBox, _settings.FormatLanguage);
+        SelectComboItem(AutoDeleteBox, _settings.AutoDeleteCacheDuration);
+        
+        foreach (var item in AppLanguageBox.Items)
+        {
+            if (item is Microsoft.UI.Xaml.Controls.ComboBoxItem combo && combo.Tag?.ToString() == _settings.AppLanguage)
+            {
+                AppLanguageBox.SelectedItem = item;
+                break;
+            }
+        }
+        FormatByDefaultSwitch.IsOn = _settings.FormatByDefault;
         NormalizeAudioSwitch.IsOn = _settings.NormalizeAudio;
         AutoCopySwitch.IsOn = _settings.AutoCopyTranscript;
         ContextLearningSwitch.IsOn = _settings.EnableContextLearning;
@@ -104,7 +115,12 @@ public sealed partial class SettingsPage : Page
         _settings.AutoCopyTranscript = AutoCopySwitch.IsOn;
         _settings.EnableContextLearning = ContextLearningSwitch.IsOn;
         _settings.EnableAutoUpdateCheck = AutoUpdateCheckSwitch.IsOn;
-        _settings.AutoDeleteCacheDuration = SelectedComboText(AutoDeleteBox);
+        if (AppLanguageBox.SelectedItem is Microsoft.UI.Xaml.Controls.ComboBoxItem combo && combo.Tag != null)
+        {
+            _settings.AppLanguage = combo.Tag.ToString()!;
+        }
+
+        _settings.Save();
         _settings.CustomFormatSystemPrompt = CustomFormatBox.Text;
         _settings.CustomSummarySystemPrompt = CustomSummaryBox.Text;
 

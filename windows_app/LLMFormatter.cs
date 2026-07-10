@@ -105,20 +105,33 @@ public static class LLMFormatter
         string promptPath = Path.Combine(Path.GetTempPath(), "ai_transcriber_prompt_winui_summary.txt");
         await File.WriteAllTextAsync(promptPath, BuildChatPrompt(model.File, systemPrompt, userPrompt), Encoding.UTF8);
 
+        string schemaPath = Path.Combine(Path.GetTempPath(), "ai_transcriber_schema.json");
+        string schema = "{ \"type\": \"array\", \"items\": { \"type\": \"string\" } }";
+        await File.WriteAllTextAsync(schemaPath, schema, Encoding.UTF8);
+
         try
         {
             int maxTokens = 1024;
-            string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n {maxTokens} --temp 0.3 -ngl 33 -c 4096 --log-disable --no-display-prompt -st";
+            string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n {maxTokens} --temp 0.3 -ngl 999 -c 4096 --log-disable --no-display-prompt -st -jf \"{schemaPath}\"";
             ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130]);
             string formatted = ExtractFormatterOutput(result.Output);
+
+            try
+            {
+                var bullets = System.Text.Json.JsonSerializer.Deserialize<string[]>(formatted);
+                if (bullets != null && bullets.Length > 0)
+                {
+                    formatted = string.Join("\n", bullets.Select(b => $"- {b}"));
+                }
+            }
+            catch { } // fallback to raw string if JSON fails
+
             return string.IsNullOrWhiteSpace(formatted) ? null : formatted;
         }
         finally
         {
-            if (File.Exists(promptPath))
-            {
-                File.Delete(promptPath);
-            }
+            if (File.Exists(promptPath)) File.Delete(promptPath);
+            if (File.Exists(schemaPath)) File.Delete(schemaPath);
         }
     }
 
