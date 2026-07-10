@@ -26,6 +26,11 @@ public static class AppModel
         new("Phi-3-mini-4k-instruct-q4.gguf", "Phi-3 Mini [3.8B] - ~2.4GB VRAM", "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf", "2.4 GB"),
     ];
 
+    public static readonly ModelInfo[] EmbeddingModels =
+    [
+        new("all-MiniLM-L6-v2-q4_k_m.gguf", "MiniLM-L6-v2 (Semantic search)", "https://huggingface.co/Mungert/all-MiniLM-L6-v2-GGUF/resolve/main/all-MiniLM-L6-v2-q4_k_m.gguf", "14 MB"),
+    ];
+
     public static readonly HashSet<string> MediaExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".mp3", ".wav", ".ogg", ".opus", ".mp4", ".mkv", ".m4a", ".aac", ".flac", ".webm", ".mov", ".avi",
@@ -119,6 +124,7 @@ public static class AppModel
     public static string WhisperExe => FindExecutable(Path.Combine(AppInstallDir, "whisper_bin"), "whisper-cli.exe");
     public static string FfmpegExe => FindExecutable(Path.Combine(AppInstallDir, "ffmpeg_bin"), "ffmpeg.exe");
     public static string LlamaExe => FindExecutable(Path.Combine(AppInstallDir, "llama_bin"), "llama-cli.exe");
+    public static string LlamaServerExe => FindExecutable(Path.Combine(AppInstallDir, "llama_bin"), "llama-server.exe");
 
     public static string ModelPath(string file) => Path.Combine(ModelsDir, file);
 
