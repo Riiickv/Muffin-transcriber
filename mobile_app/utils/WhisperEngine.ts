@@ -1,7 +1,40 @@
 import { Platform } from 'react-native';
 import type { WhisperContext } from 'whisper.rn';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { loadSettings } from './settingsStore';
 import { loadMemories } from './memoryStore';
+
+// ggml synchronizes all threads per graph node, so one little core stalls the
+// big ones — on 2-big-core phones 4 threads is ~60% SLOWER than 2. Count the
+// performance cores from sysfs (world-readable) and clamp to [2,5]; any read
+// failure falls back to 4 (correct for modern 4-5-big-core SoCs).
+let cachedThreads: number | null = null;
+async function getOptimalThreads(): Promise<number> {
+  if (cachedThreads !== null) return cachedThreads;
+  let threads = 4;
+  try {
+    const possible = await FileSystemLegacy.readAsStringAsync('file:///sys/devices/system/cpu/possible');
+    const m = possible.trim().match(/(\d+)-(\d+)/);
+    const nCpu = m ? parseInt(m[2], 10) + 1 : 8;
+    const freqs: number[] = [];
+    for (let i = 0; i < Math.min(nCpu, 16); i++) {
+      try {
+        const f = await FileSystemLegacy.readAsStringAsync(
+          `file:///sys/devices/system/cpu/cpu${i}/cpufreq/cpuinfo_max_freq`
+        );
+        const v = parseInt(f.trim(), 10);
+        if (isFinite(v) && v > 0) freqs.push(v);
+      } catch {}
+    }
+    if (freqs.length >= 2) {
+      const max = Math.max(...freqs);
+      const perfCores = freqs.filter((f) => f >= max * 0.8).length;
+      threads = Math.max(2, Math.min(5, perfCores));
+    }
+  } catch {}
+  cachedThreads = threads;
+  return threads;
+}
 
 let initWhisper: any;
 function getInitWhisper() {
@@ -105,8 +138,8 @@ export async function transcribeFile(
     // the app consumes them and they add per-token cost.
     beamSize: 1,
     bestOf: 1,
-    // Use more CPU threads — most modern phones have 8 cores.
-    maxThreads: 4,
+    // Match thread count to the device's performance cores.
+    maxThreads: await getOptimalThreads(),
     // Bias Whisper toward user-taught vocabulary; undefined when empty so we
     // don't prime the decoder with an empty string.
     prompt: initialPrompt,

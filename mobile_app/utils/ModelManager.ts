@@ -15,7 +15,9 @@ export const WHISPER_MODELS: readonly ModelDef[] = [
   { id: 'ggml-tiny.bin', name: 'Whisper Tiny', url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin', size: '74 MB', description: 'Extremely fast for basic transcriptions.' },
   { id: 'ggml-base.en.bin', name: 'Whisper Base (English)', url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin', size: '142 MB', description: 'Fast and highly accurate for native English speakers.', isEnglishOnly: true },
   { id: 'ggml-small.bin', name: 'Whisper Small (Multilingual)', url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin', size: '466 MB', description: 'Great balance of speed and accuracy.' },
-  { id: 'ggml-large-v3-turbo-q5_0.bin', name: 'Whisper Large V3 (Turbo)', url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin', size: '547 MB', description: 'State-of-the-art accuracy. Runs great on newer phones.' },
+  // q8_0, not q5_0: q5 bit-unpacking has no fast SIMD path in this build's
+  // plain-NEON kernels and measures several times slower than q8_0 on phones.
+  { id: 'ggml-large-v3-turbo-q8_0.bin', name: 'Whisper Large V3 (Turbo)', url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin', size: '874 MB', description: 'State-of-the-art accuracy. Runs great on newer phones.' },
 ];
 
 export const FORMATTER_MODELS: readonly ModelDef[] = [
@@ -47,6 +49,10 @@ export class ModelManager {
     const dirInfo = await FileSystem.getInfoAsync(MODELS_DIR);
     if (!dirInfo.exists) {
       await FileSystem.makeDirectoryAsync(MODELS_DIR, { intermediates: true });
+    }
+    // Models removed from the catalog — free the orphaned space.
+    for (const obsolete of ['ggml-large-v3-turbo-q5_0.bin']) {
+      this.deleteModel(obsolete).catch(() => {});
     }
   }
 

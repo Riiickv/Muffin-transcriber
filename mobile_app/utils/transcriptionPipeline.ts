@@ -69,6 +69,12 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
     if (result.summarized) opts.onSummarized?.(result.summarized);
   }
 
+  // Memories run on rawText like format/summarize above — keeping the rawText
+  // tasks adjacent maximizes the shared-prefix KV reuse in buildTaskPrompt.
+  if (opts.memories) {
+    await extractMemories(rawText, modelPath, modelFile).catch((e) => console.warn(e));
+  }
+
   const textForAnalysis = result.formatted || rawText;
 
   if (opts.embedding || opts.entities || opts.title) {
@@ -89,10 +95,6 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
 
   if (opts.title) {
     result.title = await generateTitle(textForAnalysis, modelPath, modelFile).catch(() => undefined);
-  }
-
-  if (opts.memories) {
-    await extractMemories(rawText, modelPath, modelFile).catch((e) => console.warn(e));
   }
 
   const embedding = await embeddingPromise;

@@ -44,6 +44,11 @@ export async function loadLLM(modelPath: string): Promise<void> {
       model: modelPath,
       // Leave cores free for the system and for Whisper — background
       // formatting must not starve a transcription the user just started.
+      // NOTE: do NOT add cache_type_k/v or flash_attn_type here — on
+      // Snapdragon flagships llama.rn auto-offloads to the Adreno GPU via
+      // OpenCL, whose flash-attention path rejects quantized KV caches and
+      // the whole context init hard-fails (verified against llama.rn 0.12.5
+      // + ggml-opencl sources).
       n_threads: 4,
     });
     currentModelPath = modelPath;
@@ -81,6 +86,25 @@ function buildChatPrompt(modelFile: string, systemPrompt: string, userPrompt: st
     return `<|system|>\n${systemPrompt}<|end|>\n<|user|>\n${userPrompt}<|end|>\n<|assistant|>\n`;
   }
   return `<|im_start|>system\n${systemPrompt}<|im_end|>\n<|im_start|>user\n${userPrompt}<|im_end|>\n<|im_start|>assistant\n`;
+}
+
+// All enrichment tasks share ONE prompt shape: identical preamble + transcript
+// first, task instruction last. llama.rn reuses the KV cache for the longest
+// common prompt prefix across completions on the same context, so each source
+// text is prefilled once and reused by every task that runs on it (format/
+// summarize/memories share the raw transcript; entities/title share the
+// formatted one) — the dominant LLM cost. Don't "improve" individual task
+// prompts by moving text before the transcript; that breaks the shared prefix.
+function buildTaskPrompt(modelFile: string, sourceText: string, task: string): string {
+  const systemPrompt = `You are a precise text-processing assistant. You will be given a transcript, then a task about it.
+
+TRANSCRIPT:
+${sourceText}
+
+RULES:
+1. Work ONLY with the transcript above.
+2. Reply ONLY with the final result — no conversational text, no pleasantries, no markdown code fences or formatting tags, and do not wrap the output in quotes.`;
+  return buildChatPrompt(modelFile, systemPrompt, task);
 }
 
 function extractFormatterOutput(output: string): string {
@@ -139,10 +163,8 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
     }
   }
 
-  const systemPrompt = `You are a specialized text processing assistant. Your task is to process the following transcript according to these instructions:\n\n${taskInstruction}${memoryContext}\n\nCRITICAL RULES:\n1. You must reply ${languageInstruction}.\n2. Reply ONLY with the final processed text. Do not add any conversational text, pleasantries, or formatting tags. Do not wrap the output in quotes.`;
-  const userPrompt = `Clean this transcript ${languageInstruction}:\n\n${transcript}`;
-  
-  const prompt = buildChatPrompt(modelFile, systemPrompt, userPrompt);
+  const task = `TASK: ${taskInstruction}${memoryContext}\n\nYou must reply ${languageInstruction}. Process the transcript now.`;
+  const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   const result = await llamaContext.completion({
     prompt,
@@ -186,10 +208,8 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
     }
   }
 
-  const systemPrompt = `You are a highly capable summarization assistant. Your task is to process the following transcript according to these instructions:\n\n${taskInstruction}${memoryContext}\n\nCRITICAL RULES:\n1. You must reply ${languageInstruction}.\n2. Reply ONLY with the final processed text. Do not add any conversational text, pleasantries, or formatting tags. Do not wrap the output in quotes.`;
-  const userPrompt = `Summarize this transcript ${languageInstruction}:\n\n${transcript}`;
-  
-  const prompt = buildChatPrompt(modelFile, systemPrompt, userPrompt);
+  const task = `TASK: ${taskInstruction}${memoryContext}\n\nYou must reply ${languageInstruction}. Summarize the transcript now.`;
+  const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   const result = await llamaContext.completion({
     prompt,
@@ -207,13 +227,11 @@ export async function extractMemories(transcript: string, modelPath: string, mod
   await loadLLM(modelPath);
   if (!llamaContext) return;
   
-  const systemPrompt = `You are a user profiling engine. Extract ONLY specific data related to the user, their preferences, likes, dislikes, habits, and important factual details about their life from the text.
-CRITICAL RULES:
+  const task = `TASK: Act as a user profiling engine. Extract ONLY specific data related to the user, their preferences, likes, dislikes, habits, and important factual details about their life from the transcript.
 1. Ignore common words, transcription artifacts (like "transcription" or "test"), greetings, and general conversation.
 2. Only extract information that would be useful to remember as a personal profile of the user (e.g., "likes black coffee", "allergic to peanuts", "works in marketing").
-3. Return ONLY a valid JSON array of strings, like ["likes black coffee", "works in marketing"]. Do not add any conversational text. If nothing uniquely valuable about the user is found, return [].`;
-  const userPrompt = `Extract user preferences and profile facts from:\n${transcript}`;
-  const prompt = buildChatPrompt(modelFile, systemPrompt, userPrompt);
+3. Return ONLY a valid JSON array of strings, like ["likes black coffee", "works in marketing"]. If nothing uniquely valuable about the user is found, return [].`;
+  const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   try {
     const result = await llamaContext.completion({
@@ -260,17 +278,14 @@ export async function extractActionableEntities(transcript: string, modelPath: s
   await loadLLM(modelPath);
   if (!llamaContext) return [];
   
-  const systemPrompt = `You are a precise data extraction engine. Extract dates, times, or specific event occurrences (e.g. "tomorrow at 5pm", "September 12th").
-CRITICAL RULES:
+  const task = `TASK: Extract dates, times, or specific event occurrences (e.g. "tomorrow at 5pm", "September 12th") from the transcript.
 1. Return ONLY a valid JSON array of objects.
 2. Each object must have exactly 3 keys:
-   - "quote": The exact substring from the text containing the date/time. MUST match exactly.
+   - "quote": The exact substring from the transcript containing the date/time. MUST match exactly.
    - "name": A short 2-4 word suggested title for a calendar event based on the surrounding context.
    - "type": Either "date" (if it's a full day event) or "time" (if a specific hour is mentioned).
-3. Do not add any conversational text. If no dates or times are found, return [].`;
-  
-  const userPrompt = `Extract dates and times from:\n${transcript}`;
-  const prompt = buildChatPrompt(modelFile, systemPrompt, userPrompt);
+3. If no dates or times are found, return [].`;
+  const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   try {
     const result = await llamaContext.completion({
@@ -299,14 +314,11 @@ export async function generateTitle(transcript: string, modelPath: string, model
   await loadLLM(modelPath);
   if (!llamaContext) throw new Error("LLM not loaded");
   
-  const systemPrompt = `You are a titling assistant. Read the provided text and generate a short, descriptive title for it (maximum 4 words).
-CRITICAL RULES:
-1. Return ONLY the title string. Do not use quotes, brackets, or conversational text.
-2. The title must reflect the main topic or context of the text.
-3. If the text is incomprehensible, return "Audio Memo".`;
-  const userPrompt = `Generate a short title for this text:\n\n${transcript}`;
-  
-  const prompt = buildChatPrompt(modelFile, systemPrompt, userPrompt);
+  const task = `TASK: Generate a short, descriptive title for the transcript (maximum 4 words).
+1. Return ONLY the title string. No quotes, brackets, or conversational text.
+2. The title must reflect the main topic or context of the transcript.
+3. If the transcript is incomprehensible, return "Audio Memo".`;
+  const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   try {
     const result = await llamaContext.completion({

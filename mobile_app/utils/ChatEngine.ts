@@ -34,6 +34,9 @@ export async function loadChatLLM(modelPath: string): Promise<void> {
     llamaContext = await init({
       n_ctx: 4096,
       model: modelPath,
+      // Bounded threads, same as LLMEngine. See the note there before adding
+      // cache/flash-attn options: they hard-fail init on OpenCL devices.
+      n_threads: 4,
     });
     currentModelPath = modelPath;
   })();
@@ -142,6 +145,11 @@ async function searchTranscripts(query: string): Promise<HistoryItem[]> {
 function buildRAGPrompt(modelFile: string, messages: ChatMessage[], contextText: string, memoryText: string, historyCount: number, capabilitiesBlock: string): string {
   const lower = modelFile.toLowerCase();
 
+  // Ordered stable-first so llama.rn's common-prefix KV reuse survives across
+  // turns: persona/tools/capabilities rarely change within a conversation; the
+  // RAG <context> changes per message, so it goes LAST. The date is day-
+  // granular for the same reason — a minute-level timestamp invalidated the
+  // whole cached prefix every turn.
   let systemContent = `You are Muffin Chat, the built-in assistant for the Muffin transcription app. You help the user with their transcripts and you can operate the app for them — change settings, jump to a screen, or delete a transcript.
 
 You can see the user's transcripts (<context> and <history_index>) and every app setting with its current value and location (<app_settings>). Use them to answer accurately, including "where is setting X?" and "what is X set to right now?".
@@ -154,12 +162,19 @@ CRITICAL RULES:
 3. Never make things up. If you don't know, say so.
 4. Use the exact transcript ID from <history_index> when deleting.
 
-${capabilitiesBlock}
-
 ${TOOL_INSTRUCTIONS}
 
+${capabilitiesBlock}`;
+
+  const realMemory = memoryText ? memoryText.split('\n__HISTORY_INDEX__\n')[0] : '';
+  if (realMemory) {
+    systemContent += `\n\n<memory>\nThings you've learned about the user:\n${realMemory}\n</memory>`;
+  }
+
+  systemContent += `
+
 <global_state>
-Current date and time: ${new Date().toLocaleString()}
+Current date: ${new Date().toLocaleDateString()}
 Total transcripts saved: ${historyCount}
 
 <history_index>
@@ -171,11 +186,6 @@ ${memoryText ? memoryText.split('\n__HISTORY_INDEX__\n')[1] : ''}
 <context>
 ${contextText}
 </context>`;
-
-  const realMemory = memoryText ? memoryText.split('\n__HISTORY_INDEX__\n')[0] : '';
-  if (realMemory) {
-    systemContent += `\n<memory>\nThings you've learned about the user:\n${realMemory}\n</memory>`;
-  }
 
   // Build full prompt string based on model type
   let fullPrompt = '';

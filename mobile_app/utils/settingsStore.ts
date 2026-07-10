@@ -35,10 +35,22 @@ export const DEFAULT_SETTINGS: Settings = {
   preferredChatModel: '',
 };
 
+// Model ids that changed in the catalog (e.g. quant swaps) — remap stale
+// preferences so the picker doesn't show a ghost entry.
+const MODEL_RENAMES: Record<string, string> = {
+  'ggml-large-v3-turbo-q5_0.bin': 'ggml-large-v3-turbo-q8_0.bin',
+};
+
 // hydrate spreads over defaults so settings added in later versions are present
 // on records saved by an older build.
 const store = createPersistentStore<Settings>(SETTINGS_KEY, { ...DEFAULT_SETTINGS }, {
-  hydrate: (parsed) => ({ ...DEFAULT_SETTINGS, ...parsed }),
+  hydrate: (parsed) => {
+    const s = { ...DEFAULT_SETTINGS, ...parsed };
+    if (MODEL_RENAMES[s.preferredWhisperModel]) {
+      s.preferredWhisperModel = MODEL_RENAMES[s.preferredWhisperModel];
+    }
+    return s;
+  },
 });
 
 export const loadSettings = () => store.load();
