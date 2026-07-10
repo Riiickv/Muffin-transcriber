@@ -66,12 +66,13 @@ export const AnimatedPressable = ({ children, style, scaleTo = 0.97, ...props }:
           <Animated.View
             style={[
               inner,
-              // Fill whatever size Pressable ended up being so the visible
-              // surface (bg, border, padding) covers the button. minHeight:'100%'
-              // instead of flexGrow:1 — a percentage of an auto-sized parent is
-              // ignored, so unsized buttons hug their label; flexGrow made them
-              // swallow all free space inside centered containers.
-              { alignSelf: 'stretch', minHeight: '100%', transform: [...innerTransforms, { scale: pressScale }] },
+              // Stretch across whatever size Pressable ended up being so the
+              // visible surface (bg, border, padding) actually fills the button.
+              // NOTE: flexGrow makes unsized buttons expand inside centered
+              // fixed-height containers — give those buttons an explicit height
+              // (like the record button does) instead of changing this: a
+              // minHeight:'100%' variant broke every control in the app on Yoga.
+              { alignSelf: 'stretch', flexGrow: 1, transform: [...innerTransforms, { scale: pressScale }] },
             ]}
           >
             {typeof children === 'function' ? children({ pressed }) : children}

@@ -41,7 +41,9 @@ export function WaitingCard({ status }: { status?: string }) {
       <Button
         variant="primary"
         size="md"
-        style={{ marginTop: SPACING.xl }}
+        // Explicit height: an unsized Button inside this centered container
+        // balloons to fill it (AnimatedPressable's inner surface uses flexGrow).
+        style={{ marginTop: SPACING.xl, height: 44 }}
         onPress={() => {
           haptics.tap();
           dialog.show({
