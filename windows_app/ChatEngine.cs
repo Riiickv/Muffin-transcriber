@@ -15,9 +15,9 @@ public static class ChatEngine
 {
     public static async Task<string> ChatAsync(IReadOnlyList<ChatMessage> messages, string? selectedFormatter, Action<string> onToken)
     {
-        if (string.IsNullOrWhiteSpace(AppModel.LlamaExe))
+        if (string.IsNullOrWhiteSpace(AppModel.LlamaCompletionExe))
         {
-            throw new InvalidOperationException("No local LLM is installed. Download a formatter model from the Models tab.");
+            throw new InvalidOperationException("The local LLM engine is missing. Try reinstalling the app.");
         }
 
         ModelInfo? model = AppModel.FormatterModels.FirstOrDefault(m => m.Name == selectedFormatter)
@@ -43,8 +43,10 @@ public static class ChatEngine
         try
         {
             string modelPath = AppModel.ModelPath(model.File);
-            string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n 768 --temp 0.3 -ngl 999 -c 4096 --log-disable --no-display-prompt -st";
-            return await RunStreamingAsync(AppModel.LlamaExe, args, onToken);
+            // llama-completion (not llama-cli) does a clean one-shot completion with
+            // no interactive banner/prompt-echo; -no-cnv + --simple-io keep it plain.
+            string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n 768 --temp 0.3 -ngl 999 -c 4096 --log-disable --no-display-prompt -no-cnv --simple-io";
+            return await RunStreamingAsync(AppModel.LlamaCompletionExe, args, onToken);
         }
         finally
         {
@@ -237,17 +239,38 @@ Every transcript you have, newest first:
         var sb = new StringBuilder();
         var buffer = new char[256];
         int read;
-        while ((read = await process.StandardOutput.ReadAsync(buffer, 0, buffer.Length)) > 0)
+        bool ended = false;
+        bool trimmedStart = false;
+
+        while (!ended && (read = await process.StandardOutput.ReadAsync(buffer, 0, buffer.Length)) > 0)
         {
-            string chunk = new string(buffer, 0, read);
-            sb.Append(chunk);
-            onToken(chunk);
+            string chunk = StripAnsi(new string(buffer, 0, read));
+
+            int endIdx = chunk.IndexOf("[end of text]", StringComparison.Ordinal);
+            if (endIdx >= 0)
+            {
+                chunk = chunk[..endIdx];
+                ended = true;
+            }
+
+            // llama-completion emits a leading space before the reply.
+            if (!trimmedStart)
+            {
+                chunk = chunk.TrimStart('\r', '\n', ' ');
+                if (chunk.Length > 0) trimmedStart = true;
+            }
+
+            if (chunk.Length > 0)
+            {
+                sb.Append(chunk);
+                onToken(chunk);
+            }
         }
 
+        try { _ = process.StandardOutput.ReadToEnd(); } catch { } // drain so the process exits
         await process.WaitForExitAsync();
         await stderrTask;
 
-        // Trim llama-cli's end-of-text markers if they leak through.
         string output = sb.ToString();
         foreach (string marker in new[] { "<|im_end|>", "<|eot_id|>", "<|end|>", "<|endoftext|>", "[end of text]" })
         {
@@ -255,5 +278,25 @@ Every transcript you have, newest first:
             if (idx >= 0) output = output[..idx];
         }
         return output.Trim();
+    }
+
+    // Removes ANSI colour escape sequences (ESC[...m) that llama-completion emits.
+    private static string StripAnsi(string s)
+    {
+        if (s.IndexOf('\x1b') < 0) return s;
+        var sb = new StringBuilder(s.Length);
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (s[i] == '\x1b' && i + 1 < s.Length && s[i + 1] == '[')
+            {
+                i += 2;
+                while (i < s.Length && !char.IsLetter(s[i])) i++;
+            }
+            else
+            {
+                sb.Append(s[i]);
+            }
+        }
+        return sb.ToString();
     }
 }
