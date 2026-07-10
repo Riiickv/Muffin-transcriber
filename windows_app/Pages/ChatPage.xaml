@@ -8,47 +8,95 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Margin="24,16,24,16" RowSpacing="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <SplitView
+        x:Name="Split"
+        DisplayMode="Inline"
+        IsPaneOpen="False"
+        OpenPaneLength="240"
+        PanePlacement="Left">
 
-        <TextBlock
-            Grid.Row="0"
-            Style="{StaticResource TitleTextBlockStyle}"
-            Text="{x:Bind local:AppStrings.Chat_Title}" />
+        <SplitView.Pane>
+            <Grid Margin="12" RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Button Grid.Row="0" HorizontalAlignment="Stretch" Click="NewChat_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="&#xE710;" />
+                        <TextBlock Text="{x:Bind local:AppStrings.Chat_NewChat}" />
+                    </StackPanel>
+                </Button>
+                <ListView Grid.Row="1" x:Name="SessionList" SelectionChanged="SessionList_SelectionChanged">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:ChatSession">
+                            <Grid ColumnSpacing="6" Padding="0,4,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <Button Grid.Column="1" Padding="6" Click="DeleteSession_Click" Tag="{x:Bind Id}">
+                                    <FontIcon FontSize="12" Glyph="&#xE74D;" />
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </SplitView.Pane>
 
-        <ScrollViewer Grid.Row="1" x:Name="ChatScroll" VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="MessagesPanel" Spacing="10" Padding="0,0,4,12">
-                <TextBlock
-                    x:Name="EmptyHint"
-                    Margin="0,24,0,0"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="{x:Bind local:AppStrings.Chat_EmptyHint}"
-                    TextWrapping="Wrap" />
-            </StackPanel>
-        </ScrollViewer>
+        <SplitView.Content>
+            <Grid Margin="24,16,24,16" RowSpacing="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        <Grid Grid.Row="2" ColumnSpacing="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBox
-                x:Name="InputBox"
-                Grid.Column="0"
-                AcceptsReturn="False"
-                PlaceholderText="{x:Bind local:AppStrings.Chat_InputPlaceholder}"
-                KeyDown="InputBox_KeyDown" />
-            <Button
-                x:Name="SendButton"
-                Grid.Column="1"
-                Click="SendButton_Click"
-                Style="{StaticResource AccentButtonStyle}">
-                <FontIcon FontSize="16" Glyph="&#xE724;" />
-            </Button>
-        </Grid>
-    </Grid>
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                    <Button Click="TogglePane_Click" Padding="8">
+                        <FontIcon FontSize="16" Glyph="&#xE700;" />
+                    </Button>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource TitleTextBlockStyle}"
+                        Text="{x:Bind local:AppStrings.Chat_Title}" />
+                </StackPanel>
+
+                <Grid Grid.Row="1">
+                    <ScrollViewer x:Name="ChatScroll" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="MessagesPanel" Spacing="10" Padding="0,0,4,12" />
+                    </ScrollViewer>
+                    <TextBlock
+                        x:Name="EmptyHint"
+                        Margin="0,24,0,0"
+                        VerticalAlignment="Top"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="{x:Bind local:AppStrings.Chat_EmptyHint}"
+                        TextWrapping="Wrap" />
+                </Grid>
+
+                <Grid Grid.Row="2" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox
+                        x:Name="InputBox"
+                        Grid.Column="0"
+                        AcceptsReturn="False"
+                        PlaceholderText="{x:Bind local:AppStrings.Chat_InputPlaceholder}"
+                        KeyDown="InputBox_KeyDown" />
+                    <Button
+                        x:Name="SendButton"
+                        Grid.Column="1"
+                        Click="SendButton_Click"
+                        Style="{StaticResource AccentButtonStyle}">
+                        <FontIcon FontSize="16" Glyph="&#xE724;" />
+                    </Button>
+                </Grid>
+            </Grid>
+        </SplitView.Content>
+    </SplitView>
 </Page>
