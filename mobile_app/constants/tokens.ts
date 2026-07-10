@@ -1,5 +1,4 @@
 // Design tokens — single source of truth for spacing, radius, and motion.
-// If a value isn't in here, it doesn't belong in a component style.
 
 export const SPACING = {
   xs: 4,
@@ -18,8 +17,7 @@ export const RADIUS = {
   pill: 999,
 } as const;
 
-// Three spring presets covering every interaction.
-// Pick by feel, not by fiddling with friction/tension per-call.
+// Spring presets — pick by feel, not by tuning friction/tension per call.
 export const MOTION = {
   // Fast, tight — press feedback and quick toggles.
   springPress: { friction: 20, tension: 400 },

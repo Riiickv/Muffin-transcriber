@@ -70,7 +70,6 @@ export function useMemory() {
     const trimmed = text.trim();
     if (!trimmed) return;
 
-    // Prevent exact duplicates
     if (current.some(m => m.text.toLowerCase() === trimmed.toLowerCase())) return;
 
     const newItem: MemoryEntry = {

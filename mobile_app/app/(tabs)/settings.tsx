@@ -22,7 +22,6 @@ import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
 import { useDialog } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t } from '@/utils/i18n';
-// Hoist constants out of the render body — no reason to recreate on every render.
 type SegmentKey = 'general' | 'models';
 
 const PAGE_SEGMENTS = [
@@ -67,7 +66,6 @@ export default function SettingsScreen() {
   const [displayedSegment, setDisplayedSegment] = useState<SegmentKey>('general');
   const contentFade = useRef(new Animated.Value(1)).current;
 
-  // Panel state.
   const { settings, setSetting } = useSettings();
   const dialog = useDialog();
   const [formatPrompt, setFormatPrompt] = useDebouncedSetting('customFormatSystemPrompt');
@@ -316,7 +314,7 @@ export default function SettingsScreen() {
         />
       </View>
 
-      <Text style={[styles.versionText, { color: theme.textSubtle }]}>Muffin Transcriber v1.0.0</Text>
+      <Text style={[styles.versionText, { color: theme.textSubtle }]}>Muffin Transcriber v1.2.1</Text>
     </>
   );
 
@@ -381,10 +379,6 @@ export default function SettingsScreen() {
     </KeyboardScreen>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Local sub-components
-// ---------------------------------------------------------------------------
 
 const SettingRow = ({
   label,
@@ -485,8 +479,6 @@ const ModelCard = ({
     </Card>
   );
 };
-
-// ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   container: {

@@ -85,9 +85,7 @@ async function saveHistory(history: HistoryItem[]) {
   cachedHistory = history;
   notifySubscribers();
   try {
-    // AsyncStorage writes are atomic per key, so a single setItem is enough.
-    // (The previous tmp-key dance mirrored the Windows *file* rename trick,
-    // which has no analogue — and no benefit — for a key/value store.)
+    // AsyncStorage writes are atomic per key — one setItem, no tmp-key/rename dance.
     await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   } catch (e) {
     console.error('Failed to save history', e);
@@ -124,7 +122,7 @@ export function useHistory() {
       next = [...current];
       next[index] = item;
     } else {
-      next = [item, ...current]; // Newest first
+      next = [item, ...current];
     }
     setLocalItems(next);
     await saveHistory(next);

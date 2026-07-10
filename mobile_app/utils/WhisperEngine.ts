@@ -76,9 +76,8 @@ export async function transcribeFile(
     bestOf: 1,
     // Use more CPU threads — most modern phones have 8 cores.
     maxThreads: 4,
-    // Bias Whisper toward user-taught vocabulary (context learning). Only
-    // present when there's actual memory content — otherwise leave undefined
-    // so we don't accidentally prime the decoder with an empty string.
+    // Bias Whisper toward user-taught vocabulary; undefined when empty so we
+    // don't prime the decoder with an empty string.
     prompt: initialPrompt,
   };
 

@@ -326,7 +326,6 @@ public sealed partial class HomePage : Page
                                 }
                             }
 
-                            // Move to top of history
                             TranscriptionHistory.AddOrUpdate(duplicate);
                             continue;
                         }
@@ -361,8 +360,7 @@ public sealed partial class HomePage : Page
                     string rawTranscript = result.Stdout.Trim();
                     if (string.IsNullOrWhiteSpace(rawTranscript))
                     {
-                        // Whisper found no speech. Don't persist a placeholder/debug blob to
-                        // history — surface a friendly message and move on to the next file.
+                        // No speech: don't persist a debug blob to history, just warn and skip.
                         Debug.WriteLine($"Whisper produced no output for {baseFileName}. ExitCode={result.ExitCode}. Stderr:\n{result.Stderr}");
                         ShowStatus(string.Format(AppStrings.Home_Status_NoSpeechDetected, baseFileName), InfoBarSeverity.Error);
                         continue;

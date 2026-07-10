@@ -30,7 +30,6 @@ async function saveChats(chats: ChatSession[]) {
   }
 }
 
-// Initial load
 AsyncStorage.getItem(CHATS_KEY).then(async (data) => {
   if (data) {
     try {

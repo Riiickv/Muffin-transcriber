@@ -18,10 +18,8 @@ let loadPromise: Promise<void> | null = null;
 export async function loadLLM(modelPath: string): Promise<void> {
   if (llamaContext && currentModelPath === modelPath) return;
 
-  // Coalesce concurrent loads. Without this, Promise.all([format, summarize])
-  // fires two init() calls while the context is still null; the first native
-  // context (hundreds of MB + KV cache) is then orphaned and never released,
-  // which can OOM-crash the device.
+  // Coalesce concurrent loads. Two init() calls while context is still null
+  // orphan the first native context (100s of MB + KV cache) and can OOM the device.
   while (loadPromise) {
     await loadPromise;
     if (llamaContext && currentModelPath === modelPath) return;
@@ -139,12 +137,9 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
   });
 
   const formatted = extractFormatterOutput(result.text);
-  // Default formatting only adds punctuation/casing, so the output should be
-  // roughly as long as the input. A result well under the raw length means the
-  // model hit the token budget and got cut off — fall back to the raw
-  // transcript rather than storing a silently truncated "formatted" variant.
-  // Skip this check when a custom prompt is set, since it may intentionally
-  // shorten the text (e.g. "remove filler words").
+  // Default formatting only adds punctuation/casing, so output far shorter than
+  // the input means the model got cut off — fall back to raw. Skip for custom
+  // prompts, which may intentionally shorten (e.g. "remove filler words").
   const isDefaultFormatting = !customFormat.trim();
   if (looksUnstable(formatted, transcript) || (isDefaultFormatting && formatted.length < transcript.length * 0.7)) {
     return transcript;
@@ -164,9 +159,8 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
     ? "in the original language of the text"
     : `strictly in ${settings.formatLanguage}`;
 
-  // Fall back to the format prompt when no summary-specific prompt is set.
-  // This lets the "Custom Prompt" field on Home/Detail — which only edits
-  // `customFormatSystemPrompt` — still take effect on Summarize.
+  // Fall back to the format prompt so the Home/Detail "Custom Prompt" field
+  // (which only edits customFormatSystemPrompt) still affects Summarize.
   const customSummary = settings.customSummarySystemPrompt || settings.customFormatSystemPrompt;
   const taskInstruction = customSummary || "Extract the main ideas, key bullet points, and actionable items from the transcript. Use clear markdown bullet points.";
   
@@ -321,7 +315,7 @@ CRITICAL RULES:
 
 export async function rollupMemories(modelPath: string, modelFile: string): Promise<boolean> {
   const memories = await loadMemories();
-  if (memories.length < 5) return false; // Not enough to rollup
+  if (memories.length < 5) return false;
   
   await loadLLM(modelPath);
   if (!llamaContext) throw new Error("LLM not loaded");

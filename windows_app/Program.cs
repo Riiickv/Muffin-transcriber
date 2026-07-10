@@ -22,7 +22,6 @@ public static class SingleInstanceProgram
             return;
         }
 
-        // We are the main instance. Start the app.
         Microsoft.UI.Xaml.Application.Start((p) =>
         {
             var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());

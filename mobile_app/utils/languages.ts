@@ -1,6 +1,5 @@
 // The UI stores a display name (e.g. "Italian"); Whisper wants the ISO 639-1
-// code (e.g. "it"), or "auto" to detect the language itself. Auto-Detect is the
-// default so the app works for anyone, anywhere, without picking a language.
+// code (e.g. "it"), or "auto" to detect the language itself.
 
 type Language = { name: string; code: string };
 

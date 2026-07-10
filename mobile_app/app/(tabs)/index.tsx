@@ -40,9 +40,7 @@ export default function HomeScreen() {
   const [customPrompt, setCustomPrompt] = useDebouncedSetting('customFormatSystemPrompt');
   const dialog = useDialog();
 
-  // Identifies the in-flight transcription. Background LLM work (format/summarize/
-  // title) checks this before touching UI state, so a newer run started while an
-  // older run is still formatting can't overwrite the screen with stale results.
+  // Identifies the in-flight run; background LLM work checks it so a newer run can't overwrite the screen with stale results.
   const activeRunIdRef = useRef<string | null>(null);
 
   const [transcriptTab, setTranscriptTab] = useState<TranscriptTab>('raw');
@@ -162,8 +160,7 @@ export default function HomeScreen() {
         localPath = tmpPath;
       }
 
-      // 2. Convert any audio/video format to 16 kHz mono WAV.
-      //    We save it to a permanent directory so history replay works.
+      // 2. Convert to 16 kHz mono WAV in a permanent dir so history replay works.
       const audioDir = `${FileSystemLegacy.documentDirectory}MuffinAudio/`;
       const dirInfo = await FileSystemLegacy.getInfoAsync(audioDir);
       if (!dirInfo.exists) {
@@ -174,7 +171,6 @@ export default function HomeScreen() {
       setRawText(t('transcribe.convertingAudio'));
       await convertToWav(localPath, wavPath);
 
-      // Clean up the temporary content copy if we made one
       if (localPath !== selectedFileUri) {
         await FileSystemLegacy.deleteAsync(localPath, { idempotent: true });
       }
@@ -199,19 +195,14 @@ export default function HomeScreen() {
       await addOrUpdate(currentItem);
       haptics.success();
 
-      // Run heavy LLM tasks concurrently in the background. UI writes are gated
-      // on runId so a newer transcription started mid-format can't be clobbered;
-      // history writes are keyed by item id, so they always target this run's item.
+      // Heavy LLM work runs in the background; UI writes gated on runId, history writes keyed by item id.
       (async () => {
         const isCurrent = () => activeRunIdRef.current === runId;
         try {
           if (!settings.preferredFormatterModel) return;
           const modelPath = ModelManager.getModelPath(settings.preferredFormatterModel);
 
-          // Run format + summarize concurrently — they both work from the raw
-          // transcript and share the same LLM singleton (so they serialize
-          // under the hood in llama.rn), but this is cleaner and avoids
-          // unnecessary sequential awaiting.
+          // format + summarize run concurrently but serialize under the hood in llama.rn (shared singleton).
           if (isCurrent()) {
             setFormattedText(settings.formatByDefault ? (t('transcribe.formatting') || '') : '');
             setSummaryText(settings.summarizeByDefault ? (t('transcribe.summarizing') || '') : '');
@@ -243,7 +234,6 @@ export default function HomeScreen() {
           }
           await addOrUpdate(currentItem);
 
-          // Title generation + memory extraction can run after format/summarize
           const [finalTitle] = await Promise.all([
             generateTitle(formatted || cleanText, modelPath, settings.preferredFormatterModel).catch(() => ''),
             extractMemories(cleanText, modelPath, settings.preferredFormatterModel).catch(console.warn),
@@ -340,7 +330,6 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      {/* File & Engine */}
       <Card style={{ marginBottom: SPACING.lg }}>
         <View style={styles.row}>
           <View style={styles.flex1}>
@@ -384,7 +373,6 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      {/* Transcript */}
       <Card style={{ flex: 1 }}>
         <Text style={styles.sectionTitle}>{t('transcribe.transcriptTitle') || 'Transcript'}</Text>
 

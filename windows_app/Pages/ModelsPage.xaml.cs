@@ -7,7 +7,6 @@ namespace MuffinTranscriber.Pages;
 
 public sealed partial class ModelsPage : Page
 {
-    // HTTP client
     private static readonly HttpClient SharedHttpClient = new() { Timeout = Timeout.InfiniteTimeSpan };
 
     private readonly Dictionary<string, (TextBlock Status, Button Button)> _controls;
@@ -144,7 +143,6 @@ public sealed partial class ModelsPage : Page
             }
         });
 
-        // Check range
         if (totalHeader is null or <= 0 || headResponse.Headers.AcceptRanges?.Contains("bytes") != true)
         {
             await using Stream source = await headResponse.Content.ReadAsStreamAsync();
@@ -162,7 +160,6 @@ public sealed partial class ModelsPage : Page
             return;
         }
 
-        // Fast download
         int maxConnections = 8;
         long chunkSize = totalBytes / maxConnections;
         

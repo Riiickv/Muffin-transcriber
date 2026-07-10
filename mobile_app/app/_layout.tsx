@@ -17,7 +17,6 @@ import { useShareIntent } from 'expo-share-intent';
 import { useRouter } from 'expo-router';
 
 export {
-  // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
@@ -26,7 +25,6 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -39,7 +37,6 @@ export default function RootLayout() {
     MaterialSymbolsRounded: require('../assets/fonts/MaterialSymbolsRounded.ttf'),
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -87,7 +84,6 @@ function RootLayoutNav() {
     if (hasShareIntent && shareIntent?.files && shareIntent.files.length > 0) {
       const fileUri = shareIntent.files[0].path;
       if (fileUri) {
-        // Encode URI safely for router
         router.push({ pathname: '/' as any, params: { uri: encodeURIComponent(fileUri) } });
       }
       resetShareIntent();
