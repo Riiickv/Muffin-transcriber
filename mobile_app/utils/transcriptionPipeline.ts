@@ -1,0 +1,90 @@
+import {
+  formatTranscript,
+  summarizeTranscript,
+  generateTitle,
+  extractActionableEntities,
+  extractMemories,
+  ActionableEntity,
+} from './LLMEngine';
+import { generateEmbedding } from './EmbeddingEngine';
+
+export type EnrichmentStage = 'formatting' | 'summarizing' | 'analyzing';
+
+export interface EnrichmentOptions {
+  rawText: string;
+  modelPath: string;
+  modelFile: string;
+  format: boolean;
+  summarize: boolean;
+  title: boolean;
+  embedding: boolean;
+  entities: boolean;
+  memories: boolean;
+  onStage?: (stage: EnrichmentStage) => void;
+  onFormatted?: (text: string) => void;
+  onSummarized?: (text: string) => void;
+}
+
+export interface EnrichmentResult {
+  formatted?: string;
+  summarized?: string;
+  title?: string;
+  embedding?: number[];
+  extractedDates?: ActionableEntity[];
+}
+
+// Shared post-transcription LLM pipeline used by the Home and Record screens.
+//
+// CRITICAL: format, summarize, title and entity-extraction all run on the SINGLE
+// shared llama.rn context, whose base completion() has no internal queue. Running
+// any two of them concurrently (the old Promise.all) makes one decode corrupt or
+// abort the other, and the swallowed .catch hides it. So every llama step here is
+// awaited sequentially. Embedding uses a SEPARATE native context, so it is kicked
+// off up front and awaited at the end to overlap with the llama work safely.
+export async function runEnrichment(opts: EnrichmentOptions): Promise<EnrichmentResult> {
+  const { rawText, modelPath, modelFile } = opts;
+  const result: EnrichmentResult = {};
+
+  if (opts.format) {
+    opts.onStage?.('formatting');
+    result.formatted = await formatTranscript(rawText, modelPath, modelFile).catch(() => undefined);
+    if (result.formatted) opts.onFormatted?.(result.formatted);
+  }
+
+  if (opts.summarize) {
+    opts.onStage?.('summarizing');
+    result.summarized = await summarizeTranscript(rawText, modelPath, modelFile).catch(() => undefined);
+    if (result.summarized) opts.onSummarized?.(result.summarized);
+  }
+
+  const textForAnalysis = result.formatted || rawText;
+
+  if (opts.embedding || opts.entities || opts.title) {
+    opts.onStage?.('analyzing');
+  }
+
+  // Embedding runs on its own context — overlap it with the sequential llama steps.
+  const embeddingPromise = opts.embedding
+    ? generateEmbedding(textForAnalysis).catch(() => null)
+    : Promise.resolve(null);
+
+  if (opts.entities) {
+    const dates = await extractActionableEntities(textForAnalysis, modelPath, modelFile).catch(
+      () => [] as ActionableEntity[]
+    );
+    result.extractedDates = dates.length > 0 ? dates : undefined;
+  }
+
+  if (opts.title) {
+    result.title = await generateTitle(textForAnalysis, modelPath, modelFile).catch(() => undefined);
+  }
+
+  if (opts.memories) {
+    await extractMemories(rawText, modelPath, modelFile).catch((e) => console.warn(e));
+  }
+
+  const embedding = await embeddingPromise;
+  if (embedding) result.embedding = embedding;
+
+  return result;
+}

@@ -18,6 +18,7 @@ import { rollupMemories } from '@/utils/LLMEngine';
 import { clearAllChats } from '@/utils/chatStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { LANGUAGE_OPTIONS } from '@/utils/languages';
+import { formatEta } from '@/utils/format';
 import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
 import { useDialog } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
@@ -51,12 +52,6 @@ const formatBytes = (bytes: number) => {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-};
-
-const formatTime = (seconds: number) => {
-  if (!isFinite(seconds) || seconds < 0) return '...';
-  if (seconds < 60) return `${Math.floor(seconds)}s`;
-  return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
 };
 
 export default function SettingsScreen() {
@@ -472,7 +467,7 @@ const ModelCard = ({
           </View>
           <View style={styles.progressLabels}>
             <Text style={[styles.progressText, { color: theme.textMuted }]}>{formatBytes(info!.speed)}/s</Text>
-            <Text style={[styles.progressText, { color: theme.textMuted }]}>{formatTime(info!.eta)} left</Text>
+            <Text style={[styles.progressText, { color: theme.textMuted }]}>{formatEta(info!.eta)} left</Text>
           </View>
         </View>
       )}

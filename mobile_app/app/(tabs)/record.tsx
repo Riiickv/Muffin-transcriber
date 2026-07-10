@@ -1,4 +1,4 @@
-import { ActivityIndicator, Animated, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, View } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useAudioRecorder, requestRecordingPermissionsAsync } from 'expo-audio';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -15,19 +15,15 @@ import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
 import { useHistory, HistoryItem } from '@/utils/historyStore';
 import { useSettings } from '@/utils/settingsStore';
 import { useDialog } from '@/components/Dialog';
-import { formatTranscript, summarizeTranscript, extractActionableEntities, generateTitle } from '@/utils/LLMEngine';
-import { generateEmbedding } from '@/utils/EmbeddingEngine';
-import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS } from '@/utils/ModelManager';
+import { runEnrichment } from '@/utils/transcriptionPipeline';
+import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
+import { useModelOptions } from '@/hooks/useModelOptions';
+import { errorToMessage } from '@/utils/errors';
 import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
 import { WHISPER_RECORDING_PRESET } from '@/utils/audioRecording';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
-const WHISPER_LABELS: Record<string, string> = {
-  'ggml-tiny.bin': 'Whisper Tiny',
-  'ggml-base.en.bin': 'Whisper Base (English)',
-  'ggml-small.bin': 'Whisper Small',
-};
 
 export default function RecordScreen() {
   const { theme } = useTheme();
@@ -65,25 +61,7 @@ export default function RecordScreen() {
     }
   }, [isRecording]);
 
-  const [downloadedWhisperIds, setDownloadedWhisperIds] = useState<string[]>([]);
-  const [downloadedLLMIds, setDownloadedLLMIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    ModelManager.getDownloadedModelIds().then((ids) => {
-      setDownloadedWhisperIds(WHISPER_MODELS.filter((m) => ids.includes(m.id)).map((m) => m.id));
-      setDownloadedLLMIds(FORMATTER_MODELS.filter((m) => ids.includes(m.id)).map((m) => m.id));
-    });
-  }, []);
-
-  const whisperOptions = WHISPER_MODELS.filter((m) => downloadedWhisperIds.includes(m.id)).map((m) => ({
-    label: m.name,
-    value: m.id,
-  }));
-
-  const formatterOptions = FORMATTER_MODELS.filter((m) => downloadedLLMIds.includes(m.id)).map((m) => ({
-    label: m.name,
-    value: m.id,
-  }));
+  const { whisperOptions, formatterOptions } = useModelOptions();
 
   const selectedWhisperDef = WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel);
   const isEnglishOnly = selectedWhisperDef?.isEnglishOnly ?? false;
@@ -147,51 +125,39 @@ export default function RecordScreen() {
         const langCode = toLanguageCode(settings.defaultLanguage);
         const result = await transcribeFile(uri, langCode);
 
-        let formatted: string | undefined;
-        let summarized: string | undefined;
-
-        // format + summarize run concurrently but serialize under the hood (shared LLM context).
-        const llmPath = settings.preferredFormatterModel
-          ? ModelManager.getModelPath(settings.preferredFormatterModel)
-          : null;
+        const hasLlm = !!settings.preferredFormatterModel;
+        const llmPath = hasLlm ? ModelManager.getModelPath(settings.preferredFormatterModel) : '';
 
         setStatus(t('transcribe.formatting') || 'Processing...');
-        const [formatResult, summarizeResult] = await Promise.all([
-          (settings.formatByDefault && llmPath && settings.preferredFormatterModel)
-            ? formatTranscript(result.text, llmPath, settings.preferredFormatterModel).catch(() => undefined)
-            : Promise.resolve(undefined),
-          (settings.summarizeByDefault && llmPath && settings.preferredFormatterModel)
-            ? summarizeTranscript(result.text, llmPath, settings.preferredFormatterModel).catch(() => undefined)
-            : Promise.resolve(undefined),
-        ]);
-        formatted = formatResult;
-        summarized = summarizeResult;
-
-        // Embedding uses a separate native context, so it runs truly concurrent with the LLM tasks.
-        setStatus(t('record.analyzing') || 'Analyzing...');
-        const textForAnalysis = formatted || result.text;
-
-        const [embedding, extractedDatesResult, titleResult] = await Promise.all([
-          generateEmbedding(textForAnalysis).catch(() => null),
-          (llmPath && settings.preferredFormatterModel)
-            ? extractActionableEntities(textForAnalysis, llmPath, settings.preferredFormatterModel).catch(() => [] as any[])
-            : Promise.resolve([] as any[]),
-          (llmPath && settings.preferredFormatterModel)
-            ? generateTitle(textForAnalysis, llmPath, settings.preferredFormatterModel).catch(() => t('transcribe.noTitle') || 'Voice Memo')
-            : Promise.resolve(t('transcribe.noTitle') || 'Voice Memo'),
-        ]);
+        const enrich = await runEnrichment({
+          rawText: result.text,
+          modelPath: llmPath,
+          modelFile: settings.preferredFormatterModel,
+          format: settings.formatByDefault && hasLlm,
+          summarize: settings.summarizeByDefault && hasLlm,
+          title: hasLlm,
+          embedding: true,
+          entities: hasLlm,
+          memories: false,
+          onStage: (stage) =>
+            setStatus(
+              stage === 'analyzing'
+                ? t('record.analyzing') || 'Analyzing...'
+                : t('transcribe.formatting') || 'Processing...'
+            ),
+        });
 
         const newItem: HistoryItem = {
           id: Date.now().toString(),
           timestampISO: new Date().toISOString(),
-          sourceFileName: titleResult,
+          sourceFileName: enrich.title || (t('transcribe.noTitle') || 'Voice Memo'),
           language: settings.defaultLanguage || 'Auto-Detect',
           rawTranscript: result.text,
-          formattedTranscript: formatted,
-          summary: summarized,
+          formattedTranscript: enrich.formatted,
+          summary: enrich.summarized,
           sourceFilePath: uri,
-          embedding: embedding || undefined,
-          extractedDates: extractedDatesResult.length > 0 ? extractedDatesResult : undefined,
+          embedding: enrich.embedding,
+          extractedDates: enrich.extractedDates,
         };
         await addOrUpdate(newItem);
         haptics.success();
@@ -199,12 +165,7 @@ export default function RecordScreen() {
       } catch (e) {
         console.error('Transcription error:', e);
         haptics.error();
-        const msg = e instanceof Error
-          ? e.message
-          : typeof e === 'object' && e !== null
-            ? JSON.stringify(e)
-            : String(e);
-        dialog.show({ title: t('dialog.transcriptionFailed.title') || 'Transcription failed', message: msg, icon: 'warning', iconTone: 'danger' });
+        dialog.show({ title: t('dialog.transcriptionFailed.title') || 'Transcription failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
         setStatus(t('record.readyToTranscribe') || 'Ready to Transcribe');
       } finally {
         deactivateKeepAwake();
@@ -223,11 +184,16 @@ export default function RecordScreen() {
   };
 
   const modelLabel = settings.preferredWhisperModel
-    ? WHISPER_LABELS[settings.preferredWhisperModel] ?? settings.preferredWhisperModel
+    ? WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel)?.name ?? settings.preferredWhisperModel
     : (t('record.noModelSelected') || 'No model selected');
 
   return (
     <FadeInView index={1} style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        style={{ flex: 1, width: '100%' }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.statusContainer}>
         <Text style={styles.statusText}>{isRecording ? (t('record.listening') || 'Listening...') : status}</Text>
         <Text style={[styles.modelStatusText, { color: theme.textMuted }]}>{t('record.using') || 'Using'} {modelLabel}</Text>
@@ -334,6 +300,7 @@ export default function RecordScreen() {
           </View>
         </Card>
       </View>
+      </ScrollView>
     </FadeInView>
   );
 }
@@ -341,9 +308,12 @@ export default function RecordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 60,
+    paddingVertical: SPACING.xxl,
   },
   statusContainer: {
     alignItems: 'center',

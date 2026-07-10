@@ -1,5 +1,5 @@
 import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
 import { FadeInView } from '@/components/FadeInView';
@@ -15,12 +15,14 @@ import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
 import { convertToWav } from '@/modules/audio-converter';
 import { useHistory, HistoryItem } from '@/utils/historyStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
-import { formatTranscript, summarizeTranscript, extractMemories, generateTitle } from '@/utils/LLMEngine';
-import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS } from '@/utils/ModelManager';
+import { runEnrichment } from '@/utils/transcriptionPipeline';
+import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
+import { useModelOptions } from '@/hooks/useModelOptions';
+import { errorToMessage } from '@/utils/errors';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { useDialog } from '@/components/Dialog';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
@@ -51,27 +53,7 @@ export default function HomeScreen() {
   const [formattedText, setFormattedText] = useState('');
   const [summaryText, setSummaryText] = useState('');
 
-  const [downloadedWhisperIds, setDownloadedWhisperIds] = useState<string[]>([]);
-  const [downloadedLLMIds, setDownloadedLLMIds] = useState<string[]>([]);
-
-  useFocusEffect(
-    useCallback(() => {
-      ModelManager.getDownloadedModelIds().then((ids) => {
-        setDownloadedWhisperIds(WHISPER_MODELS.filter((m) => ids.includes(m.id)).map((m) => m.id));
-        setDownloadedLLMIds(FORMATTER_MODELS.filter((m) => ids.includes(m.id)).map((m) => m.id));
-      });
-    }, [])
-  );
-
-  const whisperOptions = WHISPER_MODELS.filter((m) => downloadedWhisperIds.includes(m.id)).map((m) => ({
-    label: m.name,
-    value: m.id,
-  }));
-
-  const formatterOptions = FORMATTER_MODELS.filter((m) => downloadedLLMIds.includes(m.id)).map((m) => ({
-    label: m.name,
-    value: m.id,
-  }));
+  const { whisperOptions, formatterOptions } = useModelOptions();
 
   const selectedWhisperDef = WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel);
   const isEnglishOnly = selectedWhisperDef?.isEnglishOnly ?? false;
@@ -202,45 +184,46 @@ export default function HomeScreen() {
           if (!settings.preferredFormatterModel) return;
           const modelPath = ModelManager.getModelPath(settings.preferredFormatterModel);
 
-          // format + summarize run concurrently but serialize under the hood in llama.rn (shared singleton).
           if (isCurrent()) {
             setFormattedText(settings.formatByDefault ? (t('transcribe.formatting') || '') : '');
             setSummaryText(settings.summarizeByDefault ? (t('transcribe.summarizing') || '') : '');
             if (settings.formatByDefault) setTranscriptTab('formatted');
           }
 
-          const [formatted, summarized] = await Promise.all([
-            settings.formatByDefault
-              ? formatTranscript(cleanText, modelPath, settings.preferredFormatterModel).catch(() => '')
-              : Promise.resolve(''),
-            settings.summarizeByDefault
-              ? summarizeTranscript(cleanText, modelPath, settings.preferredFormatterModel).catch(() => '')
-              : Promise.resolve(''),
-          ]);
+          // Serialized under the hood: format, summarize and title all share the
+          // one llama context, so runEnrichment awaits them in sequence.
+          let formattedOut = '';
+          const enrich = await runEnrichment({
+            rawText: cleanText,
+            modelPath,
+            modelFile: settings.preferredFormatterModel,
+            format: settings.formatByDefault,
+            summarize: settings.summarizeByDefault,
+            title: true,
+            embedding: false,
+            entities: false,
+            memories: true,
+            onFormatted: (f) => {
+              formattedOut = f;
+              if (isCurrent()) {
+                setFormattedText(f);
+                setTranscriptTab('formatted');
+              }
+            },
+            onSummarized: (s) => {
+              if (isCurrent()) {
+                setSummaryText(s);
+                if (!formattedOut) setTranscriptTab('summary');
+              }
+            },
+          });
 
-          if (formatted) {
-            if (isCurrent()) {
-              setFormattedText(formatted);
-              setTranscriptTab('formatted');
-            }
-            currentItem = { ...currentItem, formattedTranscript: formatted };
-          }
-          if (summarized) {
-            if (isCurrent()) {
-              setSummaryText(summarized);
-              if (!formatted) setTranscriptTab('summary');
-            }
-            currentItem = { ...currentItem, summary: summarized };
-          }
+          if (enrich.formatted) currentItem = { ...currentItem, formattedTranscript: enrich.formatted };
+          if (enrich.summarized) currentItem = { ...currentItem, summary: enrich.summarized };
           await addOrUpdate(currentItem);
 
-          const [finalTitle] = await Promise.all([
-            generateTitle(formatted || cleanText, modelPath, settings.preferredFormatterModel).catch(() => ''),
-            extractMemories(cleanText, modelPath, settings.preferredFormatterModel).catch(console.warn),
-          ]);
-
-          if (finalTitle) {
-            currentItem = { ...currentItem, sourceFileName: finalTitle };
+          if (enrich.title) {
+            currentItem = { ...currentItem, sourceFileName: enrich.title };
             await addOrUpdate(currentItem);
           }
         } catch (err) {
@@ -250,12 +233,7 @@ export default function HomeScreen() {
     } catch (e) {
       console.error(e);
       haptics.error();
-      const msg = e instanceof Error
-        ? e.message
-        : typeof e === 'object' && e !== null
-          ? JSON.stringify(e)
-          : String(e);
-      dialog.show({ title: t('dialog.transcriptionFailed.title') || 'Transcription failed', message: msg, icon: 'warning', iconTone: 'danger' });
+      dialog.show({ title: t('dialog.transcriptionFailed.title') || 'Transcription failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
       setIsTranscribing(false);
     }

@@ -19,6 +19,9 @@ type SelectDropdownProps = {
   placeholder?: string;
   disabled?: boolean;
   compact?: boolean;
+  // What this dropdown selects (e.g. "Language"), announced by screen readers.
+  // Falls back to the placeholder when omitted.
+  fieldLabel?: string;
 };
 
 export function SelectDropdown({
@@ -28,6 +31,7 @@ export function SelectDropdown({
   placeholder = 'Select...',
   disabled,
   compact = false,
+  fieldLabel,
 }: SelectDropdownProps) {
   const { theme } = useTheme();
   const [visible, setVisible] = useState(false);
@@ -63,6 +67,9 @@ export function SelectDropdown({
         }}
         onPress={handleOpen}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`${fieldLabel ?? placeholder}: ${displayLabel}`}
+        accessibilityState={{ expanded: visible, disabled: !!disabled }}
       >
         <Text style={{ fontSize: compact ? 12 : 14 }} numberOfLines={1}>{displayLabel}</Text>
       </AnimatedPressable>
