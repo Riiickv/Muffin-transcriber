@@ -33,6 +33,7 @@ public static class AppStrings
     public static string Mini_Status_Error => LocalizationManager.GetString("Mini_Status_Error", "Error: ");
     public static string Mini_Status_NoWhisper => LocalizationManager.GetString("Mini_Status_NoWhisper", "No Whisper model installed!");
     public static string Mini_Status_NoFormatter => LocalizationManager.GetString("Mini_Status_NoFormatter", "No Formatter model installed!");
+    public static string Mini_Status_NoSpeech => LocalizationManager.GetString("Mini_Status_NoSpeech", "No speech detected in this file.");
 
     // ==========================================
     // HOME PAGE
@@ -236,6 +237,7 @@ public static class AppStrings
     public static string Update_StatusReady => LocalizationManager.GetString("Update_StatusReady", "Muffin update ready to install!");
     public static string Update_StatusAvailableFormat => LocalizationManager.GetString("Update_StatusAvailableFormat", "Version {0} is available.");
     public static string Update_StatusFailedFormat => LocalizationManager.GetString("Update_StatusFailedFormat", "Download failed: {0}");
+    public static string Update_StatusInstallCancelled => LocalizationManager.GetString("Update_StatusInstallCancelled", "Update install was cancelled. Click Restart to try again.");
     
     public static string Settings_AboutHeader => LocalizationManager.GetString("Settings_AboutHeader", "About");
     public static string Settings_AutoUpdateTitle => LocalizationManager.GetString("Settings_AutoUpdateTitle", "Auto-check for updates");

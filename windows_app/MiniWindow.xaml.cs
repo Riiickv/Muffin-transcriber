@@ -12,11 +12,20 @@ public sealed partial class MiniWindow : Window
 {
     private Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? _shareOperation;
     private string _rawTranscript = "";
-    
+
+    // Share-flow lifecycle guards: don't tear down the dispatcher (and lose the
+    // transcription) if the user clicks away mid-processing, and always settle
+    // the share operation exactly once so the share sheet never hangs.
+    private bool _isProcessing;
+    private bool _closeRequested;
+    private bool _isClosed;
+    private bool _reported;
+    private string? _historyItemId;
+
     public MiniWindow(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation shareOperation)
     {
         InitializeComponent();
-        
+
         var presenter = AppWindow.Presenter as Microsoft.UI.Windowing.OverlappedPresenter;
         if (presenter != null)
         {
@@ -28,7 +37,7 @@ public sealed partial class MiniWindow : Window
 
         int width = 400;
         int height = 500;
-        
+
         if (GetCursorPos(out POINT pt))
         {
             AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(pt.X - width / 2, pt.Y - height / 2, width, height));
@@ -37,14 +46,15 @@ public sealed partial class MiniWindow : Window
         {
             AppWindow.Resize(new Windows.Graphics.SizeInt32(width, height));
         }
-        
+
         _shareOperation = shareOperation;
-        
+
         this.Activated += MiniWindow_Activated;
+        this.Closed += (s, e) => _isClosed = true;
 
         _ = ProcessShareOperation();
     }
-    
+
     private bool _hasBeenActivated = false;
 
     private void MiniWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -55,17 +65,48 @@ public sealed partial class MiniWindow : Window
         }
         else if (_hasBeenActivated)
         {
-            // Close the mini window when the user clicks away, but only after it actually appeared
-            this.Close();
+            // Close the mini window when the user clicks away, but only after it
+            // actually appeared — and never while a transcription/format is still
+            // running, or the dispatcher would be torn down mid-await and the
+            // result would be lost. Defer the close until processing finishes.
+            if (_isProcessing)
+            {
+                _closeRequested = true;
+            }
+            else
+            {
+                this.Close();
+            }
         }
     }
-    
+
+    private void SettleShare(bool success, string? error = null)
+    {
+        if (_reported) return;
+        _reported = true;
+        try
+        {
+            if (success) _shareOperation?.ReportCompleted();
+            else _shareOperation?.ReportError(error ?? "Transcription failed.");
+        }
+        catch { }
+    }
+
+    private void CloseIfDeferred()
+    {
+        if (_closeRequested && !_isClosed)
+        {
+            try { this.Close(); } catch { }
+        }
+    }
+
     public void HandleShareOperation(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation shareOperation)
     {
         _shareOperation = shareOperation;
+        _reported = false;
         _ = ProcessShareOperation();
     }
-    
+
     [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
     private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
@@ -100,47 +141,59 @@ public sealed partial class MiniWindow : Window
     private async Task ProcessShareOperation()
     {
         if (_shareOperation == null) return;
-        
+
+        _isProcessing = true;
+        bool success = false;
+        string? error = null;
+        // Unique per run so two concurrently-shared files can't clobber each
+        // other's intermediate WAV / SRT.
+        string wavPath = Path.Combine(Path.GetTempPath(), $"ai_transcriber_mini_{Guid.NewGuid():N}.wav");
+
         try
         {
             _shareOperation.ReportStarted();
             StatusText.Text = "Loading file...";
-            
+
             var items = await _shareOperation.Data.GetStorageItemsAsync();
-            if (items.Count == 0 || items[0] is not StorageFile file) return;
-            
+            if (items.Count == 0 || items[0] is not StorageFile file)
+            {
+                error = "No file was shared.";
+                return;
+            }
+
             StatusText.Text = "Checking for duplicate...";
             string fileHash = await AppModel.ComputeFileHashAsync(file.Path);
-            
+
             var settings = UserSettings.Load();
-            
+
             if (!string.IsNullOrEmpty(fileHash))
             {
                 var existingHistory = TranscriptionHistory.Load();
                 var duplicate = existingHistory.FirstOrDefault(i => i.FileHash == fileHash);
-                
+
                 if (duplicate != null)
                 {
+                    _historyItemId = duplicate.Id;
                     _rawTranscript = duplicate.RawTranscript;
                     TranscriptBox.Text = _rawTranscript;
                     StatusText.Text = "Loaded from history";
-                    
+
                     CopyButton.IsEnabled = true;
                     FormatButton.IsEnabled = true;
-                    
+
                     if (settings.AutoCopyTranscript)
                     {
                         CopyTranscriptToClipboard();
                     }
-                    
+
                     TranscriptionHistory.AddOrUpdate(duplicate);
-                    _shareOperation.ReportCompleted();
+                    success = true;
                     return;
                 }
             }
 
             StatusText.Text = AppStrings.Mini_Status_Transcribing;
-            
+
             string cachedPath = file.Path;
             try
             {
@@ -150,57 +203,66 @@ public sealed partial class MiniWindow : Window
                 await Task.Run(() => File.Copy(file.Path, cachedPath, true));
             }
             catch { }
-            
-            string wavPath = Path.Combine(Path.GetTempPath(), "ai_transcriber_mini.wav");
+
             string ffmpegArgs = settings.NormalizeAudio
                 ? $"-y -i \"{cachedPath}\" -vn -af highpass=f=80,lowpass=f=7800,loudnorm=I=-16:TP=-1.5:LRA=11 -ar 16000 -ac 1 -c:a pcm_s16le \"{wavPath}\""
                 : $"-y -i \"{cachedPath}\" -vn -ar 16000 -ac 1 -c:a pcm_s16le \"{wavPath}\"";
-            
+
             await LLMFormatter.RunProcessAsync(AppModel.FfmpegExe, ffmpegArgs);
-            
+
             var whisperModel = AppModel.ActiveWhisperModel();
             if (whisperModel == null)
             {
                 StatusText.Text = AppStrings.Mini_Status_NoWhisper;
+                error = AppStrings.Mini_Status_NoWhisper;
                 return;
             }
-            
+
             string lang = settings.DefaultLanguage;
             string languageArg = AppModel.LanguageCode(lang);
             string modelPath = AppModel.ModelPath(whisperModel.File);
             string args = languageArg == "auto"
                 ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt"
                 : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
-            
+
             ProcessResult result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
-            
+
             _rawTranscript = result.Stdout.Trim();
-            if (string.IsNullOrWhiteSpace(_rawTranscript))
-            {
-                _rawTranscript = $"[DEBUG: Stdout was empty. ExitCode={result.ExitCode}]\nStderr:\n{result.Stderr}";
-            }
-            
+
             string? srtTranscript = null;
             string expectedSrtPath = wavPath + ".srt";
             if (File.Exists(expectedSrtPath))
             {
                 srtTranscript = await File.ReadAllTextAsync(expectedSrtPath);
-                File.Delete(expectedSrtPath);
+                try { File.Delete(expectedSrtPath); } catch { }
             }
-            
+
+            if (string.IsNullOrWhiteSpace(_rawTranscript))
+            {
+                // No speech: surface a friendly message and don't persist an empty item.
+                System.Diagnostics.Debug.WriteLine($"Mini whisper empty. ExitCode={result.ExitCode}. Stderr:\n{result.Stderr}");
+                _rawTranscript = "";
+                TranscriptBox.Text = "";
+                StatusText.Text = AppStrings.Mini_Status_NoSpeech;
+                success = true; // the share itself succeeded; there was just nothing to transcribe
+                return;
+            }
+
             TranscriptBox.Text = _rawTranscript;
             StatusText.Text = AppStrings.Mini_Status_Done;
-            
+
             CopyButton.IsEnabled = true;
             FormatButton.IsEnabled = true;
-            
+
             if (settings.AutoCopyTranscript)
             {
                 CopyTranscriptToClipboard();
             }
-            
+
+            string newId = Guid.NewGuid().ToString();
+            _historyItemId = newId;
             TranscriptionHistory.AddOrUpdate(new TranscriptionHistoryItem(
-                Guid.NewGuid().ToString(),
+                newId,
                 DateTime.Now,
                 Path.GetFileName(cachedPath),
                 lang,
@@ -211,59 +273,81 @@ public sealed partial class MiniWindow : Window
                 fileHash,
                 srtTranscript
             ));
-            
+
             _ = LLMFormatter.ExtractContextAsync(_rawTranscript, settings.PreferredFormatterModel);
-            _shareOperation.ReportCompleted();
+            success = true;
         }
         catch (Exception ex)
         {
-            StatusText.Text = "Error: " + ex.Message;
+            error = ex.Message;
+            if (!_isClosed) StatusText.Text = "Error: " + ex.Message;
+        }
+        finally
+        {
+            _isProcessing = false;
+            try { if (File.Exists(wavPath)) File.Delete(wavPath); } catch { }
+            SettleShare(success, error);
+            CloseIfDeferred();
         }
     }
-    
+
     private void CopyTranscriptToClipboard()
     {
         var package = new DataPackage();
         package.SetText(TranscriptBox.Text);
         Clipboard.SetContent(package);
     }
-    
+
     private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
         CopyTranscriptToClipboard();
         StatusText.Text = "Copied!";
     }
-    
+
     private async void FormatButton_Click(object sender, RoutedEventArgs e)
     {
+        _isProcessing = true;
         FormatButton.IsEnabled = false;
         StatusText.Text = "Formatting...";
         var settings = UserSettings.Load();
-        
-        string? formatted = await LLMFormatter.FormatTranscriptAsync(_rawTranscript, settings.PreferredFormatterModel, settings.FormatLanguage);
-        if (!string.IsNullOrWhiteSpace(formatted))
+
+        try
         {
-            TranscriptBox.Text = formatted;
-            StatusText.Text = "Formatted";
-            if (settings.AutoCopyTranscript)
+            string? formatted = await LLMFormatter.FormatTranscriptAsync(_rawTranscript, settings.PreferredFormatterModel, settings.FormatLanguage);
+            if (_isClosed) return;
+
+            if (!string.IsNullOrWhiteSpace(formatted))
             {
-                CopyTranscriptToClipboard();
+                TranscriptBox.Text = formatted;
+                StatusText.Text = "Formatted";
+                if (settings.AutoCopyTranscript)
+                {
+                    CopyTranscriptToClipboard();
+                }
+
+                // Update THIS share's history item, not whatever happens to be on top.
+                var items = TranscriptionHistory.Load();
+                var target = _historyItemId != null
+                    ? items.FirstOrDefault(i => i.Id == _historyItemId)
+                    : items.FirstOrDefault();
+                if (target != null)
+                {
+                    TranscriptionHistory.AddOrUpdate(target with { FormattedTranscript = formatted });
+                }
             }
-            
-            var items = TranscriptionHistory.Load();
-            if (items.Count > 0)
+            else
             {
-                var item = items[0] with { FormattedTranscript = formatted };
-                TranscriptionHistory.AddOrUpdate(item);
+                StatusText.Text = "Format Failed";
             }
         }
-        else
+        finally
         {
-            StatusText.Text = "Format Failed";
+            _isProcessing = false;
+            if (!_isClosed) FormatButton.IsEnabled = true;
+            CloseIfDeferred();
         }
-        FormatButton.IsEnabled = true;
     }
-    
+
     private void OpenMainButton_Click(object sender, RoutedEventArgs e)
     {
         var mainWindow = new MainWindow();
