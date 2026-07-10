@@ -60,6 +60,8 @@ public sealed partial class RecordPage : Page
     {
         Directory.CreateDirectory(AppModel.ModelsDir);
         _settings = UserSettings.Load();
+        LanguageBox.ItemsSource = WhisperLanguages.TranscriptionNames;
+        FormatLanguageBox.ItemsSource = WhisperLanguages.FormatNames;
         SelectComboItem(LanguageBox, _settings.DefaultLanguage);
         FormatSwitch.IsOn = _settings.FormatByDefault;
         SelectComboItem(FormatLanguageBox, _settings.FormatLanguage);
