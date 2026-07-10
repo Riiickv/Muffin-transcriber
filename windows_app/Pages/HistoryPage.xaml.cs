@@ -44,6 +44,9 @@ public sealed partial class HistoryPage : Page
 
     private void LoadModels()
     {
+        FormatLanguageBox.ItemsSource = WhisperLanguages.FormatNames;
+        FormatLanguageBox.SelectedIndex = 0;
+
         LLMModelBox.Items.Clear();
         foreach (ModelInfo model in AppModel.FormatterModels.Where(model => AppModel.IsValidModelFile(AppModel.ModelPath(model.File))))
         {

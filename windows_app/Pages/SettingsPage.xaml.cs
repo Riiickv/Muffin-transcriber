@@ -26,6 +26,9 @@ public sealed partial class SettingsPage : Page
         _loading = true;
         _settings = UserSettings.Load();
 
+        DefaultLanguageBox.ItemsSource = WhisperLanguages.TranscriptionNames;
+        FormatLanguageBox.ItemsSource = WhisperLanguages.FormatNames;
+
         PreferredWhisperBox.Items.Clear();
         PreferredWhisperBox.Items.Add("Auto-select best installed model");
         foreach (ModelInfo model in AppModel.WhisperModels)

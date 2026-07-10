@@ -1,18 +1,116 @@
-// Whisper expects ISO 639-1 codes (`it`, `en`, ...) or "auto" for detect.
-// The UI stores display names ("Italian", "English", ...) — convert here.
+// The UI stores a display name (e.g. "Italian"); Whisper wants the ISO 639-1
+// code (e.g. "it"), or "auto" to detect the language itself. Auto-Detect is the
+// default so the app works for anyone, anywhere, without picking a language.
+
+type Language = { name: string; code: string };
+
+// Every language Whisper's multilingual models can transcribe.
+const LANGUAGES: Language[] = [
+  { name: 'Afrikaans', code: 'af' },
+  { name: 'Albanian', code: 'sq' },
+  { name: 'Amharic', code: 'am' },
+  { name: 'Arabic', code: 'ar' },
+  { name: 'Armenian', code: 'hy' },
+  { name: 'Assamese', code: 'as' },
+  { name: 'Azerbaijani', code: 'az' },
+  { name: 'Bashkir', code: 'ba' },
+  { name: 'Basque', code: 'eu' },
+  { name: 'Belarusian', code: 'be' },
+  { name: 'Bengali', code: 'bn' },
+  { name: 'Bosnian', code: 'bs' },
+  { name: 'Breton', code: 'br' },
+  { name: 'Bulgarian', code: 'bg' },
+  { name: 'Cantonese', code: 'yue' },
+  { name: 'Catalan', code: 'ca' },
+  { name: 'Chinese', code: 'zh' },
+  { name: 'Croatian', code: 'hr' },
+  { name: 'Czech', code: 'cs' },
+  { name: 'Danish', code: 'da' },
+  { name: 'Dutch', code: 'nl' },
+  { name: 'English', code: 'en' },
+  { name: 'Estonian', code: 'et' },
+  { name: 'Faroese', code: 'fo' },
+  { name: 'Finnish', code: 'fi' },
+  { name: 'French', code: 'fr' },
+  { name: 'Galician', code: 'gl' },
+  { name: 'Georgian', code: 'ka' },
+  { name: 'German', code: 'de' },
+  { name: 'Greek', code: 'el' },
+  { name: 'Gujarati', code: 'gu' },
+  { name: 'Haitian Creole', code: 'ht' },
+  { name: 'Hausa', code: 'ha' },
+  { name: 'Hawaiian', code: 'haw' },
+  { name: 'Hebrew', code: 'he' },
+  { name: 'Hindi', code: 'hi' },
+  { name: 'Hungarian', code: 'hu' },
+  { name: 'Icelandic', code: 'is' },
+  { name: 'Indonesian', code: 'id' },
+  { name: 'Italian', code: 'it' },
+  { name: 'Japanese', code: 'ja' },
+  { name: 'Javanese', code: 'jw' },
+  { name: 'Kannada', code: 'kn' },
+  { name: 'Kazakh', code: 'kk' },
+  { name: 'Khmer', code: 'km' },
+  { name: 'Korean', code: 'ko' },
+  { name: 'Lao', code: 'lo' },
+  { name: 'Latin', code: 'la' },
+  { name: 'Latvian', code: 'lv' },
+  { name: 'Lingala', code: 'ln' },
+  { name: 'Lithuanian', code: 'lt' },
+  { name: 'Luxembourgish', code: 'lb' },
+  { name: 'Macedonian', code: 'mk' },
+  { name: 'Malagasy', code: 'mg' },
+  { name: 'Malay', code: 'ms' },
+  { name: 'Malayalam', code: 'ml' },
+  { name: 'Maltese', code: 'mt' },
+  { name: 'Maori', code: 'mi' },
+  { name: 'Marathi', code: 'mr' },
+  { name: 'Mongolian', code: 'mn' },
+  { name: 'Myanmar', code: 'my' },
+  { name: 'Nepali', code: 'ne' },
+  { name: 'Norwegian', code: 'no' },
+  { name: 'Nynorsk', code: 'nn' },
+  { name: 'Occitan', code: 'oc' },
+  { name: 'Pashto', code: 'ps' },
+  { name: 'Persian', code: 'fa' },
+  { name: 'Polish', code: 'pl' },
+  { name: 'Portuguese', code: 'pt' },
+  { name: 'Punjabi', code: 'pa' },
+  { name: 'Romanian', code: 'ro' },
+  { name: 'Russian', code: 'ru' },
+  { name: 'Sanskrit', code: 'sa' },
+  { name: 'Serbian', code: 'sr' },
+  { name: 'Shona', code: 'sn' },
+  { name: 'Sindhi', code: 'sd' },
+  { name: 'Sinhala', code: 'si' },
+  { name: 'Slovak', code: 'sk' },
+  { name: 'Slovenian', code: 'sl' },
+  { name: 'Somali', code: 'so' },
+  { name: 'Spanish', code: 'es' },
+  { name: 'Sundanese', code: 'su' },
+  { name: 'Swahili', code: 'sw' },
+  { name: 'Swedish', code: 'sv' },
+  { name: 'Tagalog', code: 'tl' },
+  { name: 'Tajik', code: 'tg' },
+  { name: 'Tamil', code: 'ta' },
+  { name: 'Tatar', code: 'tt' },
+  { name: 'Telugu', code: 'te' },
+  { name: 'Thai', code: 'th' },
+  { name: 'Tibetan', code: 'bo' },
+  { name: 'Turkish', code: 'tr' },
+  { name: 'Turkmen', code: 'tk' },
+  { name: 'Ukrainian', code: 'uk' },
+  { name: 'Urdu', code: 'ur' },
+  { name: 'Uzbek', code: 'uz' },
+  { name: 'Vietnamese', code: 'vi' },
+  { name: 'Welsh', code: 'cy' },
+  { name: 'Yiddish', code: 'yi' },
+  { name: 'Yoruba', code: 'yo' },
+];
+
 export const LANGUAGE_CODE_MAP: Record<string, string> = {
   'Auto-Detect': 'auto',
-  'English': 'en',
-  'Italian': 'it',
-  'Spanish': 'es',
-  'French': 'fr',
-  'German': 'de',
-  'Portuguese': 'pt',
-  'Dutch': 'nl',
-  'Russian': 'ru',
-  'Chinese': 'zh',
-  'Japanese': 'ja',
-  'Korean': 'ko',
+  ...Object.fromEntries(LANGUAGES.map((l) => [l.name, l.code])),
 };
 
 export function toLanguageCode(displayName: string | undefined | null): string {
@@ -20,7 +118,15 @@ export function toLanguageCode(displayName: string | undefined | null): string {
   return LANGUAGE_CODE_MAP[displayName] ?? 'auto';
 }
 
-export const LANGUAGE_OPTIONS = Object.keys(LANGUAGE_CODE_MAP).map(key => ({
-  label: key,
-  value: key
-}));
+// Auto-Detect first, then alphabetical.
+export const LANGUAGE_OPTIONS = [
+  { label: 'Auto-Detect', value: 'Auto-Detect' },
+  ...LANGUAGES.map((l) => ({ label: l.name, value: l.name })),
+];
+
+// Output language for the LLM formatter/summarizer. "Original" keeps whatever
+// language the transcript is in; any other choice asks the model to write in it.
+export const FORMAT_LANGUAGE_OPTIONS = [
+  { label: 'Original', value: 'Auto-Detect / Original' },
+  ...LANGUAGES.map((l) => ({ label: l.name, value: l.name })),
+];

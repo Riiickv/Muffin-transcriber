@@ -52,14 +52,7 @@
 
                         <StackPanel Spacing="6">
                             <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Home_LanguageLabel}" />
-                            <ComboBox x:Name="LanguageBox" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                <ComboBoxItem Content="Auto-Detect" />
-                                <ComboBoxItem Content="English" />
-                                <ComboBoxItem Content="French" />
-                                <ComboBoxItem Content="German" />
-                                <ComboBoxItem Content="Italian" />
-                                <ComboBoxItem Content="Spanish" />
-                            </ComboBox>
+                            <ComboBox x:Name="LanguageBox" SelectedIndex="0" HorizontalAlignment="Stretch" />
                         </StackPanel>
 
                         <StackPanel Grid.Column="1" Spacing="6">
@@ -141,14 +134,7 @@
                                 <ColumnDefinition Width="220" />
                             </Grid.ColumnDefinitions>
                             <ComboBox x:Name="FormatterModelBox" HorizontalAlignment="Stretch" />
-                            <ComboBox x:Name="FormatLanguageBox" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch">
-                                <ComboBoxItem Content="Auto-Detect / Original" />
-                                <ComboBoxItem Content="English" />
-                                <ComboBoxItem Content="French" />
-                                <ComboBoxItem Content="German" />
-                                <ComboBoxItem Content="Italian" />
-                                <ComboBoxItem Content="Spanish" />
-                            </ComboBox>
+                            <ComboBox x:Name="FormatLanguageBox" Grid.Column="1" SelectedIndex="0" HorizontalAlignment="Stretch" />
                         </Grid>
                     </Grid>
                 </Grid>

@@ -162,14 +162,7 @@
                             </Button>
                         </Grid>
                         <ComboBox Grid.Row="1" Grid.Column="1" x:Name="LLMModelBox" HorizontalAlignment="Stretch" SelectedIndex="0" />
-                        <ComboBox Grid.Row="1" Grid.Column="2" x:Name="FormatLanguageBox" HorizontalAlignment="Stretch" SelectedIndex="0">
-                            <ComboBoxItem Content="Auto-Detect / Original" />
-                            <ComboBoxItem Content="English" />
-                            <ComboBoxItem Content="French" />
-                            <ComboBoxItem Content="German" />
-                            <ComboBoxItem Content="Italian" />
-                            <ComboBoxItem Content="Spanish" />
-                        </ComboBox>
+                        <ComboBox Grid.Row="1" Grid.Column="2" x:Name="FormatLanguageBox" HorizontalAlignment="Stretch" SelectedIndex="0" />
                     </Grid>
 
                     <!-- Transcript Box -->

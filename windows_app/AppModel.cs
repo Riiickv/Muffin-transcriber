@@ -147,18 +147,7 @@ public static class AppModel
         return null;
     }
 
-    public static string LanguageCode(string display)
-    {
-        return display switch
-        {
-            "Italian" => "it",
-            "English" => "en",
-            "Spanish" => "es",
-            "French" => "fr",
-            "German" => "de",
-            _ => "auto",
-        };
-    }
+    public static string LanguageCode(string display) => WhisperLanguages.LanguageCode(display);
 
     public static string FindExecutable(string baseDir, string name)
     {
