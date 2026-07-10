@@ -165,6 +165,14 @@
                         <ComboBox Grid.Row="1" Grid.Column="2" x:Name="FormatLanguageBox" HorizontalAlignment="Stretch" SelectedIndex="0" />
                     </Grid>
 
+                    <MediaPlayerElement
+                        Grid.Row="1"
+                        x:Name="AudioPlayer"
+                        Height="48"
+                        AreTransportControlsEnabled="True"
+                        AutoPlay="False"
+                        Visibility="Collapsed" />
+
                     <!-- Transcript Box -->
                     <Grid Grid.Row="2" RowSpacing="8">
                         <Grid.RowDefinitions>

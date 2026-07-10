@@ -156,6 +156,10 @@ public static class AppStrings
     public static string Settings_LanguageTitle => LocalizationManager.GetString("Settings_LanguageTitle", "App Language");
     public static string Settings_LanguageDesc => LocalizationManager.GetString("Settings_LanguageDesc", "Select the UI language.");
 
+    public static string Settings_AppearanceHeader => LocalizationManager.GetString("Settings_AppearanceHeader", "Appearance");
+    public static string Settings_ThemeTitle => LocalizationManager.GetString("Settings_ThemeTitle", "Theme");
+    public static string Settings_ThemeDesc => LocalizationManager.GetString("Settings_ThemeDesc", "Choose light, dark, or pure-black (AMOLED).");
+
     public static string Settings_DefaultLanguageTitle => LocalizationManager.GetString("Settings_DefaultLanguageTitle", "Default language");
     public static string Settings_DefaultLanguageDesc => LocalizationManager.GetString("Settings_DefaultLanguageDesc", "Preselect this language when opening Transcription.");
 
