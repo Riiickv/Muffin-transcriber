@@ -10,7 +10,7 @@
 
     <SplitView
         x:Name="Split"
-        DisplayMode="Inline"
+        DisplayMode="Overlay"
         IsPaneOpen="False"
         OpenPaneLength="240"
         PanePlacement="Left">
