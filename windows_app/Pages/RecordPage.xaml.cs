@@ -230,11 +230,16 @@ public sealed partial class RecordPage : Page
             string languageArg = AppModel.LanguageCode(lang);
             string modelPath = AppModel.ModelPath(_selectedWhisperModel.File);
             string args = languageArg == "auto"
-                ? $"-m \"{modelPath}\" -f \"{processedWavPath}\" -nt -ngl 999"
-                : $"-m \"{modelPath}\" -f \"{processedWavPath}\" -l {languageArg} -nt -ngl 999";
+                ? $"-m \"{modelPath}\" -f \"{processedWavPath}\" -nt -osrt"
+                : $"-m \"{modelPath}\" -f \"{processedWavPath}\" -l {languageArg} -nt -osrt";
 
             ProcessResult result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
+            
             string rawTranscript = result.Stdout.Trim();
+            if (string.IsNullOrWhiteSpace(rawTranscript))
+            {
+                rawTranscript = $"[DEBUG: Stdout was empty. ExitCode={result.ExitCode}]\nStderr:\n{result.Stderr}";
+            }
 
             if (string.IsNullOrWhiteSpace(rawTranscript))
             {

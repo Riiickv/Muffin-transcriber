@@ -357,11 +357,16 @@ public sealed partial class HomePage : Page
                     string languageArg = AppModel.LanguageCode(lang);
                     string modelPath = AppModel.ModelPath(_selectedWhisperModel.File);
                     string args = languageArg == "auto"
-                        ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt -ngl 999"
-                        : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt -ngl 999";
+                        ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt"
+                        : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
 
                     ProcessResult result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
+                    
                     string rawTranscript = result.Stdout.Trim();
+                    if (string.IsNullOrWhiteSpace(rawTranscript))
+                    {
+                        rawTranscript = $"[DEBUG: Stdout was empty. ExitCode={result.ExitCode}]\nStderr:\n{result.Stderr}";
+                    }
                     
                     string? srtTranscript = null;
                     string expectedSrtPath = wavPath + ".srt";
