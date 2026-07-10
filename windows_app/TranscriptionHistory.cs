@@ -15,7 +15,8 @@ public sealed record TranscriptionHistoryItem(
     string? Summary = null,
     string? SourceFilePath = null,
     string? FileHash = null,
-    string? SrtTranscript = null
+    string? SrtTranscript = null,
+    double[]? Embedding = null
 )
 {
     public string TimestampString => Timestamp.ToString("g");

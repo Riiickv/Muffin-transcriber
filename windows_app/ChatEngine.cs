@@ -32,7 +32,7 @@ public static class ChatEngine
             .ToList();
 
         string lastUserMessage = messages.LastOrDefault(m => m.Role == "user")?.Content ?? "";
-        List<TranscriptionHistoryItem> relevant = SearchTranscripts(history, lastUserMessage);
+        List<TranscriptionHistoryItem> relevant = await SearchTranscriptsAsync(history, lastUserMessage);
 
         string systemContent = BuildSystemPrompt(history, relevant);
         string prompt = BuildChatPrompt(model.File, systemContent, messages);
@@ -52,8 +52,57 @@ public static class ChatEngine
         }
     }
 
-    // Keyword scoring; always keeps the newest transcript as a fallback. (Embeddings can slot in later.)
-    private static List<TranscriptionHistoryItem> SearchTranscripts(List<TranscriptionHistoryItem> history, string query)
+    // Semantic search when the embedding model is installed, else keyword.
+    private static async Task<List<TranscriptionHistoryItem>> SearchTranscriptsAsync(List<TranscriptionHistoryItem> history, string query)
+    {
+        if (history.Count == 0) return [];
+
+        double[]? queryEmbedding = await EmbeddingService.EmbedAsync(query);
+        if (queryEmbedding is not null)
+        {
+            var semantic = await SemanticSearch(history, queryEmbedding);
+            if (semantic.Count > 0) return semantic;
+        }
+
+        return KeywordSearch(history, query);
+    }
+
+    private static async Task<List<TranscriptionHistoryItem>> SemanticSearch(List<TranscriptionHistoryItem> history, double[] queryEmbedding)
+    {
+        // Embed any transcript missing a vector, and persist it so it's a one-time cost.
+        var stored = TranscriptionHistory.Load();
+        bool changed = false;
+        for (int i = 0; i < history.Count; i++)
+        {
+            TranscriptionHistoryItem item = history[i];
+            if (item.Embedding is { Length: > 0 }) continue;
+
+            string text = FirstNonEmpty(item.Summary, item.FormattedTranscript, item.RawTranscript);
+            if (text.Length > 1200) text = text[..1200];
+            double[]? emb = await EmbeddingService.EmbedAsync(text);
+            if (emb is null) continue;
+
+            history[i] = item with { Embedding = emb };
+            int idx = stored.FindIndex(h => h.Id == item.Id);
+            if (idx >= 0) { stored[idx] = stored[idx] with { Embedding = emb }; changed = true; }
+        }
+        if (changed) TranscriptionHistory.Save(stored);
+
+        return history
+            .Where(h => h.Embedding is { Length: > 0 })
+            .Select(h => (item: h, score: EmbeddingService.CosineSimilarity(queryEmbedding, h.Embedding!)))
+            .Where(s => s.score > 0.2)
+            .OrderByDescending(s => s.score)
+            .Take(3)
+            .Select(s => s.item)
+            .ToList();
+    }
+
+    private static string FirstNonEmpty(params string?[] candidates) =>
+        candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? "";
+
+    // Keyword scoring; always keeps the newest transcript as a fallback.
+    private static List<TranscriptionHistoryItem> KeywordSearch(List<TranscriptionHistoryItem> history, string query)
     {
         if (history.Count == 0) return [];
 

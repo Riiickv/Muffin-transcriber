@@ -84,6 +84,18 @@
                     </toolkit:SettingsExpander.Items>
                 </toolkit:SettingsExpander>
 
+                <toolkit:SettingsExpander Header="{x:Bind local:AppStrings.Models_EmbeddingSectionTitle}" Description="{x:Bind local:AppStrings.Models_EmbeddingSectionDesc}" IsExpanded="True">
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="MiniLM-L6-v2" Description="Semantic search for Chat">
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <TextBlock x:Name="EmbedStatus" VerticalAlignment="Center" />
+                                <TextBlock Text="14 MB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                <Button x:Name="EmbedButton" Tag="all-MiniLM-L6-v2-q4_k_m.gguf" Click="ModelButton_Click" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
                 <ProgressBar x:Name="DownloadProgress" Visibility="Collapsed" />
             </StackPanel>
         </ScrollViewer>

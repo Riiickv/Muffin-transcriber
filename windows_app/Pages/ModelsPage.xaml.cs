@@ -29,6 +29,7 @@ public sealed partial class ModelsPage : Page
             ["Llama-3.2-3B-Instruct-Q4_K_M.gguf"] = (LlamaStatus, LlamaButton),
             ["qwen2.5-1.5b-instruct-q4_k_m.gguf"] = (QwenStatus, QwenButton),
             ["Phi-3-mini-4k-instruct-q4.gguf"] = (PhiStatus, PhiButton),
+            ["all-MiniLM-L6-v2-q4_k_m.gguf"] = (EmbedStatus, EmbedButton),
         };
 
         RefreshModelStates();
@@ -38,7 +39,7 @@ public sealed partial class ModelsPage : Page
     {
         Directory.CreateDirectory(AppModel.ModelsDir);
 
-        foreach (ModelInfo model in AppModel.WhisperModels.Concat(AppModel.FormatterModels))
+        foreach (ModelInfo model in AppModel.WhisperModels.Concat(AppModel.FormatterModels).Concat(AppModel.EmbeddingModels))
         {
             (TextBlock status, Button button) = _controls[model.File];
             string path = AppModel.ModelPath(model.File);
@@ -59,7 +60,7 @@ public sealed partial class ModelsPage : Page
             return;
         }
 
-        ModelInfo? model = AppModel.WhisperModels.Concat(AppModel.FormatterModels).FirstOrDefault(item => item.File == file);
+        ModelInfo? model = AppModel.WhisperModels.Concat(AppModel.FormatterModels).Concat(AppModel.EmbeddingModels).FirstOrDefault(item => item.File == file);
         if (model is null)
         {
             return;

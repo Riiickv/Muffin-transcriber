@@ -71,6 +71,7 @@ public sealed partial class MainWindow : Window
         _settings.WindowWidth = AppWindow.Size.Width;
         _settings.WindowHeight = AppWindow.Size.Height;
         _settings.Save();
+        EmbeddingService.Shutdown();
     }
 
     private void TitleBar_PaneToggleRequested(TitleBar sender, object args)

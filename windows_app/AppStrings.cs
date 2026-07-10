@@ -136,6 +136,9 @@ public static class AppStrings
     public static string Models_FormatterSectionTitle => LocalizationManager.GetString("Models_FormatterSectionTitle", "Formatter Models (Local LLMs)");
     public static string Models_FormatterSectionDesc => LocalizationManager.GetString("Models_FormatterSectionDesc", "Download local LLMs for formatting.");
 
+    public static string Models_EmbeddingSectionTitle => LocalizationManager.GetString("Models_EmbeddingSectionTitle", "Semantic Search (Chat)");
+    public static string Models_EmbeddingSectionDesc => LocalizationManager.GetString("Models_EmbeddingSectionDesc", "Optional tiny model that lets Chat find transcripts by meaning, not just keywords.");
+
     // Button States
     public static string Models_BtnDownload => LocalizationManager.GetString("Models_BtnDownload", "Download");
     public static string Models_BtnCancel => LocalizationManager.GetString("Models_BtnCancel", "Cancel");
