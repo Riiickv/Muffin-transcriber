@@ -18,13 +18,15 @@ import { haptics } from '@/utils/haptics';
 import { useHistory } from '@/utils/historyStore';
 import { useChats, addChatSession, updateChatMessages } from '@/utils/chatStore';
 import { ChatDrawer } from '@/components/ChatDrawer';
+import { InlineSettingControl } from '@/components/InlineSettingControl';
+import { getSettingSpec } from '@/utils/appCapabilities';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useDialog } from '@/components/Dialog';
 import { t } from '@/utils/i18n';
 
 export default function ChatScreen() {
-  const { theme } = useTheme();
-  const { settings } = useSettings();
+  const { theme, themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
+  const { settings, setSetting } = useSettings();
   const { items: chatSessions } = useChats();
   
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export default function ChatScreen() {
           finalMessages = updated;
           return updated;
         });
-      });
+      }, { themeMode, accentColor });
 
       await updateChatMessages(targetChatId, finalMessages);
 
@@ -112,26 +114,59 @@ export default function ChatScreen() {
       let executed = false;
       const executeTool = async (toolCall: any) => {
          if (!toolCall || !toolCall.action) return;
-         const action = toolCall.action.toUpperCase();
+         const action = String(toolCall.action).toUpperCase();
+
          if (action === 'DELETE_TRANSCRIPT') {
-            if (toolCall.transcript_id) {
-               await deleteItem(toolCall.transcript_id);
-            } else if (toolCall.transcript_name) {
-               const itemsList = historyItems || [];
-               const search = toolCall.transcript_name.toLowerCase();
-               const item = itemsList.find(h => {
+            const itemsList = historyItems || [];
+            let target = toolCall.transcript_id ? itemsList.find(h => h.id === toolCall.transcript_id) : undefined;
+            if (!target && toolCall.transcript_name) {
+               const search = String(toolCall.transcript_name).toLowerCase();
+               target = itemsList.find(h => {
                   const name = h.sourceFileName.replace(/\.[^/.]+$/, "").toLowerCase();
                   return name === search || name.includes(search) || search.includes(name);
                });
-               if (item) await deleteItem(item.id);
+            }
+            if (target) {
+               const label = target.sourceFileName.replace(/\.[^/.]+$/, "");
+               dialog.show({
+                  title: t('chat.deleteTitle') || 'Delete transcript?',
+                  message: (t('chat.deleteMessage') || "Delete “{name}”? This can't be undone.").replace('{name}', label),
+                  icon: 'delete',
+                  iconTone: 'danger',
+                  buttons: [
+                     { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
+                     { label: t('chat.delete') || 'Delete', variant: 'danger', onPress: () => { deleteItem(target!.id); } },
+                  ],
+               });
             }
             executed = true;
          } else if (action === 'NAVIGATE_TO' && toolCall.tab) {
-            let tab = toolCall.tab.toLowerCase();
+            let tab = String(toolCall.tab).toLowerCase();
             if (tab === 'home') tab = 'index';
             if (tab === 'preferences') tab = 'settings';
-            router.push(`/(tabs)/${tab}` as any);
+            router.push((tab === 'memory' ? '/memory' : `/(tabs)/${tab}`) as any);
             executed = true;
+         } else if (action === 'SET_SETTING' && toolCall.key !== undefined) {
+            const spec = getSettingSpec(String(toolCall.key));
+            if (spec) {
+               let val: any = toolCall.value;
+               if (spec.type === 'boolean') {
+                  val = val === true || val === 'true' || val === 'on' || val === 1 || val === 'yes';
+               } else {
+                  val = String(val);
+                  const match = (spec.options || []).find(o => o.toLowerCase() === val.toLowerCase());
+                  if (match) val = match;
+               }
+               if (spec.store === 'theme') {
+                  if (spec.key === 'themeMode') setThemeMode(val);
+                  else setAccentColor(val);
+               } else {
+                  setSetting(spec.key as any, val);
+               }
+            }
+            executed = true;
+         } else if (action === 'SHOW_SETTING') {
+            executed = true; // the live control is rendered from the parsed action
          }
       };
 
@@ -208,16 +243,24 @@ export default function ChatScreen() {
     // Hide any tool call that hasn't finished closing yet (while streaming)
     cleanContent = cleanContent.replace(/<tool_call>[\s\S]*$/, '').trim();
 
+    const renderToolAction = (act: any, i: number) => {
+      const a = String(act.action || '').toUpperCase();
+      if ((a === 'SET_SETTING' || a === 'SHOW_SETTING') && act.key && getSettingSpec(String(act.key))) {
+        return <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} />;
+      }
+      return (
+        <View key={`act-${i}`} style={{ marginTop: 8, padding: 8, backgroundColor: theme.tint + '20', borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
+          <Icon name="check-circle" size={16} color={theme.tint} />
+          <Text style={{ color: theme.tint, marginLeft: 6, fontSize: 12, fontWeight: 'bold' }}>{t('chat.actionExecuted') || 'Done'}: {act.action}</Text>
+        </View>
+      );
+    };
+
     if (!historyItems || historyItems.length === 0) {
       return (
         <>
           {!!cleanContent && <Text style={{ color: role === 'user' ? '#fff' : theme.text, lineHeight: 24 }}>{cleanContent}</Text>}
-          {toolActions.map((act, i) => (
-            <View key={`act-${i}`} style={{ marginTop: 8, padding: 8, backgroundColor: theme.tint + '20', borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
-              <Icon name="check-circle" size={16} color={theme.tint} />
-              <Text style={{ color: theme.tint, marginLeft: 6, fontSize: 12, fontWeight: 'bold' }}>{t('chat.actionExecuted') || 'Action Executed'}: {act.action}</Text>
-            </View>
-          ))}
+          {toolActions.map(renderToolAction)}
         </>
       );
     }
@@ -299,12 +342,7 @@ export default function ChatScreen() {
           return null;
         })}
       </Text>
-      {toolActions.map((act, i) => (
-        <View key={`act-${i}`} style={{ marginTop: 8, padding: 8, backgroundColor: theme.tint + '20', borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
-          <Icon name="check-circle" size={16} color={theme.tint} />
-          <Text style={{ color: theme.tint, marginLeft: 6, fontSize: 12, fontWeight: 'bold' }}>{t('chat.actionExecuted') || 'Action Executed'}: {act.action}</Text>
-        </View>
-      ))}
+      {toolActions.map(renderToolAction)}
       </>
     );
   };
