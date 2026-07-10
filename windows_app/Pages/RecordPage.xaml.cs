@@ -135,7 +135,6 @@ public sealed partial class RecordPage : Page
 
         if (_recorder != null && _recorder.IsRecording)
         {
-            // Stop recording
             RecordButton.Background = (SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"];
             RecordIcon.Glyph = "\uE720";
             RecordStatusText.Text = "Processing...";
@@ -154,7 +153,6 @@ public sealed partial class RecordPage : Page
         }
         else
         {
-            // Start recording
             RecordButton.Background = new SolidColorBrush(Microsoft.UI.Colors.Firebrick);
             RecordIcon.Glyph = "\uE71A"; // Stop
             RecordStatusText.Text = "Stop Recording";
@@ -171,7 +169,6 @@ public sealed partial class RecordPage : Page
                 {
                     RecordTimerText.Text = data.Time.ToString(@"hh\:mm\:ss");
                     
-                    // Smooth volume
                     _smoothedPeak = _smoothedPeak + (data.PeakLevel - _smoothedPeak) * 0.3;
                     
                     for (int i = 0; i < 20; i++)
@@ -180,14 +177,12 @@ public sealed partial class RecordPage : Page
                         double distance = Math.Abs(9.5 - i) / 9.5;
                         double multiplier = 1.0 - (distance * distance);
                         
-                        // Add jitter
-                        double jitter = 0.7 + (_vizRandom.NextDouble() * 0.6); 
+                        double jitter = 0.7 + (_vizRandom.NextDouble() * 0.6);
                         
                         double targetHeight = 4 + (_smoothedPeak * 1200 * multiplier * jitter);
                         if (targetHeight > 40) targetHeight = 40;
                         if (targetHeight < 4) targetHeight = 4;
                         
-                        // Smooth bar
                         _visualizerBars[i].Height = _visualizerBars[i].Height + (targetHeight - _visualizerBars[i].Height) * 0.5;
                     }
                 });
@@ -213,8 +208,7 @@ public sealed partial class RecordPage : Page
     {
         base.OnNavigatedFrom(e);
 
-        // Stop the mic when leaving the page — otherwise recording keeps running
-        // off-screen (and the device stays hot) until the user comes back.
+        // Stop the mic on navigate-away, else it keeps recording off-screen.
         if (_recorder != null)
         {
             _recorder.Dispose();
@@ -242,7 +236,6 @@ public sealed partial class RecordPage : Page
         {
             ShowStatus(AppStrings.Home_Status_PreparingAudio, InfoBarSeverity.Informational);
             
-            // Fix audio
             string processedWavPath = Path.Combine(Path.GetTempPath(), "ai_transcriber_record.wav");
             string ffmpegArgs = _settings.NormalizeAudio
                 ? $"-y -i \"{filePath}\" -vn -af highpass=f=80,lowpass=f=7800,loudnorm=I=-16:TP=-1.5:LRA=11 -ar 16000 -ac 1 -c:a pcm_s16le \"{processedWavPath}\""

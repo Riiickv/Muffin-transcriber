@@ -76,12 +76,10 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
       pointerEvents={isVisible ? 'auto' : 'none'}
       style={[StyleSheet.absoluteFill, { zIndex: 100 }]}
     >
-      {/* Dim backdrop */}
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: backdropAnim }]}>
         <Pressable style={{ flex: 1 }} onPress={onClose} />
       </Animated.View>
 
-      {/* Drawer */}
       <Animated.View
         style={[
           styles.drawer,

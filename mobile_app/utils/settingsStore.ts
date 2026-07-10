@@ -119,12 +119,8 @@ export function useSettings() {
   return { settings, setSetting, resetSettings };
 }
 
-/**
- * Text inputs bound directly to a Settings key cause typing lag on mobile —
- * every keystroke triggers an AsyncStorage write and a subscriber re-render.
- * This hook keeps the value local while typing and only persists after
- * `debounceMs` of quiet.
- */
+// Binding a text input to a Settings key lags on mobile: every keystroke writes
+// to AsyncStorage and re-renders subscribers. Keep it local, persist on quiet.
 export function useDebouncedSetting<K extends keyof Settings>(key: K, debounceMs = 400) {
   const { settings, setSetting } = useSettings();
   const [localValue, setLocalValue] = useState<Settings[K]>(settings[key]);
@@ -139,7 +135,6 @@ export function useDebouncedSetting<K extends keyof Settings>(key: K, debounceMs
     }
   }, [settings, key]);
 
-  // Debounced save.
   useEffect(() => {
     if (localValue === lastSyncedRef.current) return;
     const timer = setTimeout(() => {

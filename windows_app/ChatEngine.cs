@@ -10,8 +10,7 @@ namespace MuffinTranscriber;
 
 public sealed record ChatMessage(string Role, string Content);
 
-// The Windows counterpart of the mobile ChatEngine: gather transcripts, build
-// the same RAG + app-capability prompt, and stream a local LLM's reply.
+// Windows counterpart of the mobile ChatEngine: RAG + app-capability prompt, streamed local LLM reply.
 public static class ChatEngine
 {
     public static async Task<string> ChatAsync(IReadOnlyList<ChatMessage> messages, string? selectedFormatter, Action<string> onToken)
@@ -53,8 +52,7 @@ public static class ChatEngine
         }
     }
 
-    // Keyword scoring over the transcripts, plus the newest as a fallback so the
-    // model always has something to talk about. (Embeddings can slot in later.)
+    // Keyword scoring; always keeps the newest transcript as a fallback. (Embeddings can slot in later.)
     private static List<TranscriptionHistoryItem> SearchTranscripts(List<TranscriptionHistoryItem> history, string query)
     {
         if (history.Count == 0) return [];
@@ -143,7 +141,6 @@ Every transcript you have, newest first:
 </context>{memory}";
     }
 
-    // Full multi-turn prompt in whichever chat template the model expects.
     private static string BuildChatPrompt(string modelFile, string systemContent, IReadOnlyList<ChatMessage> messages)
     {
         string lower = modelFile.ToLowerInvariant();

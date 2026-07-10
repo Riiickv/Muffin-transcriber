@@ -16,8 +16,7 @@ interface TabPillProps<T extends string> {
   style?: StyleProp<ViewStyle>;
 }
 
-// A row of round-corner tab chips. Highlighted chip fills with `tint`,
-// resting chips use `surface`. Same visual across every screen.
+// Row of tab chips; the active chip fills with tint.
 export function TabPill<T extends string>({ tabs, value, onChange, style }: TabPillProps<T>) {
   const { theme } = useTheme();
   return (

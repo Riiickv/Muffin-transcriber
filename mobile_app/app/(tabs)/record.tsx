@@ -111,7 +111,6 @@ export default function RecordScreen() {
     if (isBusy) return;
 
     if (isRecording) {
-      // ---- Stop recording ---------------------------------------------------
       haptics.tap();
       try {
         await recorder.stop();
@@ -151,9 +150,7 @@ export default function RecordScreen() {
         let formatted: string | undefined;
         let summarized: string | undefined;
 
-        // Run format + summarize concurrently — they both only need the raw
-        // transcript and share the same LLM context (so they'll serialize
-        // under the hood), but this avoids unnecessary sequential awaiting.
+        // format + summarize run concurrently but serialize under the hood (shared LLM context).
         const llmPath = settings.preferredFormatterModel
           ? ModelManager.getModelPath(settings.preferredFormatterModel)
           : null;
@@ -170,8 +167,7 @@ export default function RecordScreen() {
         formatted = formatResult;
         summarized = summarizeResult;
 
-        // Run embedding (separate model context) concurrently with LLM tasks
-        // (extractDates + generateTitle) since they use different native contexts.
+        // Embedding uses a separate native context, so it runs truly concurrent with the LLM tasks.
         setStatus(t('record.analyzing') || 'Analyzing...');
         const textForAnalysis = formatted || result.text;
 
@@ -215,7 +211,6 @@ export default function RecordScreen() {
         setIsBusy(false);
       }
     } else {
-      // ---- Start recording --------------------------------------------------
       haptics.tap();
       try {
         await recorder.prepareToRecordAsync();

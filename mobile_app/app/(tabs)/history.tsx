@@ -124,11 +124,7 @@ interface HistoryCardProps {
   onRename: () => void;
 }
 
-// Plain View (not Pressable) at the card level, so the two action IconButtons
-// and the chevron IconButton don't end up nested inside another button — which
-// react-native-web forbids (renders a hydration error on <button> in <button>).
-// Users tap the chevron to open; the whole title/preview area is dimmed for
-// visual affordance.
+// Keep the action IconButtons flat — react-native-web forbids <button> nested in <button> (hydration error).
 const HistoryCard = ({ entry, onOpen, onDelete, onRename }: HistoryCardProps) => {
   const { theme } = useTheme();
   return (

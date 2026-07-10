@@ -17,7 +17,6 @@ let currentModelPath: string | null = null;
 let loadPromise: Promise<boolean> | null = null;
 
 export async function loadEmbeddingModel(): Promise<boolean> {
-  // Use the first embedding model we have
   const modelDef = EMBEDDING_MODELS[0];
   const isDownloaded = await ModelManager.isModelDownloaded(modelDef.id);
 
@@ -29,7 +28,7 @@ export async function loadEmbeddingModel(): Promise<boolean> {
   const modelPath = ModelManager.getModelPath(modelDef.id);
 
   if (embeddingContext && currentModelPath === modelPath) {
-    return true; // Already loaded
+    return true;
   }
 
   // Coalesce concurrent loads so we never init the native context twice.
@@ -49,7 +48,7 @@ export async function loadEmbeddingModel(): Promise<boolean> {
     if (!init) return false; // web / unsupported platform
     embeddingContext = await init({
       model: modelPath,
-      n_ctx: 512, // small context for embedding
+      n_ctx: 512,
       n_batch: 512,
       pooling_type: 'mean' // critical for BERT/MiniLM models
     });
@@ -82,10 +81,6 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
   }
 }
 
-/**
- * Calculates the cosine similarity between two vectors.
- * Returns a value between -1 and 1, where 1 means identical.
- */
 export function cosineSimilarity(vecA: number[], vecB: number[]): number {
   if (vecA.length !== vecB.length || vecA.length === 0) return 0;
   let dotProduct = 0;

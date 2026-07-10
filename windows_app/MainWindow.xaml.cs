@@ -7,9 +7,6 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
-
 namespace MuffinTranscriber;
 
 public sealed partial class MainWindow : Window
@@ -168,8 +165,7 @@ public sealed partial class MainWindow : Window
         double currentX = e.GetCurrentPoint(RootGrid).Position.X;
         double nextLength = Math.Clamp(_resizeStartPaneLength + currentX - _resizeStartX, MinPaneLength, MaxPaneLength);
         NavView.OpenPaneLength = nextLength;
-        // Persist only on release (PointerReleased) — saving here wrote the whole
-        // settings JSON to disk on every pointer-move.
+        // Persist only on release — writing here rewrote the whole settings JSON on every pointer-move.
         UpdatePaneResizeGrip();
         e.Handled = true;
     }

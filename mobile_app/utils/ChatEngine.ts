@@ -32,7 +32,7 @@ export async function loadChatLLM(modelPath: string): Promise<void> {
     if (llamaContext) await unloadChatLLM();
     const init = getInitLlama();
     llamaContext = await init({
-      n_ctx: 4096, // Increased context window for reading full transcripts
+      n_ctx: 4096,
       model: modelPath,
     });
     currentModelPath = modelPath;
@@ -70,10 +70,8 @@ async function searchTranscripts(query: string): Promise<HistoryItem[]> {
   const history = await loadHistory();
   if (!history || history.length === 0) return [];
   
-  // Sort history newest first
   const sortedHistory = [...history].sort((a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime());
 
-  // Try Semantic Search first
   const queryEmbedding = await generateEmbedding(query);
   if (queryEmbedding) {
     const scored = history.map(item => {
@@ -84,9 +82,7 @@ async function searchTranscripts(query: string): Promise<HistoryItem[]> {
       return { item, score };
     });
     
-    // Sort by semantic similarity
     scored.sort((a, b) => b.score - a.score);
-    // Keep results that have at least some positive similarity
     const semanticResults = scored.filter(s => s.score > 0.1).slice(0, 3).map(s => s.item);
     
     if (semanticResults.length > 0) {
@@ -128,9 +124,8 @@ async function searchTranscripts(query: string): Promise<HistoryItem[]> {
   // ALWAYS ensure the absolute newest transcript is in the context, even if search misses it.
   const absoluteNewest = sortedHistory[0];
   if (absoluteNewest && !results.find(r => r.id === absoluteNewest.id)) {
-    // Inject at the beginning
     results.unshift(absoluteNewest);
-    if (results.length > 3) results.pop(); // keep it to 3 max
+    if (results.length > 3) results.pop();
   }
 
   if (results.length === 0 && absoluteNewest) {
@@ -220,7 +215,6 @@ export async function chatStream(
   const settings = await loadSettings();
   const history = await loadHistory();
   
-  // 1. Determine query intent and search
   const lastUserMsg = messages[messages.length - 1].content;
   const searchResults = await searchTranscripts(lastUserMsg);
   
@@ -244,7 +238,6 @@ export async function chatStream(
     }).join('\n');
   }
 
-  // 2. Load memories and build history index
   let memoryText = "";
   if (settings.enableContextLearning) {
     const memories = await loadMemories();
@@ -258,11 +251,9 @@ export async function chatStream(
   const historyIndex = sortedHistory.map(h => `- ID: ${h.id} | Name: ${h.sourceFileName.replace(/\.[^/.]+$/, "")} | Date: ${new Date(h.timestampISO).toLocaleString()}`).join('\n');
   memoryText += '\n__HISTORY_INDEX__\n' + historyIndex;
 
-  // 3. Build the prompt (RAG context + app map + tools)
   const capabilitiesBlock = buildCapabilitiesBlock(settings, appContext);
   const prompt = buildRAGPrompt(modelFile, messages, contextText, memoryText, history.length, capabilitiesBlock);
 
-  // 4. Stream response
   let fullResponse = "";
 
   // Note: no "```" here — it can appear inside a tool call and would cut it off.
@@ -280,7 +271,6 @@ export async function chatStream(
       (data) => {
         const text = data.token;
         if (stopTokens.some(token => text.includes(token))) {
-          // It's a stop token, we ignore it from the output
           return;
         }
         fullResponse += text;

@@ -58,7 +58,6 @@ export default function HistoryDetailScreen() {
   const [downloadedWhisperIds, setDownloadedWhisperIds] = useState<string[]>([]);
   const [downloadedLLMIds, setDownloadedLLMIds] = useState<string[]>([]);
 
-  // Action Dialog State
   const [activeEntity, setActiveEntity] = useState<{ quote: string; name: string; type: 'date' | 'time' } | null>(null);
   const [actionName, setActionName] = useState('');
 
@@ -98,7 +97,6 @@ export default function HistoryDetailScreen() {
       })
     : '';
 
-  // Real audio playback ------------------------------------------------------
   const player = useAudioPlayer(item?.sourceFilePath || null);
   const playerStatus = useAudioPlayerStatus(player);
   const isPlaying = playerStatus?.playing ?? false;
@@ -106,7 +104,6 @@ export default function HistoryDetailScreen() {
   const duration = playerStatus?.duration ?? 0;
   const progress = duration > 0 ? currentTime / duration : 0;
 
-  // Rewind to zero when playback finishes.
   useEffect(() => {
     if (playerStatus?.didJustFinish) {
       player.seekTo(0);
@@ -123,7 +120,6 @@ export default function HistoryDetailScreen() {
     else player.play();
   };
 
-  // Model operations --------------------------------------------------------
   const ensureFormatterReady = async () => {
     if (!settings.preferredFormatterModel) {
       dialog.show({ title: t('dialog.noFormatterModel.title') || 'No formatter model', message: t('dialog.noFormatterModel.message') || 'Pick one on the Home tab.', icon: 'warning' });
@@ -331,7 +327,6 @@ export default function HistoryDetailScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Stack.Screen options={{ title: item?.sourceFileName?.replace(/\.[^/.]+$/, "") ?? (t('transcribe.transcriptTitle') || 'Transcript') }} />
 
-      {/* 1. Title + audio player */}
       <Card style={{ marginBottom: SPACING.lg }}>
         <Text style={styles.title}>{item?.sourceFileName?.replace(/\.[^/.]+$/, "") || `${t('transcribe.noTitle') || 'Voice Memo'} ${id}`}</Text>
         <Text style={[styles.subtitle, { color: theme.textMuted }]}>{dateStr}</Text>
@@ -353,7 +348,6 @@ export default function HistoryDetailScreen() {
         </View>
       </Card>
 
-      {/* 2. Actions + models + custom prompt in one card */}
       <Card style={{ marginBottom: SPACING.lg }}>
         <View style={styles.actionsRow}>
           <View style={styles.flex1}>
@@ -436,7 +430,6 @@ export default function HistoryDetailScreen() {
         </View>
       </Card>
 
-      {/* 3. Transcript */}
       <Card style={{ flex: 1 }}>
         <Text style={styles.sectionTitle}>{t('transcribe.transcriptTitle') || 'Transcript'}</Text>
 
@@ -491,9 +484,7 @@ export default function HistoryDetailScreen() {
         </View>
       </Card>
 
-      {/* Add-to-Calendar / Add-to-Alarms picker. Uses the shared DialogCard so
-          it inherits the app's themed dialog look, but keeps its live TextInput
-          here (the imperative dialog.show API doesn't fit stateful bodies). */}
+      {/* Uses DialogCard directly, not dialog.show, because it needs a live TextInput. */}
       <DialogCard
         visible={activeEntity !== null}
         onRequestClose={() => setActiveEntity(null)}
