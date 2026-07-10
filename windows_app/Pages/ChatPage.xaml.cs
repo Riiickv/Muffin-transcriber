@@ -81,8 +81,6 @@ public sealed partial class ChatPage : Page
         }
     }
 
-    // ---- Message bubbles ---------------------------------------------------
-
     private void AddUserBubble(string text)
     {
         MessagesPanel.Children.Add(new Border
@@ -120,8 +118,7 @@ public sealed partial class ChatPage : Page
         return tb;
     }
 
-    // A live control for a setting, bound to the same store the Settings page
-    // uses, so flipping it here changes it everywhere.
+    // Bound to the same store as the Settings page, so flipping it here changes it everywhere.
     private void AddSettingControl(SettingSpec spec)
     {
         UserSettings settings = UserSettings.Load();
@@ -177,8 +174,6 @@ public sealed partial class ChatPage : Page
         ChatScroll.UpdateLayout();
         ChatScroll.ChangeView(null, ChatScroll.ScrollableHeight, null, true);
     }
-
-    // ---- Tool calls --------------------------------------------------------
 
     private static string StripToolCalls(string text)
     {

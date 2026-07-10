@@ -114,7 +114,7 @@ public static class TranscriptionHistory
         }
         else
         {
-            items.Insert(0, newItem); // Add to the top
+            items.Insert(0, newItem);
         }
         Save(items);
     }

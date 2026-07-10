@@ -198,9 +198,8 @@ public static class LLMFormatter
         }
     }
 
-    // Returns the prompt body using whichever chat template the given model expects.
-    // Why: llama.cpp's -st flag interprets these tokens literally, so Qwen-only ChatML
-    // produced garbage on Llama 3 (uses <|start_header_id|>) and Phi-3 (uses <|system|>).
+    // llama.cpp's -st flag reads template tokens literally, so Qwen's ChatML
+    // produced garbage on Llama 3 (<|start_header_id|>) and Phi-3 (<|system|>).
     private static string BuildChatPrompt(string modelFile, string systemPrompt, string userPrompt)
     {
         string lower = modelFile.ToLowerInvariant();

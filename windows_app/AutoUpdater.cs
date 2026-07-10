@@ -144,10 +144,8 @@ namespace MuffinTranscriber
             return tempFile;
         }
 
-        // Returns false if the installer could not be launched (e.g. the user
-        // cancelled the UAC elevation prompt), so the caller can recover instead
-        // of the app crashing on the unhandled Win32Exception. On success the
-        // process exits and never returns.
+        // Returns false if launch failed (e.g. user cancelled the UAC prompt) so the caller
+        // can recover; on success the process exits and never returns.
         public static bool InstallAndRestart(string installerPath)
         {
             var processInfo = new ProcessStartInfo

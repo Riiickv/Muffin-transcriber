@@ -2,9 +2,7 @@ namespace MuffinTranscriber;
 
 public static class AppStrings
 {
-    // ==========================================
     // GLOBAL / NAVIGATION
-    // ==========================================
     public static string Nav_Home => LocalizationManager.GetString("Nav_Home", "Muffin!");
     public static string Nav_Record => LocalizationManager.GetString("Nav_Record", "Record");
     public static string Nav_History => LocalizationManager.GetString("Nav_History", "History");
@@ -17,15 +15,11 @@ public static class AppStrings
     public static string Credits => LocalizationManager.GetString("Credits", "made by Rick in his free time");
     public static string Settings_BtnChangelog => LocalizationManager.GetString("Settings_BtnChangelog", "View Changelog");
 
-    // ==========================================
     // MAIN WINDOW
-    // ==========================================
     public static string Main_Status_MiniWindowOpen => LocalizationManager.GetString("Main_Status_MiniWindowOpen", "Mini-Muffin is open.");
     public static string Main_Status_ModelsNotInstalled => LocalizationManager.GetString("Main_Status_ModelsNotInstalled", "You have not installed any model, go to the Models tab to get started.");
 
-    // ==========================================
     // MINI WINDOW
-    // ==========================================
     public static string Mini_DropFileHere => LocalizationManager.GetString("Mini_DropFileHere", "Drop File Here");
     public static string Mini_Tooltip_Copy => LocalizationManager.GetString("Mini_Tooltip_Copy", "Copy");
     public static string Mini_Tooltip_Format => LocalizationManager.GetString("Mini_Tooltip_Format", "Format");
@@ -36,9 +30,7 @@ public static class AppStrings
     public static string Mini_Status_NoFormatter => LocalizationManager.GetString("Mini_Status_NoFormatter", "No Formatter model installed!");
     public static string Mini_Status_NoSpeech => LocalizationManager.GetString("Mini_Status_NoSpeech", "No speech detected in this file.");
 
-    // ==========================================
     // HOME PAGE
-    // ==========================================
     public static string Home_Title => LocalizationManager.GetString("Home_Title", "Home");
 
     // Drop Zone
@@ -88,18 +80,14 @@ public static class AppStrings
     public static string Home_Status_BatchComplete => LocalizationManager.GetString("Home_Status_BatchComplete", "Batch processing complete. {0} files processed.");
     public static string Home_Status_NoSpeechDetected => LocalizationManager.GetString("Home_Status_NoSpeechDetected", "No speech detected in {0}.");
 
-    // ==========================================
     // RECORD PAGE
-    // ==========================================
     public static string Record_Title => LocalizationManager.GetString("Record_Title", "Voice Memos");
     public static string Record_StartButton => LocalizationManager.GetString("Record_StartButton", "Start Recording");
     public static string Record_StopButton => LocalizationManager.GetString("Record_StopButton", "Stop Recording");
     public static string Record_Instructions => LocalizationManager.GetString("Record_Instructions", "");
     public static string Record_Status_NoAudioDetected => LocalizationManager.GetString("Record_Status_NoAudioDetected", "No speech detected. If your mic works elsewhere, check Windows Settings → Privacy → Microphone and enable 'Let desktop apps access your microphone'.");
 
-    // ==========================================
     // CHAT PAGE
-    // ==========================================
     public static string Chat_Title => LocalizationManager.GetString("Chat_Title", "Chat");
     public static string Chat_EmptyHint => LocalizationManager.GetString("Chat_EmptyHint", "Ask me anything about your transcripts — or tell me to change a setting, open a screen, or delete a transcript.");
     public static string Chat_InputPlaceholder => LocalizationManager.GetString("Chat_InputPlaceholder", "Ask about your transcripts...");
@@ -111,9 +99,7 @@ public static class AppStrings
     public static string Chat_Delete => LocalizationManager.GetString("Chat_Delete", "Delete");
     public static string Chat_Cancel => LocalizationManager.GetString("Chat_Cancel", "Cancel");
 
-    // ==========================================
     // HISTORY PAGE
-    // ==========================================
     public static string History_Title => LocalizationManager.GetString("History_Title", "Transcription History");
 
     // Actions
@@ -129,9 +115,7 @@ public static class AppStrings
 
     public static string History_EmptyDetailsText => LocalizationManager.GetString("History_EmptyDetailsText", "Select a transcription to view details.");
 
-    // ==========================================
     // MODELS PAGE
-    // ==========================================
     public static string Models_Title => LocalizationManager.GetString("Models_Title", "Manage Models");
     public static string Models_Instructions => LocalizationManager.GetString("Models_Instructions", "Download at least one Whisper model (for transcription) and one LLM (for formatting/summarization).");
 
@@ -162,9 +146,7 @@ public static class AppStrings
     public static string Models_Status_DownloadingProgressFormat => LocalizationManager.GetString("Models_Status_DownloadingProgressFormat", "Downloading {0} ({1} GB / {2} GB) - {3} MB/s - {4} remaining");
     public static string Models_Status_InstalledFormat => LocalizationManager.GetString("Models_Status_InstalledFormat", "{0} installed.");
 
-    // ==========================================
     // SETTINGS PAGE
-    // ==========================================
     public static string Settings_Title => LocalizationManager.GetString("Settings_Title", "Settings");
 
     public static string Settings_DefaultsHeader => LocalizationManager.GetString("Settings_DefaultsHeader", "Defaults");
@@ -242,9 +224,7 @@ public static class AppStrings
     public static string Settings_Dialog_Save => LocalizationManager.GetString("Settings_Dialog_Save", "Save");
     public static string Settings_Dialog_Cancel => LocalizationManager.GetString("Settings_Dialog_Cancel", "Cancel");
 
-    // ==========================================
     // AUTO UPDATER
-    // ==========================================
     public static string Update_BannerTitle => LocalizationManager.GetString("Update_BannerTitle", "Muffin update available!");
     public static string Update_BtnUpdate => LocalizationManager.GetString("Update_BtnUpdate", "Update!");
     public static string Update_BtnRestart => LocalizationManager.GetString("Update_BtnRestart", "Restart");

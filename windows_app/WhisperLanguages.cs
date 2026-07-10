@@ -3,9 +3,8 @@ using System.Linq;
 
 namespace MuffinTranscriber;
 
-// The UI shows a display name (e.g. "Italian"); whisper-cli wants the ISO 639-1
-// code (e.g. "it"), or "auto" to detect the language itself. Auto-Detect is the
-// default so the app works for anyone, anywhere, without picking a language.
+// UI shows display names (e.g. "Italian"); whisper-cli wants the ISO 639-1 code
+// (e.g. "it"), or "auto" to self-detect. Auto-Detect is the default.
 public static class WhisperLanguages
 {
     public const string AutoDetect = "Auto-Detect";

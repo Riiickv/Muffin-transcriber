@@ -7,9 +7,7 @@ import { useSettings } from '@/utils/settingsStore';
 import { getSettingSpec } from '@/utils/appCapabilities';
 import { SPACING, RADIUS } from '@/constants/tokens';
 
-// A live control for one setting, rendered inside a chat message. It reads and
-// writes the same stores the Settings screen uses, so changing it here changes
-// it everywhere immediately.
+// Live control for one setting; writes the same stores as the Settings screen, so edits apply everywhere.
 export function InlineSettingControl({ settingKey }: { settingKey: string }) {
   const { theme, themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
   const { settings, setSetting } = useSettings();

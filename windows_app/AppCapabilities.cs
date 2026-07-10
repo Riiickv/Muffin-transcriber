@@ -14,9 +14,7 @@ public sealed record SettingSpec(
     string[] Options,    // full option list for enum controls
     string ValuesHint);  // compact hint for the model
 
-// One description of the app that both the chat prompt and the tool executor
-// read from, so "where is X", "change X" and the inline chat controls stay in
-// sync with a single edit here.
+// Single source of truth for settings and screens, shared by the chat prompt and the tool executor.
 public static class AppCapabilities
 {
     public static readonly SettingSpec[] Settings =
@@ -52,7 +50,6 @@ public static class AppCapabilities
         return value?.ToString() ?? "";
     }
 
-    // Applies a setting the assistant asked to change and persists it.
     public static void SetValue(SettingSpec spec, object rawValue)
     {
         PropertyInfo? prop = typeof(UserSettings).GetProperty(spec.Key);

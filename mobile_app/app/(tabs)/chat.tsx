@@ -41,14 +41,12 @@ export default function ChatScreen() {
   const [activeEntity, setActiveEntity] = useState<any>(null);
   const [actionName, setActionName] = useState('');
 
-  // Pick first chat on load if none selected
   useEffect(() => {
     if (!activeChatId && chatSessions.length > 0) {
       setActiveChatId(chatSessions[0].id);
     }
   }, [chatSessions, activeChatId]);
 
-  // Sync active chat messages to local state when switching chats
   useEffect(() => {
     if (activeChatId) {
       const active = chatSessions.find(c => c.id === activeChatId);
@@ -60,7 +58,6 @@ export default function ChatScreen() {
     }
   }, [activeChatId, chatSessions, isGenerating]);
 
-  // If chat model isn't explicitly set, fallback to formatter model
   const activeModel = settings.preferredChatModel || settings.preferredFormatterModel;
 
   const handleSend = async () => {
@@ -103,12 +100,10 @@ export default function ChatScreen() {
 
       await updateChatMessages(targetChatId, finalMessages);
 
-      // After generation, auto-extract memories from the user's message
       if (settings.enableContextLearning) {
         extractMemories(userMsg.content, modelPath, activeModel).catch(console.warn);
       }
 
-      // Execute Tool Calls
       const botResponse = finalMessages[finalMessages.length - 1].content;
       const toolCallRegex = /<tool_call>([\s\S]*?)<\/tool_call>/gi;
       let executed = false;
@@ -207,7 +202,6 @@ export default function ChatScreen() {
   };
 
   useEffect(() => {
-    // Scroll to bottom when messages update
     if (messages.length > 0) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
@@ -265,10 +259,8 @@ export default function ChatScreen() {
       );
     }
 
-    // 1. Prepare search terms: Transcript Names + Actionable Entities
     const searchTerms: { text: string; type: 'transcript' | 'entity'; data: any }[] = [];
-    
-    // Add all entities
+
     historyItems.forEach(h => {
       if (h.extractedDates) {
         h.extractedDates.forEach(entity => {
@@ -487,7 +479,6 @@ export default function ChatScreen() {
         }} 
       />
 
-      {/* Action Dialog Overlay */}
       {activeEntity && (
         <View style={styles.overlay}>
           <View style={[styles.dialog, { backgroundColor: theme.surface, borderColor: theme.divider }]}>

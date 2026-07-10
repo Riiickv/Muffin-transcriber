@@ -13,9 +13,7 @@ public sealed partial class MiniWindow : Window
     private Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? _shareOperation;
     private string _rawTranscript = "";
 
-    // Share-flow lifecycle guards: don't tear down the dispatcher (and lose the
-    // transcription) if the user clicks away mid-processing, and always settle
-    // the share operation exactly once so the share sheet never hangs.
+    // Lifecycle guards: don't tear down the dispatcher mid-processing, and settle the share op exactly once so the share sheet never hangs.
     private bool _isProcessing;
     private bool _closeRequested;
     private bool _isClosed;
@@ -65,10 +63,7 @@ public sealed partial class MiniWindow : Window
         }
         else if (_hasBeenActivated)
         {
-            // Close the mini window when the user clicks away, but only after it
-            // actually appeared — and never while a transcription/format is still
-            // running, or the dispatcher would be torn down mid-await and the
-            // result would be lost. Defer the close until processing finishes.
+            // Close on click-away, but never mid-processing or the dispatcher tears down mid-await and the result is lost — defer until done.
             if (_isProcessing)
             {
                 _closeRequested = true;
