@@ -1,9 +1,11 @@
 using System;
+using System.IO;
 using System.Linq;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Media.Core;
 
 namespace MuffinTranscriber.Pages;
 
@@ -37,6 +39,7 @@ public sealed partial class HistoryPage : Page
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
         base.OnNavigatedFrom(e);
+        AudioPlayer.MediaPlayer?.Pause();
         var settings = UserSettings.Load();
         settings.HistoryListWidth = ListColumn.Width.Value;
         settings.Save();
@@ -139,13 +142,35 @@ public sealed partial class HistoryPage : Page
 
             SelectTab(TabRawButton);
             TranscriptBox.Text = item.RawTranscript;
+            UpdateAudioPlayer(item);
         }
         else
         {
             _selectedItem = null;
             EmptyDetailsText.Visibility = Visibility.Visible;
             DetailsPane.Visibility = Visibility.Collapsed;
+            StopAudio();
         }
+    }
+
+    private void UpdateAudioPlayer(TranscriptionHistoryItem item)
+    {
+        if (!string.IsNullOrEmpty(item.SourceFilePath) && File.Exists(item.SourceFilePath))
+        {
+            AudioPlayer.Source = MediaSource.CreateFromUri(new Uri(item.SourceFilePath));
+            AudioPlayer.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            StopAudio();
+        }
+    }
+
+    private void StopAudio()
+    {
+        AudioPlayer.MediaPlayer?.Pause();
+        AudioPlayer.Source = null;
+        AudioPlayer.Visibility = Visibility.Collapsed;
     }
 
     private void DeleteButton_Click(object sender, RoutedEventArgs e)
