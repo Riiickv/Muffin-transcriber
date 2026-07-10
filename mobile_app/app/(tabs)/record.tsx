@@ -18,7 +18,7 @@ import { useDialog } from '@/components/Dialog';
 import { formatTranscript, summarizeTranscript, extractActionableEntities, generateTitle } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
 import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS } from '@/utils/ModelManager';
-import { toLanguageCode, LANGUAGE_OPTIONS } from '@/utils/languages';
+import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
 import { WHISPER_RECORDING_PRESET } from '@/utils/audioRecording';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { haptics } from '@/utils/haptics';
@@ -91,13 +91,6 @@ export default function RecordScreen() {
   const dynamicLanguageOptions = isEnglishOnly
     ? LANGUAGE_OPTIONS.filter((o) => o.value === 'English' || o.value === 'Auto-Detect')
     : LANGUAGE_OPTIONS;
-
-  const FORMAT_LANG_OPTIONS = [
-    { label: 'Original', value: 'Auto-Detect / Original' },
-    { label: 'English', value: 'English' },
-    { label: 'Italian', value: 'Italian' },
-    { label: 'Spanish', value: 'Spanish' },
-  ];
 
   useEffect(() => {
     if (isEnglishOnly && settings.defaultLanguage !== 'English' && settings.defaultLanguage !== 'Auto-Detect') {
@@ -336,7 +329,7 @@ export default function RecordScreen() {
             <View style={{ flex: 1, paddingLeft: SPACING.sm }}>
               <Text style={{ fontSize: 12, marginBottom: 4, color: theme.textMuted }}>{t('settings.formatLanguage') || 'Output'}</Text>
               <SelectDropdown
-                options={FORMAT_LANG_OPTIONS}
+                options={FORMAT_LANGUAGE_OPTIONS}
                 value={settings.formatLanguage}
                 onSelect={(val) => setSetting('formatLanguage', val)}
                 placeholder="Original"

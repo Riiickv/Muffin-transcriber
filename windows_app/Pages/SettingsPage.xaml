@@ -31,14 +31,7 @@
             <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_DefaultsHeader}" />
 
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_DefaultLanguageTitle}" Description="{x:Bind local:AppStrings.Settings_DefaultLanguageDesc}">
-                <ComboBox x:Name="DefaultLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="220">
-                    <ComboBoxItem Content="Auto-Detect" />
-                    <ComboBoxItem Content="English" />
-                    <ComboBoxItem Content="French" />
-                    <ComboBoxItem Content="German" />
-                    <ComboBoxItem Content="Italian" />
-                    <ComboBoxItem Content="Spanish" />
-                </ComboBox>
+                <ComboBox x:Name="DefaultLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="220" />
             </toolkit:SettingsCard>
 
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_PrefWhisperTitle}" Description="{x:Bind local:AppStrings.Settings_PrefWhisperDesc}">
@@ -52,14 +45,7 @@
             </toolkit:SettingsCard>
 
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_FormatLanguageTitle}" Description="{x:Bind local:AppStrings.Settings_FormatLanguageDesc}">
-                <ComboBox x:Name="FormatLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="220">
-                    <ComboBoxItem Content="Auto-Detect / Original" />
-                    <ComboBoxItem Content="English" />
-                    <ComboBoxItem Content="French" />
-                    <ComboBoxItem Content="German" />
-                    <ComboBoxItem Content="Italian" />
-                    <ComboBoxItem Content="Spanish" />
-                </ComboBox>
+                <ComboBox x:Name="FormatLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="220" />
             </toolkit:SettingsCard>
 
             <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_BehaviorHeader}" />

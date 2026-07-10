@@ -21,17 +21,9 @@ import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { useDialog } from '@/components/Dialog';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
-import { toLanguageCode, LANGUAGE_OPTIONS } from '@/utils/languages';
+import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
-
-
-const FORMAT_LANG_OPTIONS = [
-  { label: 'Original', value: 'Auto-Detect / Original' },
-  { label: 'English', value: 'English' },
-  { label: 'Italian', value: 'Italian' },
-  { label: 'Spanish', value: 'Spanish' },
-];
 
 type TranscriptTab = 'raw' | 'formatted' | 'summary';
 
@@ -327,7 +319,7 @@ export default function HomeScreen() {
           <View style={styles.flex1}>
             <Text style={styles.label}>{t('settings.formatLanguage') || 'Format Language'}</Text>
             <SelectDropdown
-              options={FORMAT_LANG_OPTIONS}
+              options={FORMAT_LANGUAGE_OPTIONS}
               value={settings.formatLanguage}
               onSelect={(val) => setSetting('formatLanguage', val)}
               placeholder="Original"

@@ -6,7 +6,7 @@ public sealed class UserSettings
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    public string DefaultLanguage { get; set; } = "Italian";
+    public string DefaultLanguage { get; set; } = "Auto-Detect";
     public string AppLanguage { get; set; } = "en"; // en, it, etc.
     public string PreferredWhisperModel { get; set; } = string.Empty;
     public string PreferredFormatterModel { get; set; } = string.Empty;
