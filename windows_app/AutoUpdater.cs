@@ -54,7 +54,8 @@ namespace MuffinTranscriber
                 {
                     foreach (var asset in release.Assets)
                     {
-                        if (asset.Name.Equals("Muffin_Setup.exe", StringComparison.OrdinalIgnoreCase))
+                        if (asset.Name.Equals("Muffin_Setup.exe", StringComparison.OrdinalIgnoreCase)
+                            && IsTrustedDownloadUrl(asset.BrowserDownloadUrl))
                         {
                             return (true, release.TagName, asset.BrowserDownloadUrl);
                         }
@@ -66,6 +67,18 @@ namespace MuffinTranscriber
                 Debug.WriteLine($"Update check failed: {ex.Message}");
             }
             return (false, "", "");
+        }
+
+        // The elevated installer is launched from whatever URL we hand back, so only
+        // trust HTTPS links on GitHub's own hosts. This is defence-in-depth on top of
+        // the TLS-authenticated api.github.com response the URL came from.
+        private static bool IsTrustedDownloadUrl(string url)
+        {
+            return Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)
+                && uri.Scheme == Uri.UriSchemeHttps
+                && (uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase)
+                    || uri.Host.EndsWith(".github.com", StringComparison.OrdinalIgnoreCase)
+                    || uri.Host.EndsWith(".githubusercontent.com", StringComparison.OrdinalIgnoreCase));
         }
 
         private static bool IsNewer(string currentVer, string remoteVer)
@@ -86,6 +99,9 @@ namespace MuffinTranscriber
 
         public static async Task<string> DownloadUpdateAsync(string downloadUrl, IProgress<int> progress)
         {
+            if (!IsTrustedDownloadUrl(downloadUrl))
+                throw new InvalidOperationException("Refusing to download an update from an untrusted URL.");
+
             var tempFile = Path.Combine(Path.GetTempPath(), "Muffin_Setup_Update.exe");
             
             if (File.Exists(tempFile))
@@ -119,7 +135,7 @@ namespace MuffinTranscriber
                     if (canReportProgress)
                     {
                         var percentage = (int)((totalRead * 100) / totalBytes);
-                        progress.Report(percentage);
+                        progress!.Report(percentage);
                     }
                 }
             }

@@ -84,6 +84,7 @@ public static class AppStrings
     public static string Home_Status_QueuedMultiple => LocalizationManager.GetString("Home_Status_QueuedMultiple", "{0} files queued.");
     public static string Home_Status_BatchProgress => LocalizationManager.GetString("Home_Status_BatchProgress", "Processing {0} of {1}: {2}");
     public static string Home_Status_BatchComplete => LocalizationManager.GetString("Home_Status_BatchComplete", "Batch processing complete. {0} files processed.");
+    public static string Home_Status_NoSpeechDetected => LocalizationManager.GetString("Home_Status_NoSpeechDetected", "No speech detected in {0}.");
 
     // ==========================================
     // RECORD PAGE
@@ -92,6 +93,7 @@ public static class AppStrings
     public static string Record_StartButton => LocalizationManager.GetString("Record_StartButton", "Start Recording");
     public static string Record_StopButton => LocalizationManager.GetString("Record_StopButton", "Stop Recording");
     public static string Record_Instructions => LocalizationManager.GetString("Record_Instructions", "");
+    public static string Record_Status_NoAudioDetected => LocalizationManager.GetString("Record_Status_NoAudioDetected", "No speech detected. If your mic works elsewhere, check Windows Settings → Privacy → Microphone and enable 'Let desktop apps access your microphone'.");
 
     // ==========================================
     // HISTORY PAGE

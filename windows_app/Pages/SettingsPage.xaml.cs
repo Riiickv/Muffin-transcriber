@@ -217,6 +217,7 @@ public sealed partial class SettingsPage : Page
     private void ClearAudioCache_Click(object sender, RoutedEventArgs e)
     {
         ClearCache(AppModel.AudioCacheDir);
+        TranscriptionHistory.PurgeMissingSourceFiles();
         UpdateCacheSizes();
         ShowStatus(AppStrings.Settings_Status_AudioCacheCleared, InfoBarSeverity.Success);
     }
@@ -224,6 +225,7 @@ public sealed partial class SettingsPage : Page
     private void ClearVideoCache_Click(object sender, RoutedEventArgs e)
     {
         ClearCache(AppModel.VideoCacheDir);
+        TranscriptionHistory.PurgeMissingSourceFiles();
         UpdateCacheSizes();
         ShowStatus(AppStrings.Settings_Status_VideoCacheCleared, InfoBarSeverity.Success);
     }

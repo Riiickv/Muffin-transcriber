@@ -238,12 +238,8 @@ public sealed partial class RecordPage : Page
             string rawTranscript = result.Stdout.Trim();
             if (string.IsNullOrWhiteSpace(rawTranscript))
             {
-                rawTranscript = $"[DEBUG: Stdout was empty. ExitCode={result.ExitCode}]\nStderr:\n{result.Stderr}";
-            }
-
-            if (string.IsNullOrWhiteSpace(rawTranscript))
-            {
-                ShowStatus("No audio detected. Please check Windows Settings -> Privacy -> Microphone and enable 'Let desktop apps access your microphone'.", InfoBarSeverity.Error);
+                Debug.WriteLine($"Whisper produced no output. ExitCode={result.ExitCode}. Stderr:\n{result.Stderr}");
+                ShowStatus(AppStrings.Record_Status_NoAudioDetected, InfoBarSeverity.Error);
                 return;
             }
 

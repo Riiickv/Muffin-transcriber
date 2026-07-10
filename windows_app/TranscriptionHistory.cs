@@ -26,14 +26,22 @@ public static class TranscriptionHistory
     private static readonly string HistoryFile = Path.Combine(AppModel.AppDataDir, "history.json");
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
+    // Serializes file access so a read can't observe history.json mid-swap.
+    // Without this, a Load() racing the File.Replace in Save() could throw,
+    // fall through to an empty list, and a subsequent save would wipe history.
+    private static readonly object _fileLock = new();
+
     public static List<TranscriptionHistoryItem> Load()
     {
         try
         {
-            if (File.Exists(HistoryFile))
+            lock (_fileLock)
             {
-                string json = File.ReadAllText(HistoryFile);
-                return JsonSerializer.Deserialize<List<TranscriptionHistoryItem>>(json, JsonOptions) ?? new();
+                if (File.Exists(HistoryFile))
+                {
+                    string json = File.ReadAllText(HistoryFile);
+                    return JsonSerializer.Deserialize<List<TranscriptionHistoryItem>>(json, JsonOptions) ?? new();
+                }
             }
         }
         catch (Exception ex)
@@ -51,20 +59,48 @@ public static class TranscriptionHistory
         try
         {
             string json = JsonSerializer.Serialize(items, JsonOptions);
-            string tmp = HistoryFile + ".tmp";
-            File.WriteAllText(tmp, json);
-            if (File.Exists(HistoryFile))
+            lock (_fileLock)
             {
-                File.Replace(tmp, HistoryFile, null);
-            }
-            else
-            {
-                File.Move(tmp, HistoryFile);
+                string tmp = HistoryFile + ".tmp";
+                File.WriteAllText(tmp, json);
+                if (File.Exists(HistoryFile))
+                {
+                    File.Replace(tmp, HistoryFile, null);
+                }
+                else
+                {
+                    File.Move(tmp, HistoryFile);
+                }
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to save history: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Clears SourceFilePath on any history item whose cached media file no longer
+    /// exists (e.g. after the media cache was auto-deleted or cleared manually),
+    /// so the UI never points re-transcription at a missing file.
+    /// </summary>
+    public static void PurgeMissingSourceFiles()
+    {
+        var items = Load();
+        bool changed = false;
+        for (int i = 0; i < items.Count; i++)
+        {
+            var item = items[i];
+            if (!string.IsNullOrEmpty(item.SourceFilePath) && !File.Exists(item.SourceFilePath))
+            {
+                items[i] = item with { SourceFilePath = null };
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            Save(items);
         }
     }
 
