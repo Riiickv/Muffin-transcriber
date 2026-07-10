@@ -95,8 +95,6 @@
                         </toolkit:SettingsCard>
                     </toolkit:SettingsExpander.Items>
                 </toolkit:SettingsExpander>
-
-                <ProgressBar x:Name="DownloadProgress" Visibility="Collapsed" />
             </StackPanel>
         </ScrollViewer>
 
