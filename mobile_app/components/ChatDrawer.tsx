@@ -1,5 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from './Themed';
@@ -10,6 +20,7 @@ import { AnimatedPressable } from './AnimatedPressable';
 import { useDialog } from './Dialog';
 import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
 import { ChatSession, deleteChatSession, renameChatSession } from '@/utils/chatStore';
+import { formatRelativeTime } from '@/utils/format';
 import { t } from '@/utils/i18n';
 
 interface ChatDrawerProps {
@@ -20,34 +31,55 @@ interface ChatDrawerProps {
   onSelectChat: (id: string) => void;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DRAWER_WIDTH = Math.min(SCREEN_WIDTH * 0.85, 360);
-
 export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectChat }: ChatDrawerProps) {
   const { theme } = useTheme();
   const dialog = useDialog();
   const insets = useSafeAreaInsets();
-  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-  const backdropAnim = useRef(new Animated.Value(0)).current;
+  const { width: screenWidth } = useWindowDimensions();
+  const drawerWidth = Math.min(screenWidth * 0.8, 340);
+
+  // Mounted only while open (or animating closed) — a permanently-composited
+  // full-screen overlay costs frames on every chat render.
+  const [rendered, setRendered] = useState(isVisible);
+  const progress = useRef(new Animated.Value(0)).current;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: isVisible ? 0 : -DRAWER_WIDTH,
-        duration: isVisible ? MOTION.timingBase.duration : MOTION.timingQuick.duration,
+    if (isVisible) {
+      setRendered(true);
+      // Material standard: decelerate in...
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: MOTION.timingBase.duration,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-      }),
-      Animated.timing(backdropAnim, {
-        toValue: isVisible ? 0.6 : 0,
-        duration: isVisible ? MOTION.timingBase.duration : MOTION.timingQuick.duration,
+      }).start();
+    } else {
+      // ...accelerate out, then unmount.
+      Animated.timing(progress, {
+        toValue: 0,
+        duration: MOTION.timingQuick.duration,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
-      }),
-    ]).start();
-    if (!isVisible) setEditingId(null);
-  }, [isVisible, slideAnim, backdropAnim]);
+      }).start(({ finished }) => {
+        if (finished) setRendered(false);
+      });
+      setEditingId(null);
+    }
+  }, [isVisible, progress]);
+
+  if (!rendered) return null;
+
+  const translateX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-drawerWidth, 0],
+  });
+  const backdropOpacity = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 0.45],
+  });
 
   const handleRename = async (id: string) => {
     const trimmed = editTitle.trim();
@@ -71,29 +103,107 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
     });
   };
 
+  const renderRow = ({ item: chat }: { item: ChatSession }) => {
+    const isActive = chat.id === activeChatId;
+    const isEditing = chat.id === editingId;
+
+    return (
+      <View
+        style={[
+          styles.chatItem,
+          { backgroundColor: isActive ? theme.tintFill : 'transparent' },
+        ]}
+      >
+        <AnimatedPressable
+          onPress={() => {
+            if (!isEditing) onSelectChat(chat.id);
+          }}
+          style={styles.chatItemMain}
+          disabled={isEditing}
+        >
+          {isEditing ? (
+            <TextInput
+              style={[
+                styles.input,
+                { color: theme.text, backgroundColor: theme.surface, borderColor: theme.divider },
+              ]}
+              value={editTitle}
+              onChangeText={setEditTitle}
+              autoFocus
+              onBlur={() => handleRename(chat.id)}
+              onSubmitEditing={() => handleRename(chat.id)}
+              returnKeyType="done"
+            />
+          ) : (
+            <View style={styles.chatItemText}>
+              <Text
+                style={[styles.chatTitle, { color: isActive ? theme.tint : theme.text }]}
+                numberOfLines={1}
+              >
+                {chat.title}
+              </Text>
+              <Text style={[styles.chatSubtitle, { color: theme.textSubtle }]}>
+                {formatRelativeTime(chat.updatedAt)}
+              </Text>
+            </View>
+          )}
+        </AnimatedPressable>
+
+        {!isEditing && (
+          <View style={styles.actions}>
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon="edit"
+              onPress={() => {
+                setEditingId(chat.id);
+                setEditTitle(chat.title);
+              }}
+              accessibilityLabel={t('chat.renameChat') || 'Rename chat'}
+            />
+            <IconButton
+              variant="ghost"
+              size="sm"
+              icon="delete"
+              onPress={() => handleDelete(chat.id)}
+              accessibilityLabel={t('chat.deleteChat') || 'Delete chat'}
+            />
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
-    <View
-      pointerEvents={isVisible ? 'auto' : 'none'}
-      style={[StyleSheet.absoluteFill, { zIndex: 100 }]}
+    // A Modal so the drawer overlays the WHOLE screen (header and tab bar
+    // included) — rendered inline it only covered the tab content area,
+    // leaving the header undimmed and a dead inset gap up top. Also makes the
+    // Android back button close the drawer.
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onClose}
     >
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: backdropAnim }]}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} />
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: backdropOpacity }]}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Close chat list" />
       </Animated.View>
 
       <Animated.View
         style={[
           styles.drawer,
           {
+            width: drawerWidth,
             backgroundColor: theme.background,
-            borderRightColor: theme.divider,
             paddingTop: insets.top,
             paddingBottom: insets.bottom,
-            transform: [{ translateX: slideAnim }],
+            transform: [{ translateX }],
           },
         ]}
       >
-        <View style={[styles.header, { borderBottomColor: theme.divider }]}>
-          <Text style={styles.headerTitle}>{t('settings.preferredChat') || 'Chats'}</Text>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t('chat.chats') || 'Chats'}</Text>
           <IconButton
             variant="ghost"
             size="sm"
@@ -103,94 +213,24 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
           />
         </View>
 
-        <ScrollView contentContainerStyle={styles.list}>
-          {chats.length === 0 ? (
+        <FlatList
+          data={chats}
+          keyExtractor={(chat) => chat.id}
+          renderItem={renderRow}
+          contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Icon name="chat" size={56} color={theme.textSubtle} />
+              <Icon name="forum" size={48} color={theme.textSubtle} />
               <Text style={[styles.emptyText, { color: theme.textMuted }]}>{t('chat.noChats') || 'No chats yet.'}</Text>
               <Text style={[styles.emptyHint, { color: theme.textSubtle }]}>
                 {t('chat.noChatsHint') || 'Start a new one from the chat screen.'}
               </Text>
             </View>
-          ) : (
-            chats.map((chat) => {
-              const isActive = chat.id === activeChatId;
-              const isEditing = chat.id === editingId;
-              const rowBg = isActive ? theme.tintFill : 'transparent';
-              const rowBorder = isActive ? theme.tint : theme.divider;
-              const textColor = isActive ? theme.tint : theme.text;
-
-              return (
-                <View
-                  key={chat.id}
-                  style={[
-                    styles.chatItem,
-                    { backgroundColor: rowBg, borderColor: rowBorder },
-                  ]}
-                >
-                  <AnimatedPressable
-                    onPress={() => {
-                      if (!isEditing) onSelectChat(chat.id);
-                    }}
-                    style={styles.chatItemMain}
-                    disabled={isEditing}
-                  >
-                    <Icon name="chat" size={20} color={textColor} filled={isActive} />
-                    {isEditing ? (
-                      <TextInput
-                        style={[
-                          styles.input,
-                          {
-                            color: theme.text,
-                            backgroundColor: theme.surface,
-                            borderColor: theme.divider,
-                          },
-                        ]}
-                        value={editTitle}
-                        onChangeText={setEditTitle}
-                        autoFocus
-                        onBlur={() => handleRename(chat.id)}
-                        onSubmitEditing={() => handleRename(chat.id)}
-                        returnKeyType="done"
-                      />
-                    ) : (
-                      <Text
-                        style={[styles.chatTitle, { color: textColor, fontWeight: isActive ? '600' : '400' }]}
-                        numberOfLines={1}
-                      >
-                        {chat.title}
-                      </Text>
-                    )}
-                  </AnimatedPressable>
-
-                  {!isEditing && (
-                    <View style={styles.actions}>
-                      <IconButton
-                        variant="ghost"
-                        size="sm"
-                        icon="edit"
-                        onPress={() => {
-                          setEditingId(chat.id);
-                          setEditTitle(chat.title);
-                        }}
-                        accessibilityLabel={t('chat.renameChat') || 'Rename chat'}
-                      />
-                      <IconButton
-                        variant="ghost"
-                        size="sm"
-                        icon="delete"
-                        onPress={() => handleDelete(chat.id)}
-                        accessibilityLabel={t('chat.deleteChat') || 'Delete chat'}
-                      />
-                    </View>
-                  )}
-                </View>
-              );
-            })
-          )}
-        </ScrollView>
+          }
+        />
       </Animated.View>
-    </View>
+    </Modal>
   );
 }
 
@@ -200,8 +240,8 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: DRAWER_WIDTH,
-    borderRightWidth: 1,
+    borderTopRightRadius: RADIUS.lg,
+    borderBottomRightRadius: RADIUS.lg,
     elevation: 16,
     shadowColor: '#000',
     shadowOpacity: 0.25,
@@ -212,36 +252,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
+    paddingLeft: SPACING.xl,
+    paddingRight: SPACING.md,
     paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontFamily: 'Nunito-Bold',
   },
   list: {
-    padding: SPACING.md,
-    gap: SPACING.sm,
+    paddingHorizontal: SPACING.sm,
+    paddingBottom: SPACING.md,
+    gap: 2,
   },
   chatItem: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: RADIUS.md,
-    borderWidth: 1,
     paddingRight: SPACING.xs,
   },
   chatItemMain: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: SPACING.md,
+    paddingVertical: SPACING.sm + 2,
     paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
+  },
+  chatItemText: {
+    gap: 1,
   },
   chatTitle: {
-    flex: 1,
     fontSize: 15,
+    fontWeight: '600',
+  },
+  chatSubtitle: {
+    fontSize: 12,
   },
   input: {
     flex: 1,
@@ -254,13 +297,13 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SPACING.xxxl,
+    paddingVertical: SPACING.xxxl * 2,
     gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
   },
   emptyText: {
     fontSize: 15,

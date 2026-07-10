@@ -92,6 +92,12 @@ export const APP_STRINGS = {
     sendButton: "Send",
     thinking: "Thinking...",
     noMemory: "I couldn't recall anything relevant.",
+    chats: "Chats",
+    newChat: "New Chat",
+    noChats: "No chats yet.",
+    noChatsHint: "Start a new one from the chat screen.",
+    renameChat: "Rename chat",
+    deleteChat: "Delete chat",
   },
   settings: {
     header: "Settings",

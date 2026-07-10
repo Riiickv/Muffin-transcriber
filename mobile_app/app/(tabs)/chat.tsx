@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, TextInput, FlatList, Platform, Animated } from 'react-native';
+import { View, StyleSheet, TextInput, FlatList, Platform, Animated, Easing } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { Text } from '@/components/Themed';
@@ -275,9 +275,14 @@ export default function ChatScreen() {
             options={{ 
               headerTitleAlign: 'left',
               headerTitle: () => (
-                <AnimatedPressable style={{ flexDirection: 'row', alignItems: 'center' }} onPress={() => setIsDrawerOpen(true)}>
+                <AnimatedPressable
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => setIsDrawerOpen(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('chat.chats') || 'Chats'}
+                >
+                  <Icon name="forum" size={20} color={theme.text} style={{ marginRight: SPACING.sm }} />
                   <Text style={{ fontFamily: 'Nunito-Bold', fontSize: 18, color: theme.text }}>Chat</Text>
-                  <Icon name="arrow-forward" size={20} color={theme.text} style={{ marginLeft: SPACING.xs }} />
                 </AnimatedPressable>
               ),
               headerRight: () => (
@@ -650,19 +655,34 @@ const MessageBubble = React.memo(function MessageBubble({
   onOpenTranscript,
   onEntityPress,
 }: MessageBubbleProps) {
+  // Gentle entrance: fade in and rise 6px when the bubble mounts.
+  const entrance = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(entrance, {
+      toValue: 1,
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [entrance]);
+
   const isUser = message.role === 'user';
   const bubbleStyle = [
     styles.bubble,
     isUser
       ? [styles.userBubble, { backgroundColor: theme.tint }]
       : [styles.assistantBubble, { backgroundColor: theme.surface, borderColor: theme.divider }],
+    {
+      opacity: entrance,
+      transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }],
+    },
   ];
 
   if (isStreamingRow && !message.content) {
     return (
-      <View style={bubbleStyle}>
+      <Animated.View style={bubbleStyle}>
         <TypingIndicator />
-      </View>
+      </Animated.View>
     );
   }
 
@@ -674,7 +694,7 @@ const MessageBubble = React.memo(function MessageBubble({
   const plain = isStreamingRow || !hasHistory || searchTerms.length === 0;
 
   return (
-    <View style={bubbleStyle}>
+    <Animated.View style={bubbleStyle}>
       {plain
         ? !!cleanContent && (
             <Text style={{ color: isUser ? '#fff' : theme.text, lineHeight: 24 }}>{cleanContent}</Text>
@@ -682,7 +702,7 @@ const MessageBubble = React.memo(function MessageBubble({
         : !!cleanContent &&
           renderHighlighted(cleanContent, searchTerms, isUser, theme, onOpenTranscript, onEntityPress)}
       {actions.map((act, i) => renderToolAction(act, i, theme))}
-    </View>
+    </Animated.View>
   );
 });
 
