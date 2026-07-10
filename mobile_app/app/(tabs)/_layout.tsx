@@ -1,20 +1,37 @@
 import { Tabs } from 'expo-router';
-import { ColorValue, Platform } from 'react-native';
-import React from 'react';
+import { Animated, ColorValue, Pressable } from 'react-native';
+import React, { useEffect, useRef } from 'react';
 
 import { useTheme } from '@/components/ThemeProvider';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { Icon, IconName } from '@/components/Icon';
+import { MOTION } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
 import { useDialog } from '@/components/Dialog';
-import { Pressable } from 'react-native';
 
 const toStringColor = (c: ColorValue) => (typeof c === 'string' ? c : String(c));
 
-// Focused = filled (Material 3 tab-bar convention). Unfocused = outlined.
+// Focused = filled (Material 3 tab-bar convention) with a subtle spring pop.
+const TabBarIcon = ({ name, color, focused }: { name: IconName; color: ColorValue; focused: boolean }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (focused) {
+      scale.setValue(0.85);
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, ...MOTION.springStandard }).start();
+    }
+  }, [focused, scale]);
+
+  return (
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Icon name={name} filled={focused} color={toStringColor(color)} size={24} />
+    </Animated.View>
+  );
+};
+
 const tabIcon = (name: IconName) =>
   ({ color, focused }: { color: ColorValue; focused: boolean }) => (
-    <Icon name={name} filled={focused} color={toStringColor(color)} size={24} />
+    <TabBarIcon name={name} color={color} focused={focused} />
   );
 
 export default function TabLayout() {
@@ -58,27 +75,9 @@ export default function TabLayout() {
     >
       <Tabs.Screen name="index" options={{ title: 'Muffin!', tabBarIcon: tabIcon('home') }} />
       <Tabs.Screen name="record" options={{ title: 'Record', tabBarIcon: tabIcon('mic') }} />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          tabBarIcon: ({ color }) => <Icon name="history" size={24} color={toStringColor(color)} />,
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ color }) => <Icon name="chat" size={24} color={toStringColor(color)} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => <Icon name="settings" size={24} color={toStringColor(color)} />,
-        }}
-      />
+      <Tabs.Screen name="history" options={{ title: 'History', tabBarIcon: tabIcon('history') }} />
+      <Tabs.Screen name="chat" options={{ title: 'Chat', tabBarIcon: tabIcon('chat') }} />
+      <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('settings') }} />
     </Tabs>
   );
 }

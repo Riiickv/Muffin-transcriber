@@ -24,7 +24,9 @@ const CODEPOINTS = {
   download: '',
   share: '',
   check: String.fromCharCode(0xe5ca),
-  chat: String.fromCharCode(0xe0b2),
+  // 0xe0b7 is the real 'chat' bubble — 0xe0b2 is 'call_made', an arrow.
+  chat: String.fromCharCode(0xe0b7),
+  forum: String.fromCharCode(0xe0bf),
   'arrow-upward': String.fromCharCode(0xe5d8),
   'more-horiz': String.fromCharCode(0xe5d3),
   add: String.fromCharCode(0xe145),

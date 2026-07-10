@@ -1,10 +1,11 @@
-import { ActivityIndicator, ScrollView } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { ActivityIndicator, Animated, ScrollView } from 'react-native';
 
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
 import { Button } from './Button';
 import { useDialog } from './Dialog';
-import { SPACING } from '@/constants/tokens';
+import { MOTION, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
 
@@ -16,7 +17,13 @@ export function WaitingCard({ status }: { status?: string }) {
   const { theme } = useTheme();
   const dialog = useDialog();
 
+  const fade = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fade, { toValue: 1, useNativeDriver: true, ...MOTION.timingBase }).start();
+  }, [fade]);
+
   return (
+    <Animated.View style={{ flex: 1, opacity: fade }}>
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.lg }}
@@ -46,5 +53,6 @@ export function WaitingCard({ status }: { status?: string }) {
         {t('transcribe.watchAd') || 'Watch a quick Ad'}
       </Button>
     </ScrollView>
+    </Animated.View>
   );
 }
