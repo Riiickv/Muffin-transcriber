@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using MuffinTranscriber.Pages;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -107,6 +108,10 @@ public sealed partial class MainWindow : Window
                     if (NavFrame.CurrentSourcePageType != typeof(Pages.HistoryPage))
                         NavFrame.Navigate(typeof(Pages.HistoryPage));
                     break;
+                case "chat":
+                    if (NavFrame.CurrentSourcePageType != typeof(Pages.ChatPage))
+                        NavFrame.Navigate(typeof(Pages.ChatPage));
+                    break;
                 case "models":
                     if (NavFrame.CurrentSourcePageType != typeof(Pages.ModelsPage))
                         NavFrame.Navigate(typeof(Pages.ModelsPage));
@@ -115,6 +120,28 @@ public sealed partial class MainWindow : Window
                     throw new InvalidOperationException($"Unknown navigation item tag: {item.Tag}");
             }
         }
+    }
+
+    // Called by the chat assistant's NAVIGATE_TO action.
+    public void NavigateTo(string tag)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (tag == "settings")
+            {
+                NavView.SelectedItem = NavView.SettingsItem;
+                return;
+            }
+
+            foreach (NavigationViewItem item in NavView.MenuItems.OfType<NavigationViewItem>())
+            {
+                if ((item.Tag as string) == tag)
+                {
+                    NavView.SelectedItem = item;
+                    return;
+                }
+            }
+        });
     }
 
     private void PaneResizeGrip_PointerPressed(object sender, PointerRoutedEventArgs e)

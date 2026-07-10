@@ -8,6 +8,7 @@ public static class AppStrings
     public static string Nav_Home => LocalizationManager.GetString("Nav_Home", "Muffin!");
     public static string Nav_Record => LocalizationManager.GetString("Nav_Record", "Record");
     public static string Nav_History => LocalizationManager.GetString("Nav_History", "History");
+    public static string Nav_Chat => LocalizationManager.GetString("Nav_Chat", "Chat");
     public static string Nav_Models => LocalizationManager.GetString("Nav_Models", "Models");
     public static string Nav_Settings => LocalizationManager.GetString("Nav_Settings", "Settings");
 
@@ -95,6 +96,20 @@ public static class AppStrings
     public static string Record_StopButton => LocalizationManager.GetString("Record_StopButton", "Stop Recording");
     public static string Record_Instructions => LocalizationManager.GetString("Record_Instructions", "");
     public static string Record_Status_NoAudioDetected => LocalizationManager.GetString("Record_Status_NoAudioDetected", "No speech detected. If your mic works elsewhere, check Windows Settings → Privacy → Microphone and enable 'Let desktop apps access your microphone'.");
+
+    // ==========================================
+    // CHAT PAGE
+    // ==========================================
+    public static string Chat_Title => LocalizationManager.GetString("Chat_Title", "Chat");
+    public static string Chat_EmptyHint => LocalizationManager.GetString("Chat_EmptyHint", "Ask me anything about your transcripts — or tell me to change a setting, open a screen, or delete a transcript.");
+    public static string Chat_InputPlaceholder => LocalizationManager.GetString("Chat_InputPlaceholder", "Ask about your transcripts...");
+    public static string Chat_NoModel => LocalizationManager.GetString("Chat_NoModel", "No local LLM is installed. Download one from the Models tab to use the assistant.");
+    public static string Chat_Thinking => LocalizationManager.GetString("Chat_Thinking", "Thinking...");
+    public static string Chat_Done => LocalizationManager.GetString("Chat_Done", "Done.");
+    public static string Chat_DeleteTitle => LocalizationManager.GetString("Chat_DeleteTitle", "Delete transcript?");
+    public static string Chat_DeleteConfirm => LocalizationManager.GetString("Chat_DeleteConfirm", "Delete “{0}”? This can't be undone.");
+    public static string Chat_Delete => LocalizationManager.GetString("Chat_Delete", "Delete");
+    public static string Chat_Cancel => LocalizationManager.GetString("Chat_Cancel", "Cancel");
 
     // ==========================================
     // HISTORY PAGE

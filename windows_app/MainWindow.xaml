@@ -61,6 +61,13 @@
                         <FontIcon Glyph="&#xE81C;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem
+                    Content="{x:Bind local:AppStrings.Nav_Chat}"
+                    Tag="chat">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE8BD;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="{x:Bind local:AppStrings.Nav_Models}" Tag="models">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE8D7;" />
