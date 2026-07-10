@@ -4,7 +4,6 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { loadSettings } from './settingsStore';
 
 const HISTORY_KEY = 'muffin.history.v1';
-const HISTORY_TMP_KEY = 'muffin.history.v1.tmp';
 
 export interface HistoryItem {
   id: string;
@@ -86,11 +85,10 @@ async function saveHistory(history: HistoryItem[]) {
   cachedHistory = history;
   notifySubscribers();
   try {
-    // Atomic-like save mirroring Windows behavior
-    const json = JSON.stringify(history);
-    await AsyncStorage.setItem(HISTORY_TMP_KEY, json);
-    await AsyncStorage.setItem(HISTORY_KEY, json);
-    await AsyncStorage.removeItem(HISTORY_TMP_KEY);
+    // AsyncStorage writes are atomic per key, so a single setItem is enough.
+    // (The previous tmp-key dance mirrored the Windows *file* rename trick,
+    // which has no analogue — and no benefit — for a key/value store.)
+    await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   } catch (e) {
     console.error('Failed to save history', e);
   }
