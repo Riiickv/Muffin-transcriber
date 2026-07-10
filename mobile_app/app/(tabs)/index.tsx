@@ -1,5 +1,6 @@
-import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
 import { FadeInView } from '@/components/FadeInView';
@@ -13,7 +14,7 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
 import { convertToWav } from '@/modules/audio-converter';
-import { useHistory, HistoryItem } from '@/utils/historyStore';
+import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
 import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
@@ -21,6 +22,7 @@ import { useModelOptions } from '@/hooks/useModelOptions';
 import { errorToMessage } from '@/utils/errors';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
+import { WaitingCard } from '@/components/WaitingCard';
 import { useDialog } from '@/components/Dialog';
 import { useLocalSearchParams } from 'expo-router';
 import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
@@ -122,6 +124,10 @@ export default function HomeScreen() {
     setRawText(t('transcribe.loadingModel'));
 
     try {
+      // Keep the screen on: Android throttles the CPU hard when it dims,
+      // which can multiply transcription time. Tagged so finishing here can't
+      // release the Record tab's concurrent wake lock.
+      await activateKeepAwakeAsync('home-transcription');
       const isDownloaded = await ModelManager.isModelDownloaded(settings.preferredWhisperModel);
       if (!isDownloaded) {
         dialog.show({ title: t('dialog.modelNotDownloaded.title'), message: t('dialog.modelNotDownloaded.message'), icon: 'download' });
@@ -166,7 +172,7 @@ export default function HomeScreen() {
       const newItemId = Date.now().toString();
       const runId = newItemId;
       activeRunIdRef.current = runId;
-      let currentItem: HistoryItem = {
+      const currentItem: HistoryItem = {
         id: newItemId,
         timestampISO: new Date().toISOString(),
         sourceFileName: selectedFileName ?? t('transcribe.noTitle'),
@@ -218,13 +224,14 @@ export default function HomeScreen() {
             },
           });
 
-          if (enrich.formatted) currentItem = { ...currentItem, formattedTranscript: enrich.formatted };
-          if (enrich.summarized) currentItem = { ...currentItem, summary: enrich.summarized };
-          await addOrUpdate(currentItem);
-
-          if (enrich.title) {
-            currentItem = { ...currentItem, sourceFileName: enrich.title };
-            await addOrUpdate(currentItem);
+          // Patch only what enrichment produced; updateHistoryItem merges over
+          // the current item and is a no-op if the user deleted it meanwhile.
+          const patch: Partial<HistoryItem> = {};
+          if (enrich.formatted) patch.formattedTranscript = enrich.formatted;
+          if (enrich.summarized) patch.summary = enrich.summarized;
+          if (enrich.title) patch.sourceFileName = enrich.title;
+          if (Object.keys(patch).length > 0) {
+            await updateHistoryItem(newItemId, patch);
           }
         } catch (err) {
           console.error("Background LLM processing failed:", err);
@@ -235,6 +242,7 @@ export default function HomeScreen() {
       haptics.error();
       dialog.show({ title: t('dialog.transcriptionFailed.title') || 'Transcription failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
+      deactivateKeepAwake('home-transcription');
       setIsTranscribing(false);
     }
   };
@@ -373,11 +381,8 @@ export default function HomeScreen() {
         </View>
 
         {isTranscribing ? (
-          <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
-            <ActivityIndicator size="large" color={theme.tint} />
-            <Text style={{ fontSize: 15, color: theme.textMuted, textAlign: 'center', marginTop: SPACING.lg, paddingHorizontal: SPACING.lg }}>
-              {currentText}
-            </Text>
+          <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1 }]}>
+            <WaitingCard status={currentText} />
           </View>
         ) : (
           <TextInput

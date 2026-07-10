@@ -42,6 +42,9 @@ export async function loadLLM(modelPath: string): Promise<void> {
     llamaContext = await init({
       n_ctx: 4096,
       model: modelPath,
+      // Leave cores free for the system and for Whisper — background
+      // formatting must not starve a transcription the user just started.
+      n_threads: 4,
     });
     currentModelPath = modelPath;
   })();

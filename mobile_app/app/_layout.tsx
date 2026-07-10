@@ -5,6 +5,7 @@ import {
   Nunito_700Bold,
 } from '@expo-google-fonts/nunito';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -91,6 +92,8 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={customNavigationTheme}>
+      {/* Status bar icons must invert with the app theme, not the OS theme. */}
+      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         {/* Title is set dynamically inside history/[id].tsx via <Stack.Screen /> */}

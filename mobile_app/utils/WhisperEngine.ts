@@ -59,7 +59,10 @@ export async function transcribeFile(
   if (settings.enableContextLearning) {
     const memories = await loadMemories();
     if (memories.length > 0) {
-      const memoryText = memories.map(m => m.text).join(', ');
+      // The prompt is re-processed for EVERY ~30s audio window, so an unbounded
+      // memory list slows the whole transcription. Cap it to the most recent
+      // entries and ~400 chars.
+      const memoryText = memories.slice(0, 15).map(m => m.text).join(', ').slice(0, 400);
       initialPrompt = `The following transcript contains these specific terms: ${memoryText}.`;
     }
   }
@@ -69,9 +72,9 @@ export async function transcribeFile(
     language: languageCode && languageCode !== 'auto' ? languageCode : undefined,
     // Keep transcription in the source language (don't translate to English).
     translate: false,
-    tokenTimestamps: true,
     // Greedy decoding: ~3-5x faster than beam search with negligible quality
-    // loss for speech transcription.
+    // loss for speech transcription. Token timestamps stay off — nothing in
+    // the app consumes them and they add per-token cost.
     beamSize: 1,
     bestOf: 1,
     // Use more CPU threads — most modern phones have 8 cores.

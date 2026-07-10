@@ -11,8 +11,8 @@ import { useTheme } from '@/components/ThemeProvider';
 import { Card } from '@/components/Card';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { IconButton } from '@/components/IconButton';
-import { Icon } from '@/components/Icon';
 import { Button } from '@/components/Button';
+import { WaitingCard } from '@/components/WaitingCard';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory } from '@/utils/historyStore';
@@ -217,9 +217,6 @@ export default function HistoryDetailScreen() {
     haptics.success();
   };
 
-  const buttonLabel = (target: 'retranscribe' | 'format' | 'summarize', defaultLabel: string) =>
-    isProcessing && processingLabel === target ? (t('historyDetail.working') || 'Working...') : defaultLabel;
-
   const handleEntityPress = (entity: any) => {
     setActiveEntity(entity);
     setActionName('');
@@ -335,7 +332,7 @@ export default function HistoryDetailScreen() {
               onPress={handleReTranscribe}
               disabled={isProcessing || !item?.sourceFilePath}
             >
-              {buttonLabel('retranscribe', t('historyDetail.retranscribe') || 'Re-Transcribe')}
+              {t('historyDetail.retranscribe') || 'Re-Transcribe'}
             </Button>
           </View>
           <View style={styles.gutterSm} />
@@ -348,7 +345,7 @@ export default function HistoryDetailScreen() {
               onPress={handleFormat}
               disabled={isProcessing || !item?.rawTranscript}
             >
-              {buttonLabel('format', t('settings.formatByDefault') || 'Format')}
+              {t('historyDetail.format') || 'Format'}
             </Button>
           </View>
           <View style={styles.gutterSm} />
@@ -361,7 +358,7 @@ export default function HistoryDetailScreen() {
               onPress={handleSummarize}
               disabled={isProcessing || !item?.rawTranscript}
             >
-              {buttonLabel('summarize', t('settings.summarizeByDefault') || 'Summarize')}
+              {t('historyDetail.summarize') || 'Summarize'}
             </Button>
           </View>
         </View>
@@ -429,29 +426,15 @@ export default function HistoryDetailScreen() {
 
         <View style={[styles.transcriptBox, { borderColor: theme.divider }]}>
           {isProcessing ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <Icon name="favorite" size={48} color={theme.tint} />
-              <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: SPACING.md, marginBottom: SPACING.sm }}>{t('record.whileWaiting')}</Text>
-              <Text style={{ fontSize: 14, color: theme.textMuted, textAlign: 'center', marginBottom: SPACING.lg }}>
-                {processingLabel === 'retranscribe' ? (t('historyDetail.retranscribing') || 'Re-transcribing...') : processingLabel === 'format' ? (t('historyDetail.formatting') || 'Formatting...') : (t('historyDetail.summarizing') || 'Summarizing...')}
-              </Text>
-              <Button
-                onPress={() => {
-                  haptics.tap();
-                  dialog.show({
-                    title: t('transcribe.supportMe'),
-                    message: t('transcribe.supportDesc') || 'This would trigger an ad in production to support development!',
-                    icon: 'favorite',
-                    iconTone: 'primary',
-                    primaryAction: { label: t('transcribe.watchAd') || 'Watch Ad', onPress: () => {} },
-                    secondaryAction: { label: t('dialog.confirmDelete.cancel') || 'Cancel', onPress: () => {} }
-                  });
-                }}
-                icon="favorite"
-              >
-                {t('transcribe.supportMe')}
-              </Button>
-            </View>
+            <WaitingCard
+              status={
+                processingLabel === 'retranscribe'
+                  ? t('historyDetail.retranscribing') || 'Re-transcribing...'
+                  : processingLabel === 'format'
+                  ? t('historyDetail.formatting') || 'Formatting...'
+                  : t('historyDetail.summarizing') || 'Summarizing...'
+              }
+            />
           ) : (
             <ScrollView>
               {renderHighlightedText()}
