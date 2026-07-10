@@ -12,7 +12,6 @@
     <Grid>
         <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
             <StackPanel
-            MaxWidth="900"
             Padding="24,24,24,24"
             Spacing="18"
             HorizontalAlignment="Stretch">
