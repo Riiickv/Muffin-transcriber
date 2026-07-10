@@ -13,14 +13,13 @@ public sealed partial class HistoryPage : Page
 {
     private TranscriptionHistoryItem? _selectedItem;
 
-    private DispatcherTimer _statusTimer;
+    private readonly StatusBarController _status;
 
     public HistoryPage()
     {
         InitializeComponent();
-        
-        _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-        _statusTimer.Tick += (s, e) => { StatusBar.IsOpen = false; _statusTimer.Stop(); };
+
+        _status = new StatusBarController(StatusBar);
 
         LoadModels();
     }
@@ -530,20 +529,5 @@ public sealed partial class HistoryPage : Page
         selectedButton.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
     }
 
-    private void ShowStatus(string message, InfoBarSeverity severity)
-    {
-        StatusBar.Message = message;
-        StatusBar.Severity = severity;
-        StatusBar.IsOpen = true;
-        
-        if (severity == InfoBarSeverity.Success || severity == InfoBarSeverity.Error)
-        {
-            _statusTimer.Stop();
-            _statusTimer.Start();
-        }
-        else
-        {
-            _statusTimer.Stop();
-        }
-    }
+    private void ShowStatus(string message, InfoBarSeverity severity) => _status.Show(message, severity);
 }
