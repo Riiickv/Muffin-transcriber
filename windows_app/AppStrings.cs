@@ -31,7 +31,7 @@ public static class AppStrings
     public static string Mini_Status_NoSpeech => LocalizationManager.GetString("Mini_Status_NoSpeech", "No speech detected in this file.");
 
     // HOME PAGE
-    public static string Home_Title => LocalizationManager.GetString("Home_Title", "Home");
+    public static string Home_Title => LocalizationManager.GetString("Home_Title", "Muffin!");
 
     // Drop Zone
     public static string Home_DropZoneText => LocalizationManager.GetString("Home_DropZoneText", "Drag & Drop any audio or video file");
@@ -148,6 +148,7 @@ public static class AppStrings
     // Model Status Messages
     public static string Models_Status_DownloadFailed => LocalizationManager.GetString("Models_Status_DownloadFailed", "Download failed!");
     public static string Models_Status_Cancelled => LocalizationManager.GetString("Models_Status_Cancelled", "Download cancelled.");
+    public static string Models_Status_OneAtATime => LocalizationManager.GetString("Models_Status_OneAtATime", "Finish or cancel the current download first.");
     public static string Models_Status_Installed => LocalizationManager.GetString("Models_Status_Installed", "Installed");
     public static string Models_Status_Broken => LocalizationManager.GetString("Models_Status_Broken", "Broken Download");
     public static string Models_Status_NotInstalled => LocalizationManager.GetString("Models_Status_NotInstalled", "Not Installed");
