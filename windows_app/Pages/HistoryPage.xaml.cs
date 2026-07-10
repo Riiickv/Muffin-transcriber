@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -170,6 +173,82 @@ public sealed partial class HistoryPage : Page
         AudioPlayer.MediaPlayer?.Pause();
         AudioPlayer.Source = null;
         AudioPlayer.Visibility = Visibility.Collapsed;
+    }
+
+    private async void CalendarButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedItem is null) return;
+
+        CalendarButton.IsEnabled = false;
+        ShowStatus(AppStrings.History_FindingDates, InfoBarSeverity.Informational);
+        try
+        {
+            List<ActionableEntity> entities = await LLMFormatter.ExtractActionableEntitiesAsync(_selectedItem.RawTranscript, LLMModelBox.SelectedItem as string);
+            StatusBar.IsOpen = false;
+
+            if (entities.Count == 0)
+            {
+                ShowStatus(AppStrings.History_NoDatesFound, InfoBarSeverity.Informational);
+                return;
+            }
+
+            await ShowEntitiesDialogAsync(entities);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(ex.Message, InfoBarSeverity.Error);
+        }
+        finally
+        {
+            CalendarButton.IsEnabled = true;
+        }
+    }
+
+    private async Task ShowEntitiesDialogAsync(List<ActionableEntity> entities)
+    {
+        var list = new StackPanel { Spacing = 10 };
+        list.Children.Add(new TextBlock
+        {
+            Text = AppStrings.History_CalendarHint,
+            Opacity = 0.7,
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+        });
+
+        foreach (ActionableEntity entity in entities)
+        {
+            var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            texts.Children.Add(new TextBlock { Text = entity.Name, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            texts.Children.Add(new TextBlock { Text = entity.Quote, Opacity = 0.7, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+
+            var addButton = new Button { Content = AppStrings.History_AddButton, VerticalAlignment = VerticalAlignment.Center };
+            ActionableEntity captured = entity;
+            addButton.Click += (s, args) =>
+            {
+                bool allDay = !string.Equals(captured.Type, "time", StringComparison.OrdinalIgnoreCase);
+                DateTime next = DateTime.Now.AddHours(1);
+                DateTime start = allDay ? DateTime.Today : new DateTime(next.Year, next.Month, next.Day, next.Hour, 0, 0);
+                CalendarHelper.AddEvent(captured.Name, captured.Quote, start, allDay);
+            };
+
+            var row = new Grid { ColumnSpacing = 12 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(texts, 0);
+            Grid.SetColumn(addButton, 1);
+            row.Children.Add(texts);
+            row.Children.Add(addButton);
+            list.Children.Add(row);
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = AppStrings.History_DatesFoundTitle,
+            Content = new ScrollViewer { Content = list, MaxHeight = 420 },
+            CloseButtonText = AppStrings.History_Close,
+            XamlRoot = this.XamlRoot,
+        };
+        await dialog.ShowAsync();
     }
 
     private void DeleteButton_Click(object sender, RoutedEventArgs e)

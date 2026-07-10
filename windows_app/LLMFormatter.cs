@@ -135,6 +135,46 @@ public static class LLMFormatter
         }
     }
 
+    public static async Task<List<ActionableEntity>> ExtractActionableEntitiesAsync(string transcript, string? selectedFormatter)
+    {
+        if (string.IsNullOrWhiteSpace(AppModel.LlamaExe)) return new();
+
+        ModelInfo? model = AppModel.FormatterModels.FirstOrDefault(item => item.Name == selectedFormatter)
+                           ?? AppModel.FormatterModels.FirstOrDefault(item => AppModel.IsValidModelFile(AppModel.ModelPath(item.File)));
+        if (model is null || !AppModel.IsValidModelFile(AppModel.ModelPath(model.File))) return new();
+
+        string modelPath = AppModel.ModelPath(model.File);
+        string systemPrompt = "You are a precise data-extraction engine. Find dates, times, and scheduled events in the text (e.g. \"tomorrow at 5pm\", \"September 12th\"). For each, give the exact quote from the text, a short 2-4 word event title, and a type: \"time\" if a specific hour is mentioned, otherwise \"date\". Return only the data; if there are none, return an empty list.";
+        string userPrompt = $"Extract dates and events from:\n\n{transcript}";
+
+        string promptPath = Path.Combine(Path.GetTempPath(), $"ai_transcriber_entities_{Guid.NewGuid():N}.txt");
+        await File.WriteAllTextAsync(promptPath, BuildChatPrompt(model.File, systemPrompt, userPrompt), Encoding.UTF8);
+
+        string schemaPath = Path.Combine(Path.GetTempPath(), $"ai_transcriber_entities_{Guid.NewGuid():N}.json");
+        string schema = "{ \"type\": \"array\", \"items\": { \"type\": \"object\", \"properties\": { \"quote\": { \"type\": \"string\" }, \"name\": { \"type\": \"string\" }, \"type\": { \"type\": \"string\", \"enum\": [\"date\", \"time\"] } }, \"required\": [\"quote\", \"name\", \"type\"] } }";
+        await File.WriteAllTextAsync(schemaPath, schema, Encoding.UTF8);
+
+        try
+        {
+            string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n 512 --temp 0.0 -ngl 999 -c 4096 --log-disable --no-display-prompt -st -jf \"{schemaPath}\"";
+            ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(5), [0, 130]);
+            string json = ExtractFormatterOutput(result.Output);
+
+            var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            List<ActionableEntity>? items = System.Text.Json.JsonSerializer.Deserialize<List<ActionableEntity>>(json, options);
+            return items?.Where(e => !string.IsNullOrWhiteSpace(e.Name)).ToList() ?? new();
+        }
+        catch
+        {
+            return new();
+        }
+        finally
+        {
+            if (File.Exists(promptPath)) File.Delete(promptPath);
+            if (File.Exists(schemaPath)) File.Delete(schemaPath);
+        }
+    }
+
     private static string GetContextPrompt()
     {
         var settings = UserSettings.Load();
@@ -327,3 +367,5 @@ public static class LLMFormatter
 }
 
 public sealed record ProcessResult(int ExitCode, string Output, string Stdout, string Stderr);
+
+public sealed record ActionableEntity(string Quote, string Name, string Type);
