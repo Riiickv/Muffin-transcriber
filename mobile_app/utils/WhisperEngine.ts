@@ -19,24 +19,52 @@ export interface Segment {
 
 let whisperContext: WhisperContext | null = null;
 let currentModelPath = '';
+let loadPromise: Promise<void> | null = null;
 
 export async function loadWhisper(modelPath: string): Promise<void> {
   if (whisperContext && currentModelPath === modelPath) {
     return;
   }
 
-  if (whisperContext) {
-    await unloadWhisper();
+  // Coalesce concurrent loads (same pattern as LLMEngine): two init() calls
+  // while the context is still null orphan the first native context.
+  while (loadPromise) {
+    try {
+      await loadPromise;
+    } catch {
+      // A failed background preload (partial download, corrupt file) must not
+      // doom this attempt — fall through and try our own load.
+    }
+    if (whisperContext && currentModelPath === modelPath) return;
   }
 
-  try {
+  const p = (async () => {
+    if (whisperContext) await unloadWhisper();
     const init = getInitWhisper();
-    whisperContext = await init({ filePath: modelPath, useFlashAttn: true });
+    // No flash attention: whisper.rn recommends it only when a GPU backend is
+    // available (iOS). On Android's CPU path it slows decoding down.
+    whisperContext = await init({ filePath: modelPath });
     currentModelPath = modelPath;
+  })();
+  loadPromise = p;
+
+  try {
+    await p;
   } catch (error) {
     console.error('Failed to load whisper model:', error);
     throw error;
+  } finally {
+    if (loadPromise === p) loadPromise = null;
   }
+}
+
+// Cold-start warm-up: kick off the (multi-second) model load while the user is
+// still looking at the screen, so tapping Transcribe doesn't pay it. Only when
+// nothing is loaded or loading — never swaps a live context out from under a
+// running transcription.
+export function preloadWhisper(modelPath: string): void {
+  if (whisperContext || loadPromise) return;
+  loadWhisper(modelPath).catch(() => {});
 }
 
 /**
