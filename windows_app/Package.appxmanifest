@@ -11,7 +11,7 @@
   <Identity
     Name="D2952AEB-0C3D-491B-B4F6-E917DBF2928D"
     Publisher="CN=MuffinTranscriber"
-    Version="1.0.0.0" />
+    Version="1.2.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="D2952AEB-0C3D-491B-B4F6-E917DBF2928D" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
