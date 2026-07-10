@@ -125,6 +125,7 @@ public static class AppModel
     public static string FfmpegExe => FindExecutable(Path.Combine(AppInstallDir, "ffmpeg_bin"), "ffmpeg.exe");
     public static string LlamaExe => FindExecutable(Path.Combine(AppInstallDir, "llama_bin"), "llama-cli.exe");
     public static string LlamaServerExe => FindExecutable(Path.Combine(AppInstallDir, "llama_bin"), "llama-server.exe");
+    public static string LlamaCompletionExe => FindExecutable(Path.Combine(AppInstallDir, "llama_bin"), "llama-completion.exe");
 
     public static string ModelPath(string file) => Path.Combine(ModelsDir, file);
 
