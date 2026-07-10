@@ -233,28 +233,14 @@ public sealed partial class RecordPage : Page
         
         try
         {
-            ShowStatus(AppStrings.Home_Status_PreparingAudio, InfoBarSeverity.Informational);
-            
-            string processedWavPath = Path.Combine(Path.GetTempPath(), "ai_transcriber_record.wav");
-            string ffmpegArgs = _settings.NormalizeAudio
-                ? $"-y -i \"{filePath}\" -vn -af highpass=f=80,lowpass=f=7800,loudnorm=I=-16:TP=-1.5:LRA=11 -ar 16000 -ac 1 -c:a pcm_s16le \"{processedWavPath}\""
-                : $"-y -i \"{filePath}\" -vn -ar 16000 -ac 1 -c:a pcm_s16le \"{processedWavPath}\"";
-            await LLMFormatter.RunProcessAsync(AppModel.FfmpegExe, ffmpegArgs);
-
             ShowStatus(AppStrings.Home_Status_TranscribingWhisper, InfoBarSeverity.Informational);
             string lang = SelectedComboText(LanguageBox);
-            string languageArg = AppModel.LanguageCode(lang);
-            string modelPath = AppModel.ModelPath(_selectedWhisperModel.File);
-            string args = languageArg == "auto"
-                ? $"-m \"{modelPath}\" -f \"{processedWavPath}\" -nt -osrt"
-                : $"-m \"{modelPath}\" -f \"{processedWavPath}\" -l {languageArg} -nt -osrt";
+            TranscriptionResult tr = await TranscriptionService.TranscribeAsync(filePath, _selectedWhisperModel, lang, _settings.NormalizeAudio);
 
-            ProcessResult result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
-            
-            string rawTranscript = result.Stdout.Trim();
+            string rawTranscript = tr.RawTranscript;
             if (string.IsNullOrWhiteSpace(rawTranscript))
             {
-                Debug.WriteLine($"Whisper produced no output. ExitCode={result.ExitCode}. Stderr:\n{result.Stderr}");
+                Debug.WriteLine($"Whisper produced no output. ExitCode={tr.WhisperExitCode}. Stderr:\n{tr.WhisperStderr}");
                 ShowStatus(AppStrings.Record_Status_NoAudioDetected, InfoBarSeverity.Error);
                 return;
             }
@@ -312,7 +298,7 @@ public sealed partial class RecordPage : Page
                 summary,
                 filePath,
                 fileHash,
-                null
+                tr.Srt
             ));
 
             _ = LLMFormatter.ExtractContextAsync(rawTranscript, SelectedComboText(FormatterModelBox));
