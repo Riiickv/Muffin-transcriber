@@ -191,3 +191,15 @@ share_debug.txt
 test_prompt.txt
 user_memory.txt
 AITranscriber_Release/
+
+# ---------------------------------------------------------------------------
+# Local test harness / scratch (manual whisper tests, fixtures, scratch apps)
+# ---------------------------------------------------------------------------
+/test.ps1
+/test.wav
+/silent.wav
+/empty.wav
+/no_audio.mp4
+/*.wav.srt
+/*.wav.txt
+/TestTranscribeApp/
