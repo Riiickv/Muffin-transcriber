@@ -149,6 +149,7 @@ public static class AppStrings
     public static string Models_Status_DownloadFailed => LocalizationManager.GetString("Models_Status_DownloadFailed", "Download failed!");
     public static string Models_Status_Cancelled => LocalizationManager.GetString("Models_Status_Cancelled", "Download cancelled.");
     public static string Models_Status_OneAtATime => LocalizationManager.GetString("Models_Status_OneAtATime", "Finish or cancel the current download first.");
+    public static string Models_Status_InUse => LocalizationManager.GetString("Models_Status_InUse", "Couldn't delete — the model is in use. Try again in a moment.");
     public static string Models_Status_Installed => LocalizationManager.GetString("Models_Status_Installed", "Installed");
     public static string Models_Status_Broken => LocalizationManager.GetString("Models_Status_Broken", "Broken Download");
     public static string Models_Status_NotInstalled => LocalizationManager.GetString("Models_Status_NotInstalled", "Not Installed");

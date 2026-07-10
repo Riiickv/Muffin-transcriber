@@ -95,7 +95,22 @@ public sealed partial class ModelsPage : Page
         string path = AppModel.ModelPath(model.File);
         if (File.Exists(path))
         {
-            File.Delete(path);
+            // The embedding model is held open (mmap) by the llama-server; release it first.
+            if (AppModel.EmbeddingModels.Any(m => m.File == model.File))
+            {
+                EmbeddingService.Shutdown();
+            }
+
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception)
+            {
+                _status.Show(AppStrings.Models_Status_InUse, InfoBarSeverity.Error);
+                return;
+            }
+
             _status.Show(string.Format(AppStrings.Models_Status_DeletedFormat, model.Name), InfoBarSeverity.Success);
             RefreshModelStates();
             return;

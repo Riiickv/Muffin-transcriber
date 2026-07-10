@@ -133,8 +133,11 @@ public sealed partial class ChatPage : Page
         _busy = true;
         SendButton.IsEnabled = false;
 
-        _active.Messages.Add(new ChatMessage("user", text));
-        if (_active.Title == "New chat") _active.Title = text.Length > 40 ? text[..40] : text;
+        // Capture the target session before any await, so switching sessions
+        // mid-stream can't append the reply to the wrong conversation.
+        ChatSession target = _active;
+        target.Messages.Add(new ChatMessage("user", text));
+        if (target.Title == "New chat") target.Title = text.Length > 40 ? text[..40] : text;
 
         AddUserBubble(text);
         TextBlock assistant = AddAssistantBubble();
@@ -143,7 +146,7 @@ public sealed partial class ChatPage : Page
         try
         {
             bool first = true;
-            string reply = await ChatEngine.ChatAsync(_active.Messages, UserSettings.Load().PreferredFormatterModel, chunk =>
+            string reply = await ChatEngine.ChatAsync(target.Messages, UserSettings.Load().PreferredFormatterModel, chunk =>
             {
                 DispatcherQueue.TryEnqueue(() =>
                 {
@@ -153,8 +156,8 @@ public sealed partial class ChatPage : Page
                 });
             });
 
-            _active.Messages.Add(new ChatMessage("assistant", reply));
-            _active.UpdatedAt = DateTime.Now;
+            target.Messages.Add(new ChatMessage("assistant", reply));
+            target.UpdatedAt = DateTime.Now;
 
             string visible = StripToolCalls(reply);
             assistant.Text = string.IsNullOrWhiteSpace(visible) ? AppStrings.Chat_Done : visible;
@@ -169,17 +172,9 @@ public sealed partial class ChatPage : Page
         {
             _busy = false;
             SendButton.IsEnabled = true;
-            MoveActiveToTop();
+            if (_sessions.Remove(target)) _sessions.Insert(0, target);
             WinChatStore.Save(_sessions);
             RefreshSessionList();
-        }
-    }
-
-    private void MoveActiveToTop()
-    {
-        if (_active is not null && _sessions.Remove(_active))
-        {
-            _sessions.Insert(0, _active);
         }
     }
 

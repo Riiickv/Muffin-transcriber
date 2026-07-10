@@ -16,7 +16,7 @@
             MaxWidth="780"
             Padding="28,20,28,28"
             Spacing="18"
-            HorizontalAlignment="Left">
+            HorizontalAlignment="Stretch">
             <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_Title}" />
 
             <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_PersonalizationTitle}" />

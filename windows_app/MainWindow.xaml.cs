@@ -40,6 +40,12 @@ public sealed partial class MainWindow : Window
         
         AppWindow.Resize(new Windows.Graphics.SizeInt32(startWidth, startHeight));
 
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.PreferredMinimumWidth = 760;
+            presenter.PreferredMinimumHeight = 560;
+        }
+
         Closed += MainWindow_Closed;
 
         NavView.OpenPaneLength = Math.Clamp(_settings.SidebarWidth, MinPaneLength, MaxPaneLength);
