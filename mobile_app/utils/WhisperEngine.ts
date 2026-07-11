@@ -116,6 +116,24 @@ export async function transcribeFile(
 
   const settings = await loadSettings();
 
+  // Whisper's encoder always processes a full 30s window (1500 frames), so a
+  // 10s voice note wastes 2/3 of the encode on silence. For short WAV clips,
+  // shrink the encoder context proportionally (patched into whisper.rn via
+  // patches/whisper.rn+0.6.0.patch). Conservative: +128 frames headroom,
+  // floor 256, only under 25s — too-small contexts cause token repetition.
+  let audioCtx = 0; // 0 = whisper default
+  try {
+    if (audioPath.toLowerCase().split('?')[0].endsWith('.wav')) {
+      const info = await FileSystemLegacy.getInfoAsync(audioPath);
+      if (info.exists && typeof info.size === 'number' && info.size > 44) {
+        const seconds = (info.size - 44) / 32000; // 16 kHz mono s16le
+        if (seconds > 0 && seconds <= 25) {
+          audioCtx = Math.max(256, Math.min(1500, Math.ceil(((seconds / 30) * 1500 + 128) / 64) * 64));
+        }
+      }
+    }
+  } catch {}
+
   let initialPrompt = undefined;
   if (settings.enableContextLearning) {
     const memories = await loadMemories();
@@ -140,6 +158,8 @@ export async function transcribeFile(
     bestOf: 1,
     // Match thread count to the device's performance cores.
     maxThreads: await getOptimalThreads(),
+    // Shrunken encoder context for short clips (0 = default 1500).
+    ...(audioCtx > 0 ? { audioCtx } : null),
     // Bias Whisper toward user-taught vocabulary; undefined when empty so we
     // don't prime the decoder with an empty string.
     prompt: initialPrompt,
