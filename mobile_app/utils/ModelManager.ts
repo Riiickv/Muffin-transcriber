@@ -22,7 +22,12 @@ export const WHISPER_MODELS: readonly ModelDef[] = [
 
 export const FORMATTER_MODELS: readonly ModelDef[] = [
   { id: 'qwen2.5-0.5b-instruct-q4_k_m.gguf', name: 'Qwen 2.5 0.5B', url: 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf', size: '398 MB', description: 'Extremely fast and lightweight formatting model.' },
+  // Q4_0 variants: llama.cpp repacks Q4_0 into ARM dotprod/i8mm kernels at
+  // load time — noticeably faster prompt processing than Q4_K_M on most
+  // modern phones, at slightly lower output quality.
+  { id: 'qwen2.5-0.5b-instruct-q4_0.gguf', name: 'Qwen 2.5 0.5B (Fast)', url: 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf', size: '409 MB', description: 'Speed-optimized variant for modern phone CPUs.' },
   { id: 'qwen2.5-1.5b-instruct-q4_k_m.gguf', name: 'Qwen 2.5 1.5B', url: 'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf', size: '1.1 GB', description: 'Larger and higher quality formatter.' },
+  { id: 'qwen2.5-1.5b-instruct-q4_0.gguf', name: 'Qwen 2.5 1.5B (Fast)', url: 'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_0.gguf', size: '1.0 GB', description: 'Speed-optimized variant for modern phone CPUs.' },
 ];
 
 export const CHAT_MODELS: readonly ModelDef[] = [
