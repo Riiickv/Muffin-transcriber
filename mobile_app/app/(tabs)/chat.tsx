@@ -135,6 +135,25 @@ export default function ChatScreen() {
     }
   }, [activeChatId, chatSessions, isGenerating]);
 
+  // Same matching rules as the executor's resolveTranscript, so the chip and the
+  // action can't disagree about whether a transcript is real. useCallback keeps
+  // MessageBubble's memo intact across streamed tokens.
+  const targetExists = useCallback(
+    (act: any) => {
+      const items = historyItems || [];
+      if (act?.transcript_id && items.some((h) => h.id === act.transcript_id)) return true;
+      if (act?.transcript_name) {
+        const search = String(act.transcript_name).toLowerCase();
+        return items.some((h) => {
+          const name = h.sourceFileName.replace(/\.[^/.]+$/, '').toLowerCase();
+          return name === search || name.includes(search) || search.includes(name);
+        });
+      }
+      return false;
+    },
+    [historyItems]
+  );
+
   const handleDeleteChat = async (id: string) => {
     // Capture the row's position BEFORE deleting — it's what decides the
     // replacement, and the list is gone by the time the store updates.
@@ -576,6 +595,7 @@ export default function ChatScreen() {
                   searchTerms={searchTerms}
                   onOpenTranscript={onOpenTranscript}
                   onEntityPress={onEntityPress}
+                  targetExists={targetExists}
                 />
               )}
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
@@ -823,17 +843,24 @@ const EXECUTED_ACTIONS = new Set([
   'SET_SETTING',
 ]);
 
-/** Does this call carry enough for the executor to actually do it? */
-function isActionable(act: any): boolean {
+/**
+ * Does this call carry enough for the executor to actually do it?
+ *
+ * `targetExists` asks whether the transcript the call names is REAL. Checking
+ * only that a transcript_id was present wasn't enough: the model hallucinates
+ * plausible-looking ids, the executor then resolves nothing and does nothing,
+ * and the chip still said "Done". The executor's own resolveTranscript is the
+ * authority, so the caller passes the same lookup in.
+ */
+function isActionable(act: any, targetExists: (act: any) => boolean): boolean {
   const a = String(act?.action ?? '').toUpperCase();
-  const names = act?.transcript_id || act?.transcript_name;
   switch (a) {
     case 'DELETE_TRANSCRIPT':
-      return !!names;
+      return targetExists(act);
     case 'RENAME_TRANSCRIPT':
       // Without a name there is nothing to rename it TO, and inventing one is
       // exactly what the user must not get.
-      return !!names && !!String(act?.new_name ?? act?.name ?? '').trim();
+      return targetExists(act) && !!String(act?.new_name ?? act?.name ?? '').trim();
     case 'NAVIGATE_TO':
       return !!act?.tab;
     case 'SET_SETTING':
@@ -858,7 +885,7 @@ function ActionFailedChip({ theme }: { theme: any }) {
   );
 }
 
-function renderToolAction(act: any, i: number, theme: any) {
+function renderToolAction(act: any, i: number, theme: any, targetExists: (act: any) => boolean) {
   const a = String(act.action || '').toUpperCase();
   if (a === 'SET_SETTING' || a === 'SHOW_SETTING') {
     const spec = act.key ? getSettingSpec(String(act.key)) : undefined;
@@ -867,7 +894,7 @@ function renderToolAction(act: any, i: number, theme: any) {
       ? <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} />
       : <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
-  if (!EXECUTED_ACTIONS.has(a) || !isActionable(act)) {
+  if (!EXECUTED_ACTIONS.has(a) || !isActionable(act, targetExists)) {
     return <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
   return (
@@ -948,6 +975,8 @@ interface MessageBubbleProps {
   searchTerms: SearchTerm[];
   onOpenTranscript: (id: string) => void;
   onEntityPress: (entity: any) => void;
+  /** Whether the transcript a tool call names actually exists. */
+  targetExists: (act: any) => boolean;
 }
 
 // Memoized so a streamed token only re-renders the streaming row, not every
@@ -961,6 +990,7 @@ const MessageBubble = React.memo(function MessageBubble({
   searchTerms,
   onOpenTranscript,
   onEntityPress,
+  targetExists,
 }: MessageBubbleProps) {
   // Gentle entrance: fade in and rise 6px when the bubble mounts.
   const entrance = useRef(new Animated.Value(0)).current;
@@ -1015,7 +1045,7 @@ const MessageBubble = React.memo(function MessageBubble({
           )
         : !!cleanContent &&
           renderHighlighted(cleanContent, searchTerms, isUser, theme, onOpenTranscript, onEntityPress)}
-      {actions.map((act, i) => renderToolAction(act, i, theme))}
+      {actions.map((act, i) => renderToolAction(act, i, theme, targetExists))}
     </Animated.View>
   );
 });
