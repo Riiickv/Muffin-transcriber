@@ -9,6 +9,7 @@ REM     build-android.bat --clean      Wipe build caches first (slow, ~15 min)
 REM     build-android.bat --install     Build, then install to the plugged-in phone
 REM     build-android.bat --serve      Build, then host the APK over Wi-Fi
 REM     build-android.bat --prebuild   Regenerate android/ from app.json first
+REM     build-android.bat --aab        Build the .aab for the Play Store (not an APK)
 REM
 REM  Flags can be combined:  build-android.bat --clean --install
 REM ===========================================================================
@@ -26,6 +27,7 @@ if /i "%~1"=="--clean"    set "DO_CLEAN=1"
 if /i "%~1"=="--install"  set "DO_INSTALL=1"
 if /i "%~1"=="--serve"    set "DO_SERVE=1"
 if /i "%~1"=="--prebuild" set "DO_PREBUILD=1"
+if /i "%~1"=="--aab"      set "DO_AAB=1"
 if /i "%~1"=="--help"     goto show_help
 if /i "%~1"=="-h"         goto show_help
 shift
@@ -194,7 +196,14 @@ pushd android
 REM Explicit .\ — some environments set NoDefaultCurrentDirectoryInExePath=1,
 REM which stops cmd searching the current dir, so a bare `gradlew.bat` gives
 REM "not recognized" even while standing in android\.
-call .\gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+REM Play Store takes an App Bundle, not an APK - it has been required for new
+REM apps since 2021. Same build, different Gradle task, so --aab produces the
+REM upload artifact while the default still gives an APK you can sideload.
+if defined DO_AAB (
+  call .\gradlew.bat bundleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+) else (
+  call .\gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+)
 set "GRADLE_EXIT=!errorlevel!"
 popd
 if not "!GRADLE_EXIT!"=="0" (
@@ -206,6 +215,28 @@ if not "!GRADLE_EXIT!"=="0" (
   echo         - Random C++ / codegen errors ..............: retry with --clean
   set "FAILED=1"
   goto :summary
+)
+
+if defined DO_AAB (
+  set "AAB=%CD%\android\app\build\outputs\bundle\release\app-release.aab"
+  if not exist "!AAB!" (
+    echo       ERROR: Gradle said OK but no .aab at !AAB!
+    set "FAILED=1"
+    goto :summary
+  )
+  for %%A in ("!AAB!") do set /a AABMB=%%~zA/1048576
+  echo.
+  echo ===========================================================
+  echo   BUILD OK - Play Store bundle
+  echo.
+  echo   AAB:  !AAB!
+  echo   Size: !AABMB! MB
+  echo.
+  echo   Upload this file at play.google.com/console.
+  echo   NOTE: it is signed with the DEBUG key until you set up your own
+  echo         keystore - Play will reject it until then.
+  echo ===========================================================
+  goto :eof
 )
 
 set "OUTDIR=android\app\build\outputs\apk\release"
