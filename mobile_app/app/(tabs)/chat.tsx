@@ -880,8 +880,10 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    // Even padding all round: paddingLeft: SPACING.md pushed the field 16px off
+    // the left edge while the button sat 6px off the right, so the contents sat
+    // visibly off-centre inside the pill.
     padding: SPACING.xs + 2,
-    paddingLeft: SPACING.md,
     marginHorizontal: SPACING.lg,
     marginBottom: TAB_BAR_SPACE,
     gap: SPACING.sm,
@@ -900,16 +902,20 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 40,
     maxHeight: 120,
-    borderRadius: RADIUS.md,
+    // Pill, matching the shell around it. A RADIUS.md box inside a pill read as
+    // a rounded rectangle floating in a lozenge - two shapes, one control.
+    borderRadius: RADIUS.pill,
     paddingHorizontal: SPACING.md,
     paddingTop: 12,
     paddingBottom: 12,
     fontSize: 16,
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    // 40 to match the field's minHeight exactly. At 36 it sat 4px shy of the
+    // field's bottom edge and read as misaligned - which it was.
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
