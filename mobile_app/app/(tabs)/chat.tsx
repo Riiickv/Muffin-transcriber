@@ -15,7 +15,7 @@ import { ModelManager } from '@/utils/ModelManager';
 import { chatStream, ChatMessage } from '@/utils/ChatEngine';
 import { extractMemories, parseModelJson } from '@/utils/LLMEngine';
 import { haptics } from '@/utils/haptics';
-import { useHistory, HistoryItem } from '@/utils/historyStore';
+import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useChats, addChatSession, updateChatMessages, renameChatSession, deleteChatSession, appendActionNote, titleFromMessage } from '@/utils/chatStore';
 import { ChatDrawer } from '@/components/ChatDrawer';
 import { InlineSettingControl } from '@/components/InlineSettingControl';
@@ -232,9 +232,13 @@ export default function ChatScreen() {
       }
 
       const botResponse = finalMessages[finalMessages.length - 1].content;
-      // Which transcript a DELETE_TRANSCRIPT call means. Split out because the
-      // batch confirmation below needs to name every target up front.
-      const resolveDeleteTarget = (toolCall: any): HistoryItem | undefined => {
+      // Captured once: the dialog callbacks below fire whenever the user taps,
+      // which may be long after this function has returned.
+      const chatId = targetChatId;
+      // Which transcript a tool call means, by id or by name. Split out because
+      // the batch delete confirmation needs to name every target up front, and
+      // rename needs the same lookup.
+      const resolveTranscript = (toolCall: any): HistoryItem | undefined => {
          const itemsList = historyItems || [];
          let target = toolCall.transcript_id ? itemsList.find(h => h.id === toolCall.transcript_id) : undefined;
          if (!target && toolCall.transcript_name) {
@@ -257,6 +261,24 @@ export default function ChatScreen() {
             if (tab === 'preferences') tab = 'settings';
             router.push((tab === 'memory' ? '/memory' : `/(tabs)/${tab}`) as any);
             await appendActionNote(targetChatId, `Opened the ${tab} screen.`);
+         } else if (action === 'RENAME_TRANSCRIPT') {
+            const target = resolveTranscript(toolCall);
+            const newName = String(toolCall.new_name ?? toolCall.name ?? '').trim();
+            if (target && newName) {
+               const oldName = target.sourceFileName.replace(/\.[^/.]+$/, '');
+               await updateHistoryItem(target.id, { sourceFileName: newName });
+               await appendActionNote(chatId, `Renamed the transcript "${oldName}" to "${newName}".`);
+            } else if (!target) {
+               await appendActionNote(chatId, `FAILED: no transcript matched that. Use an exact ID from <history_index>.`);
+            } else {
+               await appendActionNote(chatId, `FAILED: no new_name was given, so nothing was renamed. Ask the user what to call it.`);
+            }
+         } else if (action === 'SHOW_SETTING') {
+            // Display-only: the control renders in the bubble, nothing to run.
+            // But an unknown key renders nothing at all, so say so.
+            if (!toolCall.key || !getSettingSpec(String(toolCall.key))) {
+               await appendActionNote(chatId, `FAILED: there is no setting called "${toolCall.key}", so nothing was shown.`);
+            }
          } else if (action === 'SET_SETTING' && toolCall.key !== undefined) {
             const spec = getSettingSpec(String(toolCall.key));
             if (spec) {
@@ -280,6 +302,10 @@ export default function ChatScreen() {
                // it already did the thing, having no idea the call went nowhere.
                await appendActionNote(targetChatId, `FAILED: there is no setting called "${toolCall.key}". Use a key from <app_settings>.`);
             }
+         } else {
+            // An action we don't have. It used to fall through silently while
+            // the bubble still displayed a green "Done" chip for it.
+            await appendActionNote(chatId, `FAILED: "${action}" is not one of your actions and did nothing.`);
          }
       };
 
@@ -291,9 +317,6 @@ export default function ChatScreen() {
       // in a row and leave only the last one on screen — the user would confirm
       // a single delete believing all three were gone, and the other two would
       // vanish silently. One dialog, one list, one decision.
-      // Captured for the dialog callbacks below: they run whenever the user
-      // taps, which may be long after this function has returned.
-      const chatId = targetChatId;
       const isDelete = (a: any) => String(a?.action ?? '').toUpperCase() === 'DELETE_TRANSCRIPT';
       const deleteCalls = actions.filter(isDelete);
       const otherCalls = actions.filter((a) => !isDelete(a));
@@ -308,7 +331,7 @@ export default function ChatScreen() {
 
       if (deleteCalls.length > 0) {
         const resolved = deleteCalls
-          .map(resolveDeleteTarget)
+          .map(resolveTranscript)
           .filter((x): x is HistoryItem => !!x);
         // The model can name the same transcript twice; deleting it twice is
         // harmless but listing it twice looks broken.
@@ -761,11 +784,25 @@ function buildSearchTerms(historyItems: HistoryItem[]): SearchTerm[] {
   return terms;
 }
 
+// Only these are actually carried out. The chip used to render for ANY parsed
+// action, so when the model invented one - SHOW_SETTING for a rename request,
+// say - the user got a green "Done: SHOW_SETTING" for something that did
+// precisely nothing. Success theatre is worse than silence.
+const EXECUTED_ACTIONS = new Set([
+  'DELETE_TRANSCRIPT',
+  'RENAME_TRANSCRIPT',
+  'NAVIGATE_TO',
+  'SET_SETTING',
+]);
+
 function renderToolAction(act: any, i: number, theme: any) {
   const a = String(act.action || '').toUpperCase();
-  if ((a === 'SET_SETTING' || a === 'SHOW_SETTING') && act.key && getSettingSpec(String(act.key))) {
-    return <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} />;
+  if (a === 'SET_SETTING' || a === 'SHOW_SETTING') {
+    const spec = act.key ? getSettingSpec(String(act.key)) : undefined;
+    // No such setting means no control rendered and nothing changed.
+    return spec ? <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} /> : null;
   }
+  if (!EXECUTED_ACTIONS.has(a)) return null;
   return (
     <View key={`act-${i}`} style={{ marginTop: 8, padding: 8, backgroundColor: theme.tint + '20', borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
       <Icon name="check-circle" size={16} color={theme.tint} />
