@@ -141,6 +141,19 @@ export default function ChatScreen() {
   const handleSend = async () => {
     if (!input.trim() || !activeModel || isGenerating) return;
 
+    // Selected is not the same as present. The Record tab has always checked
+    // this; Chat went straight to loading, so a model missing from disk died
+    // inside llama.rn with a bare "Failed to load model". Checked up front,
+    // before any message state changes, so there is nothing to unwind.
+    if (!(await ModelManager.isModelDownloaded(activeModel))) {
+      dialog.show({
+        title: t('dialog.modelNotDownloaded.title') || 'Model not downloaded',
+        message: t('dialog.modelNotDownloaded.messageChat') || 'Go to Settings > Models to download chat model.',
+        icon: 'download',
+      });
+      return;
+    }
+
     // Name the chat after the first thing said in it. Two paths reach here:
     // no chat yet (created on send), or an empty chat made by the + button,
     // which is already titled "New Chat" and needs renaming. Only the FIRST

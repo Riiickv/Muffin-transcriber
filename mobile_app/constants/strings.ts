@@ -196,6 +196,9 @@ export const APP_STRINGS = {
     emptyState: "You can ask me anything about your transcripts, just tell me what you need!",
     errorMessage: "Sorry, something went wrong. Here is what the app said:",
     noMemory: "I couldn't recall anything relevant.",
+    // Shown when the chat model file exists but cannot be loaded (usually a
+    // download that got cut off before this app version).
+    modelLoadFailed: "The chat model file looks incomplete or damaged. Delete it in Settings > Models, then download it again.",
 
     // -- Shown when no chat model is picked yet --
     noModelSelected: "No Chat Model Selected",

@@ -114,6 +114,7 @@ export const FR = {
     emptyState: "Tu peux me demander tout ce que tu veux sur tes transcriptions, dis-moi juste ce qu'il te faut !",
     errorMessage: "Désolé, quelque chose s'est mal passé. Voilà ce que dit l'app :",
     noMemory: "Je n'ai rien trouvé de pertinent.",
+    modelLoadFailed: "Le fichier du modèle de chat semble incomplet ou endommagé. Supprime-le dans Réglages > Modèles, puis télécharge-le à nouveau.",
 
     noModelSelected: "Aucun modèle de chat sélectionné",
     noModelSubtitle: "Va dans les Réglages et sélectionne un modèle de chat pour utiliser l'assistant.",
