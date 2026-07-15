@@ -15,7 +15,7 @@ import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
 import { Icon, IconName } from './Icon';
 import { AnimatedPressable } from './AnimatedPressable';
-import { RADIUS, SPACING } from '@/constants/tokens';
+import { RADIUS, SPACING, FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
 import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/utils/haptics';
 
@@ -79,8 +79,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
             maxWidth: contentWidth - SPACING.lg * 2,
             width: '100%',
             alignSelf: 'center',
-            backgroundColor: theme.isDark ? '#2E282E' : '#FFFFFF',
-            borderColor: theme.isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
+            ...floatingChromeColors(theme.isDark),
           },
         ]}
       >
@@ -199,13 +198,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.xs + 1,
-    borderRadius: RADIUS.pill,
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 12,
+    ...FLOATING_CHROME,
   },
   item: {
     flexDirection: 'row',
