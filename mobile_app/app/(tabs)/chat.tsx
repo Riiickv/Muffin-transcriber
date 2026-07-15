@@ -343,23 +343,35 @@ export default function ChatScreen() {
             await appendActionNote(targetChatId, `Opened the ${tab} screen.`);
          } else if (action === 'RENAME_TRANSCRIPT') {
             const target = getTarget(toolCall);
-            const newName = renameTargetName(toolCall, target);
-            if (target && newName) {
-               const oldName = target.sourceFileName.replace(/\.[^/.]+$/, '');
-               await updateHistoryItem(target.id, { sourceFileName: newName });
-               await appendActionNote(chatId, `Renamed the transcript "${oldName}" to "${newName}".`);
-            } else if (!target) {
+            if (!target) {
                await appendActionNote(chatId, `FAILED: there are no transcripts at all, so there is nothing to rename.`);
             } else {
-               // The model knows WHICH transcript but has given us no usable
-               // name - either none at all, or the name it already has. Rather
-               // than dead-ending the user, ask them directly: the app has the
-               // intent and only lacks one string. Turns the model's weakest
-               // moment into the feature working.
+               // ALWAYS ask, never rename straight from the model's text.
+               //
+               // A 1B model got the name wrong three different ways in one
+               // evening: it invented one ("Dentist", lifted from a prompt
+               // example), it echoed the current name back (renaming X to X),
+               // and it appended instead of replacing ("PTT-20260709-WA0021" +
+               // "-Palle"). Each time the app dutifully wrote the wrong name to
+               // the user's data and reported success.
+               //
+               // The name is free text: there is no way to validate it, and
+               // getting it wrong quietly corrupts something the user cares
+               // about. So the model's job shrinks to what it CAN do - work out
+               // which transcript is meant - and the name comes from the person
+               // who knows it, who is right here and already typing. Its
+               // suggestion, if it made a sensible one, is prefilled: one tap
+               // when it's right, one edit when it isn't, never silently wrong.
                const currentName = target.sourceFileName.replace(/\.[^/.]+$/, '');
+               const proposed = renameTargetName(toolCall, target);
                setPendingRename(target);
-               setRenameInput(currentName);
-               await appendActionNote(chatId, `No new name was given, so the app asked the user what to call "${currentName}". Wait for their answer.`);
+               setRenameInput(proposed || currentName);
+               await appendActionNote(
+                  chatId,
+                  proposed
+                     ? `Suggested renaming "${currentName}" to "${proposed}" and asked the user to confirm. Do not claim it is renamed until they do.`
+                     : `Asked the user what to call "${currentName}". Wait for their answer.`
+               );
             }
          } else if (action === 'SHOW_SETTING') {
             // Display-only: the control renders in the bubble, nothing to run.
@@ -405,6 +417,22 @@ export default function ChatScreen() {
       // in a row and leave only the last one on screen — the user would confirm
       // a single delete believing all three were gone, and the other two would
       // vanish silently. One dialog, one list, one decision.
+      // The model sometimes answers "the latest transcript is called X" and
+      // emits no call whatsoever, leaving a plain request dead. The app can read
+      // "rename" perfectly well on its own, so when the user clearly asked and
+      // nothing came back, it opens the dialog itself rather than shrugging.
+      // Over-eager at worst (a dialog you cancel); the alternative is a feature
+      // that works only when a 1B model is having a good day.
+      if (RENAME_INTENT.test(userMsg.content) && !actions.some((a) => String(a?.action ?? '').toUpperCase() === 'RENAME_TRANSCRIPT')) {
+        const newest = [...(historyItems || [])].sort(
+          (a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime()
+        )[0];
+        if (newest) {
+          setPendingRename(newest);
+          setRenameInput(newest.sourceFileName.replace(/\.[^/.]+$/, ''));
+        }
+      }
+
       const isDelete = (a: any) => String(a?.action ?? '').toUpperCase() === 'DELETE_TRANSCRIPT';
       const deleteCalls = actions.filter(isDelete);
       const otherCalls = actions.filter((a) => !isDelete(a));
@@ -929,6 +957,11 @@ function buildSearchTerms(historyItems: HistoryItem[]): SearchTerm[] {
 // never happened. So the chip now also checks the call carries what the
 // executor needs to act on - the same conditions executeTool tests, kept
 // deliberately next to each other.
+// "Rename" in the six languages the app speaks. Only used to open a dialog the
+// user can cancel, so a false positive costs a tap - unlike a missed one, which
+// costs the feature.
+const RENAME_INTENT = /\b(rename|renaming|rinomin\w*|chiamal\w*|rinominar\w*|renombr\w*|ll[aá]mal\w*|renomm\w*|umbenenn\w*|renomei\w*|renomear)\b/i;
+
 const EXECUTED_ACTIONS = new Set([
   'DELETE_TRANSCRIPT',
   'RENAME_TRANSCRIPT',
@@ -996,13 +1029,11 @@ function renderToolAction(
       ? <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} />
       : <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
-  // Rename with a real target but no usable name (none given, or the name it
-  // already has): the app is putting the question to the user right now, so the
-  // dialog IS the answer. A chip either way would contradict it - "Done" is
-  // false and "Couldn't do that" is defeatist.
+  // Rename never draws a "Done": the app asks the user to confirm the name, so
+  // at the moment this renders nothing has been renamed yet. The dialog is the
+  // answer; a chip beside it would be claiming an outcome that hasn't happened.
   if (a === 'RENAME_TRANSCRIPT') {
-    const target = getTarget(act);
-    if (target && !renameTargetName(act, target)) return null;
+    return getTarget(act) ? null : <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
   if (!EXECUTED_ACTIONS.has(a) || !isActionable(act, getTarget, renameTargetName)) {
     return <ActionFailedChip key={`fail-${i}`} theme={theme} />;
