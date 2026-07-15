@@ -194,7 +194,7 @@ export const APP_STRINGS = {
     sendButton: "Send",
     thinking: "Thinking...",
     emptyState: "You can ask me anything about your transcripts, just tell me what you need!",
-    errorMessage: "Sorry, I encountered an error. Make sure your chat model is downloaded and selected in Settings.",
+    errorMessage: "Sorry, something went wrong. Here is what the app said:",
     noMemory: "I couldn't recall anything relevant.",
 
     // -- Shown when no chat model is picked yet --

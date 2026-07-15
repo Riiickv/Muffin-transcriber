@@ -112,7 +112,7 @@ export const PT = {
     sendButton: "Enviar",
     thinking: "A pensar...",
     emptyState: "Podes perguntar-me o que quiseres sobre as tuas transcrições, diz-me só do que precisas!",
-    errorMessage: "Desculpa, ocorreu um erro. Confirma que o teu modelo de chat está transferido e selecionado nas Definições.",
+    errorMessage: "Desculpa, algo correu mal. Isto é o que a app diz:",
     noMemory: "Não consegui lembrar-me de nada relevante.",
 
     noModelSelected: "Nenhum modelo de chat selecionado",

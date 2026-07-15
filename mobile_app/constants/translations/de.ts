@@ -112,7 +112,7 @@ export const DE = {
     sendButton: "Senden",
     thinking: "Denkt nach...",
     emptyState: "Du kannst mich alles zu deinen Transkripten fragen, sag mir einfach, was du brauchst!",
-    errorMessage: "Sorry, es ist ein Fehler aufgetreten. Stell sicher, dass dein Chat-Modell heruntergeladen und in den Einstellungen ausgewählt ist.",
+    errorMessage: "Sorry, etwas ist schiefgelaufen. Das sagt die App:",
     noMemory: "Ich konnte mich an nichts Passendes erinnern.",
 
     noModelSelected: "Kein Chat-Modell ausgewählt",

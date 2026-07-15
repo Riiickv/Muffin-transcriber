@@ -137,7 +137,7 @@ export const IT = {
     sendButton: "Invia",
     thinking: "Sto pensando...",
     emptyState: "Puoi chiedermi qualsiasi cosa sulle tue trascrizioni, dimmi solo cosa ti serve!",
-    errorMessage: "Scusa, ho riscontrato un errore. Assicurati che il modello di chat sia scaricato e selezionato nelle Impostazioni.",
+    errorMessage: "Scusa, qualcosa è andato storto. Ecco cosa dice l'app:",
     noMemory: "Non sono riuscito a ricordare niente di utile.",
 
     noModelSelected: "Nessun modello di chat selezionato",
