@@ -147,8 +147,17 @@ export async function transcribeFile(
   }
 
   const options: any = {
-    // Whisper.rn treats `undefined` language as auto-detect.
-    language: languageCode && languageCode !== 'auto' ? languageCode : undefined,
+    // Must be the literal string 'auto' — NOT undefined. whisper.rn's
+    // docstring claims undefined means auto-detect, but the implementation
+    // only assigns params.language when the JS value is a non-empty string:
+    //     config.language = getStringProperty(runtime, options, "language");
+    //     if (!config.language.empty()) { config.params.language = ...; }
+    // (cpp/jsi/RNWhisperJSI.cpp). With `undefined` that assignment is skipped,
+    // so whisper.cpp keeps its own default of "en" (`/*.language =*/ "en"`),
+    // and auto-detect never runs — every recording was transcribed AS ENGLISH,
+    // whatever was actually spoken. whisper.cpp only detects when language is
+    // null, "" or "auto".
+    language: languageCode || 'auto',
     // Keep transcription in the source language (don't translate to English).
     translate: false,
     // Greedy decoding: ~3-5x faster than beam search with negligible quality

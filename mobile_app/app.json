@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Muffin Transcriber",
+    "name": "Muffin!",
     "slug": "muffin-transcriber",
     "version": "1.2.1",
     "orientation": "portrait",
@@ -14,22 +14,22 @@
       }
     },
     "android": {
-      "softwareKeyboardLayoutMode": "pan",
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.VIBRATE",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "com.android.alarm.permission.SET_ALARM"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1E1A1E",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mobile_app"
+      "package": "com.riiickv.muffin"
     },
     "web": {
       "bundler": "metro",
@@ -43,7 +43,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#1E1A1E"
         }
       ],
       "expo-font",
@@ -71,7 +71,8 @@
           ]
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true

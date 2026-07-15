@@ -1,9 +1,8 @@
-import { Animated, StyleSheet, Platform } from 'react-native';
+import { Animated, StyleSheet } from 'react-native';
 import { useEffect, useRef } from 'react';
 import { AnimatedPressable } from './AnimatedPressable';
 import { MOTION } from '@/constants/tokens';
-import * as Haptics from 'expo-haptics';
-import { triggerCrispPop } from '@/utils/haptics';
+import { haptics } from '@/utils/haptics';
 
 interface ExpressiveSwitchProps {
   value: boolean;
@@ -39,9 +38,9 @@ export default function ExpressiveSwitch({
     : value ? thumbActiveColor : '#888888';
 
   const toggleSwitch = () => {
-    if (Platform.OS !== 'web') {
-      triggerCrispPop();
-    }
+    // Direction-aware: Android has distinct Toggle_On / Toggle_Off primitives,
+    // so flipping a switch feels like the OS's own switches.
+    haptics.toggle(!value);
     onValueChange(!value);
   };
 

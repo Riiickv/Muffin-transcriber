@@ -1,32 +1,28 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, TextInput, FlatList, Platform, Animated, Easing } from 'react-native';
+import { View, StyleSheet, TextInput, FlatList, Platform, Animated, Easing, Keyboard } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';
-import { KeyboardScreen } from '@/components/KeyboardScreen';
+import { IconButton } from '@/components/IconButton';
+import { KeyboardStickyView } from 'react-native-keyboard-controller';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { SPACING, RADIUS } from '@/constants/tokens';
+import { SPACING, RADIUS, TAB_BAR_SPACE } from '@/constants/tokens';
 import { useSettings } from '@/utils/settingsStore';
 import { ModelManager } from '@/utils/ModelManager';
 import { chatStream, ChatMessage } from '@/utils/ChatEngine';
 import { extractMemories, parseModelJson } from '@/utils/LLMEngine';
 import { haptics } from '@/utils/haptics';
 import { useHistory, HistoryItem } from '@/utils/historyStore';
-import { useChats, addChatSession, updateChatMessages } from '@/utils/chatStore';
+import { useChats, addChatSession, updateChatMessages, renameChatSession, deleteChatSession, titleFromMessage } from '@/utils/chatStore';
 import { ChatDrawer } from '@/components/ChatDrawer';
 import { InlineSettingControl } from '@/components/InlineSettingControl';
 import { getSettingSpec } from '@/utils/appCapabilities';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useDialog } from '@/components/Dialog';
 import { t } from '@/utils/i18n';
-
-// Approximate stacked-header + status-bar height, used to lift the input above
-// the keyboard. Expo Router bundles its own navigation, so @react-navigation/
-// elements' useHeaderHeight isn't importable here — approximate per platform.
-const HEADER_OFFSET = Platform.OS === 'android' ? 130 : 90;
 
 // Stable per-message key so the FlatList can memoize rows instead of re-keying
 // by index (which re-renders every bubble on each streamed token).
@@ -78,6 +74,15 @@ export default function ChatScreen() {
   const [activeEntity, setActiveEntity] = useState<any>(null);
   const [actionName, setActionName] = useState('');
 
+  // The list doesn't shrink when the keyboard opens (the composer just slides
+  // up over it), so the newest messages would end up behind the keyboard.
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    });
+    return () => sub.remove();
+  }, []);
+
   useEffect(() => {
     if (!activeChatId && chatSessions.length > 0) {
       setActiveChatId(chatSessions[0].id);
@@ -95,15 +100,50 @@ export default function ChatScreen() {
     }
   }, [activeChatId, chatSessions, isGenerating]);
 
+  const handleDeleteChat = async (id: string) => {
+    // Capture the row's position BEFORE deleting — it's what decides the
+    // replacement, and the list is gone by the time the store updates.
+    const index = chatSessions.findIndex((c) => c.id === id);
+    const remaining = chatSessions.filter((c) => c.id !== id);
+    await deleteChatSession(id);
+
+    // Deleting some other chat from the drawer shouldn't yank you out of the
+    // one you're reading.
+    if (id !== activeChatId) return;
+
+    if (remaining.length === 0) {
+      // Never sit on a deleted chat waiting for the user to make a new one.
+      const newId = await addChatSession(t('chat.newChat') || 'New Chat');
+      setActiveChatId(newId);
+      setMessages([]);
+      return;
+    }
+
+    // The list is newest-first and unsorted, so whatever now occupies the
+    // deleted row's index is the chat created just BEFORE it. Deleting the
+    // oldest leaves no older one, so clamp to the end of the list.
+    const next = remaining[Math.min(index, remaining.length - 1)];
+    setActiveChatId(next.id);
+    setMessages(next.messages || []);
+  };
+
   const activeModel = settings.preferredChatModel || settings.preferredFormatterModel;
 
   const handleSend = async () => {
     if (!input.trim() || !activeModel || isGenerating) return;
 
+    // Name the chat after the first thing said in it. Two paths reach here:
+    // no chat yet (created on send), or an empty chat made by the + button,
+    // which is already titled "New Chat" and needs renaming. Only the FIRST
+    // message names it — later ones would rewrite a title the user is reading,
+    // and may have renamed themselves.
+    const isFirstMessage = messages.length === 0;
     let targetChatId = activeChatId;
     if (!targetChatId) {
-      targetChatId = await addChatSession(t('chat.newChat') || 'New Chat');
+      targetChatId = await addChatSession(titleFromMessage(input.trim()));
       setActiveChatId(targetChatId);
+    } else if (isFirstMessage) {
+      await renameChatSession(targetChatId, titleFromMessage(input.trim()));
     }
 
     const userMsg: ChatMessage = { role: 'user', content: input.trim(), id: genId() };
@@ -142,34 +182,26 @@ export default function ChatScreen() {
       }
 
       const botResponse = finalMessages[finalMessages.length - 1].content;
+      // Which transcript a DELETE_TRANSCRIPT call means. Split out because the
+      // batch confirmation below needs to name every target up front.
+      const resolveDeleteTarget = (toolCall: any): HistoryItem | undefined => {
+         const itemsList = historyItems || [];
+         let target = toolCall.transcript_id ? itemsList.find(h => h.id === toolCall.transcript_id) : undefined;
+         if (!target && toolCall.transcript_name) {
+            const search = String(toolCall.transcript_name).toLowerCase();
+            target = itemsList.find(h => {
+               const name = h.sourceFileName.replace(/\.[^/.]+$/, "").toLowerCase();
+               return name === search || name.includes(search) || search.includes(name);
+            });
+         }
+         return target;
+      };
+
       const executeTool = async (toolCall: any) => {
          if (!toolCall || !toolCall.action) return;
          const action = String(toolCall.action).toUpperCase();
 
-         if (action === 'DELETE_TRANSCRIPT') {
-            const itemsList = historyItems || [];
-            let target = toolCall.transcript_id ? itemsList.find(h => h.id === toolCall.transcript_id) : undefined;
-            if (!target && toolCall.transcript_name) {
-               const search = String(toolCall.transcript_name).toLowerCase();
-               target = itemsList.find(h => {
-                  const name = h.sourceFileName.replace(/\.[^/.]+$/, "").toLowerCase();
-                  return name === search || name.includes(search) || search.includes(name);
-               });
-            }
-            if (target) {
-               const label = target.sourceFileName.replace(/\.[^/.]+$/, "");
-               dialog.show({
-                  title: t('chat.deleteTitle') || 'Delete transcript?',
-                  message: (t('chat.deleteMessage') || "Delete “{name}”? This can't be undone.").replace('{name}', label),
-                  icon: 'delete',
-                  iconTone: 'danger',
-                  buttons: [
-                     { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
-                     { label: t('chat.delete') || 'Delete', variant: 'danger', onPress: () => { deleteItem(target!.id); } },
-                  ],
-               });
-            }
-         } else if (action === 'NAVIGATE_TO' && toolCall.tab) {
+         if (action === 'NAVIGATE_TO' && toolCall.tab) {
             let tab = String(toolCall.tab).toLowerCase();
             if (tab === 'home') tab = 'index';
             if (tab === 'preferences') tab = 'settings';
@@ -196,11 +228,61 @@ export default function ChatScreen() {
       };
 
       const { actions } = parseToolCalls(botResponse);
-      for (const toolCall of actions) {
+
+      // Deletions are batched into ONE confirmation naming every transcript.
+      // dialog.show() REPLACES whatever dialog is open rather than queueing, so
+      // running three deletes through the normal loop would fire three dialogs
+      // in a row and leave only the last one on screen — the user would confirm
+      // a single delete believing all three were gone, and the other two would
+      // vanish silently. One dialog, one list, one decision.
+      const isDelete = (a: any) => String(a?.action ?? '').toUpperCase() === 'DELETE_TRANSCRIPT';
+      const deleteCalls = actions.filter(isDelete);
+      const otherCalls = actions.filter((a) => !isDelete(a));
+
+      for (const toolCall of otherCalls) {
         try {
           await executeTool(toolCall);
         } catch (e) {
           console.error("Tool execution failed", e);
+        }
+      }
+
+      if (deleteCalls.length > 0) {
+        const resolved = deleteCalls
+          .map(resolveDeleteTarget)
+          .filter((x): x is HistoryItem => !!x);
+        // The model can name the same transcript twice; deleting it twice is
+        // harmless but listing it twice looks broken.
+        const targets = resolved.filter((t, i) => resolved.findIndex((x) => x.id === t.id) === i);
+        const nameOf = (h: HistoryItem) => h.sourceFileName.replace(/\.[^/.]+$/, "");
+
+        if (targets.length === 1) {
+          dialog.show({
+            title: t('chat.deleteTitle') || 'Delete transcript?',
+            message: (t('chat.deleteMessage') || "Delete “{name}”? This can't be undone.").replace('{name}', nameOf(targets[0])),
+            icon: 'delete',
+            iconTone: 'danger',
+            buttons: [
+              { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
+              { label: t('chat.delete') || 'Delete', variant: 'danger', onPress: () => { deleteItem(targets[0].id); } },
+            ],
+          });
+        } else if (targets.length > 1) {
+          dialog.show({
+            title: (t('chat.deleteManyTitle') || 'Delete {count} transcripts?').replace('{count}', String(targets.length)),
+            message: (t('chat.deleteManyMessage') || "These will be deleted:\n{list}\n\nThis can't be undone.")
+              .replace('{list}', targets.map((tg) => `• ${nameOf(tg)}`).join('\n')),
+            icon: 'delete',
+            iconTone: 'danger',
+            buttons: [
+              { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
+              {
+                label: t('chat.delete') || 'Delete',
+                variant: 'danger',
+                onPress: () => { targets.forEach((tg) => deleteItem(tg.id)); },
+              },
+            ],
+          });
         }
       }
 
@@ -269,34 +351,49 @@ export default function ChatScreen() {
 
   return (
     <>
-      <KeyboardScreen offset={HEADER_OFFSET}>
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
           <Stack.Screen 
             options={{ 
-              headerTitleAlign: 'left',
-              headerTitle: () => (
-                <AnimatedPressable
-                  style={{ flexDirection: 'row', alignItems: 'center' }}
+              // A plain `title` string, like every other tab — a custom
+              // headerTitle component doesn't inherit the navigator's title
+              // styling or alignment, which is why "Chat" sat low and indented
+              // while the other tabs' titles didn't.
+              // It names the active chat rather than restating the tab.
+              title: chatSessions.find((c) => c.id === activeChatId)?.title ?? t('chat.header'),
+              // Hamburger in headerLeft — the one affordance everyone already
+              // reads as "there's a list behind this". The old trigger was an
+              // icon+"Chat" in the *title* slot, which looks exactly like a
+              // title, so nothing suggested it was tappable.
+              // IconButton, not a bare AnimatedPressable: the latter's inner
+              // view uses alignSelf:'stretch', so inside the header's
+              // vertically-centred container it stretches to full header height
+              // and the icon settles at the TOP — which is what made the
+              // hamburger sit above the title line. IconButton has an explicit
+              // box and centres its icon, so it's unaffected.
+              headerLeft: () => (
+                <IconButton
+                  variant="ghost"
+                  size="md"
+                  icon="menu"
                   onPress={() => setIsDrawerOpen(true)}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('chat.chats') || 'Chats'}
-                >
-                  <Icon name="forum" size={20} color={theme.text} style={{ marginRight: SPACING.sm }} />
-                  <Text style={{ fontFamily: 'Nunito-Bold', fontSize: 18, color: theme.text }}>Chat</Text>
-                </AnimatedPressable>
+                  accessibilityLabel={t('chat.chats')}
+                  style={{ marginLeft: SPACING.sm }}
+                />
               ),
               headerRight: () => (
-                <AnimatedPressable 
+                <IconButton
+                  variant="ghost"
+                  size="md"
+                  icon="add"
                   onPress={async () => {
-                    const id = await addChatSession(t('chat.newChat') || 'New Chat');
+                    const id = await addChatSession(t('chat.newChat'));
                     setActiveChatId(id);
                     setMessages([]);
                     setIsDrawerOpen(false);
                   }}
-                  style={{ marginRight: SPACING.md, padding: SPACING.xs }}
-                >
-                  <Icon name="add" size={24} color={theme.text} />
-                </AnimatedPressable>
+                  accessibilityLabel={t('chat.newChat')}
+                  style={{ marginRight: SPACING.sm }}
+                />
               )
             }} 
           />
@@ -308,8 +405,15 @@ export default function ChatScreen() {
             <Text style={[styles.emptySubtitle, { color: theme.textSubtle }]}>
               {t('chat.noModelSubtitle') || 'Please go to Settings and select a Chat Model to use the assistant.'}
             </Text>
-            <Button variant="primary" style={{ marginTop: SPACING.lg }} onPress={() => router.push('/settings')}>
-              {t('chat.goToSettings') || 'Go to Settings'}
+            {/* Explicit height: an unsized Button inside this centered
+                container balloons to fill it (AnimatedPressable's inner
+                surface uses flexGrow). Same fix as WaitingCard. */}
+            <Button
+              variant="primary"
+              style={{ marginTop: SPACING.lg, height: 44 }}
+              onPress={() => router.push('/models' as any)}
+            >
+              {t('models.goToModels') || 'Get a model'}
             </Button>
           </View>
         ) : (
@@ -341,7 +445,11 @@ export default function ChatScreen() {
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             />
 
-            <View style={[styles.inputRow, { borderTopColor: theme.divider, backgroundColor: theme.surface }]}>
+            {/* Sticks to the keyboard via translateY — no frame measurement,
+                no header offset to get wrong. `opened` gives back the space
+                reserved for the floating tab bar, which hides while typing. */}
+            <KeyboardStickyView offset={{ closed: 0, opened: TAB_BAR_SPACE }}>
+            <View style={[styles.inputRow, { borderColor: theme.divider, backgroundColor: theme.surface }]}>
               <TextInput
                 style={[styles.input, { color: theme.text, backgroundColor: theme.background }]}
                 value={input}
@@ -363,10 +471,10 @@ export default function ChatScreen() {
                 <Icon name={isGenerating ? 'more-horiz' : 'arrow-upward'} size={20} color="#fff" filled />
               </AnimatedPressable>
             </View>
+            </KeyboardStickyView>
           </>
         )}
-        </View>
-      </KeyboardScreen>
+      </View>
       <ChatDrawer 
         isVisible={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
@@ -375,7 +483,8 @@ export default function ChatScreen() {
         onSelectChat={(id) => {
           setActiveChatId(id);
           setIsDrawerOpen(false);
-        }} 
+        }}
+        onDeleteChat={handleDeleteChat} 
       />
 
       {activeEntity && (
@@ -461,11 +570,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     fontSize: 14,
   },
+  // A rounded, bordered composer rather than a full-bleed bar with a top rule.
+  // The floating tab bar lifts this off the bottom edge, so an edge-anchored
+  // bar would hang in mid-air with a border pointing at nothing.
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: SPACING.md,
-    borderTopWidth: 1,
+    padding: SPACING.xs + 2,
+    paddingLeft: SPACING.md,
+    marginHorizontal: SPACING.md,
+    marginBottom: TAB_BAR_SPACE,
+    borderRadius: RADIUS.lg + 6,
+    borderWidth: 1,
     gap: SPACING.sm,
   },
   input: {
@@ -479,9 +595,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -505,7 +621,7 @@ const styles = StyleSheet.create({
   },
   dialogTitle: {
     fontSize: 20,
-    fontFamily: 'Nunito-Bold',
+    fontWeight: 'bold',
     marginBottom: SPACING.xs,
   },
   dialogQuote: {

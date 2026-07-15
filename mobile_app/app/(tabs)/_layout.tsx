@@ -1,66 +1,57 @@
 import { Tabs } from 'expo-router';
-import { Animated, ColorValue, Pressable } from 'react-native';
-import React, { useEffect, useRef } from 'react';
+import { Pressable } from 'react-native';
+import React from 'react';
 
 import { useTheme } from '@/components/ThemeProvider';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import { Icon, IconName } from '@/components/Icon';
-import { MOTION } from '@/constants/tokens';
+import { Icon } from '@/components/Icon';
+import { FloatingTabBar } from '@/components/FloatingTabBar';
+import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/utils/haptics';
+import { openSupportPage } from '@/utils/support';
 import { useDialog } from '@/components/Dialog';
-
-const toStringColor = (c: ColorValue) => (typeof c === 'string' ? c : String(c));
-
-// Focused = filled (Material 3 tab-bar convention) with a subtle spring pop.
-const TabBarIcon = ({ name, color, focused }: { name: IconName; color: ColorValue; focused: boolean }) => {
-  const scale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (focused) {
-      scale.setValue(0.85);
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, ...MOTION.springStandard }).start();
-    }
-  }, [focused, scale]);
-
-  return (
-    <Animated.View style={{ transform: [{ scale }] }}>
-      <Icon name={name} filled={focused} color={toStringColor(color)} size={24} />
-    </Animated.View>
-  );
-};
-
-const tabIcon = (name: IconName) =>
-  ({ color, focused }: { color: ColorValue; focused: boolean }) => (
-    <TabBarIcon name={name} color={color} focused={focused} />
-  );
+import { t } from '@/utils/i18n';
 
 export default function TabLayout() {
   const { theme } = useTheme();
   const dialog = useDialog();
+  const { contentWidth } = useResponsive();
 
   return (
     <Tabs
-      screenListeners={{
-        tabPress: () => haptics.tap(),
-      }}
+      tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: theme.tintString,
         headerShown: useClientOnlyValue(false, true),
         headerShadowVisible: false,
         headerStyle: { borderBottomWidth: 0, backgroundColor: theme.background },
-        tabBarStyle: { backgroundColor: theme.background, borderTopColor: theme.divider },
-        tabBarLabelStyle: { fontFamily: 'Nunito_600SemiBold', fontSize: 12 },
-        tabBarHideOnKeyboard: true,
+        // No paddingBottom here: it would shrink every scene, so scrollable
+        // content would stop above the floating bar and clip. Screens reserve
+        // TAB_BAR_SPACE in their own content instead, which lets lists scroll
+        // *under* the bar the way they should.
+        //
+        // maxWidth centres every tab in a phone-width column on tablets and
+        // unfolded foldables. On a phone `contentWidth` === the screen width,
+        // so this is a no-op — the layout you've been checking is untouched.
+        sceneStyle: {
+          backgroundColor: theme.background,
+          maxWidth: contentWidth,
+          width: '100%',
+          alignSelf: 'center',
+        },
         headerRight: () => (
           <Pressable
             onPress={() => {
               haptics.tap();
+              // Confirm before leaving: the heart sits in the header of every
+              // tab, so it's easy to hit by accident, and this opens an
+              // external page that asks for money.
               dialog.show({
-                title: 'Buy me a coffee! ☕',
-                message: 'Support the development of Muffin Transcriber! (This would open a link or ad in production)',
+                title: t('settings.supportTitle'),
+                message: t('settings.supportMessage'),
                 icon: 'favorite',
                 iconTone: 'primary',
-                primaryAction: { label: 'Support', onPress: () => {} }
+                secondaryAction: { label: t('settings.supportCancel'), onPress: () => {} },
+                primaryAction: { label: t('settings.supportButton'), onPress: openSupportPage },
               });
             }}
             style={({ pressed }) => ({
@@ -73,11 +64,12 @@ export default function TabLayout() {
         ),
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Muffin!', tabBarIcon: tabIcon('home') }} />
-      <Tabs.Screen name="record" options={{ title: 'Record', tabBarIcon: tabIcon('mic') }} />
-      <Tabs.Screen name="history" options={{ title: 'History', tabBarIcon: tabIcon('history') }} />
-      <Tabs.Screen name="chat" options={{ title: 'Chat', tabBarIcon: tabIcon('chat') }} />
-      <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('settings') }} />
+      {/* Icons come from FloatingTabBar's own route→icon map. */}
+      <Tabs.Screen name="index" options={{ title: t('tabs.transcribe'), tabBarLabel: t('tabs.transcribe') }} />
+      <Tabs.Screen name="record" options={{ title: t('tabs.record'), tabBarLabel: t('tabs.record') }} />
+      <Tabs.Screen name="history" options={{ title: t('tabs.history'), tabBarLabel: t('tabs.history') }} />
+      <Tabs.Screen name="chat" options={{ title: t('tabs.chat'), tabBarLabel: t('tabs.chat') }} />
+      <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarLabel: t('tabs.settings') }} />
     </Tabs>
   );
 }

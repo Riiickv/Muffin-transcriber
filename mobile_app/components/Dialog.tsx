@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
@@ -26,7 +26,7 @@ interface DialogCardProps {
   buttons?: DialogButton[];
   /** Custom body rendered between the message and the buttons row. */
   children?: React.ReactNode;
-  /** Called after the user taps a button (before the button's own onPress). */
+  /** Fired when the dialog is dismissed WITHOUT choosing a button (back or scrim tap). */
   onDismiss?: () => void;
 }
 
@@ -65,6 +65,11 @@ export const DialogCard = ({
       onRequestClose={dismiss}
     >
       <View style={styles.overlay}>
+        {/* Scrim tap === the Android back button: same `dismiss`, so it can't
+            become a second exit path that skips whatever back already does.
+            The card is a later sibling, so it sits above this and its own taps
+            never reach the scrim. */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} />
         <View style={[styles.card, { backgroundColor: theme.background, borderColor: theme.divider }]}>
           {icon && (
             <View style={styles.iconWrap}>

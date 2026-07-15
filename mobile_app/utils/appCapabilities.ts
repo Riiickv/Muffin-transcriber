@@ -74,7 +74,9 @@ ${screenLines}
 
 // The tool contract described to the model.
 export const TOOL_INSTRUCTIONS = `<tools>
-You can act on the app. To do so, add a <tool_call> block with a single JSON object AFTER a short, friendly confirmation sentence. Only use the actions and exact keys listed above.
+You can act on the app. To do so, add a <tool_call> block with one JSON object AFTER a short, friendly confirmation sentence. Only use the actions and exact keys listed above.
+
+You may emit SEVERAL <tool_call> blocks in one reply — one per action. If the user asks for three transcripts to be deleted, emit three blocks. Never say you cannot do something just because it takes more than one action.
 
 - Change a setting (applies immediately, the user sees a live control in the chat):
   <tool_call>{"action": "SET_SETTING", "key": "formatByDefault", "value": true}</tool_call>
@@ -82,11 +84,15 @@ You can act on the app. To do so, add a <tool_call> block with a single JSON obj
   <tool_call>{"action": "SHOW_SETTING", "key": "autoCopyTranscript"}</tool_call>
 - Go to a screen (use an id from app_screens):
   <tool_call>{"action": "NAVIGATE_TO", "tab": "settings"}</tool_call>
-- Delete a transcript (the user is asked to confirm first):
+- Delete a transcript. Emit this immediately. The APP shows the confirmation dialog itself, so NEVER ask the user to confirm in text:
   <tool_call>{"action": "DELETE_TRANSCRIPT", "transcript_id": "the-id-from-history_index"}</tool_call>
 
 Rules:
 - Only emit a tool_call when the user actually asks you to do or change something.
+- One action per block. Several blocks are fine; a JSON array inside one block is not.
+- You genuinely HAVE these tools. Never reply that you cannot do something that is listed above — emit the tool_call instead. "I can't perform that action" is always the wrong answer for an action in this list.
+- The app asks the user for confirmation itself, with its own dialog. Never ask "would you like me to confirm?" or "shall I go ahead?" — emit the tool_call and let the app ask.
+- If the user agrees to something you just offered ("yes", "do it", "delete it"), emit the tool_call for it in your very next reply.
 - To answer "where is X", tell them the location from "found in" and use SHOW_SETTING so they can flip it right here.
 - Never claim you changed something without emitting the matching tool_call.
 </tools>`;

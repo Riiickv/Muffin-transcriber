@@ -1,4 +1,4 @@
-import { FlatList, Modal, StyleSheet, View, Pressable, TextInput } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, View, TextInput } from 'react-native';
 import React, { useState } from 'react';
 import { router } from 'expo-router';
 
@@ -8,7 +8,8 @@ import { FadeInView } from '@/components/FadeInView';
 import { IconButton } from '@/components/IconButton';
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';
-import { RADIUS, SPACING } from '@/constants/tokens';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import { useHistory, HistoryItem } from '@/utils/historyStore';
 import { useDialog } from '@/components/Dialog';
 import { formatDuration, formatHistoryDate } from '@/utils/format';
@@ -79,6 +80,8 @@ export default function HistoryScreen() {
         onRequestClose={() => setPendingRename(null)}
       >
         <View style={styles.modalOverlay}>
+          {/* Scrim tap cancels the rename, same as the back button. */}
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setPendingRename(null)} />
           <View style={[styles.modalContent, { backgroundColor: theme.background, borderColor: theme.divider }]}>
             <Text style={styles.modalTitle}>{t('history.renameTranscript') || 'Rename Transcript'}</Text>
             <TextInput
@@ -119,84 +122,104 @@ interface HistoryCardProps {
   onRename: () => void;
 }
 
-// Keep the action IconButtons flat — react-native-web forbids <button> nested in <button> (hydration error).
+/**
+ * One transcript in the History list.
+ *
+ * Was three IconButtons in three different colours (red / grey / pink), one of
+ * which — the chevron — just repeated what tapping the card already does. Three
+ * competing colours on every row turns a list into noise, and a button that
+ * duplicates its own container is a decision the user shouldn't have to make.
+ * Now: tap the card to open, two quiet ghost actions, and the row leads with an
+ * icon so the list scans vertically.
+ *
+ * NOTE: no accessibilityRole="button" on the card. react-native-web maps that
+ * to a real <button>, and the two IconButtons inside are buttons too — nesting
+ * them is invalid HTML and throws a hydration error. Without the role the card
+ * renders as a div and stays perfectly tappable on native.
+ */
 const HistoryCard = React.memo(({ entry, onOpen, onDelete, onRename }: HistoryCardProps) => {
   const { theme } = useTheme();
   return (
-    <Pressable style={({ pressed }) => [styles.card, { borderColor: theme.divider, opacity: pressed ? 0.7 : 1 }]} onPress={onOpen}>
+    <AnimatedPressable
+      onPress={onOpen}
+      scaleTo={0.985}
+      style={[
+        styles.card,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
+        },
+      ]}
+    >
       <View style={styles.cardHeader}>
+        <View style={[styles.leadIcon, { backgroundColor: theme.tintFill }]}>
+          <Icon name="waveform" size={18} color={theme.tint} />
+        </View>
+
         <View style={{ flex: 1 }}>
-          <Text style={styles.titleText}>{entry.title}</Text>
-          <Text style={[styles.date, { color: theme.textMuted }]}>
-            {entry.date}{entry.duration ? ` • ${entry.duration}` : ''}
+          <Text style={styles.titleText} numberOfLines={1}>{entry.title}</Text>
+          <Text style={[styles.date, { color: theme.textMuted }]} numberOfLines={1}>
+            {entry.date}{entry.duration ? ` · ${entry.duration}` : ''}
           </Text>
         </View>
 
         <View style={styles.actions}>
-          <IconButton
-            variant="danger"
-            size="sm"
-            icon="delete"
-            onPress={onDelete}
-            accessibilityLabel="Delete transcript"
-          />
-          <IconButton
-            variant="subtle"
-            size="sm"
-            icon="edit"
-            onPress={onRename}
-            accessibilityLabel="Rename transcript"
-          />
-          <IconButton
-            variant="tint"
-            size="sm"
-            icon="chevron-right"
-            onPress={onOpen}
-            accessibilityLabel={`Open ${entry.title}`}
-          />
+          <IconButton variant="ghost" size="sm" icon="edit" onPress={onRename} accessibilityLabel="Rename transcript" />
+          <IconButton variant="ghost" size="sm" icon="delete" onPress={onDelete} accessibilityLabel="Delete transcript" />
         </View>
       </View>
-      <Text style={[styles.preview, { color: theme.textMuted }]} numberOfLines={2}>
-        {entry.snippet}
-      </Text>
-    </Pressable>
+
+      {!!entry.snippet && (
+        <Text style={[styles.preview, { color: theme.textMuted }]} numberOfLines={2}>
+          {entry.snippet}
+        </Text>
+      )}
+    </AnimatedPressable>
   );
 });
 
 const styles = StyleSheet.create({
   list: {
     padding: SPACING.lg,
+    paddingBottom: TAB_BAR_SPACE,
   },
   card: {
-    padding: SPACING.lg,
+    padding: SPACING.md,
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    marginBottom: SPACING.lg,
-    backgroundColor: 'transparent',
+    marginBottom: SPACING.md,
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+  },
+  leadIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
   },
   titleText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: SPACING.xs,
+    fontSize: 15,
+    fontWeight: '600',
   },
   date: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    marginTop: 2,
   },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.xs,
   },
   preview: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: SPACING.sm,
+    // Align under the title, past the leading icon.
+    marginLeft: 36 + SPACING.md,
   },
   input: {
     borderWidth: 1,

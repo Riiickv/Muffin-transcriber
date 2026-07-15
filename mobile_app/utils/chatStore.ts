@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatMessage } from './ChatEngine';
 import { createPersistentStore } from './persistentStore';
+import { t } from './i18n';
 
 const CHATS_KEY = 'muffin.chats.v1';
 const LEGACY_KEY = 'chat_messages';
@@ -48,6 +49,36 @@ export function useChats() {
   return { items };
 }
 
+/**
+ * A chat's name, taken from the first thing the user said.
+ *
+ * Deliberately NOT model-generated. generateTitle() already exists and would
+ * write a prettier label, but it runs on LLMEngine's context while the chat
+ * model lives on ChatEngine's — the two hold SEPARATE llama contexts, so
+ * titling a chat through it would load a second copy of a 0.8-2.3 GB model into
+ * RAM right after a chat inference, or unload/reload one on every new chat.
+ * Neither is worth paying for a label, and the user's own first sentence is
+ * what they'd have named it anyway.
+ */
+export function titleFromMessage(message: string): string {
+  const MAX = 40;
+  const fallback = t('chat.newChat') || 'New Chat';
+  // Collapse newlines/runs of spaces so a pasted paragraph can't wreck the
+  // drawer layout, and drop trailing punctuation ("Can you delete this?" reads
+  // better as a title without the question mark).
+  const clean = message.replace(/\s+/g, ' ').trim().replace(/[?!.,;:]+$/, '').trim();
+  if (!clean) return fallback;
+  if (clean.length <= MAX) return clean;
+
+  // Cut on a word boundary — a title ending mid-word looks like a bug. If the
+  // first word is itself longer than the limit there's no boundary to find, so
+  // fall back to a hard cut.
+  const cut = clean.slice(0, MAX);
+  const lastSpace = cut.lastIndexOf(' ');
+  const trimmed = lastSpace > MAX * 0.5 ? cut.slice(0, lastSpace) : cut;
+  return trimmed.trim() + '…';
+}
+
 export async function addChatSession(title: string): Promise<string> {
   const current = store.get() ?? (await store.load());
   const newChat: ChatSession = {
@@ -75,6 +106,39 @@ export async function renameChatSession(id: string, newTitle: string) {
     current.map((chat) =>
       chat.id === id ? { ...chat, title: newTitle, updatedAt: new Date().toISOString() } : chat
     )
+  );
+}
+
+/**
+ * Record what actually happened when a tool ran, as a system turn in the chat.
+ *
+ * Without this the assistant fires actions into the void: it emits a tool_call,
+ * the app executes it, and the model is never told the outcome. Ask it "did you
+ * delete it?" a turn later and it has no record, so it guesses. Deciding and
+ * acting aren't enough — it has to be able to OBSERVE.
+ *
+ * Written straight to the store rather than through the screen's state because
+ * a delete lands whenever the user taps the confirmation dialog, which may be
+ * long after the reply finished rendering.
+ *
+ * These turns are fed to the model but hidden from the chat UI: the user already
+ * watched the dialog and the transcript disappear, so showing them a second time
+ * is noise.
+ */
+export async function appendActionNote(id: string, note: string): Promise<void> {
+  const current = store.get() ?? (await store.load());
+  const chat = current.find((c) => c.id === id);
+  if (!chat) return;
+  const messages = [
+    ...(chat.messages ?? []),
+    {
+      role: 'system' as const,
+      content: `[action result] ${note}`,
+      id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    },
+  ];
+  await store.save(
+    current.map((c) => (c.id === id ? { ...c, messages, updatedAt: new Date().toISOString() } : c))
   );
 }
 

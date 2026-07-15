@@ -1,16 +1,20 @@
 import { useEffect, useRef } from 'react';
-import { ActivityIndicator, Animated, ScrollView } from 'react-native';
+import { Animated, ScrollView } from 'react-native';
 
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
 import { Button } from './Button';
+import { MuffinSpinner } from './MuffinSpinner';
 import { useDialog } from './Dialog';
 import { MOTION, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
+import { openSupportPage } from '@/utils/support';
 import { t } from '@/utils/i18n';
 
 // Shown inside the transcript box while transcription/formatting runs:
-// spinner, "While you're waiting...", the current status, and the ad button.
+// spinner, "While you're waiting...", the current status, and the support
+// button. Transcription is minutes of dead time, which is the one moment
+// someone is genuinely idle and looking at the screen.
 // A ScrollView so it can never paint outside a short container (RN views
 // don't clip overflowing children).
 export function WaitingCard({ status }: { status?: string }) {
@@ -26,11 +30,11 @@ export function WaitingCard({ status }: { status?: string }) {
     <Animated.View style={{ flex: 1, opacity: fade }}>
     <ScrollView
       style={{ flex: 1 }}
-      contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.lg }}
+      contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.md }}
       showsVerticalScrollIndicator={false}
     >
-      <ActivityIndicator size="large" color={theme.tint} />
-      <Text style={{ fontSize: 17, fontWeight: 'bold', marginTop: SPACING.lg, textAlign: 'center' }}>
+      <MuffinSpinner size={40} />
+      <Text style={{ fontSize: 16, fontWeight: 'bold', marginTop: SPACING.sm, textAlign: 'center' }}>
         {t('transcribe.whileWaiting') || "While you're waiting..."}
       </Text>
       {!!status && (
@@ -43,16 +47,22 @@ export function WaitingCard({ status }: { status?: string }) {
         size="md"
         // Explicit height: an unsized Button inside this centered container
         // balloons to fill it (AnimatedPressable's inner surface uses flexGrow).
-        style={{ marginTop: SPACING.xl, height: 44 }}
+        style={{ marginTop: SPACING.lg, height: 44 }}
         onPress={() => {
           haptics.tap();
+          // Confirm before leaving: transcription is still running behind this
+          // card, so the tap shouldn't yank them out of the app unannounced.
           dialog.show({
-            title: t('transcribe.watchAd') || 'Watch a quick Ad',
-            message: t('transcribe.supportDesc') || 'This would play a short ad to support development.',
+            title: t('transcribe.supportMe') || 'Support me!',
+            message: t('transcribe.supportDesc'),
+            icon: 'favorite',
+            iconTone: 'primary',
+            secondaryAction: { label: t('transcribe.supportCancel') || 'Maybe later', onPress: () => {} },
+            primaryAction: { label: t('settings.supportButton') || 'Buy a coffee', onPress: openSupportPage },
           });
         }}
       >
-        {t('transcribe.watchAd') || 'Watch a quick Ad'}
+        {t('transcribe.supportMe') || 'Support me!'}
       </Button>
     </ScrollView>
     </Animated.View>
