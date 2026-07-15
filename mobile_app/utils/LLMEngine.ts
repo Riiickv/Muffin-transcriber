@@ -134,16 +134,64 @@ function extractFormatterOutput(output: string): string {
   return text.trim();
 }
 
+// Fragments that only ever appear in OUR prompt, never in a real transcript.
+// A small model handed a short or meaningless transcript sometimes has nothing
+// to do and drifts into reciting its own instructions instead — and the user
+// then reads the prompt in the "Formatted" tab, which looks like the app is
+// broken (it is). Checked case-insensitively against the model's output.
+const PROMPT_ECHO_MARKERS = [
+  'work only with the transcript above',
+  'reply only with the final result',
+  'process the transcript now',
+  'summarize the transcript now',
+  'you are a precise text-processing assistant',
+  'ensure you use the correct spelling and context',
+  'do not wrap the output in quotes',
+  'transcript:',
+  'rules:',
+  'task:',
+];
+
+/**
+ * The few-shot examples in the memory-extraction prompt.
+ *
+ * Named, because they are ALSO the blocklist. Given a transcript with nothing
+ * personal in it, the model happily returns these three examples verbatim as
+ * "the user's memories" — and they then get saved and injected into every
+ * future format/summarize prompt as if they were facts about the user. Keep
+ * the prompt and the filter reading from this one list so they can't drift.
+ */
+export const PROMPT_EXAMPLE_MEMORIES = [
+  'likes black coffee',
+  'allergic to peanuts',
+  'works in marketing',
+];
+
+/** True if the model regurgitated the prompt instead of doing the work. */
+export function echoesPrompt(output: string): boolean {
+  const lower = output.toLowerCase();
+  return PROMPT_ECHO_MARKERS.some((m) => lower.includes(m));
+}
+
 function looksUnstable(formatted: string, raw: string): boolean {
   if (!formatted) return true;
   const lower = formatted.toLowerCase();
   const suspicious = ['fromnowformat', 'reface', 'takect', 'obey obey', 'ipsumudo'];
   if (suspicious.some((m) => lower.includes(m))) return true;
   if (formatted.length > Math.max(3000, raw.length * 3)) return true;
+  // The old size check couldn't catch this: an echoed prompt is neither huge
+  // nor obviously garbled, so it sailed through and got shown to the user.
+  if (echoesPrompt(formatted)) return true;
   return false;
 }
 
 export async function formatTranscript(transcript: string, modelPath: string, modelFile: string): Promise<string> {
+  // Nothing to punctuate in a handful of words, and a model given a degenerate
+  // transcript ("TRASH!") has no work to do — which is exactly when it starts
+  // reciting the prompt back. summarizeTranscript already refused short input;
+  // formatting never did.
+  if (transcript.trim().split(/\s+/).length < 4) return transcript;
+
   await loadLLM(modelPath);
   if (!llamaContext) throw new Error("LLM not loaded");
   
@@ -216,8 +264,12 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
     n_predict: 1024,
     temperature: 0.3,
   });
-  
-  return extractFormatterOutput(result.text) || "Summary failed.";
+
+  const summary = extractFormatterOutput(result.text);
+  // Same failure as formatting: better to say the summary failed than to print
+  // our own instructions and call them a summary.
+  if (!summary || echoesPrompt(summary)) return "Summary failed.";
+  return summary;
 }
 
 export async function extractMemories(transcript: string, modelPath: string, modelFile: string): Promise<void> {
@@ -229,8 +281,9 @@ export async function extractMemories(transcript: string, modelPath: string, mod
   
   const task = `TASK: Act as a user profiling engine. Extract ONLY specific data related to the user, their preferences, likes, dislikes, habits, and important factual details about their life from the transcript.
 1. Ignore common words, transcription artifacts (like "transcription" or "test"), greetings, and general conversation.
-2. Only extract information that would be useful to remember as a personal profile of the user (e.g., "likes black coffee", "allergic to peanuts", "works in marketing").
-3. Return ONLY a valid JSON array of strings, like ["likes black coffee", "works in marketing"]. If nothing uniquely valuable about the user is found, return [].`;
+2. Only extract information that would be useful to remember as a personal profile of the user (e.g., ${PROMPT_EXAMPLE_MEMORIES.map((m) => `"${m}"`).join(', ')}).
+3. Return ONLY a valid JSON array of strings. If nothing uniquely valuable about the user is found, return [].
+4. NEVER return the examples above unless the transcript genuinely says so.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   try {
@@ -250,6 +303,14 @@ export async function extractMemories(transcript: string, modelPath: string, mod
       for (const item of parsed) {
         if (typeof item === 'string' && item.trim().length > 2) {
           const trimmed = item.trim();
+          // Drop the prompt's own examples: the model returns them verbatim
+          // when the transcript has nothing personal in it, and a fabricated
+          // "fact" about the user is worse than no memory at all — it gets fed
+          // to every later prompt as if it were true.
+          const isExample = PROMPT_EXAMPLE_MEMORIES.some(
+            (ex) => ex.toLowerCase() === trimmed.toLowerCase()
+          );
+          if (isExample || echoesPrompt(trimmed)) continue;
           if (!next.some(m => m.text.toLowerCase() === trimmed.toLowerCase())) {
             next.unshift({
               id: Date.now().toString() + Math.random().toString(36).substr(2, 5),

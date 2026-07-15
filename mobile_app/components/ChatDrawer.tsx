@@ -1,15 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated,
+import React, { useEffect, useState } from 'react';
+import { FlatList, Modal, Pressable, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import Animated, {
   Easing,
-  FlatList,
-  Modal,
-  Pressable,
-  StyleSheet,
-  TextInput,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from './Themed';
@@ -19,7 +16,7 @@ import { IconButton } from './IconButton';
 import { AnimatedPressable } from './AnimatedPressable';
 import { useDialog } from './Dialog';
 import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
-import { ChatSession, deleteChatSession, renameChatSession } from '@/utils/chatStore';
+import { ChatSession, renameChatSession } from '@/utils/chatStore';
 import { formatRelativeTime } from '@/utils/format';
 import { t } from '@/utils/i18n';
 
@@ -29,9 +26,16 @@ interface ChatDrawerProps {
   chats: ChatSession[];
   activeChatId: string | null;
   onSelectChat: (id: string) => void;
+  /**
+   * Deleting is the SCREEN's decision, not the drawer's: if the deleted chat is
+   * the open one, something else has to become active. The drawer used to call
+   * deleteChatSession() itself, so the screen never found out and carried on
+   * showing the messages of a chat that no longer existed.
+   */
+  onDeleteChat: (id: string) => void;
 }
 
-export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectChat }: ChatDrawerProps) {
+export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectChat, onDeleteChat }: ChatDrawerProps) {
   const { theme } = useTheme();
   const dialog = useDialog();
   const insets = useSafeAreaInsets();
@@ -41,7 +45,7 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
   // Mounted only while open (or animating closed) — a permanently-composited
   // full-screen overlay costs frames on every chat render.
   const [rendered, setRendered] = useState(isVisible);
-  const progress = useRef(new Animated.Value(0)).current;
+  const progress = useSharedValue(0);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -50,36 +54,27 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
     if (isVisible) {
       setRendered(true);
       // Material standard: decelerate in...
-      Animated.timing(progress, {
-        toValue: 1,
-        duration: MOTION.timingBase.duration,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }).start();
+      progress.value = withTiming(1, { duration: MOTION.timingBase.duration, easing: Easing.out(Easing.cubic) });
     } else {
       // ...accelerate out, then unmount.
-      Animated.timing(progress, {
-        toValue: 0,
-        duration: MOTION.timingQuick.duration,
-        easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) setRendered(false);
-      });
+      progress.value = withTiming(
+        0,
+        { duration: MOTION.timingQuick.duration, easing: Easing.in(Easing.cubic) },
+        (finished) => {
+          if (finished) runOnJS(setRendered)(false);
+        }
+      );
       setEditingId(null);
     }
   }, [isVisible, progress]);
 
-  if (!rendered) return null;
+  const drawerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: -drawerWidth + progress.value * drawerWidth }],
+  }));
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value * 0.45 }));
 
-  const translateX = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-drawerWidth, 0],
-  });
-  const backdropOpacity = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 0.45],
-  });
+  // After the hooks — calling them conditionally would break the hook order.
+  if (!rendered) return null;
 
   const handleRename = async (id: string) => {
     const trimmed = editTitle.trim();
@@ -92,13 +87,13 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
   const handleDelete = (id: string) => {
     const target = chats.find((c) => c.id === id);
     dialog.show({
-      title: t('dialog.clearChat.title') || 'Delete Chat?',
-      message: target ? `"${target.title}" ${t('dialog.deleteChatTarget') || 'will be permanently deleted.'}` : (t('dialog.deleteChatFallback') || 'This chat will be permanently deleted.'),
+      title: t('dialog.deleteChat.title') || 'Delete Chat?',
+      message: target ? `"${target.title}" ${t('dialog.deleteChat.messageNamed') || 'will be permanently deleted.'}` : (t('dialog.deleteChat.messageFallback') || 'This chat will be permanently deleted.'),
       icon: 'warning',
       iconTone: 'danger',
       buttons: [
         { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
-        { label: t('dialog.confirmDelete.delete') || 'Delete', variant: 'danger', onPress: () => deleteChatSession(id) },
+        { label: t('dialog.confirmDelete.delete') || 'Delete', variant: 'danger', onPress: () => onDeleteChat(id) },
       ],
     });
   };
@@ -186,7 +181,7 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: backdropOpacity }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }, backdropStyle]}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Close chat list" />
       </Animated.View>
 
@@ -198,8 +193,8 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
             backgroundColor: theme.background,
             paddingTop: insets.top,
             paddingBottom: insets.bottom,
-            transform: [{ translateX }],
           },
+          drawerStyle,
         ]}
       >
         <View style={styles.header}>
@@ -258,7 +253,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 22,
-    fontFamily: 'Nunito-Bold',
+    fontWeight: 'bold',
   },
   list: {
     paddingHorizontal: SPACING.sm,

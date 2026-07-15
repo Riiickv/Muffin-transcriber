@@ -15,6 +15,8 @@ import { ThemeProvider as CustomThemeProvider, useTheme } from '@/components/The
 import { DialogProvider } from '@/components/Dialog';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useShareIntent } from 'expo-share-intent';
+import { useSettings } from '@/utils/settingsStore';
+import { setAppLanguage } from '@/utils/i18n';
 import { useRouter } from 'expo-router';
 
 export {
@@ -64,6 +66,15 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const { theme } = useTheme();
+  const { settings } = useSettings();
+
+  // t() is a plain function reading a module-level language, not a hook, so
+  // changing the language re-renders nothing on its own. Apply it BEFORE this
+  // render's children read any string, then key the tree on it: React throws
+  // the old tree away and rebuilds it, so every t() in the app re-runs. A
+  // remount is heavy-handed, but language changes about once in an app's life
+  // and the alternative is half the screens keeping their old text.
+  setAppLanguage(settings.appLanguage);
 
   const customNavigationTheme = {
     ...(theme.isDark ? DarkTheme : DefaultTheme),
@@ -91,7 +102,7 @@ function RootLayoutNav() {
   }, [hasShareIntent, shareIntent, resetShareIntent]);
 
   return (
-    <ThemeProvider value={customNavigationTheme}>
+    <ThemeProvider value={customNavigationTheme} key={settings.appLanguage}>
       {/* Status bar icons must invert with the app theme, not the OS theme. */}
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
       <Stack>

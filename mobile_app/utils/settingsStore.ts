@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPersistentStore } from './persistentStore';
+import type { AppLanguage } from './i18n';
 
 const SETTINGS_KEY = 'muffin.settings.v1';
 
@@ -17,6 +18,8 @@ export interface Settings {
   customSummarySystemPrompt: string;
   enableContextLearning: boolean;
   preferredChatModel: string;
+  /** UI language. 'auto' follows the phone. See utils/i18n.ts. */
+  appLanguage: AppLanguage;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -33,6 +36,10 @@ export const DEFAULT_SETTINGS: Settings = {
   customSummarySystemPrompt: '',
   enableContextLearning: false,
   preferredChatModel: '',
+  // 'auto' so an Italian phone opens in Italian without anyone hunting for
+  // a setting. Existing installs hydrate over these defaults, so they get
+  // 'auto' too rather than being pinned to English.
+  appLanguage: 'auto',
 };
 
 // Model ids that changed in the catalog (e.g. quant swaps) — remap stale

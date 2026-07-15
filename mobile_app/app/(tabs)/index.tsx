@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '@/components/Themed';
@@ -8,7 +8,7 @@ import ExpressiveSwitch from '@/components/ExpressiveSwitch';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { RADIUS, SPACING } from '@/constants/tokens';
+import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
@@ -32,11 +32,14 @@ import { t } from '@/utils/i18n';
 
 type TranscriptTab = 'raw' | 'formatted' | 'summary';
 
-const TRANSCRIPT_TABS = [
+// A function, not a const: built at module scope these labels would be
+// evaluated once at import and keep the language the app started in, so
+// switching language left Raw/Formatted/Summary in the old one.
+const getTranscriptTabs = (): readonly { key: TranscriptTab; label: string }[] => [
   { key: 'raw', label: t('transcribe.rawTab') || 'Raw' },
   { key: 'formatted', label: t('transcribe.formattedTab') || 'Formatted' },
   { key: 'summary', label: t('transcribe.summaryTab') || 'Summary' },
-] as const satisfies readonly { key: TranscriptTab; label: string }[];
+];
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -262,11 +265,24 @@ export default function HomeScreen() {
 
   return (
     <KeyboardScreen>
-    <FadeInView index={0} style={[styles.container, { backgroundColor: theme.background }]}>
+    <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>
+      {/* A ScrollView with flexGrow:1 on its content, NOT a plain View: when
+          everything fits (the normal phone case) the content is exactly one
+          screen tall and there is nothing to scroll, so this still behaves as
+          the fixed page it's meant to be. When it does NOT fit — short screen,
+          large system font, big display-size setting — the page scrolls instead
+          of quietly cutting the Transcript card off the bottom. RN children
+          don't shrink by default, so without this the overflow is unreachable. */}
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
       {/* Formatting card first — configure once, then hit Transcribe. */}
-      <Card style={{ marginBottom: SPACING.lg }}>
+      <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <View style={styles.switchRow}>
-          <Text style={styles.label}>{t('settings.formatByDefault') || 'Format'}</Text>
+          <Text style={styles.label}>{t('transcribe.formatToggle') || 'Format'}</Text>
           <ExpressiveSwitch
             value={settings.formatByDefault}
             onValueChange={(v) => setSetting('formatByDefault', v)}
@@ -275,7 +291,7 @@ export default function HomeScreen() {
           />
         </View>
         <View style={styles.switchRow}>
-          <Text style={styles.label}>{t('settings.summarizeByDefault') || 'Summarize'}</Text>
+          <Text style={styles.label}>{t('transcribe.summarizeToggle') || 'Summarize'}</Text>
           <ExpressiveSwitch
             value={settings.summarizeByDefault}
             onValueChange={(v) => setSetting('summarizeByDefault', v)}
@@ -286,9 +302,10 @@ export default function HomeScreen() {
 
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <Text style={styles.label}>{t('settings.preferredFormatter') || 'Formatter Model'}</Text>
+            <Text style={styles.label}>{t('transcribe.formatterModelLabel') || 'Formatter Model'}</Text>
             <SelectDropdown
               options={formatterOptions}
+              fieldLabel={t('transcribe.formatterModelLabel') || 'Formatter Model'}
               value={settings.preferredFormatterModel}
               onSelect={(val) => setSetting('preferredFormatterModel', val)}
               placeholder="Not Set"
@@ -296,9 +313,10 @@ export default function HomeScreen() {
           </View>
           <View style={styles.gutter} />
           <View style={styles.flex1}>
-            <Text style={styles.label}>{t('settings.formatLanguage') || 'Format Language'}</Text>
+            <Text style={styles.label}>{t('transcribe.formatLanguageLabel') || 'Format Language'}</Text>
             <SelectDropdown
               options={FORMAT_LANGUAGE_OPTIONS}
+              fieldLabel={t('transcribe.formatLanguageLabel') || 'Format Language'}
               value={settings.formatLanguage}
               onSelect={(val) => setSetting('formatLanguage', val)}
               placeholder="Original"
@@ -319,12 +337,13 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      <Card style={{ marginBottom: SPACING.lg }}>
+      <Card index={1} style={{ marginBottom: SPACING.lg }}>
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <Text style={styles.label}>{t('settings.defaultLanguage') || 'Language'}</Text>
+            <Text style={styles.label}>{t('transcribe.languageLabel') || 'Language'}</Text>
             <SelectDropdown
               options={dynamicLanguageOptions}
+              fieldLabel={t('transcribe.languageLabel') || 'Language'}
               value={settings.defaultLanguage}
               onSelect={(val) => setSetting('defaultLanguage', val)}
               placeholder="Auto-Detect"
@@ -332,9 +351,10 @@ export default function HomeScreen() {
           </View>
           <View style={styles.gutter} />
           <View style={styles.flex1}>
-            <Text style={styles.label}>{t('settings.whisperModel') || 'Whisper Model'}</Text>
+            <Text style={styles.label}>{t('transcribe.whisperModelLabel') || 'Whisper Model'}</Text>
             <SelectDropdown
               options={whisperOptions}
+              fieldLabel={t('transcribe.whisperModelLabel') || 'Whisper Model'}
               value={settings.preferredWhisperModel}
               onSelect={(val) => setSetting('preferredWhisperModel', val)}
               placeholder="Not Set"
@@ -362,13 +382,16 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      <Card style={{ flex: 1 }}>
+      {/* minHeight matters now that this sits in a scroll container: `flex: 1`
+          is flexBasis:0%, so with no free space to grow into the card would
+          collapse to zero instead of pushing the page taller. */}
+      <Card index={2} style={{ flex: 1, minHeight: 260 }}>
         <Text style={styles.sectionTitle}>{t('transcribe.transcriptTitle') || 'Transcript'}</Text>
 
         <View style={styles.tabRow}>
           <SegmentedControl
             style={{ flex: 1, marginRight: SPACING.md }}
-            segments={TRANSCRIPT_TABS}
+            segments={getTranscriptTabs()}
             value={transcriptTab}
             onChange={setTranscriptTab}
           />
@@ -398,15 +421,22 @@ export default function HomeScreen() {
           />
         )}
       </Card>
+      </ScrollView>
     </FadeInView>
     </KeyboardScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+  },
+  // Content container: flexGrow (not flex) so it fills a tall screen but is
+  // free to exceed a short one and scroll.
+  container: {
+    flexGrow: 1,
     padding: SPACING.lg,
+    paddingBottom: TAB_BAR_SPACE,
   },
   row: {
     flexDirection: 'row',

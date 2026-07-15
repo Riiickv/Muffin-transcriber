@@ -30,18 +30,23 @@ import { haptics } from '@/utils/haptics';
 import { useDialog, DialogCard } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t } from '@/utils/i18n';
+import { useResponsive } from '@/hooks/useResponsive';
 
 type TranscriptTab = 'raw' | 'formatted' | 'summary';
 
-const TRANSCRIPT_TABS = [
+// A function, not a const: built at module scope these labels would be
+// evaluated once at import and keep the language the app started in, so
+// switching language left Raw/Formatted/Summary in the old one.
+const getTranscriptTabs = (): readonly { key: TranscriptTab; label: string }[] => [
   { key: 'raw', label: t('transcribe.rawTab') || 'Raw' },
   { key: 'formatted', label: t('transcribe.formattedTab') || 'Formatted' },
   { key: 'summary', label: t('transcribe.summaryTab') || 'Summary' },
-] as const satisfies readonly { key: TranscriptTab; label: string }[];
+];
 
 export default function HistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
+  const { contentWidth } = useResponsive();
   const { items, addOrUpdate } = useHistory();
   const item = items.find((h) => h.id === id);
   const { settings, setSetting } = useSettings();
@@ -115,11 +120,11 @@ export default function HistoryDetailScreen() {
 
   const handleReTranscribe = async () => {
     if (!item?.sourceFilePath) {
-      dialog.show({ title: t('dialog.noAudio.title') || 'No audio file', message: t('dialog.noAudioReTranscribe.message') || 'This transcript has no associated audio file to re-transcribe.', icon: 'warning' });
+      dialog.show({ title: t('dialog.noAudio.title') || 'No audio file', message: t('dialog.noAudio.messageReTranscribe') || 'This transcript has no associated audio file to re-transcribe.', icon: 'warning' });
       return;
     }
     if (!settings.preferredWhisperModel) {
-      dialog.show({ title: t('dialog.noWhisperModel.title') || 'No Whisper model', message: t('dialog.noFormatterModel.message') || 'Pick one on the Home tab.', icon: 'warning' });
+      dialog.show({ title: t('dialog.noWhisperModel.title') || 'No Whisper model', message: t('dialog.noWhisperModel.messagePickOne') || 'Pick one on the Home tab.', icon: 'warning' });
       return;
     }
     haptics.tap();
@@ -134,7 +139,7 @@ export default function HistoryDetailScreen() {
 
       const isDownloaded = await ModelManager.isModelDownloaded(settings.preferredWhisperModel);
       if (!isDownloaded) {
-        dialog.show({ title: t('dialog.modelNotDownloaded.title') || 'Model not downloaded', message: t('dialog.modelNotDownloaded.message') || 'Go to Settings → Models to download the Whisper model.', icon: 'download' });
+        dialog.show({ title: t('dialog.modelNotDownloaded.title') || 'Model not downloaded', message: t('dialog.modelNotDownloaded.messageWhisper') || 'Go to Settings → Models to download the Whisper model.', icon: 'download' });
         return;
       }
       const whisperPath = ModelManager.getModelPath(settings.preferredWhisperModel);
@@ -300,10 +305,20 @@ export default function HistoryDetailScreen() {
 
   return (
     <KeyboardScreen>
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    {/* Capped: sceneStyle only covers tabs, and this is a pushed screen. */}
+    <View style={[styles.root, { backgroundColor: theme.background }, { maxWidth: contentWidth, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: item?.sourceFileName?.replace(/\.[^/.]+$/, "") ?? (t('transcribe.transcriptTitle') || 'Transcript') }} />
 
-      <Card style={{ marginBottom: SPACING.lg }}>
+      {/* Scrolls only when it has to — see the note on the Transcribe tab.
+          Fixed page on a normal screen, reachable content on a short one. */}
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+
+      <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <Text style={styles.title}>{item?.sourceFileName?.replace(/\.[^/.]+$/, "") || `${t('transcribe.noTitle') || 'Voice Memo'} ${id}`}</Text>
         <Text style={[styles.subtitle, { color: theme.textMuted }]}>{dateStr}</Text>
 
@@ -324,7 +339,7 @@ export default function HistoryDetailScreen() {
         </View>
       </Card>
 
-      <Card style={{ marginBottom: SPACING.lg }}>
+      <Card index={1} style={{ marginBottom: SPACING.lg }}>
         <View style={styles.actionsRow}>
           <View style={styles.flex1}>
             <Button
@@ -370,7 +385,7 @@ export default function HistoryDetailScreen() {
 
         <View style={styles.row}>
           <View style={styles.flex1}>
-            <Text style={styles.label}>{t('settings.whisperModel') || 'Whisper Model'}</Text>
+            <Text style={styles.label}>{t('historyDetail.whisperModelLabel') || 'Whisper Model'}</Text>
             <SelectDropdown
               options={whisperOptions}
               value={settings.preferredWhisperModel}
@@ -380,7 +395,7 @@ export default function HistoryDetailScreen() {
           </View>
           <View style={styles.gutter} />
           <View style={styles.flex1}>
-            <Text style={styles.label}>{t('settings.preferredFormatter') || 'Formatter Model'}</Text>
+            <Text style={styles.label}>{t('historyDetail.formatterModelLabel') || 'Formatter Model'}</Text>
             <SelectDropdown
               options={formatterOptions}
               value={settings.preferredFormatterModel}
@@ -406,13 +421,15 @@ export default function HistoryDetailScreen() {
         </View>
       </Card>
 
-      <Card style={{ flex: 1 }}>
+      {/* minHeight: `flex: 1` is flexBasis:0%, so inside a scroll container
+          with no free space this card would collapse to zero. */}
+      <Card index={2} style={{ flex: 1, minHeight: 260 }}>
         <Text style={styles.sectionTitle}>{t('transcribe.transcriptTitle') || 'Transcript'}</Text>
 
         <View style={styles.tabRow}>
           <SegmentedControl
             style={{ flex: 1, marginRight: SPACING.md }}
-            segments={TRANSCRIPT_TABS}
+            segments={getTranscriptTabs()}
             value={transcriptTab}
             onChange={setTranscriptTab}
           />
@@ -439,12 +456,16 @@ export default function HistoryDetailScreen() {
               }
             />
           ) : (
-            <ScrollView>
+            /* nestedScrollEnabled: this ScrollView now lives inside the
+               page ScrollView, and on Android a nested same-axis scroller
+               doesn't receive drags without it. */
+            <ScrollView nestedScrollEnabled>
               {renderHighlightedText()}
             </ScrollView>
           )}
         </View>
       </Card>
+      </ScrollView>
 
       {/* Uses DialogCard directly, not dialog.show, because it needs a live TextInput. */}
       <DialogCard
@@ -473,8 +494,13 @@ export default function HistoryDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
+  },
+  // Content container: flexGrow (not flex) so it fills a tall screen but may
+  // exceed a short one and scroll.
+  container: {
+    flexGrow: 1,
     padding: SPACING.lg,
   },
   title: {

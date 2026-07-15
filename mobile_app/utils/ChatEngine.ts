@@ -32,7 +32,15 @@ export async function loadChatLLM(modelPath: string): Promise<void> {
     if (llamaContext) await unloadChatLLM();
     const init = getInitLlama();
     llamaContext = await init({
-      n_ctx: 4096,
+      // 8192, not 4096: the system prompt alone (persona + tools + every app
+      // setting + the transcript index + RAG context) measured ~5000 tokens,
+      // so 4096 overflowed before the user had typed anything and llama.cpp
+      // silently dropped the front of the prompt. Trimming the RAG context got
+      // it back under, but with no headroom for a long conversation — the same
+      // failure would return a few turns in. Llama 3.2 and Phi-3 both handle
+      // far more than this; the cost is KV cache memory, which at 1B–3.8B is
+      // affordable.
+      n_ctx: 8192,
       model: modelPath,
       // Bounded threads, same as LLMEngine. See the note there before adding
       // cache/flash-attn options: they hard-fail init on OpenCL devices.
@@ -161,6 +169,7 @@ CRITICAL RULES:
 2. Refer to a transcript by its exact <name> so the UI can link it — say "In the transcript called Meeting Notes..." not "In the latest transcript...".
 3. Never make things up. If you don't know, say so.
 4. Use the exact transcript ID from <history_index> when deleting.
+5. You can operate this app through <tools>. If the user asks for something a tool covers, DO it by emitting the tool_call — never answer that you are unable to.
 
 ${TOOL_INSTRUCTIONS}
 
@@ -232,20 +241,35 @@ export async function chatStream(
   
   let contextText = "No relevant transcripts found.";
   if (searchResults.length > 0) {
+    const truncate = (text: string, limit: number) =>
+      text.length > limit ? text.substring(0, limit) + "... (truncated)" : text;
+
     contextText = searchResults.map(item => {
-      const sum = item.summary || 'None';
-      const form = item.formattedTranscript || 'None';
-      const raw = item.rawTranscript || 'None';
-      
-      const truncate = (text: string, limit: number) => text.length > limit ? text.substring(0, limit) + "... (truncated)" : text;
-      
+      // ONE body variant, not three.
+      //
+      // This used to send summary(1000) + formatted(2000) + raw(2000) chars for
+      // each of 3 transcripts — ~3900 tokens of THE SAME WORDS three times over.
+      // Against n_ctx 4096 that alone blew the window: ~5000 tokens of system
+      // prompt before the history index, memories or the conversation even
+      // arrived. llama.cpp then drops the FRONT of the prompt — exactly where
+      // the persona and <tools> live — so the model lost the instructions
+      // telling it what it could do, and answered "I can't perform that action"
+      // to everything, including "Why".
+      //
+      // Formatted is the same words as raw, just punctuated, so it's strictly
+      // the better one to send; raw is only the fallback when formatting hasn't
+      // run. The summary stays because it's short and it's what answers "what
+      // was that about".
+      const body = item.formattedTranscript || item.rawTranscript || 'None';
+      const summaryLine = item.summary
+        ? `\n  <variant_summary>${truncate(item.summary, 400)}</variant_summary>`
+        : '';
+
       return `<transcript>
   <name>${item.sourceFileName.replace(/\.[^/.]+$/, "")}</name>
   <id>${item.id}</id>
-  <created_at>${new Date(item.timestampISO).toLocaleString()}</created_at>
-  <variant_summary>${truncate(sum, 1000)}</variant_summary>
-  <variant_formatted>${truncate(form, 2000)}</variant_formatted>
-  <variant_raw>${truncate(raw, 2000)}</variant_raw>
+  <created_at>${new Date(item.timestampISO).toLocaleString()}</created_at>${summaryLine}
+  <text>${truncate(body, 1200)}</text>
 </transcript>`;
     }).join('\n');
   }

@@ -13,9 +13,11 @@ import { useMemory } from '@/utils/memoryStore';
 import { haptics } from '@/utils/haptics';
 import { useDialog } from '@/components/Dialog';
 import { t } from '@/utils/i18n';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function MemoryScreen() {
   const { theme } = useTheme();
+  const { contentWidth } = useResponsive();
   const { items, addMemory, updateMemory, deleteMemory } = useMemory();
   const dialog = useDialog();
   const [newMemory, setNewMemory] = useState('');
@@ -41,7 +43,7 @@ export default function MemoryScreen() {
 
   const confirmDelete = (id: string, text: string) => {
     dialog.show({
-      title: t('settings.deleteMemory') || 'Delete Memory?',
+      title: t('settings.deleteMemoryTitle') || 'Delete Memory?',
       message: `${t('dialog.confirmDelete.message')} "${text}"?`,
       icon: 'warning',
       iconTone: 'danger',
@@ -61,7 +63,8 @@ export default function MemoryScreen() {
 
   return (
     <KeyboardScreen offset={90}>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Capped: sceneStyle only covers tabs, and this is a pushed screen. */}
+      <View style={[styles.container, { backgroundColor: theme.background }, { maxWidth: contentWidth, width: '100%', alignSelf: 'center' }]}>
         <Stack.Screen options={{ title: t('settings.manageMemory') || 'Manage Memory' }} />
 
         <Card style={styles.addCard}>
@@ -129,7 +132,7 @@ export default function MemoryScreen() {
                     size="sm"
                     icon="delete"
                     onPress={() => confirmDelete(item.id, item.text)}
-                    accessibilityLabel={t('settings.deleteMemory') || 'Delete memory'}
+                    accessibilityLabel={t('settings.deleteMemoryAction') || 'Delete memory'}
                   />
                 )}
               </View>

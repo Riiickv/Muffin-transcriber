@@ -31,3 +31,13 @@ export const MOTION = {
 } as const;
 
 export const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
+
+/**
+ * Vertical space the floating tab bar occupies.
+ *
+ * Reserve this at the bottom of a screen's CONTENT (contentContainerStyle on a
+ * ScrollView/FlatList, or padding on a fixed layout) — never on the scene
+ * itself. Putting it on the scene shrinks the viewport, so scrollable content
+ * stops dead above the bar and gets clipped instead of passing underneath it.
+ */
+export const TAB_BAR_SPACE = 84;
