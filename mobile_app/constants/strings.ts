@@ -199,6 +199,9 @@ export const APP_STRINGS = {
     // Shown when the chat model file exists but cannot be loaded (usually a
     // download that got cut off before this app version).
     modelLoadFailed: "The chat model file looks incomplete or damaged. Delete it in Settings > Models, then download it again.",
+    // Shown with real numbers when the file on disk is smaller than the download should be.
+    modelBrokenTitle: "Chat model incomplete",
+    modelBrokenMessage: "The model file is {actual} but should be about {expected}. The download was interrupted. Delete it in Settings > Models, then download it again and stay on that screen until it finishes.",
 
     // -- Shown when no chat model is picked yet --
     noModelSelected: "No Chat Model Selected",

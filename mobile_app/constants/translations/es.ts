@@ -115,6 +115,8 @@ export const ES = {
     errorMessage: "Lo siento, algo ha salido mal. Esto es lo que dice la app:",
     noMemory: "No he podido recordar nada relevante.",
     modelLoadFailed: "El archivo del modelo de chat parece incompleto o dañado. Elimínalo en Ajustes > Modelos y descárgalo de nuevo.",
+    modelBrokenTitle: "Modelo de chat incompleto",
+    modelBrokenMessage: "El archivo del modelo ocupa {actual} pero debería ocupar unos {expected}. La descarga se interrumpió. Elimínalo en Ajustes > Modelos, descárgalo de nuevo y quédate en esa pantalla hasta que termine.",
 
     noModelSelected: "Ningún modelo de chat seleccionado",
     noModelSubtitle: "Ve a Ajustes y selecciona un modelo de chat para usar el asistente.",

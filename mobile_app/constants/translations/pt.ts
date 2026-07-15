@@ -115,6 +115,8 @@ export const PT = {
     errorMessage: "Desculpa, algo correu mal. Isto é o que a app diz:",
     noMemory: "Não consegui lembrar-me de nada relevante.",
     modelLoadFailed: "O ficheiro do modelo de chat parece incompleto ou danificado. Elimina-o em Definições > Modelos e transfere-o de novo.",
+    modelBrokenTitle: "Modelo de chat incompleto",
+    modelBrokenMessage: "O ficheiro do modelo tem {actual} mas devia ter cerca de {expected}. A transferência foi interrompida. Elimina-o em Definições > Modelos, transfere-o de novo e fica nesse ecrã até terminar.",
 
     noModelSelected: "Nenhum modelo de chat selecionado",
     noModelSubtitle: "Vai às Definições e seleciona um modelo de chat para usares o assistente.",

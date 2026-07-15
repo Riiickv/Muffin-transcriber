@@ -115,6 +115,8 @@ export const DE = {
     errorMessage: "Sorry, etwas ist schiefgelaufen. Das sagt die App:",
     noMemory: "Ich konnte mich an nichts Passendes erinnern.",
     modelLoadFailed: "Die Chat-Modell-Datei scheint unvollständig oder beschädigt zu sein. Lösche sie unter Einstellungen > Modelle und lade sie erneut herunter.",
+    modelBrokenTitle: "Chat-Modell unvollständig",
+    modelBrokenMessage: "Die Modelldatei ist {actual} groß, sollte aber etwa {expected} sein. Der Download wurde unterbrochen. Lösche sie unter Einstellungen > Modelle, lade sie erneut herunter und bleib auf dem Bildschirm, bis es fertig ist.",
 
     noModelSelected: "Kein Chat-Modell ausgewählt",
     noModelSubtitle: "Geh in die Einstellungen und wähle ein Chat-Modell, um den Assistenten zu nutzen.",
