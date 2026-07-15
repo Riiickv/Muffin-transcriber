@@ -139,6 +139,7 @@ export const IT = {
     emptyState: "Puoi chiedermi qualsiasi cosa sulle tue trascrizioni, dimmi solo cosa ti serve!",
     errorMessage: "Scusa, qualcosa è andato storto. Ecco cosa dice l'app:",
     noMemory: "Non sono riuscito a ricordare niente di utile.",
+    modelLoadFailed: "Il file del modello di chat sembra incompleto o danneggiato. Eliminalo in Impostazioni > Modelli e scaricalo di nuovo.",
 
     noModelSelected: "Nessun modello di chat selezionato",
     noModelSubtitle: "Vai nelle Impostazioni e seleziona un modello di chat per usare l'assistente.",

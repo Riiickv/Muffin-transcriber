@@ -169,6 +169,8 @@ export class ModelManager {
 
   static async deleteModel(filename: string) {
     const path = this.getModelPath(filename);
+    // Also sweep a leftover .part from an interrupted download of this model.
+    await FileSystem.deleteAsync(path + '.part', { idempotent: true }).catch(() => {});
     try {
       const info = await FileSystem.getInfoAsync(path);
       if (info.exists) {
@@ -185,9 +187,20 @@ export class ModelManager {
     onProgress: (info: { progress: number, written: number, total: number }) => void
   ) {
     const path = this.getModelPath(filename);
+
+    // Download to a .part file and only promote it to the real name once the
+    // download COMPLETED. It used to write straight to the final path, which
+    // meant any interruption (leaving the screen, connection drop, phone
+    // sleeping) left a truncated .gguf at the real filename. isModelDownloaded
+    // only checks existence, so that stump passed every check in the app - the
+    // Models screen showed it as installed, the picker offered it, Settings
+    // selected it - and llama.cpp then failed on the truncated file with
+    // "Failed to load model" and no hint why. With .part, an interrupted
+    // download simply never becomes "installed".
+    const partPath = path + '.part';
     const downloadResumable = FileSystem.createDownloadResumable(
       url,
-      path,
+      partPath,
       {},
       (downloadProgress) => {
         const written = downloadProgress.totalBytesWritten;
@@ -196,7 +209,17 @@ export class ModelManager {
         onProgress({ progress: Math.max(0, Math.min(1, progress)), written, total });
       }
     );
-    
-    return downloadResumable.downloadAsync();
+
+    return (async () => {
+      const result = await downloadResumable.downloadAsync();
+      // downloadAsync resolves undefined when paused; anything but a 2xx means
+      // the server sent an error page, not a model.
+      if (!result || result.status < 200 || result.status >= 300) {
+        await FileSystem.deleteAsync(partPath, { idempotent: true }).catch(() => {});
+        throw new Error(`Download failed (HTTP ${result ? result.status : 'interrupted'})`);
+      }
+      await FileSystem.moveAsync({ from: partPath, to: path });
+      return result;
+    })();
   }
 }

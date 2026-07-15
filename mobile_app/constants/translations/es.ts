@@ -114,6 +114,7 @@ export const ES = {
     emptyState: "Puedes preguntarme lo que quieras sobre tus transcripciones, ¡solo dime qué necesitas!",
     errorMessage: "Lo siento, algo ha salido mal. Esto es lo que dice la app:",
     noMemory: "No he podido recordar nada relevante.",
+    modelLoadFailed: "El archivo del modelo de chat parece incompleto o dañado. Elimínalo en Ajustes > Modelos y descárgalo de nuevo.",
 
     noModelSelected: "Ningún modelo de chat seleccionado",
     noModelSubtitle: "Ve a Ajustes y selecciona un modelo de chat para usar el asistente.",

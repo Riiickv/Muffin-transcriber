@@ -5,6 +5,7 @@ import { loadHistory, HistoryItem } from './historyStore';
 import { loadMemories } from './memoryStore';
 import { generateEmbedding, cosineSimilarity } from './EmbeddingEngine';
 import { buildCapabilitiesBlock, TOOL_INSTRUCTIONS } from './appCapabilities';
+import { t } from './i18n';
 
 let initLlama: any;
 function getInitLlama() {
@@ -69,8 +70,16 @@ export async function loadChatLLM(modelPath: string): Promise<void> {
         llamaContext = null;
       }
     }
-    // Every size failed, so this is not about memory. Let the real error out.
-    throw lastError;
+    // Every size failed, so this is not about memory: the file itself did not
+    // load. The classic cause is a truncated download from before downloads
+    // went through .part files - it passes the existence check but llama.cpp
+    // rejects it. Tell the user the way out instead of just the symptom.
+    const detail = lastError instanceof Error ? lastError.message : String(lastError);
+    throw new Error(
+      (t('chat.modelLoadFailed') ||
+        'The chat model file looks incomplete or damaged. Delete it in Settings > Models, then download it again.') +
+        ' (' + detail + ')'
+    );
   })();
   loadPromise = p;
 
