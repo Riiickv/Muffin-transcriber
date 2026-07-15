@@ -16,7 +16,7 @@ import { chatStream, ChatMessage } from '@/utils/ChatEngine';
 import { extractMemories, parseModelJson } from '@/utils/LLMEngine';
 import { haptics } from '@/utils/haptics';
 import { useHistory, HistoryItem } from '@/utils/historyStore';
-import { useChats, addChatSession, updateChatMessages, renameChatSession, deleteChatSession, titleFromMessage } from '@/utils/chatStore';
+import { useChats, addChatSession, updateChatMessages, renameChatSession, deleteChatSession, appendActionNote, titleFromMessage } from '@/utils/chatStore';
 import { ChatDrawer } from '@/components/ChatDrawer';
 import { InlineSettingControl } from '@/components/InlineSettingControl';
 import { getSettingSpec } from '@/utils/appCapabilities';
@@ -127,6 +127,14 @@ export default function ChatScreen() {
     setMessages(next.messages || []);
   };
 
+  // Action-result notes are system turns: fed to the model so it knows what its
+  // tool calls actually did, but hidden here — the user already watched the
+  // dialog and the transcript disappear, and MessageBubble would render them as
+  // the assistant talking to itself (anything not role 'user' draws as a bot
+  // bubble). ListEmptyComponent keys off this too, so a chat holding only notes
+  // still shows the empty state.
+  const visibleMessages = useMemo(() => messages.filter((m) => m.role !== 'system'), [messages]);
+
   const activeModel = settings.preferredChatModel || settings.preferredFormatterModel;
 
   const handleSend = async () => {
@@ -206,6 +214,7 @@ export default function ChatScreen() {
             if (tab === 'home') tab = 'index';
             if (tab === 'preferences') tab = 'settings';
             router.push((tab === 'memory' ? '/memory' : `/(tabs)/${tab}`) as any);
+            await appendActionNote(targetChatId, `Opened the ${tab} screen.`);
          } else if (action === 'SET_SETTING' && toolCall.key !== undefined) {
             const spec = getSettingSpec(String(toolCall.key));
             if (spec) {
@@ -223,6 +232,11 @@ export default function ChatScreen() {
                } else {
                   setSetting(spec.key as any, val);
                }
+               await appendActionNote(targetChatId, `Set "${spec.label}" to ${val}.`);
+            } else {
+               // Tell it the key was wrong. Otherwise it insists next turn that
+               // it already did the thing, having no idea the call went nowhere.
+               await appendActionNote(targetChatId, `FAILED: there is no setting called "${toolCall.key}". Use a key from <app_settings>.`);
             }
          }
       };
@@ -235,6 +249,9 @@ export default function ChatScreen() {
       // in a row and leave only the last one on screen — the user would confirm
       // a single delete believing all three were gone, and the other two would
       // vanish silently. One dialog, one list, one decision.
+      // Captured for the dialog callbacks below: they run whenever the user
+      // taps, which may be long after this function has returned.
+      const chatId = targetChatId;
       const isDelete = (a: any) => String(a?.action ?? '').toUpperCase() === 'DELETE_TRANSCRIPT';
       const deleteCalls = actions.filter(isDelete);
       const otherCalls = actions.filter((a) => !isDelete(a));
@@ -263,8 +280,21 @@ export default function ChatScreen() {
             icon: 'delete',
             iconTone: 'danger',
             buttons: [
-              { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
-              { label: t('chat.delete') || 'Delete', variant: 'danger', onPress: () => { deleteItem(targets[0].id); } },
+              {
+                label: t('dialog.confirmDelete.cancel') || 'Cancel',
+                variant: 'secondary',
+                // A cancel is a real outcome. Without it the model believes the
+                // delete went through and says so next turn.
+                onPress: () => { appendActionNote(chatId, `The user CANCELLED deleting "${nameOf(targets[0])}". It still exists.`); },
+              },
+              {
+                label: t('chat.delete') || 'Delete',
+                variant: 'danger',
+                onPress: () => {
+                  deleteItem(targets[0].id);
+                  appendActionNote(chatId, `Deleted the transcript "${nameOf(targets[0])}".`);
+                },
+              },
             ],
           });
         } else if (targets.length > 1) {
@@ -275,11 +305,18 @@ export default function ChatScreen() {
             icon: 'delete',
             iconTone: 'danger',
             buttons: [
-              { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
+              {
+                label: t('dialog.confirmDelete.cancel') || 'Cancel',
+                variant: 'secondary',
+                onPress: () => { appendActionNote(chatId, `The user CANCELLED deleting ${targets.length} transcripts. They all still exist.`); },
+              },
               {
                 label: t('chat.delete') || 'Delete',
                 variant: 'danger',
-                onPress: () => { targets.forEach((tg) => deleteItem(tg.id)); },
+                onPress: () => {
+                  targets.forEach((tg) => deleteItem(tg.id));
+                  appendActionNote(chatId, `Deleted ${targets.length} transcripts: ${targets.map(nameOf).join(', ')}.`);
+                },
               },
             ],
           });
@@ -420,7 +457,7 @@ export default function ChatScreen() {
           <>
             <FlatList 
               ref={flatListRef}
-              data={messages}
+              data={visibleMessages}
               keyExtractor={(item, idx) => item.id ?? idx.toString()}
               contentContainerStyle={styles.chatContainer}
               keyboardShouldPersistTaps="handled"
