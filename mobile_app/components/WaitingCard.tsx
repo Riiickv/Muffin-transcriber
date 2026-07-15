@@ -4,7 +4,6 @@ import { Animated, ScrollView } from 'react-native';
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
 import { Button } from './Button';
-import { MuffinSpinner } from './MuffinSpinner';
 import { useDialog } from './Dialog';
 import { MOTION, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
@@ -12,9 +11,13 @@ import { openSupportPage } from '@/utils/support';
 import { t } from '@/utils/i18n';
 
 // Shown inside the transcript box while transcription/formatting runs:
-// spinner, "While you're waiting...", the current status, and the support
-// button. Transcription is minutes of dead time, which is the one moment
-// someone is genuinely idle and looking at the screen.
+// "While you're waiting...", the current status, and the support button.
+// Transcription is minutes of dead time, which is the one moment someone is
+// genuinely idle and looking at the screen.
+//
+// No spinner by design: the status line already changes as the work moves
+// through its stages (converting -> transcribing -> formatting), which says
+// more than a spinner ever did.
 // A ScrollView so it can never paint outside a short container (RN views
 // don't clip overflowing children).
 export function WaitingCard({ status }: { status?: string }) {
@@ -33,8 +36,7 @@ export function WaitingCard({ status }: { status?: string }) {
       contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.md }}
       showsVerticalScrollIndicator={false}
     >
-      <MuffinSpinner size={40} />
-      <Text style={{ fontSize: 16, fontWeight: 'bold', marginTop: SPACING.sm, textAlign: 'center' }}>
+      <Text style={{ fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>
         {t('transcribe.whileWaiting') || "While you're waiting..."}
       </Text>
       {!!status && (
