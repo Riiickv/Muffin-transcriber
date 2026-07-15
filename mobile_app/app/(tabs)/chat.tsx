@@ -55,13 +55,21 @@ function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
     }
   }
 
-  // Small models narrate the mechanics ("Here is the tool_call:") instead of a
-  // real sentence. The block is invisible to the user, so that text is noise
-  // about nothing - drop it and let the action chip speak. Only when an action
-  // actually parsed: with no action, the text (whatever it is) is the reply.
-  if (actions.length > 0) {
-    cleanText = cleanText.replace(/^here'?s?( is)? the tool[ _-]?calls?:?/i, '').trim();
-  }
+  // Small models narrate the mechanics ("Here is the tool_call:") instead of
+  // writing a sentence. The block itself is never shown, so that text describes
+  // something invisible.
+  //
+  // Stripped UNCONDITIONALLY, not just once a call has parsed: while the reply
+  // streams in token by token the call is still incomplete, so actions is empty
+  // and the guarded version left the user reading "Here is the tool_call:"
+  // followed by raw JSON until the closing tag arrived. No genuine reply ever
+  // contains this phrase, so there is nothing to lose by always removing it.
+  cleanText = cleanText.replace(/^here'?s?( is)? the tool[ _-]?calls?:?/i, '').trim();
+
+  // Same reason: a bare {"action": ...} that hasn't finished streaming isn't
+  // matched as a tool call yet and would render as gibberish. Only anchored to
+  // an "action" key so ordinary prose containing a brace survives.
+  cleanText = cleanText.replace(/\{\s*"?action"?[\s\S]*$/i, '').trim();
 
   return { actions, cleanText };
 }
@@ -83,13 +91,26 @@ export default function ChatScreen() {
   const [activeEntity, setActiveEntity] = useState<any>(null);
   const [actionName, setActionName] = useState('');
 
-  // The list doesn't shrink when the keyboard opens (the composer just slides
-  // up over it), so the newest messages would end up behind the keyboard.
+  // The list's FRAME never shrinks when the keyboard opens - the composer just
+  // slides up over it - so the keyboard simply covers the bottom of the list.
+  // scrollToEnd alone could never fix that: "the end" was still underneath the
+  // keyboard, which is why scrolling up and opening the keyboard hid the newest
+  // messages with no way to reach them.
+  //
+  // Padding the content by the keyboard's height gives those messages somewhere
+  // to go, and THEN scrolling to the end lands them above it.
+  const [kbHeight, setKbHeight] = useState(0);
   useEffect(() => {
-    const sub = Keyboard.addListener('keyboardDidShow', () => {
-      flatListRef.current?.scrollToEnd({ animated: true });
+    const show = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKbHeight(e.endCoordinates?.height ?? 0);
+      // After the padding has been laid out, not before.
+      requestAnimationFrame(() => flatListRef.current?.scrollToEnd({ animated: true }));
     });
-    return () => sub.remove();
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
   }, []);
 
   useEffect(() => {
@@ -532,7 +553,7 @@ export default function ChatScreen() {
               ref={flatListRef}
               data={visibleMessages}
               keyExtractor={(item, idx) => item.id ?? idx.toString()}
-              contentContainerStyle={styles.chatContainer}
+              contentContainerStyle={[styles.chatContainer, { paddingBottom: SPACING.xxl + kbHeight }]}
               keyboardShouldPersistTaps="handled"
               ListEmptyComponent={() => (
                 <View style={[styles.emptyState, { marginTop: SPACING.xxl * 2 }]}>
@@ -795,14 +816,31 @@ const EXECUTED_ACTIONS = new Set([
   'SET_SETTING',
 ]);
 
+// Shown when the model emitted an action that could not be carried out - an
+// invented one, or a setting key that doesn't exist. Rendering nothing at all
+// left an EMPTY bubble on screen, which reads as the app hanging; the honest
+// answer is to say it didn't work.
+function ActionFailedChip({ theme }: { theme: any }) {
+  return (
+    <View style={{ marginTop: 8, padding: 8, backgroundColor: theme.textSubtle + '20', borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
+      <Icon name="warning" size={16} color={theme.textMuted} />
+      <Text style={{ color: theme.textMuted, marginLeft: 6, fontSize: 12, fontWeight: 'bold' }}>
+        {t('chat.actionFailed') || "Couldn't do that"}
+      </Text>
+    </View>
+  );
+}
+
 function renderToolAction(act: any, i: number, theme: any) {
   const a = String(act.action || '').toUpperCase();
   if (a === 'SET_SETTING' || a === 'SHOW_SETTING') {
     const spec = act.key ? getSettingSpec(String(act.key)) : undefined;
-    // No such setting means no control rendered and nothing changed.
-    return spec ? <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} /> : null;
+    // No such setting: no control to render and nothing changed.
+    return spec
+      ? <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} />
+      : <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
-  if (!EXECUTED_ACTIONS.has(a)) return null;
+  if (!EXECUTED_ACTIONS.has(a)) return <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   return (
     <View key={`act-${i}`} style={{ marginTop: 8, padding: 8, backgroundColor: theme.tint + '20', borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
       <Icon name="check-circle" size={16} color={theme.tint} />
@@ -932,6 +970,13 @@ const MessageBubble = React.memo(function MessageBubble({
   const cleanContent = cleanText.replace(/<tool_call>[\s\S]*$/, '').trim();
 
   const plain = isStreamingRow || !hasHistory || searchTerms.length === 0;
+
+  // Nothing to say and nothing to show. Happens when a reply is pure tool_call
+  // and the call itself renders nothing. The styled bubble would still paint,
+  // leaving a blank pill sitting in the thread - so draw no bubble at all. The
+  // streaming row is exempt: it starts empty by definition and the typing
+  // indicator lives there.
+  if (!isStreamingRow && !cleanContent && actions.length === 0) return null;
 
   return (
     <Animated.View style={bubbleStyle}>

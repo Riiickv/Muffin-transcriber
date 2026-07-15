@@ -130,6 +130,7 @@ export const PT = {
     deleteChat: "Eliminar chat",
 
     actionExecuted: "Feito",
+    actionFailed: "Não consegui",
     deleteTitle: "Eliminar a transcrição?",
     deleteMessage: "Eliminar “{name}”? Não dá para desfazer.",
     deleteManyTitle: "Eliminar {count} transcrições?",

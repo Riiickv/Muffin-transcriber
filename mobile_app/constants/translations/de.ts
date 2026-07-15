@@ -130,6 +130,7 @@ export const DE = {
     deleteChat: "Chat löschen",
 
     actionExecuted: "Fertig",
+    actionFailed: "Hat nicht geklappt",
     deleteTitle: "Transkript löschen?",
     deleteMessage: "„{name}“ löschen? Das lässt sich nicht rückgängig machen.",
     deleteManyTitle: "{count} Transkripte löschen?",

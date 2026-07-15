@@ -130,6 +130,7 @@ export const FR = {
     deleteChat: "Supprimer le chat",
 
     actionExecuted: "Fait",
+    actionFailed: "Je n'ai pas pu",
     deleteTitle: "Supprimer la transcription ?",
     deleteMessage: "Supprimer « {name} » ? C'est irréversible.",
     deleteManyTitle: "Supprimer {count} transcriptions ?",
