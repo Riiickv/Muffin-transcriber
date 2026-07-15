@@ -9,7 +9,7 @@ import { Icon } from '@/components/Icon';
 import { IconButton } from '@/components/IconButton';
 import { KeyboardStickyView } from 'react-native-keyboard-controller';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { SPACING, RADIUS, TAB_BAR_SPACE } from '@/constants/tokens';
+import { SPACING, RADIUS, TAB_BAR_SPACE, FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
 import { useSettings } from '@/utils/settingsStore';
 import { ModelManager } from '@/utils/ModelManager';
 import { chatStream, ChatMessage } from '@/utils/ChatEngine';
@@ -24,6 +24,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import { useDialog, DialogCard } from '@/components/Dialog';
 import { errorToMessage } from '@/utils/errors';
 import { t } from '@/utils/i18n';
+import { useResponsive } from '@/hooks/useResponsive';
 
 // Stable per-message key so the FlatList can memoize rows instead of re-keying
 // by index (which re-renders every bubble on each streamed token).
@@ -37,13 +38,20 @@ const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 // in a reply to someone who just wants their voice note renamed. Deliberately
 // NOT including "action" - "I'll take action" is ordinary English.
 //
+// Also here: the model explaining the app's behaviour back to the user - "The
+// app shows the confirmation dialog itself, so I will not say I've done it."
+// That is the prompt's rules being recited to the one person who should never
+// read them. Nobody asking to rename a voice note wants a briefing on how the
+// app works, and "dialog"/"confirmation"/"the user will" only ever appear when
+// the model is narrating its instructions instead of answering.
+//
 // "[action result]" and "the user answered" are ours: they're the private notes
 // the app writes into the conversation so the model knows what its calls
 // actually did. The model reads them (that's the point) and then recites them
 // back verbatim, so the user sees "[action result] The user answered: renamed
 // X to Y" as if the app were talking to itself. Anything wearing that shape is
 // ours, never a reply.
-const MECHANICS_TALK = /tool[ _-]?calls?|<tool|\bjson\b|\bemit\b|\bpayload\b|history_index|app_settings|transcript_id|new_name|\[action result\]|the user answered/i;
+const MECHANICS_TALK = /tool[ _-]?calls?|<tool|\bjson\b|\bemit\b|\bpayload\b|history_index|app_settings|transcript_id|new_name|\[action result\]|the user answered|\bdialog\b|\bconfirmation\b|the app (shows|will|asks)|\bthe user (will|can|cannot|sees|see)\b/i;
 
 function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
   const actions: any[] = [];
@@ -109,6 +117,7 @@ function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
 
 export default function ChatScreen() {
   const { theme, themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
+  const { contentWidth } = useResponsive();
   const { settings, setSetting } = useSettings();
   const { items: chatSessions } = useChats();
   
@@ -692,7 +701,16 @@ export default function ChatScreen() {
                 no header offset to get wrong. `opened` gives back the space
                 reserved for the floating tab bar, which hides while typing. */}
             <KeyboardStickyView offset={{ closed: 0, opened: TAB_BAR_SPACE }}>
-            <View style={[styles.inputRow, { borderColor: theme.divider, backgroundColor: theme.surface }]}>
+            <View
+              style={[
+                styles.inputRow,
+                floatingChromeColors(theme.isDark),
+                // Capped and centred like the tab bar directly beneath it - on a
+                // tablet an edge-to-edge composer under a centred pill would
+                // look like two unrelated things.
+                { maxWidth: contentWidth - SPACING.lg * 2, width: '100%', alignSelf: 'center' },
+              ]}
+            >
               <TextInput
                 style={[styles.input, { color: theme.text, backgroundColor: theme.background }]}
                 value={input}
@@ -856,16 +874,18 @@ const styles = StyleSheet.create({
   // A rounded, bordered composer rather than a full-bleed bar with a top rule.
   // The floating tab bar lifts this off the bottom edge, so an edge-anchored
   // bar would hang in mid-air with a border pointing at nothing.
+  // Same shape, surface and shadow as the tab bar pill below it - they're two
+  // halves of one floating strip, and they used to be a rounded box in
+  // theme.surface sitting under a white pill.
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: SPACING.xs + 2,
     paddingLeft: SPACING.md,
-    marginHorizontal: SPACING.md,
+    marginHorizontal: SPACING.lg,
     marginBottom: TAB_BAR_SPACE,
-    borderRadius: RADIUS.lg + 6,
-    borderWidth: 1,
     gap: SPACING.sm,
+    ...FLOATING_CHROME,
   },
   // The dialog's own field. NOT styles.input - that one is the composer's,
   // with flex:1 and a maxHeight, which collapses inside a dialog body.

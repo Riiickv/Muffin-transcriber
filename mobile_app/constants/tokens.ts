@@ -41,3 +41,27 @@ export const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
  * stops dead above the bar and gets clipped instead of passing underneath it.
  */
 export const TAB_BAR_SPACE = 84;
+
+/**
+ * The floating chrome: the tab bar pill and the chat composer.
+ *
+ * Both hover over the content at the bottom of the screen, so they have to read
+ * as the same object. Defined once because "make them match" by copying values
+ * is how they stop matching three commits later.
+ */
+export const FLOATING_CHROME = {
+  borderRadius: RADIUS.pill,
+  borderWidth: 1,
+  shadowColor: '#000',
+  shadowOpacity: 0.3,
+  shadowRadius: 14,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 12,
+} as const;
+
+/** Its surface + hairline. Not theme.surface: this floats ABOVE content and
+ *  needs to separate from it, which a matching surface colour cannot do. */
+export const floatingChromeColors = (isDark: boolean) => ({
+  backgroundColor: isDark ? '#2E282E' : '#FFFFFF',
+  borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)',
+});
