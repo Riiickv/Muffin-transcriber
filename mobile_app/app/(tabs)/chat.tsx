@@ -154,6 +154,26 @@ export default function ChatScreen() {
       return;
     }
 
+    // Catch the truncated-download case BEFORE llama.cpp does, with numbers.
+    // Downloads made before the .part fix could leave a fraction of the model
+    // under its real filename; llama.cpp only says "Failed to load model",
+    // which diagnoses nothing. "312 MB of ~814 MB" settles it in one glance.
+    const check = await ModelManager.verifyModelFile(activeModel);
+    if (!check.ok) {
+      const mb = (n: number) => `${Math.round(n / 1e6)} MB`;
+      dialog.show({
+        title: t('chat.modelBrokenTitle') || 'Chat model incomplete',
+        message:
+          (t('chat.modelBrokenMessage') ||
+            'The model file is {actual} but should be about {expected}. The download was interrupted. Delete it in Settings > Models, then download it again and stay on that screen until it finishes.')
+            .replace('{actual}', mb(check.actualBytes))
+            .replace('{expected}', mb(check.expectedBytes)),
+        icon: 'warning',
+        iconTone: 'danger',
+      });
+      return;
+    }
+
     // Name the chat after the first thing said in it. Two paths reach here:
     // no chat yet (created on send), or an empty chat made by the + button,
     // which is already titled "New Chat" and needs renaming. Only the FIRST

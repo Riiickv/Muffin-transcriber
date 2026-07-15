@@ -158,6 +158,34 @@ export class ModelManager {
     return MODELS_DIR + filename;
   }
 
+  /**
+   * Existence is not integrity. Downloads older than the .part fix could leave
+   * a truncated file under the real name, and existence checks pass it all the
+   * way to llama.cpp, which fails with an unexplained "Failed to load model".
+   * The catalog's display size ("814 MB") is approximate, so this uses a loose
+   * 85% floor: honest downloads land within rounding of the advertised size,
+   * while an interrupted one is usually a small fraction of it.
+   */
+  static async verifyModelFile(
+    filename: string
+  ): Promise<{ ok: boolean; actualBytes: number; expectedBytes: number }> {
+    const def = [...WHISPER_MODELS, ...FORMATTER_MODELS, ...CHAT_MODELS, ...EMBEDDING_MODELS]
+      .find((m) => m.id === filename);
+    let expectedBytes = 0;
+    if (def) {
+      const m = def.size.match(/([\d.]+)\s*(GB|MB)/i);
+      if (m) expectedBytes = parseFloat(m[1]) * (m[2].toUpperCase() === 'GB' ? 1e9 : 1e6);
+    }
+    try {
+      const info = await FileSystem.getInfoAsync(this.getModelPath(filename));
+      const actualBytes = info.exists && 'size' in info ? (info as any).size ?? 0 : 0;
+      const ok = info.exists && (expectedBytes === 0 || actualBytes >= expectedBytes * 0.85);
+      return { ok, actualBytes, expectedBytes };
+    } catch {
+      return { ok: false, actualBytes: 0, expectedBytes };
+    }
+  }
+
   static async isModelDownloaded(filename: string) {
     try {
       const info = await FileSystem.getInfoAsync(this.getModelPath(filename));

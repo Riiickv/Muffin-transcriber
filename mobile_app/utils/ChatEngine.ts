@@ -6,6 +6,8 @@ import { loadMemories } from './memoryStore';
 import { generateEmbedding, cosineSimilarity } from './EmbeddingEngine';
 import { buildCapabilitiesBlock, TOOL_INSTRUCTIONS } from './appCapabilities';
 import { t } from './i18n';
+import { unloadWhisper } from './WhisperEngine';
+import { unloadLLM } from './LLMEngine';
 
 let initLlama: any;
 function getInitLlama() {
@@ -31,6 +33,19 @@ export async function loadChatLLM(modelPath: string): Promise<void> {
 
   const p = (async () => {
     if (llamaContext) await unloadChatLLM();
+
+    // Free the OTHER resident engines first. warmWhisperIfReady deliberately
+    // keeps Whisper loaded (up to ~874 MB) and LLMEngine keeps the formatter
+    // after enrichment (up to ~1.1 GB) - so without this, the chat model is
+    // the THIRD model stacked into native heap, and llama.cpp's weight
+    // allocation can fail with the same bare "Failed to load model" a broken
+    // file produces. Chat is what the user is doing right now; idle engines
+    // reload on their next use (Whisper re-warms when Record gains focus). A
+    // background enrichment running at this exact moment loses its context and
+    // logs an error - rare, and its runEnrichment caller catches it.
+    try { await unloadWhisper(); } catch {}
+    try { await unloadLLM(); } catch {}
+
     const init = getInitLlama();
 
     // Try the biggest context first, drop down if the device won't give us the

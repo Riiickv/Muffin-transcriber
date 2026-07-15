@@ -115,6 +115,8 @@ export const FR = {
     errorMessage: "Désolé, quelque chose s'est mal passé. Voilà ce que dit l'app :",
     noMemory: "Je n'ai rien trouvé de pertinent.",
     modelLoadFailed: "Le fichier du modèle de chat semble incomplet ou endommagé. Supprime-le dans Réglages > Modèles, puis télécharge-le à nouveau.",
+    modelBrokenTitle: "Modèle de chat incomplet",
+    modelBrokenMessage: "Le fichier du modèle fait {actual} mais devrait faire environ {expected}. Le téléchargement a été interrompu. Supprime-le dans Réglages > Modèles, retélécharge-le et reste sur cet écran jusqu'à la fin.",
 
     noModelSelected: "Aucun modèle de chat sélectionné",
     noModelSubtitle: "Va dans les Réglages et sélectionne un modèle de chat pour utiliser l'assistant.",
