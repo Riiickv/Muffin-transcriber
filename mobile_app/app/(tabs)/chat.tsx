@@ -36,7 +36,14 @@ const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 // Words that only exist because of how this app is wired. None of them belong
 // in a reply to someone who just wants their voice note renamed. Deliberately
 // NOT including "action" - "I'll take action" is ordinary English.
-const MECHANICS_TALK = /tool[ _-]?calls?|<tool|\bjson\b|\bemit\b|\bpayload\b|history_index|app_settings|transcript_id|new_name/i;
+//
+// "[action result]" and "the user answered" are ours: they're the private notes
+// the app writes into the conversation so the model knows what its calls
+// actually did. The model reads them (that's the point) and then recites them
+// back verbatim, so the user sees "[action result] The user answered: renamed
+// X to Y" as if the app were talking to itself. Anything wearing that shape is
+// ours, never a reply.
+const MECHANICS_TALK = /tool[ _-]?calls?|<tool|\bjson\b|\bemit\b|\bpayload\b|history_index|app_settings|transcript_id|new_name|\[action result\]|the user answered/i;
 
 function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
   const actions: any[] = [];
@@ -78,7 +85,11 @@ function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
   // Sentence-level, so a good sentence beside a bad one survives:
   // "I can rename the latest transcript. Emit the following tool_call:" keeps
   // the first half and loses the second.
-  cleanText = (cleanText.match(/[^.!?:]+[.!?:]*/g) || [])
+  // Split on . ! ? only - NOT on ':'. A colon splitter cut "[action result] The
+  // user answered:" away from the text that followed it, so the marker was
+  // dropped and its payload sailed through as its own innocent-looking
+  // sentence. The marker and what it introduces are one unit.
+  cleanText = (cleanText.match(/[^.!?]+[.!?]*/g) || [])
     .filter((sentence) => !MECHANICS_TALK.test(sentence))
     .join(' ')
     .replace(/\s+/g, ' ')
@@ -88,6 +99,10 @@ function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
   // matched as a tool call yet and would render as gibberish. Only anchored to
   // an "action" key so ordinary prose containing a brace survives.
   cleanText = cleanText.replace(/\{\s*"?action"?[\s\S]*$/i, '').trim();
+
+  // An echoed private note, taken out whole: from the marker to the end of the
+  // line, regardless of how the model punctuates it.
+  cleanText = cleanText.replace(/\[action result\][^\n]*/gi, '').trim();
 
   return { actions, cleanText };
 }
