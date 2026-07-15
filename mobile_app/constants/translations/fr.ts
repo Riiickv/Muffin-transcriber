@@ -112,7 +112,7 @@ export const FR = {
     sendButton: "Envoyer",
     thinking: "Je réfléchis...",
     emptyState: "Tu peux me demander tout ce que tu veux sur tes transcriptions, dis-moi juste ce qu'il te faut !",
-    errorMessage: "Désolé, j'ai rencontré une erreur. Vérifie que ton modèle de chat est téléchargé et sélectionné dans les Réglages.",
+    errorMessage: "Désolé, quelque chose s'est mal passé. Voilà ce que dit l'app :",
     noMemory: "Je n'ai rien trouvé de pertinent.",
 
     noModelSelected: "Aucun modèle de chat sélectionné",

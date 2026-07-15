@@ -31,22 +31,46 @@ export async function loadChatLLM(modelPath: string): Promise<void> {
   const p = (async () => {
     if (llamaContext) await unloadChatLLM();
     const init = getInitLlama();
-    llamaContext = await init({
-      // 8192, not 4096: the system prompt alone (persona + tools + every app
-      // setting + the transcript index + RAG context) measured ~5000 tokens,
-      // so 4096 overflowed before the user had typed anything and llama.cpp
-      // silently dropped the front of the prompt. Trimming the RAG context got
-      // it back under, but with no headroom for a long conversation — the same
-      // failure would return a few turns in. Llama 3.2 and Phi-3 both handle
-      // far more than this; the cost is KV cache memory, which at 1B–3.8B is
-      // affordable.
-      n_ctx: 8192,
-      model: modelPath,
-      // Bounded threads, same as LLMEngine. See the note there before adding
-      // cache/flash-attn options: they hard-fail init on OpenCL devices.
-      n_threads: 4,
-    });
-    currentModelPath = modelPath;
+
+    // Try the biggest context first, drop down if the device won't give us the
+    // memory for it.
+    //
+    // 8192 is what we WANT: the system prompt alone (persona + tools + every
+    // app setting + the transcript index + RAG context) measures ~5000 tokens,
+    // so 4096 overflows before the user has typed anything, and llama.cpp
+    // silently drops the FRONT of the prompt - taking the persona and <tools>
+    // with it. That is what made the model answer "I can't perform that action"
+    // to everything.
+    //
+    // But the KV cache is allocated up front and scales with n_ctx, and a 3.8B
+    // model (Phi-3) at 8192 asks for a lot on top of a ~2.3 GB model. If that
+    // allocation fails, init throws and the chat is dead - strictly worse than
+    // a smaller window. 4096 still fits the trimmed prompt with room for a few
+    // turns; 2048 is the "at least it answers" floor.
+    const sizes = [8192, 4096, 2048];
+    let lastError: unknown;
+    for (const n_ctx of sizes) {
+      try {
+        llamaContext = await init({
+          n_ctx,
+          model: modelPath,
+          // Bounded threads, same as LLMEngine. See the note there before
+          // adding cache/flash-attn options: they hard-fail init on OpenCL
+          // devices.
+          n_threads: 4,
+        });
+        if (n_ctx !== sizes[0]) {
+          console.warn(`Chat LLM: ${sizes[0]} context failed, running at ${n_ctx}.`);
+        }
+        currentModelPath = modelPath;
+        return;
+      } catch (e) {
+        lastError = e;
+        llamaContext = null;
+      }
+    }
+    // Every size failed, so this is not about memory. Let the real error out.
+    throw lastError;
   })();
   loadPromise = p;
 

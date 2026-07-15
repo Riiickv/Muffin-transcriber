@@ -22,6 +22,7 @@ import { InlineSettingControl } from '@/components/InlineSettingControl';
 import { getSettingSpec } from '@/utils/appCapabilities';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useDialog } from '@/components/Dialog';
+import { errorToMessage } from '@/utils/errors';
 import { t } from '@/utils/i18n';
 
 // Stable per-message key so the FlatList can memoize rows instead of re-keying
@@ -328,7 +329,15 @@ export default function ChatScreen() {
       console.error(e);
       const errorMsgs: ChatMessage[] = [
         ...newMessages,
-        { role: 'assistant', content: t('chat.errorMessage') || "Sorry, I encountered an error. Make sure your chat model is downloaded and selected in Settings." }
+        {
+          role: 'assistant',
+          // Show what ACTUALLY went wrong. The old text blamed the model not
+          // being downloaded or selected - but you cannot reach this screen
+          // without a selected model (it shows the "No Chat Model Selected"
+          // state instead), so that advice was always wrong AND it hid the real
+          // error. Anything that throws here is a genuine failure worth naming.
+          content: t('chat.errorMessage') + '\n\n' + errorToMessage(e),
+        }
       ];
       setMessages(errorMsgs);
       await updateChatMessages(targetChatId, errorMsgs);

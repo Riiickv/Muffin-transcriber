@@ -112,7 +112,7 @@ export const ES = {
     sendButton: "Enviar",
     thinking: "Pensando...",
     emptyState: "Puedes preguntarme lo que quieras sobre tus transcripciones, ¡solo dime qué necesitas!",
-    errorMessage: "Lo siento, ha ocurrido un error. Asegúrate de que el modelo de chat esté descargado y seleccionado en Ajustes.",
+    errorMessage: "Lo siento, algo ha salido mal. Esto es lo que dice la app:",
     noMemory: "No he podido recordar nada relevante.",
 
     noModelSelected: "Ningún modelo de chat seleccionado",
