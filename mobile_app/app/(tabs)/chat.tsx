@@ -161,10 +161,21 @@ export default function ChatScreen() {
       if (act?.transcript_id && items.some((h) => h.id === act.transcript_id)) return true;
       if (act?.transcript_name) {
         const search = String(act.transcript_name).toLowerCase();
-        return items.some((h) => {
-          const name = h.sourceFileName.replace(/\.[^/.]+$/, '').toLowerCase();
-          return name === search || name.includes(search) || search.includes(name);
-        });
+        if (
+          items.some((h) => {
+            const name = h.sourceFileName.replace(/\.[^/.]+$/, '').toLowerCase();
+            return name === search || name.includes(search) || search.includes(name);
+          })
+        ) {
+          return true;
+        }
+      }
+      // Rename falls back to the newest transcript when the model names none we
+      // recognise, so it's actionable whenever there is anything to rename at
+      // all. Kept in step with the executor deliberately - when these two
+      // disagree the chip starts lying again.
+      if (String(act?.action ?? '').toUpperCase() === 'RENAME_TRANSCRIPT' && items.length > 0) {
+        return true;
       }
       return false;
     },
@@ -313,6 +324,22 @@ export default function ChatScreen() {
          return target;
       };
 
+      /**
+       * The newest transcript.
+       *
+       * "Rename the latest transcript" is the commonest thing anyone says, and
+       * it needs no model at all to answer - yet a 1B model routinely copies an
+       * id wrong or omits it, nothing resolved, and the user got "Couldn't do
+       * that" for a request the app could satisfy on its own. Only used as a
+       * FALLBACK, and only for rename: the rename dialog names the transcript
+       * it's about to touch, so a wrong guess is visible and cancellable before
+       * anything changes. Deleting never guesses.
+       */
+      const newestTranscript = (): HistoryItem | undefined =>
+         [...(historyItems || [])].sort(
+            (a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime()
+         )[0];
+
       const executeTool = async (toolCall: any) => {
          if (!toolCall || !toolCall.action) return;
          const action = String(toolCall.action).toUpperCase();
@@ -324,14 +351,14 @@ export default function ChatScreen() {
             router.push((tab === 'memory' ? '/memory' : `/(tabs)/${tab}`) as any);
             await appendActionNote(targetChatId, `Opened the ${tab} screen.`);
          } else if (action === 'RENAME_TRANSCRIPT') {
-            const target = resolveTranscript(toolCall);
+            const target = resolveTranscript(toolCall) ?? newestTranscript();
             const newName = String(toolCall.new_name ?? toolCall.name ?? '').trim();
             if (target && newName) {
                const oldName = target.sourceFileName.replace(/\.[^/.]+$/, '');
                await updateHistoryItem(target.id, { sourceFileName: newName });
                await appendActionNote(chatId, `Renamed the transcript "${oldName}" to "${newName}".`);
             } else if (!target) {
-               await appendActionNote(chatId, `FAILED: no transcript matched that. Use an exact ID from <history_index>.`);
+               await appendActionNote(chatId, `FAILED: there are no transcripts at all, so there is nothing to rename.`);
             } else {
                // The model knows WHICH transcript but not what to call it - it
                // was told to ask and didn't. Rather than dead-ending the user
