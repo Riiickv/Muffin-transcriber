@@ -152,34 +152,54 @@ export default function ChatScreen() {
     }
   }, [activeChatId, chatSessions, isGenerating]);
 
-  // Same matching rules as the executor's resolveTranscript, so the chip and the
-  // action can't disagree about whether a transcript is real. useCallback keeps
-  // MessageBubble's memo intact across streamed tokens.
-  const targetExists = useCallback(
-    (act: any) => {
+  /**
+   * Which transcript a tool call means. THE one implementation.
+   *
+   * This logic used to exist twice - once in the executor, once for the chip -
+   * and every single time they drifted apart the chip started claiming things
+   * the executor never did. Both now call this, so they cannot disagree.
+   *
+   * The newest-transcript fallback is rename-only: the rename dialog names what
+   * it's about to touch, so a wrong guess is visible and cancellable. Deleting
+   * never guesses.
+   */
+  const getTarget = useCallback(
+    (act: any): HistoryItem | undefined => {
       const items = historyItems || [];
-      if (act?.transcript_id && items.some((h) => h.id === act.transcript_id)) return true;
-      if (act?.transcript_name) {
+      let target = act?.transcript_id ? items.find((h) => h.id === act.transcript_id) : undefined;
+      if (!target && act?.transcript_name) {
         const search = String(act.transcript_name).toLowerCase();
-        if (
-          items.some((h) => {
-            const name = h.sourceFileName.replace(/\.[^/.]+$/, '').toLowerCase();
-            return name === search || name.includes(search) || search.includes(name);
-          })
-        ) {
-          return true;
-        }
+        target = items.find((h) => {
+          const name = h.sourceFileName.replace(/\.[^/.]+$/, '').toLowerCase();
+          return name === search || name.includes(search) || search.includes(name);
+        });
       }
-      // Rename falls back to the newest transcript when the model names none we
-      // recognise, so it's actionable whenever there is anything to rename at
-      // all. Kept in step with the executor deliberately - when these two
-      // disagree the chip starts lying again.
-      if (String(act?.action ?? '').toUpperCase() === 'RENAME_TRANSCRIPT' && items.length > 0) {
-        return true;
+      if (!target && String(act?.action ?? '').toUpperCase() === 'RENAME_TRANSCRIPT') {
+        target = [...items].sort(
+          (a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime()
+        )[0];
       }
-      return false;
+      return target;
     },
     [historyItems]
+  );
+
+  /**
+   * The name a rename call would actually apply, or '' if it hasn't given one.
+   *
+   * A rename to the name it ALREADY has counts as no name at all. The model
+   * confuses the two fields and echoes the current name back as new_name, which
+   * renames X to X - a no-op the app then reported as "Done". Treating it as
+   * "no name given" routes it to the dialog, where the user just types the name.
+   */
+  const renameTargetName = useCallback(
+    (act: any, target: HistoryItem | undefined): string => {
+      const proposed = String(act?.new_name ?? act?.name ?? '').trim();
+      if (!proposed || !target) return '';
+      const current = target.sourceFileName.replace(/\.[^/.]+$/, '');
+      return proposed.toLowerCase() === current.toLowerCase() ? '' : proposed;
+    },
+    []
   );
 
   const handleDeleteChat = async (id: string) => {
@@ -308,37 +328,8 @@ export default function ChatScreen() {
       // Captured once: the dialog callbacks below fire whenever the user taps,
       // which may be long after this function has returned.
       const chatId = targetChatId;
-      // Which transcript a tool call means, by id or by name. Split out because
-      // the batch delete confirmation needs to name every target up front, and
-      // rename needs the same lookup.
-      const resolveTranscript = (toolCall: any): HistoryItem | undefined => {
-         const itemsList = historyItems || [];
-         let target = toolCall.transcript_id ? itemsList.find(h => h.id === toolCall.transcript_id) : undefined;
-         if (!target && toolCall.transcript_name) {
-            const search = String(toolCall.transcript_name).toLowerCase();
-            target = itemsList.find(h => {
-               const name = h.sourceFileName.replace(/\.[^/.]+$/, "").toLowerCase();
-               return name === search || name.includes(search) || search.includes(name);
-            });
-         }
-         return target;
-      };
-
-      /**
-       * The newest transcript.
-       *
-       * "Rename the latest transcript" is the commonest thing anyone says, and
-       * it needs no model at all to answer - yet a 1B model routinely copies an
-       * id wrong or omits it, nothing resolved, and the user got "Couldn't do
-       * that" for a request the app could satisfy on its own. Only used as a
-       * FALLBACK, and only for rename: the rename dialog names the transcript
-       * it's about to touch, so a wrong guess is visible and cancellable before
-       * anything changes. Deleting never guesses.
-       */
-      const newestTranscript = (): HistoryItem | undefined =>
-         [...(historyItems || [])].sort(
-            (a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime()
-         )[0];
+      // Target resolution lives in getTarget, shared with the chip renderer so
+      // the two can never disagree about what a call means.
 
       const executeTool = async (toolCall: any) => {
          if (!toolCall || !toolCall.action) return;
@@ -351,8 +342,8 @@ export default function ChatScreen() {
             router.push((tab === 'memory' ? '/memory' : `/(tabs)/${tab}`) as any);
             await appendActionNote(targetChatId, `Opened the ${tab} screen.`);
          } else if (action === 'RENAME_TRANSCRIPT') {
-            const target = resolveTranscript(toolCall) ?? newestTranscript();
-            const newName = String(toolCall.new_name ?? toolCall.name ?? '').trim();
+            const target = getTarget(toolCall);
+            const newName = renameTargetName(toolCall, target);
             if (target && newName) {
                const oldName = target.sourceFileName.replace(/\.[^/.]+$/, '');
                await updateHistoryItem(target.id, { sourceFileName: newName });
@@ -360,9 +351,9 @@ export default function ChatScreen() {
             } else if (!target) {
                await appendActionNote(chatId, `FAILED: there are no transcripts at all, so there is nothing to rename.`);
             } else {
-               // The model knows WHICH transcript but not what to call it - it
-               // was told to ask and didn't. Rather than dead-ending the user
-               // with "Couldn't do that", ask them directly: the app has the
+               // The model knows WHICH transcript but has given us no usable
+               // name - either none at all, or the name it already has. Rather
+               // than dead-ending the user, ask them directly: the app has the
                // intent and only lacks one string. Turns the model's weakest
                // moment into the feature working.
                const currentName = target.sourceFileName.replace(/\.[^/.]+$/, '');
@@ -428,7 +419,7 @@ export default function ChatScreen() {
 
       if (deleteCalls.length > 0) {
         const resolved = deleteCalls
-          .map(resolveTranscript)
+          .map(getTarget)
           .filter((x): x is HistoryItem => !!x);
         // The model can name the same transcript twice; deleting it twice is
         // harmless but listing it twice looks broken.
@@ -647,7 +638,8 @@ export default function ChatScreen() {
                   searchTerms={searchTerms}
                   onOpenTranscript={onOpenTranscript}
                   onEntityPress={onEntityPress}
-                  targetExists={targetExists}
+                  getTarget={getTarget}
+                  renameTargetName={renameTargetName}
                 />
               )}
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
@@ -947,21 +939,24 @@ const EXECUTED_ACTIONS = new Set([
 /**
  * Does this call carry enough for the executor to actually do it?
  *
- * `targetExists` asks whether the transcript the call names is REAL. Checking
- * only that a transcript_id was present wasn't enough: the model hallucinates
- * plausible-looking ids, the executor then resolves nothing and does nothing,
- * and the chip still said "Done". The executor's own resolveTranscript is the
- * authority, so the caller passes the same lookup in.
+ * Uses the SAME resolver and the same name check the executor uses, passed in
+ * from the screen. Every earlier version of this re-implemented the rules and
+ * drifted, and each drift showed the user a "Done" for work that never
+ * happened.
  */
-function isActionable(act: any, targetExists: (act: any) => boolean): boolean {
+function isActionable(
+  act: any,
+  getTarget: (act: any) => HistoryItem | undefined,
+  renameTargetName: (act: any, target: HistoryItem | undefined) => string
+): boolean {
   const a = String(act?.action ?? '').toUpperCase();
   switch (a) {
     case 'DELETE_TRANSCRIPT':
-      return targetExists(act);
-    case 'RENAME_TRANSCRIPT':
-      // Without a name there is nothing to rename it TO, and inventing one is
-      // exactly what the user must not get.
-      return targetExists(act) && !!String(act?.new_name ?? act?.name ?? '').trim();
+      return !!getTarget(act);
+    case 'RENAME_TRANSCRIPT': {
+      const target = getTarget(act);
+      return !!target && !!renameTargetName(act, target);
+    }
     case 'NAVIGATE_TO':
       return !!act?.tab;
     case 'SET_SETTING':
@@ -986,7 +981,13 @@ function ActionFailedChip({ theme }: { theme: any }) {
   );
 }
 
-function renderToolAction(act: any, i: number, theme: any, targetExists: (act: any) => boolean) {
+function renderToolAction(
+  act: any,
+  i: number,
+  theme: any,
+  getTarget: (act: any) => HistoryItem | undefined,
+  renameTargetName: (act: any, target: HistoryItem | undefined) => string
+) {
   const a = String(act.action || '').toUpperCase();
   if (a === 'SET_SETTING' || a === 'SHOW_SETTING') {
     const spec = act.key ? getSettingSpec(String(act.key)) : undefined;
@@ -995,13 +996,15 @@ function renderToolAction(act: any, i: number, theme: any, targetExists: (act: a
       ? <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} />
       : <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
-  // Rename with a real target but no name: the app is putting the question to
-  // the user right now, so the dialog IS the answer. A chip either way would
-  // contradict it - "Done" is false and "Couldn't do that" is defeatist.
-  if (a === 'RENAME_TRANSCRIPT' && targetExists(act) && !String(act?.new_name ?? act?.name ?? '').trim()) {
-    return null;
+  // Rename with a real target but no usable name (none given, or the name it
+  // already has): the app is putting the question to the user right now, so the
+  // dialog IS the answer. A chip either way would contradict it - "Done" is
+  // false and "Couldn't do that" is defeatist.
+  if (a === 'RENAME_TRANSCRIPT') {
+    const target = getTarget(act);
+    if (target && !renameTargetName(act, target)) return null;
   }
-  if (!EXECUTED_ACTIONS.has(a) || !isActionable(act, targetExists)) {
+  if (!EXECUTED_ACTIONS.has(a) || !isActionable(act, getTarget, renameTargetName)) {
     return <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
   return (
@@ -1082,8 +1085,10 @@ interface MessageBubbleProps {
   searchTerms: SearchTerm[];
   onOpenTranscript: (id: string) => void;
   onEntityPress: (entity: any) => void;
-  /** Whether the transcript a tool call names actually exists. */
-  targetExists: (act: any) => boolean;
+  /** Which transcript a tool call means - the executor's own resolver. */
+  getTarget: (act: any) => HistoryItem | undefined;
+  /** The name a rename would apply, or '' if it hasn't really given one. */
+  renameTargetName: (act: any, target: HistoryItem | undefined) => string;
 }
 
 // Memoized so a streamed token only re-renders the streaming row, not every
@@ -1097,7 +1102,8 @@ const MessageBubble = React.memo(function MessageBubble({
   searchTerms,
   onOpenTranscript,
   onEntityPress,
-  targetExists,
+  getTarget,
+  renameTargetName,
 }: MessageBubbleProps) {
   // Gentle entrance: fade in and rise 6px when the bubble mounts.
   const entrance = useRef(new Animated.Value(0)).current;
@@ -1152,7 +1158,7 @@ const MessageBubble = React.memo(function MessageBubble({
           )
         : !!cleanContent &&
           renderHighlighted(cleanContent, searchTerms, isUser, theme, onOpenTranscript, onEntityPress)}
-      {actions.map((act, i) => renderToolAction(act, i, theme, targetExists))}
+      {actions.map((act, i) => renderToolAction(act, i, theme, getTarget, renameTargetName))}
     </Animated.View>
   );
 });
