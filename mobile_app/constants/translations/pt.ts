@@ -131,6 +131,8 @@ export const PT = {
 
     actionExecuted: "Feito",
     actionFailed: "Não consegui",
+    renameAskTitle: "Como lhe chamo?",
+    renameAskMessage: "A mudar o nome de \"{name}\"",
     deleteTitle: "Eliminar a transcrição?",
     deleteMessage: "Eliminar “{name}”? Não dá para desfazer.",
     deleteManyTitle: "Eliminar {count} transcrições?",

@@ -131,6 +131,8 @@ export const FR = {
 
     actionExecuted: "Fait",
     actionFailed: "Je n'ai pas pu",
+    renameAskTitle: "Je l'appelle comment ?",
+    renameAskMessage: "Renommage de \"{name}\"",
     deleteTitle: "Supprimer la transcription ?",
     deleteMessage: "Supprimer « {name} » ? C'est irréversible.",
     deleteManyTitle: "Supprimer {count} transcriptions ?",

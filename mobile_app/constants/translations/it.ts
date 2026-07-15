@@ -156,6 +156,8 @@ export const IT = {
 
     actionExecuted: "Fatto",
     actionFailed: "Non ci sono riuscito",
+    renameAskTitle: "Come lo chiamo?",
+    renameAskMessage: "Stai rinominando \"{name}\"",
     deleteTitle: "Eliminare la trascrizione?",
     deleteMessage: "Eliminare “{name}”? Non si può annullare.",
     deleteManyTitle: "Eliminare {count} trascrizioni?",
