@@ -64,7 +64,12 @@ function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
   // and the guarded version left the user reading "Here is the tool_call:"
   // followed by raw JSON until the closing tag arrived. No genuine reply ever
   // contains this phrase, so there is nothing to lose by always removing it.
-  cleanText = cleanText.replace(/^here'?s?( is)? the tool[ _-]?calls?:?/i, '').trim();
+  // Not anchored to the start: the model writes a real sentence first and puts
+  // the narration at the END - "You asked me to rename it. Here is the
+  // tool_call:" - so a ^ anchor never matched and the phrase shipped to the
+  // user. Global, and tolerant of the adjectives it invents ("the corrected
+  // tool_call:").
+  cleanText = cleanText.replace(/\s*here'?s?( is)? the [\w ]*tool[ _-]?calls?\s*:?/gi, '').trim();
 
   // Same reason: a bare {"action": ...} that hasn't finished streaming isn't
   // matched as a tool call yet and would render as gibberish. Only anchored to
@@ -805,16 +810,38 @@ function buildSearchTerms(historyItems: HistoryItem[]): SearchTerm[] {
   return terms;
 }
 
-// Only these are actually carried out. The chip used to render for ANY parsed
-// action, so when the model invented one - SHOW_SETTING for a rename request,
-// say - the user got a green "Done: SHOW_SETTING" for something that did
-// precisely nothing. Success theatre is worse than silence.
+// Only these are carried out at all. Gating on the action NAME was not enough:
+// a RENAME_TRANSCRIPT with no new_name is refused by the executor, yet still
+// matched this set and drew a green "Done: RENAME_TRANSCRIPT" for a rename that
+// never happened. So the chip now also checks the call carries what the
+// executor needs to act on - the same conditions executeTool tests, kept
+// deliberately next to each other.
 const EXECUTED_ACTIONS = new Set([
   'DELETE_TRANSCRIPT',
   'RENAME_TRANSCRIPT',
   'NAVIGATE_TO',
   'SET_SETTING',
 ]);
+
+/** Does this call carry enough for the executor to actually do it? */
+function isActionable(act: any): boolean {
+  const a = String(act?.action ?? '').toUpperCase();
+  const names = act?.transcript_id || act?.transcript_name;
+  switch (a) {
+    case 'DELETE_TRANSCRIPT':
+      return !!names;
+    case 'RENAME_TRANSCRIPT':
+      // Without a name there is nothing to rename it TO, and inventing one is
+      // exactly what the user must not get.
+      return !!names && !!String(act?.new_name ?? act?.name ?? '').trim();
+    case 'NAVIGATE_TO':
+      return !!act?.tab;
+    case 'SET_SETTING':
+      return act?.key !== undefined && !!getSettingSpec(String(act.key)) && act?.value !== undefined;
+    default:
+      return false;
+  }
+}
 
 // Shown when the model emitted an action that could not be carried out - an
 // invented one, or a setting key that doesn't exist. Rendering nothing at all
@@ -840,7 +867,9 @@ function renderToolAction(act: any, i: number, theme: any) {
       ? <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} />
       : <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
-  if (!EXECUTED_ACTIONS.has(a)) return <ActionFailedChip key={`fail-${i}`} theme={theme} />;
+  if (!EXECUTED_ACTIONS.has(a) || !isActionable(act)) {
+    return <ActionFailedChip key={`fail-${i}`} theme={theme} />;
+  }
   return (
     <View key={`act-${i}`} style={{ marginTop: 8, padding: 8, backgroundColor: theme.tint + '20', borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
       <Icon name="check-circle" size={16} color={theme.tint} />
