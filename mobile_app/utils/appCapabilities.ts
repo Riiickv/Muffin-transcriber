@@ -76,6 +76,8 @@ ${screenLines}
 export const TOOL_INSTRUCTIONS = `<tools>
 You can act on the app. To do so, add a <tool_call> block with one JSON object AFTER a short, friendly confirmation sentence. Only use the actions and exact keys listed above.
 
+The user NEVER sees the <tool_call> block - only your sentence. So the sentence must say what you are doing in plain words: "Done, deleting it now." or "Auto-copy is on." Never write the words tool_call or JSON in your sentence.
+
 You may emit SEVERAL <tool_call> blocks in one reply — one per action. If the user asks for three transcripts to be deleted, emit three blocks. Never say you cannot do something just because it takes more than one action.
 
 - Change a setting (applies immediately, the user sees a live control in the chat):

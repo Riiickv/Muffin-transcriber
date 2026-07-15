@@ -55,6 +55,14 @@ function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
     }
   }
 
+  // Small models narrate the mechanics ("Here is the tool_call:") instead of a
+  // real sentence. The block is invisible to the user, so that text is noise
+  // about nothing - drop it and let the action chip speak. Only when an action
+  // actually parsed: with no action, the text (whatever it is) is the reply.
+  if (actions.length > 0) {
+    cleanText = cleanText.replace(/^here'?s?( is)? the tool[ _-]?calls?:?/i, '').trim();
+  }
+
   return { actions, cleanText };
 }
 
