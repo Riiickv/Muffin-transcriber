@@ -247,6 +247,13 @@ export const APP_STRINGS = {
     header: "Memories",
     noMemories: "No memories saved yet. Keep chatting or add them.",
     addCustom: "Add a memory",
+    // The review list: things the assistant guessed while transcribing.
+    // Nothing is saved until the user taps yes.
+    suggestedTitle: "Did I get this right?",
+    suggestedDesc: "I picked these up from your recordings. I'm often wrong, so nothing is saved until you say yes.",
+    dismissAll: "No to all",
+    dismissOne: "No",
+    acceptOne: "Yes, remember this",
     memoryPrompt: "You can ask me anything about your transcripts, just tell me what you need!",
     backButton: "Back",
   },

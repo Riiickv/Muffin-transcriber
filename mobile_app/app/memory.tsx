@@ -9,7 +9,7 @@ import { Button } from '@/components/Button';
 import { IconButton } from '@/components/IconButton';
 import { Card } from '@/components/Card';
 import { SPACING, RADIUS } from '@/constants/tokens';
-import { useMemory } from '@/utils/memoryStore';
+import { useMemory, useSuggestedMemories } from '@/utils/memoryStore';
 import { haptics } from '@/utils/haptics';
 import { useDialog } from '@/components/Dialog';
 import { t } from '@/utils/i18n';
@@ -19,6 +19,7 @@ export default function MemoryScreen() {
   const { theme } = useTheme();
   const { contentWidth } = useResponsive();
   const { items, addMemory, updateMemory, deleteMemory } = useMemory();
+  const { items: suggested, accept: acceptSuggestion, dismiss: dismissSuggestion, dismissAll } = useSuggestedMemories();
   const dialog = useDialog();
   const [newMemory, setNewMemory] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,6 +88,48 @@ export default function MemoryScreen() {
             </Button>
           </View>
         </Card>
+
+        {/* Guesses the assistant made while transcribing. They are NOT memories
+            until the user says so: a memory is fed into every later prompt, so
+            a wrong one is invisible and compounds. The model proposes here and
+            nothing else. */}
+        {suggested.length > 0 && (
+          <Card style={styles.addCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={styles.sectionTitle}>
+                {t('memory.suggestedTitle') || 'Did I get this right?'}
+              </Text>
+              <Button variant="ghost" size="sm" style={{ height: 32 }} onPress={() => { haptics.tap(); dismissAll(); }}>
+                {t('memory.dismissAll') || 'No to all'}
+              </Button>
+            </View>
+            <Text style={[styles.description, { color: theme.textMuted }]}>
+              {t('memory.suggestedDesc') || "I picked these up from your recordings. I'm often wrong, so nothing is saved until you say yes."}
+            </Text>
+            {suggested.map((sug) => (
+              <View
+                key={sug.id}
+                style={[styles.memoryRow, { borderColor: theme.divider, backgroundColor: theme.surface }]}
+              >
+                <Text style={{ flex: 1, fontSize: 15 }}>{sug.text}</Text>
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  icon="close"
+                  onPress={() => { haptics.tap(); dismissSuggestion(sug.id); }}
+                  accessibilityLabel={t('memory.dismissOne') || 'No'}
+                />
+                <IconButton
+                  variant="tint"
+                  size="sm"
+                  icon="check"
+                  onPress={() => { haptics.success(); acceptSuggestion(sug.id); }}
+                  accessibilityLabel={t('memory.acceptOne') || 'Yes, remember this'}
+                />
+              </View>
+            ))}
+          </Card>
+        )}
 
         <ScrollView contentContainerStyle={styles.listContent}>
           {items.length === 0 ? (
