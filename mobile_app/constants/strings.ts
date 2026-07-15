@@ -218,6 +218,8 @@ export const APP_STRINGS = {
 
     // -- When the AI does something for you --
     actionExecuted: "Done",
+    // Shown when the assistant tried to do something it cannot actually do.
+    actionFailed: "Couldn't do that",
     deleteTitle: "Delete transcript?",
     deleteMessage: "Delete “{name}”? This can't be undone.",
     // Shown when the assistant is asked to delete several at once.
