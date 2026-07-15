@@ -131,6 +131,8 @@ export const DE = {
 
     actionExecuted: "Fertig",
     actionFailed: "Hat nicht geklappt",
+    renameAskTitle: "Wie soll es heißen?",
+    renameAskMessage: "\"{name}\" wird umbenannt",
     deleteTitle: "Transkript löschen?",
     deleteMessage: "„{name}“ löschen? Das lässt sich nicht rückgängig machen.",
     deleteManyTitle: "{count} Transkripte löschen?",

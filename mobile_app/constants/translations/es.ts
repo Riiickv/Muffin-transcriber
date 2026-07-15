@@ -131,6 +131,8 @@ export const ES = {
 
     actionExecuted: "Hecho",
     actionFailed: "No he podido",
+    renameAskTitle: "¿Cómo lo llamo?",
+    renameAskMessage: "Renombrando \"{name}\"",
     deleteTitle: "¿Eliminar la transcripción?",
     deleteMessage: "¿Eliminar “{name}”? No se puede deshacer.",
     deleteManyTitle: "¿Eliminar {count} transcripciones?",

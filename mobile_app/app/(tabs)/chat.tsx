@@ -21,7 +21,7 @@ import { ChatDrawer } from '@/components/ChatDrawer';
 import { InlineSettingControl } from '@/components/InlineSettingControl';
 import { getSettingSpec } from '@/utils/appCapabilities';
 import * as IntentLauncher from 'expo-intent-launcher';
-import { useDialog } from '@/components/Dialog';
+import { useDialog, DialogCard } from '@/components/Dialog';
 import { errorToMessage } from '@/utils/errors';
 import { t } from '@/utils/i18n';
 
@@ -33,6 +33,11 @@ const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 // out of an LLM reply. Returns the parsed actions and the text with the tags
 // stripped, so execution (handleSend) and rendering (MessageBubble) share one
 // grammar instead of maintaining two copies that can drift.
+// Words that only exist because of how this app is wired. None of them belong
+// in a reply to someone who just wants their voice note renamed. Deliberately
+// NOT including "action" - "I'll take action" is ordinary English.
+const MECHANICS_TALK = /tool[ _-]?calls?|<tool|\bjson\b|\bemit\b|\bpayload\b|history_index|app_settings|transcript_id|new_name/i;
+
 function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
   const actions: any[] = [];
   const toolCallRegex = /<tool_call>([\s\S]*?)<\/tool_call>/gi;
@@ -64,12 +69,20 @@ function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
   // and the guarded version left the user reading "Here is the tool_call:"
   // followed by raw JSON until the closing tag arrived. No genuine reply ever
   // contains this phrase, so there is nothing to lose by always removing it.
-  // Not anchored to the start: the model writes a real sentence first and puts
-  // the narration at the END - "You asked me to rename it. Here is the
-  // tool_call:" - so a ^ anchor never matched and the phrase shipped to the
-  // user. Global, and tolerant of the adjectives it invents ("the corrected
-  // tool_call:").
-  cleanText = cleanText.replace(/\s*here'?s?( is)? the [\w ]*tool[ _-]?calls?\s*:?/gi, '').trim();
+  // Drop any SENTENCE that talks about the plumbing, rather than matching set
+  // phrases. Chasing exact wording was a losing game: "Here is the tool_call:"
+  // became "Here is the corrected tool_call:" became "Emit the following
+  // tool_call:" - a language model has infinite ways to say it, and each new
+  // one shipped to the user before anyone noticed. What every version has in
+  // common is naming machinery the user can't see, so that's what we test for.
+  // Sentence-level, so a good sentence beside a bad one survives:
+  // "I can rename the latest transcript. Emit the following tool_call:" keeps
+  // the first half and loses the second.
+  cleanText = (cleanText.match(/[^.!?:]+[.!?:]*/g) || [])
+    .filter((sentence) => !MECHANICS_TALK.test(sentence))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   // Same reason: a bare {"action": ...} that hasn't finished streaming isn't
   // matched as a tool call yet and would render as gibberish. Only anchored to
@@ -92,6 +105,10 @@ export default function ChatScreen() {
   const flatListRef = useRef<FlatList>(null);
   const { items: historyItems, deleteItem } = useHistory();
   const dialog = useDialog();
+
+  // Set when the assistant asks for a rename without saying what to call it.
+  const [pendingRename, setPendingRename] = useState<HistoryItem | null>(null);
+  const [renameInput, setRenameInput] = useState('');
 
   const [activeEntity, setActiveEntity] = useState<any>(null);
   const [actionName, setActionName] = useState('');
@@ -316,7 +333,15 @@ export default function ChatScreen() {
             } else if (!target) {
                await appendActionNote(chatId, `FAILED: no transcript matched that. Use an exact ID from <history_index>.`);
             } else {
-               await appendActionNote(chatId, `FAILED: no new_name was given, so nothing was renamed. Ask the user what to call it.`);
+               // The model knows WHICH transcript but not what to call it - it
+               // was told to ask and didn't. Rather than dead-ending the user
+               // with "Couldn't do that", ask them directly: the app has the
+               // intent and only lacks one string. Turns the model's weakest
+               // moment into the feature working.
+               const currentName = target.sourceFileName.replace(/\.[^/.]+$/, '');
+               setPendingRename(target);
+               setRenameInput(currentName);
+               await appendActionNote(chatId, `No new name was given, so the app asked the user what to call "${currentName}". Wait for their answer.`);
             }
          } else if (action === 'SHOW_SETTING') {
             // Display-only: the control renders in the bubble, nothing to run.
@@ -631,6 +656,46 @@ export default function ChatScreen() {
           </>
         )}
       </View>
+      {/* Asked for when the assistant wants to rename but has no name. Same
+          shape as History's rename dialog, so it looks like the app asking
+          rather than the chat improvising. */}
+      <DialogCard
+        visible={pendingRename !== null}
+        onRequestClose={() => setPendingRename(null)}
+        icon="edit"
+        iconTone="tint"
+        title={t('chat.renameAskTitle') || 'What should I call it?'}
+        message={pendingRename ? (t('chat.renameAskMessage') || 'Renaming "{name}"').replace('{name}', pendingRename.sourceFileName.replace(/\.[^/.]+$/, '')) : undefined}
+        buttons={[
+          { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary', onPress: () => setPendingRename(null) },
+          {
+            label: t('history.saveRename') || 'Save',
+            variant: 'primary',
+            onPress: () => {
+              const name = renameInput.trim();
+              const target = pendingRename;
+              setPendingRename(null);
+              if (!target || !name) return;
+              const oldName = target.sourceFileName.replace(/\.[^/.]+$/, '');
+              updateHistoryItem(target.id, { sourceFileName: name });
+              if (activeChatId) {
+                appendActionNote(activeChatId, `The user answered: renamed "${oldName}" to "${name}".`);
+              }
+            },
+          },
+        ]}
+      >
+        <TextInput
+          style={[styles.renameInput, { color: theme.text, borderColor: theme.divider }]}
+          value={renameInput}
+          onChangeText={setRenameInput}
+          autoFocus
+          selectTextOnFocus
+          placeholder={t('chat.renameAskTitle') || 'What should I call it?'}
+          placeholderTextColor={theme.textSubtle}
+        />
+      </DialogCard>
+
       <ChatDrawer 
         isVisible={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
@@ -739,6 +804,15 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg + 6,
     borderWidth: 1,
     gap: SPACING.sm,
+  },
+  // The dialog's own field. NOT styles.input - that one is the composer's,
+  // with flex:1 and a maxHeight, which collapses inside a dialog body.
+  renameInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: RADIUS.sm,
+    padding: SPACING.md,
+    fontSize: 16,
   },
   input: {
     flex: 1,
@@ -893,6 +967,12 @@ function renderToolAction(act: any, i: number, theme: any, targetExists: (act: a
     return spec
       ? <InlineSettingControl key={`set-${i}`} settingKey={String(act.key)} />
       : <ActionFailedChip key={`fail-${i}`} theme={theme} />;
+  }
+  // Rename with a real target but no name: the app is putting the question to
+  // the user right now, so the dialog IS the answer. A chip either way would
+  // contradict it - "Done" is false and "Couldn't do that" is defeatist.
+  if (a === 'RENAME_TRANSCRIPT' && targetExists(act) && !String(act?.new_name ?? act?.name ?? '').trim()) {
+    return null;
   }
   if (!EXECUTED_ACTIONS.has(a) || !isActionable(act, targetExists)) {
     return <ActionFailedChip key={`fail-${i}`} theme={theme} />;

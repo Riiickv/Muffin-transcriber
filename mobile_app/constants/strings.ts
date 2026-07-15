@@ -220,6 +220,10 @@ export const APP_STRINGS = {
     actionExecuted: "Done",
     // Shown when the assistant tried to do something it cannot actually do.
     actionFailed: "Couldn't do that",
+    // The app asks this itself when the assistant wants to rename something
+    // but was never told the new name.
+    renameAskTitle: "What should I call it?",
+    renameAskMessage: "Renaming \"{name}\"",
     deleteTitle: "Delete transcript?",
     deleteMessage: "Delete “{name}”? This can't be undone.",
     // Shown when the assistant is asked to delete several at once.
