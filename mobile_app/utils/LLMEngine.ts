@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import type { LlamaContext } from 'llama.rn';
 import { loadSettings } from './settingsStore';
-import { loadMemories, saveMemories } from './memoryStore';
+import { loadMemories, saveMemories, suggestMemories } from './memoryStore';
 
 // Strips the markdown code fences an LLM may wrap JSON in, then parses. Returns
 // null on any failure so callers can fall back gracefully.
@@ -167,6 +167,13 @@ export const PROMPT_EXAMPLE_MEMORIES = [
   'works in marketing',
 ];
 
+/**
+ * The compression prompt's own example output. Same trap as
+ * PROMPT_EXAMPLE_MEMORIES: hand a small model an example and it will eventually
+ * hand it back, and this one would land in the user's profile as a fact.
+ */
+export const COMPRESS_EXAMPLE_OUTPUTS = ['Coffee/espresso drinker'];
+
 /** True if the model regurgitated the prompt instead of doing the work. */
 export function echoesPrompt(output: string): boolean {
   const lower = output.toLowerCase();
@@ -297,9 +304,7 @@ export async function extractMemories(transcript: string, modelPath: string, mod
     const parsed = parseModelJson<any[]>(output);
 
     if (Array.isArray(parsed) && parsed.length > 0) {
-      const current = await loadMemories();
-      let next = [...current];
-      let added = false;
+      const candidates: string[] = [];
       for (const item of parsed) {
         if (typeof item === 'string' && item.trim().length > 2) {
           const trimmed = item.trim();
@@ -311,18 +316,14 @@ export async function extractMemories(transcript: string, modelPath: string, mod
             (ex) => ex.toLowerCase() === trimmed.toLowerCase()
           );
           if (isExample || echoesPrompt(trimmed)) continue;
-          if (!next.some(m => m.text.toLowerCase() === trimmed.toLowerCase())) {
-            next.unshift({
-              id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-              text: trimmed
-            });
-            added = true;
-          }
+          candidates.push(trimmed);
         }
       }
-      if (added) {
-        await saveMemories(next);
-      }
+      // SUGGEST, never save. These are guesses about a person's life, written
+      // into their data and then fed to every later prompt — the one place in
+      // this app where a wrong answer is both invisible and self-reinforcing.
+      // The user approves them in Settings › Memories, or they stay guesses.
+      if (candidates.length > 0) await suggestMemories(candidates);
     }
   } catch(e) {
     console.warn("Failed to extract or parse memories", e);
@@ -428,7 +429,20 @@ CRITICAL RULES:
     const parsed = parseModelJson<string[]>(output);
 
     if (Array.isArray(parsed) && parsed.length > 0) {
-      const newMemories = parsed.map((text: string) => ({
+      // This REPLACES the user's approved memories wholesale, so it has to be
+      // more careful than the rest. Two ways it goes wrong: the model returns
+      // this prompt's own examples ("Coffee/espresso drinker") and they become
+      // facts about the user, or it returns junk and the whole approved list is
+      // destroyed. Filter the first; refuse to save on the second.
+      const cleaned = parsed
+        .filter((text): text is string => typeof text === 'string' && text.trim().length > 2)
+        .map((text) => text.trim())
+        .filter((text) => !COMPRESS_EXAMPLE_OUTPUTS.some((ex) => ex.toLowerCase() === text.toLowerCase()))
+        .filter((text) => !echoesPrompt(text));
+
+      if (cleaned.length === 0) return false;
+
+      const newMemories = cleaned.map((text) => ({
         id: Date.now().toString() + Math.random().toString(36).slice(2, 7),
         text,
       }));
