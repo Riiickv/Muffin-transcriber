@@ -1,10 +1,9 @@
 import { Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { Image, Pressable } from 'react-native';
 import React from 'react';
 
 import { useTheme } from '@/components/ThemeProvider';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import { Icon } from '@/components/Icon';
 import { FloatingTabBar } from '@/components/FloatingTabBar';
 import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/utils/haptics';
@@ -42,7 +41,7 @@ export default function TabLayout() {
           <Pressable
             onPress={() => {
               haptics.tap();
-              // Confirm before leaving: the heart sits in the header of every
+              // Confirm before leaving: the logo sits in the header of every
               // tab, so it's easy to hit by accident, and this opens an
               // external page that asks for money.
               dialog.show({
@@ -59,7 +58,18 @@ export default function TabLayout() {
               marginRight: 16,
             })}
           >
-            <Icon name="favorite" size={24} color={theme.danger} />
+            {/* Ricky's logo, not an Icon: it's artwork, not a glyph.
+                26x19.5 keeps its real 488x366 proportions - forcing it square
+                would squash the face. tintColor because the PNG is solid black
+                and this header is near-black in dark mode, where it would
+                simply disappear; the tint keeps it the accent colour the heart
+                used to be, in both themes. */}
+            <Image
+              source={require('@/assets/images/RickLogo.png')}
+              style={{ width: 26, height: 19.5, tintColor: theme.danger }}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+            />
           </Pressable>
         ),
       }}
