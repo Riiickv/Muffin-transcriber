@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
@@ -32,6 +33,9 @@ import { t } from '@/utils/i18n';
 export default function SetupScreen() {
   const { theme } = useTheme();
   const { contentWidth } = useResponsive();
+  // headerShown is false here, so nothing else is keeping content out of the
+  // notch or off the gesture bar - the navigator's header normally does that.
+  const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
 
   const chatSuggestion = recommendedModelId('chat');
@@ -117,7 +121,7 @@ export default function SetupScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.wrap, { maxWidth: contentWidth, width: '100%', alignSelf: 'center' }]}>
         {/* Keyed on the page so each one fades in as its own screen — without
@@ -133,7 +137,18 @@ export default function SetupScreen() {
 
         {/* Pinned: on a small phone the model list scrolls for a while, and a
             Next button at the bottom of it would be a hunt. */}
-        <View style={[styles.footer, { borderTopColor: theme.divider }]}>
+        <View
+          style={[
+            styles.footer,
+            {
+              borderTopColor: theme.divider,
+              // Clear the gesture bar. Math.max because a phone with hardware
+              // keys reports 0 and would otherwise leave the buttons flush
+              // against the bottom edge.
+              paddingBottom: Math.max(insets.bottom, SPACING.sm) + SPACING.md,
+            },
+          ]}
+        >
           <View style={{ flex: 1 }}>
             <Button variant="secondary" size="lg" style={{ height: 48 }} onPress={goBack}>
               {t('setup.back')}
@@ -187,7 +202,6 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     padding: SPACING.lg,
-    paddingBottom: SPACING.lg + SPACING.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
 });
