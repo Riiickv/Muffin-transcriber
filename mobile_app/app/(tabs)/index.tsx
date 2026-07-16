@@ -23,6 +23,7 @@ import { useWhisperPreload } from '@/hooks/useWhisperPreload';
 import { errorToMessage } from '@/utils/errors';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WaitingCard } from '@/components/WaitingCard';
 import { useDialog } from '@/components/Dialog';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -60,6 +61,9 @@ export default function HomeScreen() {
   const [summaryText, setSummaryText] = useState('');
 
   const { whisperOptions, formatterOptions, downloadedIds, ready: modelsChecked } = useModelOptions();
+  // The welcome hides BOTH the header and the tab bar, so this screen is on its
+  // own for the notch and the gesture bar - normally the navigator handles them.
+  const insets = useSafeAreaInsets();
   // Once a file is picked, transcription is imminent — warm the model.
   useWhisperPreload(!!selectedFileUri);
 
@@ -271,7 +275,19 @@ export default function HomeScreen() {
   if (modelsChecked && downloadedIds.length === 0) {
     return (
       <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>
-        <View style={styles.welcome}>
+        {/* A ScrollView with flexGrow:1 and centred content: on a normal phone
+            there's nothing to scroll and it sits dead centre, but on a short
+            screen - or with the system font cranked up - the text and button can
+            exceed it, and RN children don't shrink. Without this the Setup
+            button is simply unreachable, and it's the only thing on the page. */}
+        <ScrollView
+          style={styles.root}
+          contentContainerStyle={[
+            styles.welcome,
+            { paddingTop: insets.top + SPACING.xl, paddingBottom: insets.bottom + SPACING.xl },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
           <Image
             source={require('@/assets/images/RickLogo.png')}
             style={{ width: 88, height: 66, tintColor: theme.tint }}
@@ -302,7 +318,7 @@ export default function HomeScreen() {
           >
             {t('transcribe.welcomeButton')}
           </Button>
-        </View>
+        </ScrollView>
       </FadeInView>
     );
   }
@@ -476,10 +492,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   welcome: {
-    flex: 1,
+    // flexGrow, not flex: fills the screen when it fits, exceeds it when it
+    // doesn't, rather than clipping the button off the bottom.
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: SPACING.xl,
+    paddingHorizontal: SPACING.xl,
     gap: SPACING.md,
   },
   welcomeTitle: {
