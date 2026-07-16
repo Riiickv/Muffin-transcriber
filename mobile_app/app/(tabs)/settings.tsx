@@ -289,7 +289,9 @@ export default function SettingsScreen() {
 
   return (
     <KeyboardScreen>
-      <FadeInView index={3} style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* 4, not 3: Settings is the FIFTH tab. It kept index 3 from before Chat
+          existed, so coming back from Settings slid the wrong way. */}
+      <FadeInView index={4} style={[styles.container, { backgroundColor: theme.background }]}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {renderPreferences()}
         </ScrollView>

@@ -18,6 +18,7 @@ import { haptics } from '@/utils/haptics';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useChats, addChatSession, updateChatMessages, renameChatSession, deleteChatSession, appendActionNote, titleFromMessage } from '@/utils/chatStore';
 import { ChatDrawer } from '@/components/ChatDrawer';
+import { FadeInView } from '@/components/FadeInView';
 import { InlineSettingControl } from '@/components/InlineSettingControl';
 import { getSettingSpec } from '@/utils/appCapabilities';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -601,7 +602,12 @@ export default function ChatScreen() {
 
   return (
     <>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* index={3} = Chat's position in the tab bar. FadeInView slides from the
+          right when you move forward through the tabs and from the left going
+          back, so the index has to match the real order or the screen flies in
+          from the wrong side. Chat was added as a tab and never got one, which
+          is why it appeared with no transition at all. */}
+      <FadeInView index={3} style={[styles.container, { backgroundColor: theme.background }]}>
           <Stack.Screen 
             options={{ 
               // A plain `title` string, like every other tab — a custom
@@ -735,7 +741,7 @@ export default function ChatScreen() {
             </KeyboardStickyView>
           </>
         )}
-      </View>
+      </FadeInView>
       {/* Asked for when the assistant wants to rename but has no name. Same
           shape as History's rename dialog, so it looks like the app asking
           rather than the chat improvising. */}
