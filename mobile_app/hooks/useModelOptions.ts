@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { setModelsPresent } from '@/utils/modelPresence';
+import { ensureModelSelections } from '@/utils/modelSelection';
 import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, ModelDef } from '@/utils/ModelManager';
 
 export interface DropdownOption {
@@ -32,6 +33,11 @@ export function useModelOptions() {
           setReady(true);
           // Publish for the header and tab bar, which can't ask for themselves.
           setModelsPresent(ids.length > 0);
+          // Here, because this is the moment we know what's on disk. Fills in a
+          // preference that's empty or points at a deleted model, so nobody
+          // downloads a model and is then told "No model selected". Never
+          // overrides a choice the user made, and only writes on a real change.
+          ensureModelSelections(ids).catch(() => {});
         }
       });
       return () => {
