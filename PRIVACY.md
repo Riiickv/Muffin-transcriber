@@ -1,50 +1,48 @@
-# Muffin — Privacy Policy
+# Muffin Privacy Policy
 
-**Last updated: July 16, 2026**
+Last updated: 16 July 2026
 
-Muffin is a voice-note transcriber that runs entirely on your phone. This page explains what the app does with your data. The short version: **your data stays on your device, and I don't collect anything.**
+I made Muffin because I hate long voice messages, and I wanted something that reads them for me without sending my voice to anyone. So that's the whole idea here: your stuff stays on your phone. I don't have a server, I don't collect anything, and I couldn't see your recordings even if I wanted to.
 
 ## What stays on your phone
 
-Everything you create with Muffin is stored only on your device:
+Everything you make in Muffin lives only on your device:
 
-- Your recordings and imported audio files
+- Your recordings and any audio files you import
 - Your transcripts, formatted texts and summaries
 - Your chats with the assistant
-- The "memories" you approve (names and terms the app uses to improve transcription)
+- The memories you approve (names or words the app remembers to transcribe them better)
 - Your settings
 
-None of this is ever sent anywhere. Transcription and all AI processing happen on your phone, using models that run locally. Nothing you record or type leaves your device.
+The transcription and all the AI stuff runs directly on your phone. None of it is uploaded, and I never see it. Muffin also turns off Android's automatic cloud backup, so this data doesn't end up in your Google account either.
 
-Muffin also opts out of Android's automatic cloud backup, so your transcripts are not included in your Google account's device backups either.
+## When Muffin goes online
 
-## When the app uses the internet
+There are only two moments Muffin touches the internet, and both are because you asked it to:
 
-Muffin connects to the internet in exactly two situations:
+- **Downloading a model.** When you pick a model to download, the app grabs the file from Hugging Face (a public library of AI models). It's just a file download. Nothing about you is sent, though their servers see your IP address, the same as visiting any website.
+- **The support button.** If you tap it and choose to keep going, your browser opens my Buy Me a Coffee page. The app doesn't send anything with it.
 
-1. **Downloading AI models.** When you choose to download a model, the app fetches it over HTTPS from [Hugging Face](https://huggingface.co), a public model repository. This is a plain file download — no personal data is sent, though like any website, Hugging Face's servers can see your IP address.
-2. **The support link.** If you tap the support button and choose to continue, your browser opens my [Buy Me a Coffee](https://buymeacoffee.com) page. That's an ordinary web page in your browser; the app sends nothing along with it.
+That's it. No ads, no analytics, no tracking, no accounts, no crash reports, nothing.
 
-That's the complete list. There are no analytics, no ads, no tracking, no crash reporting, no accounts, and no server of mine anywhere.
+## Permissions Muffin asks for
 
-## Permissions
+- **Microphone:** only while you're recording a voice note in the app. The audio never leaves your phone.
+- **Vibration:** for the little taps you feel on buttons.
+- **Set alarm:** only if you ask the assistant to make an alarm from a transcript. It just opens your clock app.
 
-- **Microphone** — used only while you record a voice note in the app. The audio is processed on your device.
-- **Vibration** — for haptic feedback on buttons.
-- **Set alarm** — only when you explicitly ask the assistant to create an alarm from a transcript; this opens your clock app.
+## Deleting your stuff
 
-## Deleting your data
+It's all yours. You can delete any transcript, chat or memory inside the app, and uninstalling Muffin wipes everything.
 
-Your data is yours to delete at any time: individual transcripts, chats and memories can be deleted in the app, and uninstalling Muffin removes everything.
+## Kids
 
-## Children
+Muffin isn't made for children under 13.
 
-Muffin is not directed at children under 13.
+## If this ever changes
 
-## Changes
+If I change this policy I'll put the new version here with a new date. Since the app doesn't collect anything, I doubt it'll change much.
 
-If this policy ever changes, the new version will be published at this same address with an updated date. Since the app doesn't collect anything, changes are unlikely to be interesting.
+## Get in touch
 
-## Contact
-
-Questions or concerns: open an issue at [github.com/Riiickv/Muffin-transcriber](https://github.com/Riiickv/Muffin-transcriber/issues).
+Something wrong or unclear? Open an issue at [github.com/Riiickv/Muffin-transcriber](https://github.com/Riiickv/Muffin-transcriber/issues).

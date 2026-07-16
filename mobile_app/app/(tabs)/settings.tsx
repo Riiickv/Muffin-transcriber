@@ -22,6 +22,7 @@ import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import { useDialog } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t, APP_LANGUAGE_OPTIONS, AppLanguage } from '@/utils/i18n';
+import { openPrivacyPolicy } from '@/utils/support';
 const THEME_SEGMENTS = [
   { key: 'system' as const, label: 'Auto' },
   { key: 'light' as const, label: 'Light' },
@@ -278,6 +279,14 @@ export default function SettingsScreen() {
           tone="danger"
           onPress={handleClearChat}
           chevron={false}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title={t('settings.aboutHeader')} index={7}>
+        <SettingsRow
+          icon="library"
+          label={t('settings.privacyPolicy')}
+          onPress={() => { haptics.tap(); openPrivacyPolicy(); }}
         />
       </SettingsGroup>
 

@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-AI Transcriber is built on top of several open-source projects and bundles or invokes their binaries. Their license texts and source URLs are reproduced here.
+Muffin is built on top of several open-source projects and bundles or invokes their binaries. Their license texts and source URLs are reproduced here.
 
 ## whisper.cpp
 - Project: https://github.com/ggerganov/whisper.cpp

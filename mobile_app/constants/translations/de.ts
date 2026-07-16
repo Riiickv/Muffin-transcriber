@@ -245,6 +245,8 @@ export const DE = {
     deletedDesc: "Modell gelöscht.",
 
     version: "Muffin Transcriber v{version}",
+    aboutHeader: "Info",
+    privacyPolicy: "Datenschutz",
 
     supportTitle: "Unterstütze mich!",
     supportMessage: "Muffin ist kostenlos, privat und läuft offline. Wenn es dir gefällt und du mein Projekt unterstützen willst, hier ist wie!",

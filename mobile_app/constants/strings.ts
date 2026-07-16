@@ -361,6 +361,8 @@ export const APP_STRINGS = {
 
     // -- About --
     version: "Muffin Transcriber v{version}",
+    aboutHeader: "About",
+    privacyPolicy: "Privacy policy",
 
     // -- The heart button in the top-right of every tab --
     // Opens buymeacoffee.com/riiickv in a browser tab.
