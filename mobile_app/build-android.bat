@@ -233,8 +233,13 @@ if defined DO_AAB (
   echo   Size: !AABMB! MB
   echo.
   echo   Upload this file at play.google.com/console.
-  echo   NOTE: it is signed with the DEBUG key until you set up your own
-  echo         keystore - Play will reject it until then.
+  findstr /C:"MUFFIN_UPLOAD_STORE_FILE" "%USERPROFILE%\.gradle\gradle.properties" >nul 2>&1
+  if errorlevel 1 (
+    echo   NOTE: signed with the DEBUG key - Play will reject it. Set up your
+    echo         upload keystore first ^(see PLAY_RELEASE.md^).
+  ) else (
+    echo   Signed with your upload key.
+  )
   echo ===========================================================
   goto :eof
 )
