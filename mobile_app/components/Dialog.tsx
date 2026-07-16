@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Image, ImageSourcePropType, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
@@ -22,6 +22,15 @@ interface DialogCardProps {
   title: string;
   message?: string;
   icon?: IconName;
+  /**
+   * Artwork instead of a glyph, for the times a font icon won't do — the
+   * support logo, say. Wins over `icon` when both are given. Tinted with the
+   * same iconTone, so a one-colour mark still reads on any theme.
+   */
+  image?: ImageSourcePropType;
+  /** Aspect ratio of `image`, width / height. Defaults to square; the support
+   *  logo is 4:3 and squashes without it. */
+  imageAspect?: number;
   iconTone?: 'tint' | 'primary' | 'danger';
   buttons?: DialogButton[];
   /** Custom body rendered between the message and the buttons row. */
@@ -42,6 +51,8 @@ export const DialogCard = ({
   title,
   message,
   icon,
+  image,
+  imageAspect = 1,
   iconTone,
   buttons,
   children,
@@ -71,11 +82,20 @@ export const DialogCard = ({
             never reach the scrim. */}
         <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} />
         <View style={[styles.card, { backgroundColor: theme.background, borderColor: theme.divider }]}>
-          {icon && (
+          {image ? (
+            <View style={styles.iconWrap}>
+              <Image
+                source={image}
+                style={{ height: 44, width: 44 * imageAspect, tintColor: iconColor }}
+                resizeMode="contain"
+                accessibilityIgnoresInvertColors
+              />
+            </View>
+          ) : icon ? (
             <View style={styles.iconWrap}>
               <Icon name={icon} filled size={44} color={iconColor} />
             </View>
-          )}
+          ) : null}
           <Text style={styles.title}>{title}</Text>
           {message && (
             <Text style={[styles.message, { color: theme.textMuted }]}>{message}</Text>
@@ -113,6 +133,10 @@ export interface DialogConfig {
   title: string;
   message?: string;
   icon?: IconName;
+  /** Artwork instead of a glyph. See DialogCardProps. */
+  image?: ImageSourcePropType;
+  /** width / height of `image`. */
+  imageAspect?: number;
   iconTone?: 'tint' | 'primary' | 'danger';
   buttons?: DialogButton[];
   /** Convenience: single primary action. Equivalent to `buttons: [primaryAction]`. */
@@ -156,6 +180,8 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
         title={config?.title ?? ''}
         message={config?.message}
         icon={config?.icon}
+        image={config?.image}
+        imageAspect={config?.imageAspect}
         iconTone={config?.iconTone}
         buttons={resolvedButtons}
         onDismiss={config?.onDismiss}
