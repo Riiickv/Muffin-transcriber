@@ -103,7 +103,7 @@ export const APP_STRINGS = {
     // Button label.
     supportMe: "Support me!",
     // DESCRIPTION under the "Support me!" pop-up. Rewrite this in your voice.
-    supportDesc: "Muffin is free and works offline. If you like it and would like to support my project, here's how!",
+    supportDesc: "Muffin is free, private and works offline. If you like it and would like to support my project, here's how!",
     // The "no thanks" button on that pop-up.
     supportCancel: "Maybe later",
   },
@@ -364,9 +364,9 @@ export const APP_STRINGS = {
 
     // -- The heart button in the top-right of every tab --
     // Opens buymeacoffee.com/riiickv in a browser tab.
-    supportTitle: "Buy me a coffee! ☕",
+    supportTitle: "Support me!",
     // DESCRIPTION under the heart pop-up. Rewrite this in your voice.
-    supportMessage: "Muffin is free and works offline. If you like it and would like to support my project, here's how!",
+    supportMessage: "Muffin is free, private and works offline. If you like it and would like to support my project, here's how!",
     // The button that opens the page.
     supportButton: "Buy a coffee",
     // The "no thanks" button on that pop-up.

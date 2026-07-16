@@ -43,7 +43,7 @@ export const PT = {
 
     whileWaiting: "Enquanto esperas...",
     supportMe: "Apoia-me!",
-    supportDesc: "O Muffin é grátis e funciona offline. Se gostas e queres apoiar o meu projeto, é aqui!",
+    supportDesc: "O Muffin é grátis, privado e funciona offline. Se gostas e queres apoiar o meu projeto, é aqui!",
     supportCancel: "Talvez depois",
   },
 
@@ -246,8 +246,8 @@ export const PT = {
 
     version: "Muffin Transcriber v{version}",
 
-    supportTitle: "Paga-me um café! ☕",
-    supportMessage: "O Muffin é grátis e funciona offline. Se gostas e queres apoiar o meu projeto, é aqui!",
+    supportTitle: "Apoia-me!",
+    supportMessage: "O Muffin é grátis, privado e funciona offline. Se gostas e queres apoiar o meu projeto, é aqui!",
     supportButton: "Pagar um café",
     supportCancel: "Talvez depois",
 
