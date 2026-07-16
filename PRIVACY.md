@@ -23,8 +23,6 @@ There are only two moments Muffin touches the internet, and both are because you
 - **Downloading a model.** When you pick a model to download, the app grabs the file from Hugging Face (a public library of AI models). It's just a file download. Nothing about you is sent, though their servers see your IP address, the same as visiting any website.
 - **The support button.** If you tap it and choose to keep going, your browser opens my Buy Me a Coffee page. The app doesn't send anything with it.
 
-That's it. No ads, no analytics, no tracking, no accounts, no crash reports, nothing.
-
 ## Permissions Muffin asks for
 
 - **Microphone:** only while you're recording a voice note in the app. The audio never leaves your phone.
