@@ -9,10 +9,9 @@ export const DE = {
 
   transcribe: {
     welcomeTitle: "Willkommen bei Muffin!",
-    welcomeBody: "Muffin ist ein Transkribierer, er nutzt KI, um den Text zu verbessern. Optional, aber empfohlen!",
-    welcomeStep: "Du kannst deine Dateien mit Muffin teilen und er macht die ganze Arbeit für dich!",
-    welcomeReminderTitle: "ERINNERUNG",
-    welcomeReminder: "Wenn du transkribieren oder zusammenfassen willst, musst du ein Modell manuell herunterladen.",
+    welcomeBody: "Muffin ist ein Transkribierer, der KI nutzt, um den Text zu verbessern. Er kann sogar von dir lernen und dir helfen, wenn das Audio undeutlich ist!",
+    welcomeStep: "Du kannst deine Dateien mit Muffin teilen oder in der App aufnehmen, und er macht die ganze Arbeit für dich!",
+    welcomeButton: "Einrichten!",
     formatToggle: "Formatieren",
     summarizeToggle: "Zusammenfassen",
     formatterModelLabel: "Formatierungsqualität",
@@ -254,6 +253,25 @@ export const DE = {
 
     appLanguage: "App-Sprache",
     appLanguageDesc: "Automatisch folgt der Sprache des Telefons.",
+  },
+
+  setup: {
+    transcriberTitle: "Transkribierer!",
+    transcriberBody: "Das ist dein Transkribierer.\n\nDer hervorgehobene wird für dein Gerät empfohlen, aber du kannst so viele herunterladen, wie du willst.",
+
+    formatterTitle: "Formatierer und Zusammenfasser!",
+    formatterBody: "Das ist das Gehirn deiner Transkripte. Es bringt sie für dich in Ordnung! Du kannst ihm sogar sagen, wie du sie haben willst.\n\nDer hervorgehobene wird für dein Gerät empfohlen, aber du kannst so viele herunterladen, wie du willst.",
+
+    optionalTitle: "Optional!",
+    optionalBody: "Ein paar optionale, aber nützliche Helfer, die du vielleicht brauchst!",
+    chatSectionTitle: "Chat-Modell!",
+    chatNoneSuggested: "Oh nein! Für dein Gerät wird keins wirklich empfohlen. Du kannst sie trotzdem probieren, aber sie werden laaaangsam sein.",
+    butlerSectionTitle: "Butler!",
+    butlerBody: "Der hilft dir, Nützliches aus den Transkripten zu ziehen, zum Beispiel wichtige Termine. Der Text wird hervorgehoben, also halt die Augen offen!",
+
+    back: "Zurück",
+    next: "Weiter!",
+    finish: "Los!",
   },
 
   models: {
