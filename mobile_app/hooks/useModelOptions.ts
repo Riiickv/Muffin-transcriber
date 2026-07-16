@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import { setModelsPresent } from '@/utils/modelPresence';
 import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, ModelDef } from '@/utils/ModelManager';
 
 export interface DropdownOption {
@@ -29,6 +30,8 @@ export function useModelOptions() {
         if (active) {
           setDownloadedIds(ids);
           setReady(true);
+          // Publish for the header and tab bar, which can't ask for themselves.
+          setModelsPresent(ids.length > 0);
         }
       });
       return () => {

@@ -59,8 +59,10 @@ export const APP_STRINGS = {
     // -- FIRST RUN: shown instead of everything else when no model is
     // -- installed yet, because nothing works until one is.
     welcomeTitle: "Welcome to Muffin!",
-    welcomeBody: "Muffin turns voice messages into text. Everything happens on your phone and nothing is ever uploaded.",
-    welcomeStep: "To start, download a model. That's the bit that does the work. It takes a few minutes, and you only do it once.",
+    welcomeBody: "Muffin is a transcriber, it uses AI to improve the text output. It's optional but recommended!",
+    welcomeStep: "You can share your files with Muffin and it will do all the work for you!",
+    welcomeReminderTitle: "REMINDER",
+    welcomeReminder: "If you want to transcribe or summarize, you need to download a model manually.",
 
     // -- The Format / Summarize card at the top --
     formatToggle: "Format",

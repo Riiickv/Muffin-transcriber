@@ -9,8 +9,10 @@ export const ES = {
 
   transcribe: {
     welcomeTitle: "¡Bienvenido a Muffin!",
-    welcomeBody: "Muffin convierte los mensajes de voz en texto. Todo ocurre en tu teléfono y no se sube nada.",
-    welcomeStep: "Para empezar, descarga un modelo. Es lo que hace el trabajo. Tarda unos minutos y solo se hace una vez.",
+    welcomeBody: "Muffin es un transcriptor, usa IA para mejorar el texto. ¡Es opcional pero recomendable!",
+    welcomeStep: "¡Puedes compartir tus archivos con Muffin y él hará todo el trabajo por ti!",
+    welcomeReminderTitle: "RECORDATORIO",
+    welcomeReminder: "Si quieres transcribir o resumir, tienes que descargar un modelo manualmente.",
     formatToggle: "Formatear",
     summarizeToggle: "Resumir",
     formatterModelLabel: "Calidad del formato",
