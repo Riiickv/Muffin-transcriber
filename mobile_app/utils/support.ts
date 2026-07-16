@@ -22,6 +22,28 @@ export const SUPPORT_URL = 'https://buymeacoffee.com/riiickv';
  * because it's how someone verifies they're on the genuine site. Falls back to
  * handing the URL to the OS if no browser can be embedded.
  */
+/**
+ * The privacy policy, opened in an in-app browser tab like the support page.
+ *
+ * The GitHub-hosted markdown is the single source of truth: the same URL Play
+ * Console points at, so the in-app link and the store's link can never say
+ * different things. Nothing about the user is sent — it's a plain page load.
+ */
+export const PRIVACY_URL =
+  'https://github.com/Riiickv/Muffin-transcriber/blob/main/PRIVACY.md';
+
+export async function openPrivacyPolicy(): Promise<void> {
+  try {
+    await WebBrowser.openBrowserAsync(PRIVACY_URL);
+  } catch {
+    try {
+      await Linking.openURL(PRIVACY_URL);
+    } catch {
+      // No browser at all; the tap does nothing rather than crash.
+    }
+  }
+}
+
 export async function openSupportPage(): Promise<void> {
   try {
     await WebBrowser.openBrowserAsync(SUPPORT_URL);
