@@ -8,6 +8,9 @@ export const DE = {
   },
 
   transcribe: {
+    welcomeTitle: "Willkommen bei Muffin!",
+    welcomeBody: "Muffin macht aus Sprachnachrichten Text. Alles passiert auf deinem Handy, nichts wird hochgeladen.",
+    welcomeStep: "Lade zum Start ein Modell herunter. Das ist der Teil, der die Arbeit macht. Dauert ein paar Minuten, und nur einmal.",
     formatToggle: "Formatieren",
     summarizeToggle: "Zusammenfassen",
     formatterModelLabel: "Formatierungsqualität",

@@ -19,7 +19,8 @@ import { useHistory } from '@/utils/historyStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
-import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
+import { loadWhisper } from '@/utils/WhisperEngine';
+import { transcribeAudio } from '@/utils/audioTranscription';
 import { ModelManager } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
 import { useWhisperPreload } from '@/hooks/useWhisperPreload';
@@ -145,7 +146,11 @@ export default function HistoryDetailScreen() {
       const whisperPath = ModelManager.getModelPath(settings.preferredWhisperModel);
       await loadWhisper(whisperPath);
       const langCode = toLanguageCode(settings.defaultLanguage);
-      const result = await transcribeFile(item.sourceFilePath, langCode);
+      // transcribeAudio, not transcribeFile: sourceFilePath is whatever format
+      // the recording is in, and handing that straight to whisper is what made
+      // Re-transcribe fail with "Invalid WAV file" on anything recorded before
+      // the converter was wired into the Record tab.
+      const result = await transcribeAudio(item.sourceFilePath, langCode);
       await addOrUpdate({ ...item, rawTranscript: result.text.trim() });
       setTranscriptTab('raw');
       haptics.success();
