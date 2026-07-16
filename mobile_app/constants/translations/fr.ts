@@ -9,10 +9,9 @@ export const FR = {
 
   transcribe: {
     welcomeTitle: "Bienvenue sur Muffin !",
-    welcomeBody: "Muffin est un transcripteur, il utilise l'IA pour améliorer le texte. C'est optionnel mais recommandé !",
-    welcomeStep: "Tu peux partager tes fichiers avec Muffin et il fait tout le travail pour toi !",
-    welcomeReminderTitle: "RAPPEL",
-    welcomeReminder: "Si tu veux transcrire ou résumer, tu dois télécharger un modèle manuellement.",
+    welcomeBody: "Muffin est un transcripteur qui utilise l'IA pour améliorer le texte. Il peut même apprendre de toi et t'aider quand l'audio n'est pas clair !",
+    welcomeStep: "Tu peux partager tes fichiers avec Muffin ou enregistrer dans l'app, et il fera tout le travail pour toi !",
+    welcomeButton: "Configurer !",
     formatToggle: "Mettre en forme",
     summarizeToggle: "Résumer",
     formatterModelLabel: "Qualité de mise en forme",
@@ -254,6 +253,25 @@ export const FR = {
 
     appLanguage: "Langue de l'app",
     appLanguageDesc: "Automatique suit la langue du téléphone.",
+  },
+
+  setup: {
+    transcriberTitle: "Transcripteur !",
+    transcriberBody: "Voici ton transcripteur.\n\nCelui qui est mis en avant est conseillé pour ton appareil, mais tu peux en télécharger autant que tu veux.",
+
+    formatterTitle: "Mise en forme et Résumé !",
+    formatterBody: "C'est le cerveau de tes transcriptions. Il les corrige pour toi ! Tu peux même lui dire comment tu les veux.\n\nCelui qui est mis en avant est conseillé pour ton appareil, mais tu peux en télécharger autant que tu veux.",
+
+    optionalTitle: "Optionnels !",
+    optionalBody: "Quelques outils optionnels mais pratiques dont tu pourrais avoir besoin !",
+    chatSectionTitle: "Modèle de chat !",
+    chatNoneSuggested: "Oh non ! Aucun modèle n'est vraiment conseillé pour ton appareil. Tu peux quand même les essayer, mais ils seront leeeents.",
+    butlerSectionTitle: "Majordome !",
+    butlerBody: "Ça t'aide à extraire des choses utiles des transcriptions, comme les dates importantes. Le texte sera mis en avant, alors ouvre l'oeil !",
+
+    back: "Retour",
+    next: "Suivant !",
+    finish: "C'est parti !",
   },
 
   models: {

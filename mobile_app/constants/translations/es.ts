@@ -9,10 +9,9 @@ export const ES = {
 
   transcribe: {
     welcomeTitle: "¡Bienvenido a Muffin!",
-    welcomeBody: "Muffin es un transcriptor, usa IA para mejorar el texto. ¡Es opcional pero recomendable!",
-    welcomeStep: "¡Puedes compartir tus archivos con Muffin y él hará todo el trabajo por ti!",
-    welcomeReminderTitle: "RECORDATORIO",
-    welcomeReminder: "Si quieres transcribir o resumir, tienes que descargar un modelo manualmente.",
+    welcomeBody: "Muffin es un transcriptor que usa IA para mejorar el texto. ¡Incluso puede aprender de ti y ayudarte cuando el audio no se entiende bien!",
+    welcomeStep: "¡Puedes compartir tus archivos con Muffin o grabar en la app, y él hará todo el trabajo por ti!",
+    welcomeButton: "¡Configurar!",
     formatToggle: "Formatear",
     summarizeToggle: "Resumir",
     formatterModelLabel: "Calidad del formato",
@@ -254,6 +253,25 @@ export const ES = {
 
     appLanguage: "Idioma de la app",
     appLanguageDesc: "Automático sigue el idioma del teléfono.",
+  },
+
+  setup: {
+    transcriberTitle: "¡Transcriptor!",
+    transcriberBody: "Este es tu transcriptor.\n\nEl resaltado es el recomendado para tu dispositivo, pero puedes descargar todos los que quieras.",
+
+    formatterTitle: "¡Formateador y Resumidor!",
+    formatterBody: "Este es el cerebro de tus transcripciones. ¡Te las arregla! Incluso puedes decirle cómo las quieres.\n\nEl resaltado es el recomendado para tu dispositivo, pero puedes descargar todos los que quieras.",
+
+    optionalTitle: "¡Opcionales!",
+    optionalBody: "¡Algunas herramientas opcionales pero útiles que quizá necesites!",
+    chatSectionTitle: "¡Modelo de chat!",
+    chatNoneSuggested: "¡Oh no! Ningún modelo es realmente recomendable para tu dispositivo. Puedes probarlos igual, pero irán lentíííísimos.",
+    butlerSectionTitle: "¡Mayordomo!",
+    butlerBody: "Esto te ayuda a sacar cosas útiles de las transcripciones, como fechas importantes. El texto se resaltará, ¡así que estate atento!",
+
+    back: "Atrás",
+    next: "¡Siguiente!",
+    finish: "¡Empezar!",
   },
 
   models: {

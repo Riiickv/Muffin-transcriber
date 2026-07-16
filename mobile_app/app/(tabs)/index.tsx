@@ -286,17 +286,6 @@ export default function HomeScreen() {
             {t('transcribe.welcomeStep')}
           </Text>
 
-          {/* The reminder is the one line people must not skim past, so it gets
-              its own block rather than being a third paragraph. */}
-          <View style={[styles.welcomeReminder, { borderColor: theme.divider }]}>
-            <Text style={[styles.welcomeReminderTitle, { color: theme.tint }]}>
-              {t('transcribe.welcomeReminderTitle')}
-            </Text>
-            <Text style={[styles.welcomeBody, { color: theme.text }]}>
-              {t('transcribe.welcomeReminder')}
-            </Text>
-          </View>
-
           {/* Explicit height: an unsized Button balloons inside a centered
               container (see WaitingCard). */}
           <Button
@@ -305,10 +294,13 @@ export default function HomeScreen() {
             style={{ marginTop: SPACING.xl, height: 48 }}
             onPress={() => {
               haptics.tap();
-              router.push('/models' as any);
+              // The guided setup, not the raw Models list: eleven downloads with
+              // sizes in gigabytes is where someone who just wanted their voice
+              // notes read out closes the app.
+              router.push('/setup' as any);
             }}
           >
-            {t('models.goToModels')}
+            {t('transcribe.welcomeButton')}
           </Button>
         </View>
       </FadeInView>
@@ -499,19 +491,6 @@ const styles = StyleSheet.create({
   welcomeBody: {
     fontSize: 15,
     lineHeight: 22,
-    textAlign: 'center',
-  },
-  welcomeReminder: {
-    borderWidth: 1,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    marginTop: SPACING.sm,
-    gap: SPACING.xs,
-  },
-  welcomeReminderTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    letterSpacing: 1,
     textAlign: 'center',
   },
   // Content container: flexGrow (not flex) so it fills a tall screen but is

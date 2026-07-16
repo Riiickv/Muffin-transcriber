@@ -9,10 +9,9 @@ export const PT = {
 
   transcribe: {
     welcomeTitle: "Bem-vindo ao Muffin!",
-    welcomeBody: "O Muffin é um transcritor, usa IA para melhorar o texto. É opcional mas recomendado!",
-    welcomeStep: "Podes partilhar os teus ficheiros com o Muffin e ele faz o trabalho todo por ti!",
-    welcomeReminderTitle: "LEMBRETE",
-    welcomeReminder: "Se quiseres transcrever ou resumir, tens de transferir um modelo manualmente.",
+    welcomeBody: "O Muffin é um transcritor que usa IA para melhorar o texto. Até consegue aprender contigo e ajudar-te quando o áudio não se percebe bem!",
+    welcomeStep: "Podes partilhar os teus ficheiros com o Muffin ou gravar na app, e ele faz o trabalho todo por ti!",
+    welcomeButton: "Configurar!",
     formatToggle: "Formatar",
     summarizeToggle: "Resumir",
     formatterModelLabel: "Qualidade da formatação",
@@ -254,6 +253,25 @@ export const PT = {
 
     appLanguage: "Idioma da app",
     appLanguageDesc: "Automático segue o idioma do telemóvel.",
+  },
+
+  setup: {
+    transcriberTitle: "Transcritor!",
+    transcriberBody: "Este é o teu transcritor.\n\nO que está destacado é o sugerido para o teu dispositivo, mas podes transferir os que quiseres.",
+
+    formatterTitle: "Formatador e Resumidor!",
+    formatterBody: "Este é o cérebro das tuas transcrições. Arranja-as por ti! Podes até dizer-lhe como as queres.\n\nO que está destacado é o sugerido para o teu dispositivo, mas podes transferir os que quiseres.",
+
+    optionalTitle: "Opcionais!",
+    optionalBody: "Algumas ferramentas opcionais mas úteis que podes precisar!",
+    chatSectionTitle: "Modelo de chat!",
+    chatNoneSuggested: "Oh não! Nenhum modelo é mesmo sugerido para o teu dispositivo. Podes na mesma experimentar, mas vão ser leeeentos.",
+    butlerSectionTitle: "Mordomo!",
+    butlerBody: "Isto ajuda-te a tirar coisas úteis das transcrições, como datas importantes. O texto fica destacado, por isso fica atento!",
+
+    back: "Voltar",
+    next: "Seguinte!",
+    finish: "Começar!",
   },
 
   models: {

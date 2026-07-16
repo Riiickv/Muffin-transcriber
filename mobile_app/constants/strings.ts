@@ -59,10 +59,9 @@ export const APP_STRINGS = {
     // -- FIRST RUN: shown instead of everything else when no model is
     // -- installed yet, because nothing works until one is.
     welcomeTitle: "Welcome to Muffin!",
-    welcomeBody: "Muffin is a transcriber, it uses AI to improve the text output. It's optional but recommended!",
-    welcomeStep: "You can share your files with Muffin and it will do all the work for you!",
-    welcomeReminderTitle: "REMINDER",
-    welcomeReminder: "If you want to transcribe or summarize, you need to download a model manually.",
+    welcomeBody: "Muffin is a transcriber that uses AI to improve the text output. It can even learn from you and help you when the audio is unclear!",
+    welcomeStep: "You can share your files with Muffin or record in the app, and it will do all the work for you!",
+    welcomeButton: "Setup!",
 
     // -- The Format / Summarize card at the top --
     formatToggle: "Format",
@@ -377,6 +376,29 @@ export const APP_STRINGS = {
   // ==========================================================================
   //  MODEL CATALOG — the name + description on each model card in Settings
   // ==========================================================================
+  // ==========================================================================
+  //  FIRST-RUN SETUP — the guided pages that download the models
+  // ==========================================================================
+  setup: {
+    transcriberTitle: "Transcriber!",
+    transcriberBody: "This is your transcriber.\n\nThe highlighted one is suggested for your device, but you can download as many as you want.",
+
+    formatterTitle: "Formatter and Summarizer!",
+    formatterBody: "This is the brain of your transcriptions. It fixes them for you! You can even tell it how you want them.\n\nThe highlighted one is suggested for your device, but you can download as many as you want.",
+
+    optionalTitle: "Optional!",
+    optionalBody: "A few optional but useful tools you might need!",
+    chatSectionTitle: "Chat model!",
+    // Shown above the chat list when the phone can't really run any of them.
+    chatNoneSuggested: "Oh no! No model is really suggested for your device. You can still try them, but they will be slooow.",
+    butlerSectionTitle: "Butler!",
+    butlerBody: "This will help you extract useful content from the transcriptions, like important dates. The text will be highlighted, so keep an eye out for it!",
+
+    back: "Back",
+    next: "Next!",
+    finish: "Start!",
+  },
+
   models: {
     whisperTiny: "Faster",
     whisperTinyDesc: "Extremely fast for basic transcriptions. Recommended for low-end devices.",

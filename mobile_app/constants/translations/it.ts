@@ -30,10 +30,9 @@ export const IT = {
 
   transcribe: {
     welcomeTitle: "Benvenuto su Muffin!",
-    welcomeBody: "Muffin è un trascrittore, usa l'AI per migliorare il testo. È opzionale ma consigliato!",
-    welcomeStep: "Puoi condividere i tuoi file con Muffin e farà tutto il lavoro per te!",
-    welcomeReminderTitle: "PROMEMORIA",
-    welcomeReminder: "Se vuoi trascrivere o riassumere, devi scaricare un modello manualmente.",
+    welcomeBody: "Muffin è un trascrittore che usa l'AI per migliorare il testo. Può anche imparare da te e aiutarti quando l'audio non è chiaro!",
+    welcomeStep: "Puoi condividere i tuoi file con Muffin o registrare nell'app, e farà tutto il lavoro per te!",
+    welcomeButton: "Configura!",
     formatToggle: "Formatta",
     summarizeToggle: "Riassumi",
     formatterModelLabel: "Qualità formattazione",
@@ -280,6 +279,25 @@ export const IT = {
     // -- Lingua dell'app (questo selettore) --
     appLanguage: "Lingua dell'app",
     appLanguageDesc: "Automatica segue la lingua del telefono.",
+  },
+
+  setup: {
+    transcriberTitle: "Trascrittore!",
+    transcriberBody: "Questo è il tuo trascrittore.\n\nQuello evidenziato è consigliato per il tuo dispositivo, ma puoi scaricarne quanti vuoi.",
+
+    formatterTitle: "Formattatore e Riassuntore!",
+    formatterBody: "Questo è il cervello delle tue trascrizioni. Le sistema per te! Puoi anche dirgli come le vuoi.\n\nQuello evidenziato è consigliato per il tuo dispositivo, ma puoi scaricarne quanti vuoi.",
+
+    optionalTitle: "Opzionali!",
+    optionalBody: "Qualche strumento opzionale ma utile che potrebbe servirti!",
+    chatSectionTitle: "Modello per la chat!",
+    chatNoneSuggested: "Oh no! Nessun modello è davvero consigliato per il tuo dispositivo. Puoi comunque provarli, ma saranno lentiiiissimi.",
+    butlerSectionTitle: "Maggiordomo!",
+    butlerBody: "Questo ti aiuta a estrarre cose utili dalle trascrizioni, tipo le date importanti. Il testo verrà evidenziato, quindi tieni gli occhi aperti!",
+
+    back: "Indietro",
+    next: "Avanti!",
+    finish: "Inizia!",
   },
 
   models: {
