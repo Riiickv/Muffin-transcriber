@@ -288,9 +288,15 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
+          {/* The APP's logo, not RickLogo — that smile is Ricky's signature and
+              belongs on the support button, not on the screen introducing
+              Muffin. splash-icon is the mark on transparency; icon.png carries
+              its own dark square, which would sit as a visible box here.
+              Untinted on purpose: a logo keeps its colours, and a tint would
+              flatten the magenta star into the pink bars. */}
           <Image
-            source={require('@/assets/images/RickLogo.png')}
-            style={{ width: 88, height: 66, tintColor: theme.tint }}
+            source={require('@/assets/images/splash-icon.png')}
+            style={{ width: 132, height: 132 }}
             resizeMode="contain"
             accessibilityIgnoresInvertColors
           />
