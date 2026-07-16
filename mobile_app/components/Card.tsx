@@ -33,9 +33,17 @@ export const Card = ({ children, style, padded = true, onPress, index }: CardPro
       Animated.timing(anim, {
         toValue: 1,
         duration: MOTION.timingBase.duration,
-        // Can't use the native driver: `style` may carry layout props (the
-        // transcript card is flex:1) and we're on the same view.
-        useNativeDriver: false,
+        // The native driver only cares which properties are ANIMATED, not what
+        // else the style carries — and this animates opacity and translateY,
+        // both of which it handles. It used to be false "because the style may
+        // carry layout props", which isn't how the restriction works; the cost
+        // was that every card entrance ran on the JS thread, stuttering exactly
+        // when the app is busy transcribing.
+        //
+        // It also removes a landmine: with onPress, this transform lands in the
+        // same array as AnimatedPressable's native-driven press scale, and RN
+        // throws when one array mixes JS- and native-driven values.
+        useNativeDriver: true,
       }).start();
     }, index * STAGGER_MS);
     return () => clearTimeout(timer);

@@ -1,11 +1,11 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
-import { Image, ImageSourcePropType, Modal, Pressable, StyleSheet, View } from 'react-native';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Animated, Image, ImageSourcePropType, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
 import { Button } from './Button';
 import { Icon, IconName } from './Icon';
-import { RADIUS, SPACING } from '@/constants/tokens';
+import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
 import { t } from '@/utils/i18n';
 
 export type DialogButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -60,6 +60,21 @@ export const DialogCard = ({
 }: DialogCardProps) => {
   const { theme } = useTheme();
   const iconColor = iconTone === 'danger' ? theme.danger : theme.tint;
+
+  // The card had NO entrance: Modal's own animationType="fade" cross-faded the
+  // whole thing, backdrop and card together, which reads as a flat image being
+  // switched on. Springing the card up from 0.92 makes it arrive over the
+  // content rather than replace it — and this is the most-seen animation in the
+  // app, since every confirm, error and picker is one of these.
+  //
+  // Keyed on `visible` rather than mount: the Modal stays in the tree with
+  // visible=false, so a mount effect would fire once and never again.
+  const enter = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!visible) return;
+    enter.setValue(0);
+    Animated.spring(enter, { toValue: 1, useNativeDriver: true, ...MOTION.springSettle }).start();
+  }, [visible, enter]);
   const resolvedButtons: DialogButton[] = buttons ?? [{ label: t('dialog.defaultOk') || 'OK', variant: 'primary' }];
 
   const dismiss = () => {
@@ -81,7 +96,18 @@ export const DialogCard = ({
             The card is a later sibling, so it sits above this and its own taps
             never reach the scrim. */}
         <Pressable style={StyleSheet.absoluteFill} onPress={dismiss} />
-        <View style={[styles.card, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+        {/* opacity + scale only, so this rides the native driver and stays
+            smooth while whisper is chewing a CPU core. */}
+        <Animated.View
+          style={[
+            styles.card,
+            { backgroundColor: theme.background, borderColor: theme.divider },
+            {
+              opacity: enter,
+              transform: [{ scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }],
+            },
+          ]}
+        >
           {image ? (
             <View style={styles.iconWrap}>
               <Image
@@ -117,7 +143,7 @@ export const DialogCard = ({
               </View>
             ))}
           </View>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

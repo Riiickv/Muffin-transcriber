@@ -9,7 +9,7 @@ import { Icon } from '@/components/Icon';
 import { IconButton } from '@/components/IconButton';
 import { KeyboardStickyView } from 'react-native-keyboard-controller';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { SPACING, RADIUS, TAB_BAR_SPACE, FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
+import { SPACING, RADIUS, TAB_BAR_SPACE, MOTION, FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
 import { useSettings } from '@/utils/settingsStore';
 import { ModelManager } from '@/utils/ModelManager';
 import { chatStream, ChatMessage } from '@/utils/ChatEngine';
@@ -132,6 +132,13 @@ export default function ChatScreen() {
   const dialog = useDialog();
 
   // Set when the assistant asks for a rename without saying what to call it.
+  // The send button lights up as soon as there's something to send.
+  const canSend = !!input.trim() && !isGenerating;
+  const sendGlow = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(sendGlow, { toValue: canSend ? 1 : 0, useNativeDriver: true, ...MOTION.springStandard }).start();
+  }, [canSend, sendGlow]);
+
   const [pendingRename, setPendingRename] = useState<HistoryItem | null>(null);
   const [renameInput, setRenameInput] = useState('');
 
@@ -727,14 +734,26 @@ export default function ChatScreen() {
                 maxLength={500}
               />
               <AnimatedPressable
-                style={[
-                  styles.sendButton,
-                  { backgroundColor: input.trim() && !isGenerating ? theme.tint : theme.divider },
-                ]}
+                style={[styles.sendButton, { backgroundColor: theme.divider }]}
                 onPress={handleSend}
-                disabled={!input.trim() || isGenerating}
+                disabled={!canSend}
                 accessibilityLabel="Send"
               >
+                {/* The accent is painted on a layer whose OPACITY animates,
+                    rather than interpolating backgroundColor: with the 'system'
+                    accent on Android theme.tint is a PlatformColor object, and
+                    no animator can interpolate one ("platform colors are not
+                    supported" — the crash that took out the tab bar). Opacity
+                    also rides the native driver, so this stays smooth while a
+                    reply is streaming. */}
+                <Animated.View
+                  pointerEvents="none"
+                  style={[
+                    StyleSheet.absoluteFill,
+                    { backgroundColor: theme.tint, borderRadius: RADIUS.pill },
+                    { opacity: sendGlow },
+                  ]}
+                />
                 <Icon name={isGenerating ? 'more-horiz' : 'arrow-upward'} size={20} color="#fff" filled />
               </AnimatedPressable>
             </View>
