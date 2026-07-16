@@ -18,6 +18,7 @@ import { AnimatedPressable } from './AnimatedPressable';
 import { RADIUS, SPACING, FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
 import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/utils/haptics';
+import { useIsFirstRun } from '@/utils/modelPresence';
 
 const ICONS: Record<string, IconName> = {
   index: 'home',
@@ -43,6 +44,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const { contentWidth, isCompact } = useResponsive();
+  const isFirstRun = useIsFirstRun();
   const [kbVisible, setKbVisible] = useState(false);
 
   // A floating bar sits ON the content, so unlike a docked bar it would cover
@@ -63,6 +65,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   }, []);
 
   if (kbVisible) return null;
+  // Nothing to navigate to until there's a model: every other tab is as empty as
+  // this one. The welcome should be the only thing on screen.
+  if (isFirstRun) return null;
 
   return (
     <View

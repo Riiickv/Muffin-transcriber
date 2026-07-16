@@ -6,6 +6,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { FloatingTabBar } from '@/components/FloatingTabBar';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useIsFirstRun } from '@/utils/modelPresence';
 import { haptics } from '@/utils/haptics';
 import { openSupportPage } from '@/utils/support';
 import { useDialog } from '@/components/Dialog';
@@ -15,12 +16,16 @@ export default function TabLayout() {
   const { theme } = useTheme();
   const dialog = useDialog();
   const { contentWidth } = useResponsive();
+  const isFirstRun = useIsFirstRun();
 
   return (
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
-        headerShown: useClientOnlyValue(false, true),
+        // Hidden while the welcome takes over: a header with a title and a
+        // support button frames it as one screen among many, when it's the whole
+        // app until a model exists.
+        headerShown: useClientOnlyValue(false, true) && !isFirstRun,
         headerShadowVisible: false,
         headerStyle: { borderBottomWidth: 0, backgroundColor: theme.background },
         // No paddingBottom here: it would shrink every scene, so scrollable
