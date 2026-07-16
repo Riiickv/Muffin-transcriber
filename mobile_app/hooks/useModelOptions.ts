@@ -16,12 +16,20 @@ const toOptions = (models: readonly ModelDef[], downloaded: string[]): DropdownO
 // useState + getDownloadedModelIds effect + filter/map block on every screen.
 export function useModelOptions() {
   const [downloadedIds, setDownloadedIds] = useState<string[]>([]);
+  // downloadedIds is [] before the disk has been read, which is indistinguishable
+  // from "you have no models" — and screens that key off emptiness would flash
+  // their empty state at every existing user on every launch. `ready` says the
+  // answer is real.
+  const [ready, setReady] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       ModelManager.getDownloadedModelIds().then((ids) => {
-        if (active) setDownloadedIds(ids);
+        if (active) {
+          setDownloadedIds(ids);
+          setReady(true);
+        }
       });
       return () => {
         active = false;
@@ -31,6 +39,7 @@ export function useModelOptions() {
 
   return {
     downloadedIds,
+    ready,
     whisperOptions: toOptions(WHISPER_MODELS, downloadedIds),
     formatterOptions: toOptions(FORMATTER_MODELS, downloadedIds),
     chatOptions: toOptions(CHAT_MODELS, downloadedIds),

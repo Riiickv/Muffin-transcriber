@@ -16,9 +16,9 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import ExpressiveSwitch from '@/components/ExpressiveSwitch';
 import { MOTION, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
-import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
+import { loadWhisper } from '@/utils/WhisperEngine';
+import { transcribeAudio, ensureAudioDir, AUDIO_DIR } from '@/utils/audioTranscription';
 import * as Clipboard from 'expo-clipboard';
-import { convertToWav } from '@/modules/audio-converter';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings } from '@/utils/settingsStore';
@@ -173,28 +173,26 @@ export default function RecordScreen() {
         const whisperPath = ModelManager.getModelPath(settings.preferredWhisperModel);
         await loadWhisper(whisperPath);
 
-        // Convert before transcribing, exactly like the Transcribe tab does.
-        // Android's MediaRecorder CANNOT produce WAV — expo-audio's
-        // AndroidOutputFormat has no wav/pcm member at all — so the recorder
-        // hands back AAC/3GP data in a file merely NAMED .wav, and whisper.rn
-        // parses files with a hand-written RIFF reader and rejects it with
-        // "Invalid WAV file". This step was simply missing here; the Transcribe
-        // tab always had it, which is why picking a file worked and recording
-        // never did.
+        // Move the recording somewhere permanent, keeping it in the format the
+        // recorder produced. expo-audio writes to the CACHE, which Android is
+        // free to evict, so history playback needs its own copy.
+        //
+        // The m4a, not a WAV. whisper needs a WAV, but that WAV is ~1.9 MB/min
+        // against the m4a's ~0.5 — keeping it as the stored recording made every
+        // voice note 4x more expensive on disk, with auto-delete defaulting to
+        // Never. transcribeAudio makes a throwaway WAV in the cache and deletes
+        // it; what's kept for playback is the small file the phone recorded.
         setStatus(t('transcribe.convertingAudio') || 'Converting audio...');
-        const audioDir = `${FileSystemLegacy.documentDirectory}MuffinAudio/`;
-        const dirInfo = await FileSystemLegacy.getInfoAsync(audioDir);
-        if (!dirInfo.exists) {
-          await FileSystemLegacy.makeDirectoryAsync(audioDir, { intermediates: true });
-        }
-        const wavPath = `${audioDir}recording_${Date.now()}.wav`;
-        await convertToWav(uri, wavPath);
+        await ensureAudioDir();
+        const ext = uri.match(/\.[^/.]+$/)?.[0] ?? '.m4a';
+        const audioPath = `${AUDIO_DIR}recording_${Date.now()}${ext}`;
+        await FileSystemLegacy.moveAsync({ from: uri, to: audioPath });
 
         setStatus(t('record.transcribing') || 'Transcribing...');
         // Tagged so finishing here can't release Home's concurrent wake lock.
         await activateKeepAwakeAsync('record-transcription');
         const langCode = toLanguageCode(settings.defaultLanguage);
-        const result = await transcribeFile(wavPath, langCode);
+        const result = await transcribeAudio(audioPath, langCode);
         setTranscript(result.text.trim());
 
         // Save the raw transcript right away — the user shouldn't wait through
@@ -205,9 +203,7 @@ export default function RecordScreen() {
           sourceFileName: t('transcribe.noTitle') || 'Voice Memo',
           language: settings.defaultLanguage || 'Auto-Detect',
           rawTranscript: result.text,
-          // The WAV, not the recorder's cache file: MuffinAudio/ is permanent,
-          // so history replay still works after the cache is evicted.
-          sourceFilePath: wavPath,
+          sourceFilePath: audioPath,
         };
         await addOrUpdate(baseItem);
         haptics.success();

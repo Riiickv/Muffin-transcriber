@@ -56,6 +56,12 @@ export const APP_STRINGS = {
   //  "MUFFIN!" TAB — the main screen where you pick a file and transcribe it
   // ==========================================================================
   transcribe: {
+    // -- FIRST RUN: shown instead of everything else when no model is
+    // -- installed yet, because nothing works until one is.
+    welcomeTitle: "Welcome to Muffin!",
+    welcomeBody: "Muffin turns voice messages into text. Everything happens on your phone and nothing is ever uploaded.",
+    welcomeStep: "To start, download a model. That's the bit that does the work. It takes a few minutes, and you only do it once.",
+
     // -- The Format / Summarize card at the top --
     formatToggle: "Format",
     summarizeToggle: "Summarize",

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '@/components/Themed';
@@ -25,7 +25,7 @@ import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { WaitingCard } from '@/components/WaitingCard';
 import { useDialog } from '@/components/Dialog';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
@@ -59,7 +59,7 @@ export default function HomeScreen() {
   const [formattedText, setFormattedText] = useState('');
   const [summaryText, setSummaryText] = useState('');
 
-  const { whisperOptions, formatterOptions } = useModelOptions();
+  const { whisperOptions, formatterOptions, downloadedIds, ready: modelsChecked } = useModelOptions();
   // Once a file is picked, transcription is imminent — warm the model.
   useWhisperPreload(!!selectedFileUri);
 
@@ -263,6 +263,46 @@ export default function HomeScreen() {
     haptics.success();
   };
 
+  // FIRST RUN. With no models the app cannot do anything at all - every control
+  // below is dead and the Go button fails - so showing them is a lie about what
+  // the app is ready to do. This is also the only screen a Play reviewer sees on
+  // a fresh install. `modelsChecked` gates it so existing users never see it
+  // flash while the disk is being read.
+  if (modelsChecked && downloadedIds.length === 0) {
+    return (
+      <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>
+        <View style={styles.welcome}>
+          <Image
+            source={require('@/assets/images/RickLogo.png')}
+            style={{ width: 88, height: 66, tintColor: theme.tint }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
+          <Text style={styles.welcomeTitle}>{t('transcribe.welcomeTitle')}</Text>
+          <Text style={[styles.welcomeBody, { color: theme.textMuted }]}>
+            {t('transcribe.welcomeBody')}
+          </Text>
+          <Text style={[styles.welcomeBody, { color: theme.textMuted }]}>
+            {t('transcribe.welcomeStep')}
+          </Text>
+          {/* Explicit height: an unsized Button balloons inside a centered
+              container (see WaitingCard). */}
+          <Button
+            variant="primary"
+            size="lg"
+            style={{ marginTop: SPACING.xl, height: 48 }}
+            onPress={() => {
+              haptics.tap();
+              router.push('/models' as any);
+            }}
+          >
+            {t('models.goToModels')}
+          </Button>
+        </View>
+      </FadeInView>
+    );
+  }
+
   return (
     <KeyboardScreen>
     <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>
@@ -430,6 +470,24 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  welcome: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+    gap: SPACING.md,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: SPACING.md,
+  },
+  welcomeBody: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
   },
   // Content container: flexGrow (not flex) so it fills a tall screen but is
   // free to exceed a short one and scroll.
