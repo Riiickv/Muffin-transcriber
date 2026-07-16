@@ -57,7 +57,8 @@ export function WaitingCard({ status }: { status?: string }) {
           dialog.show({
             title: t('transcribe.supportMe') || 'Support me!',
             message: t('transcribe.supportDesc'),
-            icon: 'favorite',
+            image: require('@/assets/images/RickLogo.png'),
+            imageAspect: 488 / 366,
             iconTone: 'primary',
             secondaryAction: { label: t('transcribe.supportCancel') || 'Maybe later', onPress: () => {} },
             primaryAction: { label: t('settings.supportButton') || 'Buy a coffee', onPress: openSupportPage },

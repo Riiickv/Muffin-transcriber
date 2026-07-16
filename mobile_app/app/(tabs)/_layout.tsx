@@ -47,7 +47,8 @@ export default function TabLayout() {
               dialog.show({
                 title: t('settings.supportTitle'),
                 message: t('settings.supportMessage'),
-                icon: 'favorite',
+                image: require('@/assets/images/RickLogo.png'),
+                imageAspect: 488 / 366,
                 iconTone: 'primary',
                 secondaryAction: { label: t('settings.supportCancel'), onPress: () => {} },
                 primaryAction: { label: t('settings.supportButton'), onPress: openSupportPage },
