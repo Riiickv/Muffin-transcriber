@@ -19,6 +19,7 @@ import { RADIUS, SPACING, FLOATING_CHROME, floatingChromeColors } from '@/consta
 import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/utils/haptics';
 import { useIsFirstRun } from '@/utils/modelPresence';
+import { useSettings } from '@/utils/settingsStore';
 
 const ICONS: Record<string, IconName> = {
   index: 'home',
@@ -45,6 +46,22 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const insets = useSafeAreaInsets();
   const { contentWidth, isCompact } = useResponsive();
   const isFirstRun = useIsFirstRun();
+  const { settings } = useSettings();
+
+  // Chat only exists if there's a chat model to run it with. Without one the
+  // tab is dead weight — it can only show "No Chat Model Selected" and a button
+  // pointing at Models — so it's a fifth of the bar spent on nothing, for the
+  // many people who never wanted the heaviest download in the app.
+  //
+  // preferredChatModel rather than a fresh disk check: ensureModelSelections
+  // already keeps it exactly in step with what's installed (filled on download,
+  // cleared when the model is deleted), and it's persisted, so the answer is
+  // there at launch without a file scan or a frame of flicker.
+  //
+  // The ROUTE stays registered — only the button is hidden. The assistant's
+  // NAVIGATE_TO can still reach chat, and anyone who lands there gets the
+  // "download a model" screen rather than a dead end.
+  const hasChatModel = !!settings.preferredChatModel;
   const [kbVisible, setKbVisible] = useState(false);
 
   // A floating bar sits ON the content, so unlike a docked bar it would cover
@@ -88,9 +105,14 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
           },
         ]}
       >
-        {state.routes.map((route, i) => {
+        {state.routes
+          .filter((route) => route.name !== 'chat' || hasChatModel)
+          .map((route) => {
           const { options } = descriptors[route.key];
-          const focused = state.index === i;
+          // Compared by KEY, not by index: the list above is filtered, so a
+          // positional check would mark the wrong tab focused the moment the
+          // chat button is hidden.
+          const focused = state.routes[state.index]?.key === route.key;
           // tabBarLabel first, NOT title: the Chat screen sets `title` to the
           // active chat's name for its header, and this bar was reading the
           // same option — so the tab itself was labelled "New Chat" instead of
