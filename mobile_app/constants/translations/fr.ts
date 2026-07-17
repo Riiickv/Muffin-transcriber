@@ -112,6 +112,7 @@ export const FR = {
 
   chat: {
     header: "Chat",
+    beta: "Beta",
     inputPlaceholder: "Pose-moi une question sur tes transcriptions...",
     sendButton: "Envoyer",
     thinking: "Je réfléchis...",

@@ -197,6 +197,7 @@ export const APP_STRINGS = {
   // ==========================================================================
   chat: {
     header: "Chat",
+    beta: "Beta",
     inputPlaceholder: "Ask about your transcripts...",
     sendButton: "Send",
     thinking: "Thinking...",

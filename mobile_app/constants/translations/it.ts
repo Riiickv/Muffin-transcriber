@@ -137,6 +137,7 @@ export const IT = {
 
   chat: {
     header: "Chat",
+    beta: "Beta",
     inputPlaceholder: "Chiedimi delle tue trascrizioni...",
     sendButton: "Invia",
     thinking: "Sto pensando...",
