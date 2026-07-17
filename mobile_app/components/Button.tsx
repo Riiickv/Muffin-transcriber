@@ -43,7 +43,7 @@ export const Button = ({
   const s = SIZE_STYLES[size];
 
   const palette: Record<ButtonVariant, { bg: string; fg: string; border?: string }> = {
-    primary: { bg: theme.tint, fg: '#000000' },
+    primary: { bg: theme.tint, fg: theme.tintForeground },
     secondary: { bg: theme.surface, fg: theme.text, border: theme.divider },
     ghost: { bg: 'transparent', fg: theme.tint },
     danger: { bg: theme.danger, fg: '#FFFFFF' },

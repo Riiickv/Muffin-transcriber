@@ -205,7 +205,7 @@ const ModelRow = ({
           ) : downloaded ? (
             <Icon name="delete" size={18} color={theme.danger} />
           ) : (
-            <Text style={[styles.actionText, { color: '#000000' }]}>{t('settings.get')}</Text>
+            <Text style={[styles.actionText, { color: theme.tintForeground }]}>{t('settings.get')}</Text>
           )}
         </AnimatedPressable>
       </View>
