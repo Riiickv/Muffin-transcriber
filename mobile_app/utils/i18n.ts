@@ -32,17 +32,17 @@ export const APP_LANGUAGE_OPTIONS: { label: string; value: AppLanguage }[] = [
  *  React state because t() is a plain function called from everywhere. */
 let currentLanguage: Exclude<AppLanguage, 'auto'> = 'en';
 
-/** What 'auto' resolves to: the phone's language, if we speak it. */
+/** What 'auto' resolves to: the phone's language, if we speak it, else English. */
 export function resolveDeviceLanguage(): Exclude<AppLanguage, 'auto'> {
   try {
-    // Locales are ordered by the user's own preference, so the first one we
-    // support is the best answer — someone with [it, en] wants Italian.
-    for (const locale of getLocales()) {
-      const code = locale.languageCode?.toLowerCase();
-      if (code && code in TRANSLATIONS) {
-        return code as Exclude<AppLanguage, 'auto'>;
-      }
-      if (code === 'en') return 'en';
+    // ONLY the primary locale — the language the phone is actually set to.
+    // This used to scan the whole preferred-languages list and take the first
+    // supported one, which meant a Russian-primary phone that happened to list
+    // Italian further down came up ITALIAN instead of English. Matching just the
+    // primary is what people expect: their phone's language, or English.
+    const primary = getLocales()[0]?.languageCode?.toLowerCase();
+    if (primary && (primary in TRANSLATIONS || primary === 'en')) {
+      return primary as Exclude<AppLanguage, 'auto'>;
     }
   } catch {
     // getLocales can throw on a misconfigured device; English is a safe answer.
