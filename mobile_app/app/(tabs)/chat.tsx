@@ -644,19 +644,31 @@ export default function ChatScreen() {
                 />
               ),
               headerRight: () => (
-                <IconButton
-                  variant="ghost"
-                  size="md"
-                  icon="add"
-                  onPress={async () => {
-                    const id = await addChatSession(t('chat.newChat'));
-                    setActiveChatId(id);
-                    setMessages([]);
-                    setIsDrawerOpen(false);
-                  }}
-                  accessibilityLabel={t('chat.newChat')}
-                  style={{ marginRight: SPACING.sm }}
-                />
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {/* Beta badge: the chat leans on a 1B model doing tool-calls,
+                      which is the least reliable thing the app does. Saying so
+                      up front turns a rough reply from "this app is broken" into
+                      "this part is still cooking" — honest, and it's what a Play
+                      reviewer needs to see before they poke it. */}
+                  <View style={[styles.betaBadge, { backgroundColor: theme.tintFill }]}>
+                    <Text style={{ color: theme.tint, fontSize: 11, fontWeight: '700' }}>
+                      {t('chat.beta')}
+                    </Text>
+                  </View>
+                  <IconButton
+                    variant="ghost"
+                    size="md"
+                    icon="add"
+                    onPress={async () => {
+                      const id = await addChatSession(t('chat.newChat'));
+                      setActiveChatId(id);
+                      setMessages([]);
+                      setIsDrawerOpen(false);
+                    }}
+                    accessibilityLabel={t('chat.newChat')}
+                    style={{ marginRight: SPACING.sm }}
+                  />
+                </View>
               )
             }} 
           />
@@ -853,6 +865,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING.xl,
+  },
+  betaBadge: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 2,
+    borderRadius: RADIUS.pill,
+    marginRight: SPACING.xs,
   },
   chatContainer: {
     padding: SPACING.md,

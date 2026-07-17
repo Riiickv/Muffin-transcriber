@@ -112,6 +112,7 @@ export const ES = {
 
   chat: {
     header: "Chat",
+    beta: "Beta",
     inputPlaceholder: "Pregúntame sobre tus transcripciones...",
     sendButton: "Enviar",
     thinking: "Pensando...",
