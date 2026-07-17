@@ -21,6 +21,8 @@ export interface Theme {
   divider: string;
   tint: any;
   tintString: string;
+  /** Black or white, whichever stays legible ON the accent. */
+  tintForeground: string;
   tintSurface: any;
   tintFill: any;
   tintStrong: any;
@@ -48,6 +50,18 @@ const ACCENT_COLORS: Record<Exclude<AccentColor, 'system'>, string> = {
 };
 
 const DANGER_LIGHT = '#ED6F62';
+
+function accentForeground(hex: string): string {
+  const c = (i: number) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  const L = 0.2126 * c(1) + 0.7152 * c(3) + 0.0722 * c(5);
+  // Light accents (muffin, green) keep black; darker ones (purple, red) get
+  // white. The accent used to change while the on-accent text stayed black,
+  // which went muddy on purple.
+  return L > 0.4 ? '#000000' : '#FFFFFF';
+}
 
 const withAlpha = (color: string, alpha: number): string => {
   if (typeof color !== 'string' || !color.startsWith('#') || color.length < 7) return color;
@@ -105,6 +119,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       divider: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
       tint: PlatformColor('@android:color/system_accent1_500'),
       tintString: isDark ? '#FF9EBB' : '#FF9EBB', // Muffin brand color fallback for React Navigation
+      tintForeground: '#FFFFFF', // accent1_500 is a saturated mid-tone; white is the safe pairing
       tintSurface: PlatformColor(isDark ? '@android:color/system_accent1_900' : '@android:color/system_accent1_100'),
       tintFill: PlatformColor(isDark ? '@android:color/system_accent1_800' : '@android:color/system_accent1_200'),
       tintStrong: PlatformColor(isDark ? '@android:color/system_accent1_700' : '@android:color/system_accent1_300'),
@@ -128,6 +143,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       divider: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)',
       tint,
       tintString: tint,
+      tintForeground: accentForeground(tint),
       tintSurface: withAlpha(tint, 0.10),
       tintFill: withAlpha(tint, 0.15),
       tintStrong: withAlpha(tint, 0.30),
