@@ -24,15 +24,16 @@ nuisance rather than a catastrophe, but still: don't lose it.)
 Open PowerShell and run:
 
 ```powershell
-keytool -genkey -v -keystore "$env:USERPROFILE\muffin-upload.jks" -alias muffin -keyalg RSA -keysize 2048 -validity 10000
+keytool -genkey -v -keystore "$env:USERPROFILE\muffin-upload.jks" -alias muffin -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Muffin"
 ```
 
-It will ask:
+The `-dname "CN=Muffin"` fills the certificate identity for you, so keytool
+won't prompt for a name, city or country — and nothing personal ends up baked
+into the certificate, which anyone can extract from a sideloaded APK. It will
+only ask:
 
 - **Keystore password** — invent a strong one and save it in a password manager
   right now. You'll type it twice.
-- **Name / organization / city / country** — these go inside the certificate.
-  "Riccardo", "IT" for country, the rest can be minimal. They're not shown to users.
 - Confirm with `yes`.
 
 This creates `C:\Users\ricky\muffin-upload.jks`. **It is deliberately OUTSIDE
