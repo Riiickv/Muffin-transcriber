@@ -198,6 +198,9 @@ export const APP_STRINGS = {
   chat: {
     header: "Chat",
     beta: "Beta",
+    betaTitle: "Chat in beta",
+    betaBody: "Yes, it can do some things, the rest is total shit.\n\nI cannot find a way to make it work properly, not for all the nice features I want it to have, especially for lower-end models. I just didn't want it to slow down the release of the app, since the rest is ready, at least in my tests. If anything is terrible, send feedback on the Play Store and I'll see what I can do!",
+    betaOk: "Ok!",
     inputPlaceholder: "Ask about your transcripts...",
     sendButton: "Send",
     thinking: "Thinking...",

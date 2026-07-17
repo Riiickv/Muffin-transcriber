@@ -138,6 +138,9 @@ export const IT = {
   chat: {
     header: "Chat",
     beta: "Beta",
+    betaTitle: "Chat in beta",
+    betaBody: "Sì, qualcosa lo fa, il resto è una merda totale.\n\nNon riesco a farlo funzionare come si deve, non per tutte le funzioni carine che vorrei, soprattutto sui dispositivi meno potenti. Non volevo che rallentasse l'uscita dell'app, dato che il resto è pronto, almeno nei miei test. Se qualcosa fa schifo, lascia un feedback sul Play Store e vedo cosa posso fare!",
+    betaOk: "Ok!",
     inputPlaceholder: "Chiedimi delle tue trascrizioni...",
     sendButton: "Invia",
     thinking: "Sto pensando...",
