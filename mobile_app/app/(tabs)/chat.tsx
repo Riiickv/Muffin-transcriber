@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, TextInput, FlatList, Platform, Animated, Easing, Keyboard } from 'react-native';
+import { View, StyleSheet, TextInput, FlatList, Platform, Animated, Easing, Keyboard, Pressable } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { Text } from '@/components/Themed';
@@ -650,11 +650,24 @@ export default function ChatScreen() {
                       up front turns a rough reply from "this app is broken" into
                       "this part is still cooking" — honest, and it's what a Play
                       reviewer needs to see before they poke it. */}
-                  <View style={[styles.betaBadge, { backgroundColor: theme.tintFill }]}>
+                  <Pressable
+                    onPress={() => {
+                      haptics.tap();
+                      dialog.show({
+                        title: t('chat.betaTitle'),
+                        message: t('chat.betaBody'),
+                        buttons: [{ label: t('chat.betaOk'), variant: 'primary' }],
+                      });
+                    }}
+                    hitSlop={8}
+                    style={({ pressed }) => [styles.betaBadge, { backgroundColor: theme.tintFill, opacity: pressed ? 0.6 : 1 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('chat.betaTitle')}
+                  >
                     <Text style={{ color: theme.tint, fontSize: 11, fontWeight: '700' }}>
                       {t('chat.beta')}
                     </Text>
-                  </View>
+                  </Pressable>
                   <IconButton
                     variant="ghost"
                     size="md"
