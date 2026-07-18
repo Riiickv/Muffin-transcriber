@@ -16,7 +16,7 @@ export function warmWhisperIfReady(modelId: string): void {
 }
 
 // Screen hook: warm the model on focus, but only where a transcription is
-// clearly imminent (gate with `active`) — a resident large model is ~600MB of
+// clearly imminent (gate with `active`) - a resident large model is ~600MB of
 // native RAM, so mere tab visits shouldn't commit it.
 export function useWhisperPreload(active: boolean = true) {
   const { settings } = useSettings();

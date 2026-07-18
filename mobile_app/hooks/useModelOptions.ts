@@ -19,7 +19,7 @@ const toOptions = (models: readonly ModelDef[], downloaded: string[]): DropdownO
 export function useModelOptions() {
   const [downloadedIds, setDownloadedIds] = useState<string[]>([]);
   // downloadedIds is [] before the disk has been read, which is indistinguishable
-  // from "you have no models" — and screens that key off emptiness would flash
+  // from "you have no models" - and screens that key off emptiness would flash
   // their empty state at every existing user on every launch. `ready` says the
   // answer is real.
   const [ready, setReady] = useState(false);

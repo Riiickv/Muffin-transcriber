@@ -2,16 +2,16 @@ import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
 /**
- * Two different haptic vocabularies, one per platform — because the generic
+ * Two different haptic vocabularies, one per platform - because the generic
  * cross-platform API feels cheap on Android.
  *
  * `notificationAsync` / `impactAsync` are modelled on iOS's Taptic Engine. On
- * Android, expo maps them onto raw Vibrator patterns — timed buzzes, not the
+ * Android, expo maps them onto raw Vibrator patterns - timed buzzes, not the
  * device's tuned haptic primitives. That's the "cheap" feeling: Android's own
  * guidance is "favor rich and clear haptics over buzzy haptics"
  * (developer.android.com/develop/ui/views/haptics/haptics-principles).
  *
- * `performAndroidHapticsAsync` hits HapticFeedbackConstants instead — the same
+ * `performAndroidHapticsAsync` hits HapticFeedbackConstants instead - the same
  * primitives the OS uses for its own keyboard and switches, tuned per device by
  * the manufacturer. Crisp on hardware that has a good actuator, and correctly
  * silent on hardware that doesn't.
@@ -23,7 +23,7 @@ import * as Haptics from 'expo-haptics';
 const isAndroid = Platform.OS === 'android';
 const isIOS = Platform.OS === 'ios';
 
-// Fire-and-forget: haptics are decoration. A rejection means no actuator —
+// Fire-and-forget: haptics are decoration. A rejection means no actuator -
 // nothing to do, and nothing the user needs told.
 const fire = (run: () => Promise<void>) => {
   if (!isAndroid && !isIOS) return;
@@ -33,7 +33,7 @@ const fire = (run: () => Promise<void>) => {
 const android = (effect: Haptics.AndroidHaptics) => Haptics.performAndroidHapticsAsync(effect);
 
 export const haptics = {
-  /** Button presses. The workhorse — keep it light, it fires constantly. */
+  /** Button presses. The workhorse - keep it light, it fires constantly. */
   tap: () =>
     fire(() =>
       isAndroid
@@ -41,7 +41,7 @@ export const haptics = {
         : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft)
     ),
 
-  /** Moving through options — lighter than a tap. */
+  /** Moving through options - lighter than a tap. */
   select: () =>
     fire(() =>
       isAndroid ? android(Haptics.AndroidHaptics.Clock_Tick) : Haptics.selectionAsync()
@@ -71,7 +71,7 @@ export const haptics = {
         : Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
     ),
 
-  /** Deliberate, weighty — recording start/stop. Rare by design. */
+  /** Deliberate, weighty - recording start/stop. Rare by design. */
   impact: () =>
     fire(() =>
       isAndroid

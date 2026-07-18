@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, StyleProp, StyleSheet, Text, TextStyle } from 'react-native';
 
-// Codepoints from Google Material Symbols. Add more as the UI needs them —
+// Codepoints from Google Material Symbols. Add more as the UI needs them -
 // full list at https://fonts.google.com/icons.
 // (Names are our own short aliases so the API reads like Ionicons.)
 const CODEPOINTS = {
@@ -24,7 +24,7 @@ const CODEPOINTS = {
   download: '',
   share: '',
   check: String.fromCharCode(0xe5ca),
-  // 0xe0b7 is the real 'chat' bubble — 0xe0b2 is 'call_made', an arrow.
+  // 0xe0b7 is the real 'chat' bubble - 0xe0b2 is 'call_made', an arrow.
   chat: String.fromCharCode(0xe0b7),
   forum: String.fromCharCode(0xe0bf),
   menu: String.fromCharCode(0xe5d2),
@@ -44,7 +44,7 @@ interface IconProps {
   size?: number;
   color?: string;
   /**
-   * Material Symbols is a variable font — `filled` toggles the FILL axis
+   * Material Symbols is a variable font - `filled` toggles the FILL axis
    * between outlined (default, 0) and filled (1). Works on iOS + modern
    * Android; gracefully degrades to outlined if the OS ignores the axis.
    */

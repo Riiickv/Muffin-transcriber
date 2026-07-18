@@ -11,7 +11,7 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { t } from '@/utils/i18n';
 
 /**
- * Model downloads — its own screen, pushed from Settings.
+ * Model downloads - its own screen, pushed from Settings.
  *
  * Was a segmented control inside Settings, which made two unrelated things
  * share one scroll: Preferences is a list of small choices you tweak, Models is
@@ -20,7 +20,7 @@ import { t } from '@/utils/i18n';
  * card. Android's own guidance is to push a subscreen once a settings page runs
  * long, rather than tab within it.
  *
- * The list is ModelDownloadList, shared with the first-run setup — the same
+ * The list is ModelDownloadList, shared with the first-run setup - the same
  * list, not two that resemble each other.
  */
 export default function ModelsScreen() {

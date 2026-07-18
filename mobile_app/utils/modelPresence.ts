@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * "Does the user have any models?" — readable from outside a screen.
+ * "Does the user have any models?" - readable from outside a screen.
  *
  * The welcome takeover is decided by the Transcribe screen, but the header and
  * the tab bar have to disappear with it, and they live OUTSIDE that screen: the
@@ -9,7 +9,7 @@ import { useSyncExternalStore } from 'react';
  * Neither can use useFocusEffect the way a screen does, so the answer lives here
  * and useModelOptions publishes it after it reads the disk.
  *
- * null means "not checked yet" — deliberately distinct from false. Treating
+ * null means "not checked yet" - deliberately distinct from false. Treating
  * unchecked as "no models" would blink the bars off on every launch.
  */
 let present: boolean | null = null;

@@ -12,7 +12,7 @@ interface CardProps {
   /**
    * Position in a vertical stack. Set it and the card fades + rises in on
    * mount, staggered by `index * 60ms`, so a screen assembles itself instead
-   * of snapping in. Leave it off inside dialogs/modals — those have their own
+   * of snapping in. Leave it off inside dialogs/modals - those have their own
    * entrance and would double up.
    */
   index?: number;
@@ -21,7 +21,7 @@ interface CardProps {
 const STAGGER_MS = 60;
 
 // Standard surface. Filled, not outlined: a transparent card with a hairline
-// border reads as a floating outline with no material — the page background
+// border reads as a floating outline with no material - the page background
 // shows straight through it. `theme.surface` gives it a floor to sit on.
 export const Card = ({ children, style, padded = true, onPress, index }: CardProps) => {
   const { theme } = useTheme();
@@ -34,7 +34,7 @@ export const Card = ({ children, style, padded = true, onPress, index }: CardPro
         toValue: 1,
         duration: MOTION.timingBase.duration,
         // The native driver only cares which properties are ANIMATED, not what
-        // else the style carries — and this animates opacity and translateY,
+        // else the style carries - and this animates opacity and translateY,
         // both of which it handles. It used to be false "because the style may
         // carry layout props", which isn't how the restriction works; the cost
         // was that every card entrance ran on the JS thread, stuttering exactly
@@ -52,7 +52,7 @@ export const Card = ({ children, style, padded = true, onPress, index }: CardPro
   const baseStyle: ViewStyle = {
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    // Softer than `divider` — the fill does the separating now, so the stroke
+    // Softer than `divider` - the fill does the separating now, so the stroke
     // only needs to catch the edge.
     borderColor: theme.isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
     backgroundColor: theme.surface,

@@ -42,7 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   appLanguage: 'auto',
 };
 
-// Model ids that changed in the catalog (e.g. quant swaps) — remap stale
+// Model ids that changed in the catalog (e.g. quant swaps) - remap stale
 // preferences so the picker doesn't show a ghost entry.
 const MODEL_RENAMES: Record<string, string> = {
   'ggml-large-v3-turbo-q5_0.bin': 'ggml-large-v3-turbo-q8_0.bin',

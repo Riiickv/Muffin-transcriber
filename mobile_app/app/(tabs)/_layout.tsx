@@ -35,7 +35,7 @@ export default function TabLayout() {
         //
         // maxWidth centres every tab in a phone-width column on tablets and
         // unfolded foldables. On a phone `contentWidth` === the screen width,
-        // so this is a no-op — the layout you've been checking is untouched.
+        // so this is a no-op - the layout you've been checking is untouched.
         sceneStyle: {
           backgroundColor: theme.background,
           maxWidth: contentWidth,

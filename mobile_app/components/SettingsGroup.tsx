@@ -25,7 +25,7 @@ export const SettingsGroup = ({
 }: {
   title?: string;
   children: React.ReactNode;
-  /** Stagger position — passed through to Card. */
+  /** Stagger position - passed through to Card. */
   index?: number;
   /** Small explanatory line under the card. Use for caveats, not labels. */
   footer?: string;
@@ -58,7 +58,7 @@ type RowTone = 'default' | 'danger';
 interface SettingsRowProps {
   label: string;
   description?: string;
-  /** Leading icon. Optional — use sparingly, only where it aids scanning. */
+  /** Leading icon. Optional - use sparingly, only where it aids scanning. */
   icon?: IconName;
   /** Control on the right: a switch, etc. */
   right?: React.ReactNode;
@@ -72,7 +72,7 @@ interface SettingsRowProps {
 }
 
 /**
- * One line in a SettingsGroup. Label (+ description) left, control right —
+ * One line in a SettingsGroup. Label (+ description) left, control right -
  * one layout for every kind of setting, so the eye can scan a single column
  * of labels instead of re-parsing each row.
  */

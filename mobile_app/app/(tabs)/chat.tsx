@@ -235,7 +235,7 @@ export default function ChatScreen() {
   );
 
   const handleDeleteChat = async (id: string) => {
-    // Capture the row's position BEFORE deleting — it's what decides the
+    // Capture the row's position BEFORE deleting - it's what decides the
     // replacement, and the list is gone by the time the store updates.
     const index = chatSessions.findIndex((c) => c.id === id);
     const remaining = chatSessions.filter((c) => c.id !== id);
@@ -262,7 +262,7 @@ export default function ChatScreen() {
   };
 
   // Action-result notes are system turns: fed to the model so it knows what its
-  // tool calls actually did, but hidden here — the user already watched the
+  // tool calls actually did, but hidden here - the user already watched the
   // dialog and the transcript disappear, and MessageBubble would render them as
   // the assistant talking to itself (anything not role 'user' draws as a bot
   // bubble). ListEmptyComponent keys off this too, so a chat holding only notes
@@ -310,7 +310,7 @@ export default function ChatScreen() {
     // Name the chat after the first thing said in it. Two paths reach here:
     // no chat yet (created on send), or an empty chat made by the + button,
     // which is already titled "New Chat" and needs renaming. Only the FIRST
-    // message names it — later ones would rewrite a title the user is reading,
+    // message names it - later ones would rewrite a title the user is reading,
     // and may have renamed themselves.
     const isFirstMessage = messages.length === 0;
     let targetChatId = activeChatId;
@@ -446,7 +446,7 @@ export default function ChatScreen() {
       // Deletions are batched into ONE confirmation naming every transcript.
       // dialog.show() REPLACES whatever dialog is open rather than queueing, so
       // running three deletes through the normal loop would fire three dialogs
-      // in a row and leave only the last one on screen — the user would confirm
+      // in a row and leave only the last one on screen - the user would confirm
       // a single delete believing all three were gone, and the other two would
       // vanish silently. One dialog, one list, one decision.
       // The model sometimes answers "the latest transcript is called X" and
@@ -617,20 +617,20 @@ export default function ChatScreen() {
       <FadeInView index={3} style={[styles.container, { backgroundColor: theme.background }]}>
           <Stack.Screen 
             options={{ 
-              // A plain `title` string, like every other tab — a custom
+              // A plain `title` string, like every other tab - a custom
               // headerTitle component doesn't inherit the navigator's title
               // styling or alignment, which is why "Chat" sat low and indented
               // while the other tabs' titles didn't.
               // It names the active chat rather than restating the tab.
               title: chatSessions.find((c) => c.id === activeChatId)?.title ?? t('chat.header'),
-              // Hamburger in headerLeft — the one affordance everyone already
+              // Hamburger in headerLeft - the one affordance everyone already
               // reads as "there's a list behind this". The old trigger was an
               // icon+"Chat" in the *title* slot, which looks exactly like a
               // title, so nothing suggested it was tappable.
               // IconButton, not a bare AnimatedPressable: the latter's inner
               // view uses alignSelf:'stretch', so inside the header's
               // vertically-centred container it stretches to full header height
-              // and the icon settles at the TOP — which is what made the
+              // and the icon settles at the TOP - which is what made the
               // hamburger sit above the title line. IconButton has an explicit
               // box and centres its icon, so it's unaffected.
               headerLeft: () => (
@@ -648,7 +648,7 @@ export default function ChatScreen() {
                   {/* Beta badge: the chat leans on a 1B model doing tool-calls,
                       which is the least reliable thing the app does. Saying so
                       up front turns a rough reply from "this app is broken" into
-                      "this part is still cooking" — honest, and it's what a Play
+                      "this part is still cooking" - honest, and it's what a Play
                       reviewer needs to see before they poke it. */}
                   <Pressable
                     onPress={() => {
@@ -735,7 +735,7 @@ export default function ChatScreen() {
               onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
             />
 
-            {/* Sticks to the keyboard via translateY — no frame measurement,
+            {/* Sticks to the keyboard via translateY - no frame measurement,
                 no header offset to get wrong. `opened` gives back the space
                 reserved for the floating tab bar, which hides while typing. */}
             <KeyboardStickyView offset={{ closed: 0, opened: TAB_BAR_SPACE }}>
@@ -768,7 +768,7 @@ export default function ChatScreen() {
                     rather than interpolating backgroundColor: with the 'system'
                     accent on Android theme.tint is a PlatformColor object, and
                     no animator can interpolate one ("platform colors are not
-                    supported" — the crash that took out the tab bar). Opacity
+                    supported" - the crash that took out the tab bar). Opacity
                     also rides the native driver, so this stays smooth while a
                     reply is streaming. */}
                 <Animated.View

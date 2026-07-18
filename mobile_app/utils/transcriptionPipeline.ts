@@ -69,7 +69,7 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
     if (result.summarized) opts.onSummarized?.(result.summarized);
   }
 
-  // Memories run on rawText like format/summarize above — keeping the rawText
+  // Memories run on rawText like format/summarize above - keeping the rawText
   // tasks adjacent maximizes the shared-prefix KV reuse in buildTaskPrompt.
   if (opts.memories) {
     await extractMemories(rawText, modelPath, modelFile).catch((e) => console.warn(e));
@@ -81,7 +81,7 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
     opts.onStage?.('analyzing');
   }
 
-  // Embedding runs on its own context — overlap it with the sequential llama steps.
+  // Embedding runs on its own context - overlap it with the sequential llama steps.
   const embeddingPromise = opts.embedding
     ? generateEmbedding(textForAnalysis).catch(() => null)
     : Promise.resolve(null);

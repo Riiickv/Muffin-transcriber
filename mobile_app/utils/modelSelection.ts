@@ -6,7 +6,7 @@ import { recommendedModelId, ModelGroup } from './deviceTier';
  * Point every "preferred model" setting at something that actually exists.
  *
  * Downloading a model and then being told "No model selected" is a baffling
- * thing to do to someone — they just downloaded it, on a screen that said it was
+ * thing to do to someone - they just downloaded it, on a screen that said it was
  * the one for their phone. The setup would have handed them straight into that.
  *
  * It also repairs a real hole: deleting the model you had selected left the
@@ -52,7 +52,7 @@ export async function ensureModelSelections(installedIds: string[]): Promise<voi
     preferredChatModel: pickFor(CHAT_MODELS, 'chat', settings.preferredChatModel, installed),
   };
 
-  // This runs on every screen focus, so write only on a real change — otherwise
+  // This runs on every screen focus, so write only on a real change - otherwise
   // it's a disk write and a re-render of every subscriber, several times a
   // minute, for nothing.
   const changed =

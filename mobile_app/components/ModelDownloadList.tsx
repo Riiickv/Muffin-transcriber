@@ -18,8 +18,8 @@ import { StyleSheet } from 'react-native';
  * A downloadable list of models, with progress, speed and ETA.
  *
  * Extracted so the Models screen and the first-run setup are the SAME list. The
- * download logic here is fiddly — throttled speed sampling, ETA, delete-vs-get,
- * cleanup on failure — and a second copy of it in the setup would drift from
+ * download logic here is fiddly - throttled speed sampling, ETA, delete-vs-get,
+ * cleanup on failure - and a second copy of it in the setup would drift from
  * this one the first time either changed. That drift is what made the chat's
  * "Done" chip lie about work the executor never did.
  *
@@ -153,7 +153,7 @@ export function ModelDownloadList({
 
 /**
  * The action is a FIXED-WIDTH pill. It used to be a plain <Button>, which sizes
- * to its label — so "Get", "Delete" and "Downloading" each rendered a different
+ * to its label - so "Get", "Delete" and "Downloading" each rendered a different
  * width and the list's right edge zig-zagged. One control, three states, one box.
  */
 const ModelRow = ({

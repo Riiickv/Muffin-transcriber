@@ -5,7 +5,7 @@ import { loadSettings } from './settingsStore';
 import { loadMemories } from './memoryStore';
 
 // ggml synchronizes all threads per graph node, so one little core stalls the
-// big ones — on 2-big-core phones 4 threads is ~60% SLOWER than 2. Count the
+// big ones - on 2-big-core phones 4 threads is ~60% SLOWER than 2. Count the
 // performance cores from sysfs (world-readable) and clamp to [2,5]; any read
 // failure falls back to 4 (correct for modern 4-5-big-core SoCs).
 let cachedThreads: number | null = null;
@@ -66,7 +66,7 @@ export async function loadWhisper(modelPath: string): Promise<void> {
       await loadPromise;
     } catch {
       // A failed background preload (partial download, corrupt file) must not
-      // doom this attempt — fall through and try our own load.
+      // doom this attempt - fall through and try our own load.
     }
     if (whisperContext && currentModelPath === modelPath) return;
   }
@@ -93,7 +93,7 @@ export async function loadWhisper(modelPath: string): Promise<void> {
 
 // Cold-start warm-up: kick off the (multi-second) model load while the user is
 // still looking at the screen, so tapping Transcribe doesn't pay it. Only when
-// nothing is loaded or loading — never swaps a live context out from under a
+// nothing is loaded or loading - never swaps a live context out from under a
 // running transcription.
 export function preloadWhisper(modelPath: string): void {
   if (whisperContext || loadPromise) return;
@@ -103,7 +103,7 @@ export function preloadWhisper(modelPath: string): void {
 /**
  * @param audioPath  Absolute path to a 16 kHz mono WAV/PCM file.
  * @param languageCode  ISO 639-1 code (`en`, `it`, ...) or `auto` for detect.
- *                      Do NOT pass display names like "Italian" — call
+ *                      Do NOT pass display names like "Italian" - call
  *                      `toLanguageCode()` from utils/languages.ts first.
  */
 export async function transcribeFile(
@@ -120,7 +120,7 @@ export async function transcribeFile(
   // 10s voice note wastes 2/3 of the encode on silence. For short WAV clips,
   // shrink the encoder context proportionally (patched into whisper.rn via
   // patches/whisper.rn+0.6.0.patch). Conservative: +128 frames headroom,
-  // floor 256, only under 25s — too-small contexts cause token repetition.
+  // floor 256, only under 25s - too-small contexts cause token repetition.
   let audioCtx = 0; // 0 = whisper default
   try {
     if (audioPath.toLowerCase().split('?')[0].endsWith('.wav')) {
@@ -147,21 +147,21 @@ export async function transcribeFile(
   }
 
   const options: any = {
-    // Must be the literal string 'auto' — NOT undefined. whisper.rn's
+    // Must be the literal string 'auto' - NOT undefined. whisper.rn's
     // docstring claims undefined means auto-detect, but the implementation
     // only assigns params.language when the JS value is a non-empty string:
     //     config.language = getStringProperty(runtime, options, "language");
     //     if (!config.language.empty()) { config.params.language = ...; }
     // (cpp/jsi/RNWhisperJSI.cpp). With `undefined` that assignment is skipped,
     // so whisper.cpp keeps its own default of "en" (`/*.language =*/ "en"`),
-    // and auto-detect never runs — every recording was transcribed AS ENGLISH,
+    // and auto-detect never runs - every recording was transcribed AS ENGLISH,
     // whatever was actually spoken. whisper.cpp only detects when language is
     // null, "" or "auto".
     language: languageCode || 'auto',
     // Keep transcription in the source language (don't translate to English).
     translate: false,
     // Greedy decoding: ~3-5x faster than beam search with negligible quality
-    // loss for speech transcription. Token timestamps stay off — nothing in
+    // loss for speech transcription. Token timestamps stay off - nothing in
     // the app consumes them and they add per-token cost.
     beamSize: 1,
     bestOf: 1,

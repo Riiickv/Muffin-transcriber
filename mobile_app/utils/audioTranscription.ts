@@ -8,13 +8,13 @@ import { transcribeFile } from './WhisperEngine';
  *
  * whisper.rn reads audio with a hand-written RIFF parser: 16 kHz mono PCM WAV
  * or nothing. Every caller therefore has to convert first, and every caller that
- * forgot has produced the same unexplained "Invalid WAV file" — the Record tab
+ * forgot has produced the same unexplained "Invalid WAV file" - the Record tab
  * did for months, and Re-transcribe still does for anything recorded before that
  * was fixed. One function, so there is no longer a path that can forget.
  *
  * The WAV is a THROWAWAY. It's ~1.9 MB/min against the ~0.5 MB/min of the m4a it
  * came from, so keeping it as the stored recording quadrupled what a voice note
- * costs on disk — with auto-delete defaulting to Never. It lives in the cache
+ * costs on disk - with auto-delete defaulting to Never. It lives in the cache
  * for the length of one transcription and is deleted in a finally, even when
  * transcription throws.
  */

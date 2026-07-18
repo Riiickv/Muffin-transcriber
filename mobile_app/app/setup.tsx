@@ -26,7 +26,7 @@ import { t } from '@/utils/i18n';
  * No Skip: the models ARE the app. Nothing here works without them, and a skip
  * button would only lead to a screen that can't do anything.
  *
- * Downloads keep running as you page through — they're hundreds of megabytes,
+ * Downloads keep running as you page through - they're hundreds of megabytes,
  * and a wizard that made you sit and watch each one would be slower than no
  * wizard at all.
  */
@@ -68,7 +68,7 @@ export default function SetupScreen() {
         <>
           <Text style={styles.sectionTitle}>{t('setup.chatSectionTitle')}</Text>
           {/* Chat models are the heavy ones. On a phone that can't carry any,
-              saying so plainly beats suggesting one that would crawl — and the
+              saying so plainly beats suggesting one that would crawl - and the
               list stays, because it's their phone and their call. */}
           {!chatSuggestion && (
             <View style={[styles.warning, { borderColor: theme.divider }]}>
@@ -103,7 +103,7 @@ export default function SetupScreen() {
   const goNext = () => {
     haptics.tap();
     if (isLast) {
-      // Done — into the app. replace(), not push(): setup is not somewhere you
+      // Done - into the app. replace(), not push(): setup is not somewhere you
       // should be able to land back on with the system Back button.
       router.replace('/(tabs)' as any);
       return;
@@ -124,7 +124,7 @@ export default function SetupScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.wrap, { maxWidth: contentWidth, width: '100%', alignSelf: 'center' }]}>
-        {/* Keyed on the page so each one fades in as its own screen — without
+        {/* Keyed on the page so each one fades in as its own screen - without
             it, only the text swaps and it reads as a glitch rather than a step. */}
         <FadeInView key={page} index={page} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

@@ -5,7 +5,7 @@ const MODELS_DIR = FileSystem.documentDirectory + 'models/';
 export interface ModelDef {
   id: string;
   /**
-   * What the user sees. A speed/quality tier, NOT the model's name — nobody
+   * What the user sees. A speed/quality tier, NOT the model's name - nobody
    * choosing a transcriber knows whether "Qwen 2.5 0.5B Q4_K_M" is better than
    * "Llama 3.2 1B", and the answer depends on their phone anyway. The tier is
    * the only part of that they can actually act on.
@@ -64,7 +64,7 @@ export const WHISPER_MODELS: readonly ModelDef[] = [
 
 export const FORMATTER_MODELS: readonly ModelDef[] = [
   // Q4_0 variants: llama.cpp repacks Q4_0 into ARM dotprod/i8mm kernels at
-  // load time — noticeably faster prompt processing than Q4_K_M on most
+  // load time - noticeably faster prompt processing than Q4_K_M on most
   // modern phones, at slightly lower output quality.
   {
     id: 'qwen2.5-0.5b-instruct-q4_0.gguf',
@@ -119,7 +119,7 @@ export const CHAT_MODELS: readonly ModelDef[] = [
   },
 ];
 
-// Not a speed choice — there's one, and it either works or Chat can't search.
+// Not a speed choice - there's one, and it either works or Chat can't search.
 // So it gets named for what it does.
 export const EMBEDDING_MODELS: readonly ModelDef[] = [
   {
@@ -148,7 +148,7 @@ export class ModelManager {
     if (!dirInfo.exists) {
       await FileSystem.makeDirectoryAsync(MODELS_DIR, { intermediates: true });
     }
-    // Models removed from the catalog — free the orphaned space.
+    // Models removed from the catalog - free the orphaned space.
     for (const obsolete of ['ggml-large-v3-turbo-q5_0.bin']) {
       this.deleteModel(obsolete).catch(() => {});
     }

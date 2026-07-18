@@ -54,7 +54,7 @@ export function useChats() {
  *
  * Deliberately NOT model-generated. generateTitle() already exists and would
  * write a prettier label, but it runs on LLMEngine's context while the chat
- * model lives on ChatEngine's — the two hold SEPARATE llama contexts, so
+ * model lives on ChatEngine's - the two hold SEPARATE llama contexts, so
  * titling a chat through it would load a second copy of a 0.8-2.3 GB model into
  * RAM right after a chat inference, or unload/reload one on every new chat.
  * Neither is worth paying for a label, and the user's own first sentence is
@@ -70,7 +70,7 @@ export function titleFromMessage(message: string): string {
   if (!clean) return fallback;
   if (clean.length <= MAX) return clean;
 
-  // Cut on a word boundary — a title ending mid-word looks like a bug. If the
+  // Cut on a word boundary - a title ending mid-word looks like a bug. If the
   // first word is itself longer than the limit there's no boundary to find, so
   // fall back to a hard cut.
   const cut = clean.slice(0, MAX);
@@ -115,7 +115,7 @@ export async function renameChatSession(id: string, newTitle: string) {
  * Without this the assistant fires actions into the void: it emits a tool_call,
  * the app executes it, and the model is never told the outcome. Ask it "did you
  * delete it?" a turn later and it has no record, so it guesses. Deciding and
- * acting aren't enough — it has to be able to OBSERVE.
+ * acting aren't enough - it has to be able to OBSERVE.
  *
  * Written straight to the store rather than through the screen's state because
  * a delete lands whenever the user taps the confirmation dialog, which may be

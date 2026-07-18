@@ -141,7 +141,7 @@ export function SelectDropdown({
                   {t('models.noneInstalledDesc') ||
                     "Models are what let the app work offline. Download one and it'll show up here."}
                 </Text>
-                {/* Explicit height — an unsized Button balloons inside a
+                {/* Explicit height - an unsized Button balloons inside a
                     centered container (see WaitingCard). */}
                 <Button
                   variant="primary"
@@ -189,7 +189,7 @@ export function SelectDropdown({
                     </Text>
                     {/* A checkmark, not just coloured text: with 100+ languages
                         you're scanning a long list and colour alone is easy to
-                        miss — and invisible to anyone colour-blind. */}
+                        miss - and invisible to anyone colour-blind. */}
                     {isActive && <Icon name="check" size={20} color={theme.tint} />}
                   </AnimatedPressable>
                 );

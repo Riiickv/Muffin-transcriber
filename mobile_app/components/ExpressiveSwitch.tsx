@@ -20,7 +20,7 @@ export default function ExpressiveSwitch({
   const anim = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
-    // useNativeDriver stays false — we animate backgroundColor & width, which
+    // useNativeDriver stays false - we animate backgroundColor & width, which
     // aren't supported on the native thread.
     Animated.spring(anim, { toValue: value ? 1 : 0, useNativeDriver: false, ...MOTION.springStandard }).start();
   }, [value, anim]);

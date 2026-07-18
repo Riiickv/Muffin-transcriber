@@ -9,14 +9,14 @@ import { TRANSLATIONS } from '@/constants/translations';
  * English lives in constants/strings.ts and is the SOURCE OF TRUTH: it's the
  * only file with every key, and it's the one Ricky edits. Everything in
  * constants/translations/ is a translation OF that file, and may lag behind it.
- * So every lookup falls back to English per-key rather than per-language — add
+ * So every lookup falls back to English per-key rather than per-language - add
  * a new English string and the app shows it in English everywhere until someone
  * translates it, instead of showing a blank or a raw key name.
  */
 
 export type AppLanguage = 'auto' | 'en' | 'it' | 'es' | 'fr' | 'de' | 'pt';
 
-/** Language names are shown in their OWN language — someone who's set their
+/** Language names are shown in their OWN language - someone who's set their
  *  phone to Italian is looking for "Italiano", not "Italian". */
 export const APP_LANGUAGE_OPTIONS: { label: string; value: AppLanguage }[] = [
   { label: 'Automatic', value: 'auto' },
@@ -35,7 +35,7 @@ let currentLanguage: Exclude<AppLanguage, 'auto'> = 'en';
 /** What 'auto' resolves to: the phone's language, if we speak it, else English. */
 export function resolveDeviceLanguage(): Exclude<AppLanguage, 'auto'> {
   try {
-    // ONLY the primary locale — the language the phone is actually set to.
+    // ONLY the primary locale - the language the phone is actually set to.
     // This used to scan the whole preferred-languages list and take the first
     // supported one, which meant a Russian-primary phone that happened to list
     // Italian further down came up ITALIAN instead of English. Matching just the

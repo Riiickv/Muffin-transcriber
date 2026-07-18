@@ -62,7 +62,7 @@ export default function HistoryDetailScreen() {
   const [actionName, setActionName] = useState('');
 
   const { whisperOptions, formatterOptions } = useModelOptions();
-  // Re-Transcribe is one tap away — warm the model while the user reads.
+  // Re-Transcribe is one tap away - warm the model while the user reads.
   useWhisperPreload(!!item?.sourceFilePath);
 
   const transcript =
@@ -314,7 +314,7 @@ export default function HistoryDetailScreen() {
     <View style={[styles.root, { backgroundColor: theme.background }, { maxWidth: contentWidth, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: item?.sourceFileName?.replace(/\.[^/.]+$/, "") ?? (t('transcribe.transcriptTitle') || 'Transcript') }} />
 
-      {/* Scrolls only when it has to — see the note on the Transcribe tab.
+      {/* Scrolls only when it has to - see the note on the Transcribe tab.
           Fixed page on a normal screen, reachable content on a short one. */}
       <ScrollView
         style={styles.root}
