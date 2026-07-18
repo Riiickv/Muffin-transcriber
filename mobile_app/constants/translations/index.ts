@@ -5,7 +5,7 @@ import { DE } from './de';
 import { PT } from './pt';
 
 /**
- * Every language the app UI speaks, except English — English lives in
+ * Every language the app UI speaks, except English - English lives in
  * constants/strings.ts and is the fallback for any key missing here.
  *
  * Deliberately NOT typed as the full APP_STRINGS shape: a translation is

@@ -6,7 +6,7 @@ import { ModelDef } from './ModelManager';
  * How much model this phone can actually carry.
  *
  * RAM, not CPU. A model is loaded whole into memory and its KV cache sits on top
- * — a phone that can't hold it doesn't run it slowly, it fails to load at all
+ * - a phone that can't hold it doesn't run it slowly, it fails to load at all
  * (which is what "Failed to load model" was, once). CPU only decides how long
  * you wait, and waiting is survivable.
  *
@@ -40,7 +40,7 @@ export function getTotalMemoryGB(): number | null {
  *
  * Per-group and hand-written rather than derived from file size: what matters is
  * the peak RAM while running, which is the weights PLUS the context, and those
- * don't scale together. Chat models are the exception — they're big enough that
+ * don't scale together. Chat models are the exception - they're big enough that
  * a low-end phone gets nothing at all, and saying so honestly beats suggesting
  * something that will crawl.
  */

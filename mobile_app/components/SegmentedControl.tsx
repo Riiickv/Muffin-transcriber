@@ -28,7 +28,7 @@ interface SegmentedControlProps<T extends string> {
 /**
  * Segmented control: a track with a pill that slides to the active segment.
  *
- * The pill slides via translateX over a measured width — not by animating
+ * The pill slides via translateX over a measured width - not by animating
  * `left` as a percentage, which forces a layout pass per frame from JS and
  * stutters. translateX is a transform, so Reanimated runs it on the UI thread
  * and never touches layout.
@@ -52,7 +52,7 @@ export function SegmentedControl<T extends string>({
   const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
 
   const onLayout = (e: LayoutChangeEvent) => {
-    // Inner width — the track's own padding excluded, so the pill aligns with
+    // Inner width - the track's own padding excluded, so the pill aligns with
     // the segments instead of overhanging them.
     setTrackW(e.nativeEvent.layout.width - SPACING.xs * 2);
   };
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     bottom: SPACING.xs,
     left: SPACING.xs,
     borderRadius: RADIUS.pill,
-    // A 1px tint edge — tintFill alone is ~15% alpha, which reads as "slightly
+    // A 1px tint edge - tintFill alone is ~15% alpha, which reads as "slightly
     // different" rather than "this one is selected".
     borderWidth: 1,
   },

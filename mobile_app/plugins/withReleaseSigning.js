@@ -3,14 +3,14 @@ const { withAppBuildGradle } = require('@expo/config-plugins');
 /**
  * Release signing that SURVIVES `expo prebuild --clean`.
  *
- * The obvious way to sign a release — edit android/app/build.gradle by hand —
+ * The obvious way to sign a release - edit android/app/build.gradle by hand -
  * silently unravels here: this project's build script regenerates android/
  * from app.json (`--prebuild`), which wipes manual edits and quietly reverts
  * to the debug key. You would only find out when Play rejects the upload, or
  * worse, not find out.
  *
  * This plugin re-injects the signing config on every prebuild instead. The
- * credentials live in ~/.gradle/gradle.properties — OUTSIDE the repo, never
+ * credentials live in ~/.gradle/gradle.properties - OUTSIDE the repo, never
  * committed, never printed:
  *
  *   MUFFIN_UPLOAD_STORE_FILE=C:\\Users\\you\\muffin-upload.jks
@@ -19,7 +19,7 @@ const { withAppBuildGradle } = require('@expo/config-plugins');
  *   MUFFIN_UPLOAD_KEY_PASSWORD=...
  *
  * When those properties are absent the build falls back to the debug key, so
- * development machines and CI keep working with zero setup — they just can't
+ * development machines and CI keep working with zero setup - they just can't
  * produce a Play-uploadable artifact, which is the correct failure.
  */
 const RELEASE_SIGNING = `        release {
@@ -46,7 +46,7 @@ module.exports = function withReleaseSigning(config) {
     }`;
     if (!gradle.includes(debugBlock)) {
       throw new Error(
-        'withReleaseSigning: signingConfigs.debug block not found — the RN template changed, update the plugin.'
+        'withReleaseSigning: signingConfigs.debug block not found - the RN template changed, update the plugin.'
       );
     }
     gradle = gradle.replace(
@@ -63,7 +63,7 @@ ${RELEASE_SIGNING}    }`
             def enableShrinkResources`;
     if (!gradle.includes(releaseLine)) {
       throw new Error(
-        'withReleaseSigning: release buildType anchor not found — the RN template changed, update the plugin.'
+        'withReleaseSigning: release buildType anchor not found - the RN template changed, update the plugin.'
       );
     }
     gradle = gradle.replace(

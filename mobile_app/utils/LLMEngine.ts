@@ -42,9 +42,9 @@ export async function loadLLM(modelPath: string): Promise<void> {
     llamaContext = await init({
       n_ctx: 4096,
       model: modelPath,
-      // Leave cores free for the system and for Whisper — background
+      // Leave cores free for the system and for Whisper - background
       // formatting must not starve a transcription the user just started.
-      // NOTE: do NOT add cache_type_k/v or flash_attn_type here — on
+      // NOTE: do NOT add cache_type_k/v or flash_attn_type here - on
       // Snapdragon flagships llama.rn auto-offloads to the Adreno GPU via
       // OpenCL, whose flash-attention path rejects quantized KV caches and
       // the whole context init hard-fails (verified against llama.rn 0.12.5
@@ -93,7 +93,7 @@ function buildChatPrompt(modelFile: string, systemPrompt: string, userPrompt: st
 // common prompt prefix across completions on the same context, so each source
 // text is prefilled once and reused by every task that runs on it (format/
 // summarize/memories share the raw transcript; entities/title share the
-// formatted one) — the dominant LLM cost. Don't "improve" individual task
+// formatted one) - the dominant LLM cost. Don't "improve" individual task
 // prompts by moving text before the transcript; that breaks the shared prefix.
 function buildTaskPrompt(modelFile: string, sourceText: string, task: string): string {
   const systemPrompt = `You are a precise text-processing assistant. You will be given a transcript, then a task about it.
@@ -103,7 +103,7 @@ ${sourceText}
 
 RULES:
 1. Work ONLY with the transcript above.
-2. Reply ONLY with the final result — no conversational text, no pleasantries, no markdown code fences or formatting tags, and do not wrap the output in quotes.`;
+2. Reply ONLY with the final result - no conversational text, no pleasantries, no markdown code fences or formatting tags, and do not wrap the output in quotes.`;
   return buildChatPrompt(modelFile, systemPrompt, task);
 }
 
@@ -136,7 +136,7 @@ function extractFormatterOutput(output: string): string {
 
 // Fragments that only ever appear in OUR prompt, never in a real transcript.
 // A small model handed a short or meaningless transcript sometimes has nothing
-// to do and drifts into reciting its own instructions instead — and the user
+// to do and drifts into reciting its own instructions instead - and the user
 // then reads the prompt in the "Formatted" tab, which looks like the app is
 // broken (it is). Checked case-insensitively against the model's output.
 const PROMPT_ECHO_MARKERS = [
@@ -157,7 +157,7 @@ const PROMPT_ECHO_MARKERS = [
  *
  * Named, because they are ALSO the blocklist. Given a transcript with nothing
  * personal in it, the model happily returns these three examples verbatim as
- * "the user's memories" — and they then get saved and injected into every
+ * "the user's memories" - and they then get saved and injected into every
  * future format/summarize prompt as if they were facts about the user. Keep
  * the prompt and the filter reading from this one list so they can't drift.
  */
@@ -194,7 +194,7 @@ function looksUnstable(formatted: string, raw: string): boolean {
 
 export async function formatTranscript(transcript: string, modelPath: string, modelFile: string): Promise<string> {
   // Nothing to punctuate in a handful of words, and a model given a degenerate
-  // transcript ("TRASH!") has no work to do — which is exactly when it starts
+  // transcript ("TRASH!") has no work to do - which is exactly when it starts
   // reciting the prompt back. summarizeTranscript already refused short input;
   // formatting never did.
   if (transcript.trim().split(/\s+/).length < 4) return transcript;
@@ -229,7 +229,7 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
 
   const formatted = extractFormatterOutput(result.text);
   // Default formatting only adds punctuation/casing, so output far shorter than
-  // the input means the model got cut off — fall back to raw. Skip for custom
+  // the input means the model got cut off - fall back to raw. Skip for custom
   // prompts, which may intentionally shorten (e.g. "remove filler words").
   const isDefaultFormatting = !customFormat.trim();
   if (looksUnstable(formatted, transcript) || (isDefaultFormatting && formatted.length < transcript.length * 0.7)) {
@@ -310,7 +310,7 @@ export async function extractMemories(transcript: string, modelPath: string, mod
           const trimmed = item.trim();
           // Drop the prompt's own examples: the model returns them verbatim
           // when the transcript has nothing personal in it, and a fabricated
-          // "fact" about the user is worse than no memory at all — it gets fed
+          // "fact" about the user is worse than no memory at all - it gets fed
           // to every later prompt as if it were true.
           const isExample = PROMPT_EXAMPLE_MEMORIES.some(
             (ex) => ex.toLowerCase() === trimmed.toLowerCase()
@@ -320,7 +320,7 @@ export async function extractMemories(transcript: string, modelPath: string, mod
         }
       }
       // SUGGEST, never save. These are guesses about a person's life, written
-      // into their data and then fed to every later prompt — the one place in
+      // into their data and then fed to every later prompt - the one place in
       // this app where a wrong answer is both invisible and self-reinforcing.
       // The user approves them in Settings › Memories, or they stay guesses.
       if (candidates.length > 0) await suggestMemories(candidates);

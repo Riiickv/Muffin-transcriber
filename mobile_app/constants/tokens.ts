@@ -1,4 +1,4 @@
-// Design tokens — single source of truth for spacing, radius, and motion.
+// Design tokens - single source of truth for spacing, radius, and motion.
 
 export const SPACING = {
   xs: 4,
@@ -17,13 +17,13 @@ export const RADIUS = {
   pill: 999,
 } as const;
 
-// Spring presets — pick by feel, not by tuning friction/tension per call.
+// Spring presets - pick by feel, not by tuning friction/tension per call.
 export const MOTION = {
-  // Fast, tight — press feedback and quick toggles.
+  // Fast, tight - press feedback and quick toggles.
   springPress: { friction: 20, tension: 400 },
-  // Balanced default — switches, focus rings, tab icon.
+  // Balanced default - switches, focus rings, tab icon.
   springStandard: { friction: 16, tension: 200 },
-  // Slower and softer — segment sliders, page transitions.
+  // Slower and softer - segment sliders, page transitions.
   springSettle: { friction: 18, tension: 150 },
 
   timingQuick: { duration: 180 },
@@ -36,7 +36,7 @@ export const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
  * Vertical space the floating tab bar occupies.
  *
  * Reserve this at the bottom of a screen's CONTENT (contentContainerStyle on a
- * ScrollView/FlatList, or padding on a fixed layout) — never on the scene
+ * ScrollView/FlatList, or padding on a fixed layout) - never on the scene
  * itself. Putting it on the scene shrinks the viewport, so scrollable content
  * stops dead above the bar and gets clipped instead of passing underneath it.
  */

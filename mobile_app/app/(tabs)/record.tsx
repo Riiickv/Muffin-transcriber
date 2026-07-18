@@ -50,18 +50,18 @@ export default function RecordScreen() {
 
   // THE RECORD BUTTON'S STATE MUST BE REACT STATE.
   //
-  // This used to be `const isRecording = recorder.isRecording` — a plain
+  // This used to be `const isRecording = recorder.isRecording` - a plain
   // property read off a native object. Nothing subscribes to it, so React had
   // no reason to re-render when recording began: the mic went live (Android
   // showed its indicator) while the button still displayed the idle mic icon.
   // The next tap then read a stale `isRecording === false`, took the START
   // branch again, and prepareToRecordAsync() threw on an already-recording
-  // recorder — the "it failed" on the second tap.
+  // recorder - the "it failed" on the second tap.
   //
   // Set from the two places that actually know: right after record() and stop()
   // return. expo-audio also offers useAudioRecorderState(), but it POLLS
-  // getStatus() and re-renders whenever durationMillis moves >50ms — i.e. every
-  // single poll while recording — so a poll fast enough to make the icon feel
+  // getStatus() and re-renders whenever durationMillis moves >50ms - i.e. every
+  // single poll while recording - so a poll fast enough to make the icon feel
   // instant also re-renders this whole screen ~10x/sec. We know precisely when
   // the transitions happen, so we don't need to ask.
   const [isRecording, setIsRecording] = useState(false);
@@ -111,7 +111,7 @@ export default function RecordScreen() {
 
   const handleRecord = async () => {
     // `hasPermission` is null until the mount effect resolves, and null is not
-    // false — so the old guard let the very first tap straight through to
+    // false - so the old guard let the very first tap straight through to
     // prepareToRecordAsync() while the OS permission dialog was still up, which
     // throws "Recording failed". Tapping again worked because permission had
     // landed by then. Resolve it here instead of racing it.
@@ -178,7 +178,7 @@ export default function RecordScreen() {
         // free to evict, so history playback needs its own copy.
         //
         // The m4a, not a WAV. whisper needs a WAV, but that WAV is ~1.9 MB/min
-        // against the m4a's ~0.5 — keeping it as the stored recording made every
+        // against the m4a's ~0.5 - keeping it as the stored recording made every
         // voice note 4x more expensive on disk, with auto-delete defaulting to
         // Never. transcribeAudio makes a throwaway WAV in the cache and deletes
         // it; what's kept for playback is the small file the phone recorded.
@@ -195,7 +195,7 @@ export default function RecordScreen() {
         const result = await transcribeAudio(audioPath, langCode);
         setTranscript(result.text.trim());
 
-        // Save the raw transcript right away — the user shouldn't wait through
+        // Save the raw transcript right away - the user shouldn't wait through
         // LLM enrichment (title/format/summary) to see their recording.
         const baseItem: HistoryItem = {
           id: Date.now().toString(),
@@ -259,7 +259,7 @@ export default function RecordScreen() {
         await recorder.prepareToRecordAsync();
         recorder.record();
         setIsRecording(true);
-        // Transcription is now guaranteed — load the model while they speak,
+        // Transcription is now guaranteed - load the model while they speak,
         // so it's warm by the time they hit stop.
         warmWhisperIfReady(settings.preferredWhisperModel);
       } catch (e) {
@@ -324,7 +324,7 @@ export default function RecordScreen() {
       </View>
 
       {/* Transcript lives in the dead space under the mic button. Without it
-          this tab gave no evidence it had done anything — the text went
+          this tab gave no evidence it had done anything - the text went
           straight to History, so you had to leave the screen to find out
           whether it worked. */}
       <View style={{ width: '100%', paddingHorizontal: SPACING.md, paddingBottom: SPACING.md }}>

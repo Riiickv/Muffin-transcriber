@@ -23,7 +23,7 @@ interface DialogCardProps {
   message?: string;
   icon?: IconName;
   /**
-   * Artwork instead of a glyph, for the times a font icon won't do — the
+   * Artwork instead of a glyph, for the times a font icon won't do - the
    * support logo, say. Wins over `icon` when both are given. Tinted with the
    * same iconTone, so a one-colour mark still reads on any theme.
    */
@@ -40,7 +40,7 @@ interface DialogCardProps {
 }
 
 /**
- * The visual dialog surface — themed Modal card with icon / title / message /
+ * The visual dialog surface - themed Modal card with icon / title / message /
  * optional body / buttons row. Used directly for dialogs that need custom
  * interactive content (like the entity add-to-calendar picker), and used
  * internally by DialogProvider for the imperative `dialog.show(...)` API.
@@ -64,7 +64,7 @@ export const DialogCard = ({
   // The card had NO entrance: Modal's own animationType="fade" cross-faded the
   // whole thing, backdrop and card together, which reads as a flat image being
   // switched on. Springing the card up from 0.92 makes it arrive over the
-  // content rather than replace it — and this is the most-seen animation in the
+  // content rather than replace it - and this is the most-seen animation in the
   // app, since every confirm, error and picker is one of these.
   //
   // Keyed on `visible` rather than mount: the Modal stays in the tree with
@@ -150,7 +150,7 @@ export const DialogCard = ({
 };
 
 // ---------------------------------------------------------------------------
-// Imperative API — use for stateless one-shots: alerts, confirms, error toasts.
+// Imperative API - use for stateless one-shots: alerts, confirms, error toasts.
 // For dialogs that need a live input or other interactive body, use <DialogCard>
 // directly and hold the visible state in the parent component.
 // ---------------------------------------------------------------------------

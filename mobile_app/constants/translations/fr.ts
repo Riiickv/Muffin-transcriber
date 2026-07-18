@@ -1,4 +1,4 @@
-/** FRANÇAIS — traduction de constants/strings.ts. Si une clé manque, l'app affiche l'anglais. */
+/** FRANÇAIS - traduction de constants/strings.ts. Si une clé manque, l'app affiche l'anglais. */
 export const FR = {
   tabs: { transcribe: "Muffin !", record: "Enregistrer", history: "Historique", chat: "Chat", settings: "Réglages" },
 

@@ -64,7 +64,7 @@ export default function HomeScreen() {
   // The welcome hides BOTH the header and the tab bar, so this screen is on its
   // own for the notch and the gesture bar - normally the navigator handles them.
   const insets = useSafeAreaInsets();
-  // Once a file is picked, transcription is imminent — warm the model.
+  // Once a file is picked, transcription is imminent - warm the model.
   useWhisperPreload(!!selectedFileUri);
 
   const selectedWhisperDef = WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel);
@@ -81,7 +81,7 @@ export default function HomeScreen() {
     }
   }, [isEnglishOnly, settings.defaultLanguage]);
 
-  // Share intent target — copy the file into cache with the legacy API,
+  // Share intent target - copy the file into cache with the legacy API,
   // because the new expo-file-system module has no `cacheDirectory`.
   const params = useLocalSearchParams<{ uri?: string }>();
   useEffect(() => {
@@ -288,7 +288,7 @@ export default function HomeScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          {/* The APP's logo, not RickLogo — that smile is Ricky's signature and
+          {/* The APP's logo, not RickLogo - that smile is Ricky's signature and
               belongs on the support button, not on the screen introducing
               Muffin. splash-icon is the mark on transparency; icon.png carries
               its own dark square, which would sit as a visible box here.
@@ -335,8 +335,8 @@ export default function HomeScreen() {
       {/* A ScrollView with flexGrow:1 on its content, NOT a plain View: when
           everything fits (the normal phone case) the content is exactly one
           screen tall and there is nothing to scroll, so this still behaves as
-          the fixed page it's meant to be. When it does NOT fit — short screen,
-          large system font, big display-size setting — the page scrolls instead
+          the fixed page it's meant to be. When it does NOT fit - short screen,
+          large system font, big display-size setting - the page scrolls instead
           of quietly cutting the Transcript card off the bottom. RN children
           don't shrink by default, so without this the overflow is unreachable. */}
       <ScrollView
@@ -345,7 +345,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-      {/* Formatting card first — configure once, then hit Transcribe. */}
+      {/* Formatting card first - configure once, then hit Transcribe. */}
       <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <View style={styles.switchRow}>
           <Text style={styles.label}>{t('transcribe.formatToggle') || 'Format'}</Text>

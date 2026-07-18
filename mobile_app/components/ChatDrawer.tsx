@@ -42,7 +42,7 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
   const { width: screenWidth } = useWindowDimensions();
   const drawerWidth = Math.min(screenWidth * 0.8, 340);
 
-  // Mounted only while open (or animating closed) — a permanently-composited
+  // Mounted only while open (or animating closed) - a permanently-composited
   // full-screen overlay costs frames on every chat render.
   const [rendered, setRendered] = useState(isVisible);
   const progress = useSharedValue(0);
@@ -73,7 +73,7 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
   }));
   const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value * 0.45 }));
 
-  // After the hooks — calling them conditionally would break the hook order.
+  // After the hooks - calling them conditionally would break the hook order.
   if (!rendered) return null;
 
   const handleRename = async (id: string) => {
@@ -171,7 +171,7 @@ export function ChatDrawer({ isVisible, onClose, chats, activeChatId, onSelectCh
 
   return (
     // A Modal so the drawer overlays the WHOLE screen (header and tab bar
-    // included) — rendered inline it only covered the tab content area,
+    // included) - rendered inline it only covered the tab content area,
     // leaving the header undimmed and a dead inset gap up top. Also makes the
     // Android back button close the drawer.
     <Modal

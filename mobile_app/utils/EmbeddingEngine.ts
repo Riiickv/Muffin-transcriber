@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import type { LlamaContext } from 'llama.rn';
 import { ModelManager, EMBEDDING_MODELS } from './ModelManager';
 
-// llama.rn is a native module — importing it at top level crashes the web
+// llama.rn is a native module - importing it at top level crashes the web
 // bundle. Guard behind a lazy require, same pattern as ChatEngine/LLMEngine.
 let initLlama: any;
 function getInitLlama() {

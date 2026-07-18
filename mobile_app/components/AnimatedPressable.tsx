@@ -11,7 +11,7 @@ interface AnimatedPressableProps extends Omit<PressableProps, 'style' | 'childre
   scaleTo?: number;
 }
 
-// Keys that must sit on the Pressable element itself — otherwise the button
+// Keys that must sit on the Pressable element itself - otherwise the button
 // can't participate in its parent's flex layout on react-native-web (where
 // Pressable becomes a <button>/<div>). Everything else is applied to the inner
 // Animated.View so the press-scale animation covers the visible surface and
@@ -69,7 +69,7 @@ export const AnimatedPressable = ({ children, style, scaleTo = 0.97, ...props }:
               // Stretch across whatever size Pressable ended up being so the
               // visible surface (bg, border, padding) actually fills the button.
               // NOTE: flexGrow makes unsized buttons expand inside centered
-              // fixed-height containers — give those buttons an explicit height
+              // fixed-height containers - give those buttons an explicit height
               // (like the record button does) instead of changing this: a
               // minHeight:'100%' variant broke every control in the app on Yoga.
               { alignSelf: 'stretch', flexGrow: 1, transform: [...innerTransforms, { scale: pressScale }] },

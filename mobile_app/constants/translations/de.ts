@@ -1,4 +1,4 @@
-/** DEUTSCH — Übersetzung von constants/strings.ts. Fehlt ein Schlüssel, zeigt die App Englisch. */
+/** DEUTSCH - Übersetzung von constants/strings.ts. Fehlt ein Schlüssel, zeigt die App Englisch. */
 export const DE = {
   tabs: { transcribe: "Muffin!", record: "Aufnehmen", history: "Verlauf", chat: "Chat", settings: "Einstellungen" },
 

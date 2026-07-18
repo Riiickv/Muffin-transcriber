@@ -6,7 +6,7 @@
  *  HOW TO USE THIS FILE
  *  --------------------
  *  Change any text on the right-hand side of the colon. That's it.
- *  Do NOT change the names on the left (`title:`, `cancel:`, ...) — those are
+ *  Do NOT change the names on the left (`title:`, `cancel:`, ...) - those are
  *  what the code looks up. Changing one breaks that piece of text.
  *
  *  Keep the quotes. Keep the comma at the end of the line.
@@ -18,7 +18,7 @@
  *  value at runtime (a file name, a number...). Keep the braces and the exact
  *  word inside them, but you can move them around in the sentence.
  *
- *  NEVER leave a string empty ("") — the app will fall back to old text.
+ *  NEVER leave a string empty ("") - the app will fall back to old text.
  *  If you want nothing there, use a single space: " ".
  *
  *  Organised by screen, in the order you'd meet them using the app.
@@ -27,7 +27,7 @@
 
 export const APP_STRINGS = {
   // ==========================================================================
-  //  BOTTOM NAVIGATION BAR — the 5 buttons at the bottom of the screen
+  //  BOTTOM NAVIGATION BAR - the 5 buttons at the bottom of the screen
   // ==========================================================================
   tabs: {
     transcribe: "Muffin!",
@@ -38,7 +38,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  SHARED — buttons and words reused all over the app
+  //  SHARED - buttons and words reused all over the app
   // ==========================================================================
   common: {
     ok: "OK",
@@ -53,7 +53,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  "MUFFIN!" TAB — the main screen where you pick a file and transcribe it
+  //  "MUFFIN!" TAB - the main screen where you pick a file and transcribe it
   // ==========================================================================
   transcribe: {
     // -- FIRST RUN: shown instead of everything else when no model is
@@ -109,7 +109,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  "RECORD" TAB — the big microphone button screen
+  //  "RECORD" TAB - the big microphone button screen
   // ==========================================================================
   record: {
     readyToTranscribe: "Ready to Transcribe",
@@ -139,7 +139,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  "HISTORY" TAB — the list of everything you've transcribed
+  //  "HISTORY" TAB - the list of everything you've transcribed
   // ==========================================================================
   history: {
     header: "History",
@@ -153,7 +153,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  TRANSCRIPT DETAIL — opens when you tap a transcript in History
+  //  TRANSCRIPT DETAIL - opens when you tap a transcript in History
   // ==========================================================================
   historyDetail: {
     // -- Audio player at the top --
@@ -193,7 +193,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  "CHAT" TAB — talking to the AI about your transcripts
+  //  "CHAT" TAB - talking to the AI about your transcripts
   // ==========================================================================
   chat: {
     header: "Chat",
@@ -252,7 +252,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  "MEMORIES" SCREEN — words you teach the AI (opened from Settings)
+  //  "MEMORIES" SCREEN - words you teach the AI (opened from Settings)
   // ==========================================================================
   memory: {
     header: "Memories",
@@ -380,10 +380,10 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  MODEL CATALOG — the name + description on each model card in Settings
+  //  MODEL CATALOG - the name + description on each model card in Settings
   // ==========================================================================
   // ==========================================================================
-  //  FIRST-RUN SETUP — the guided pages that download the models
+  //  FIRST-RUN SETUP - the guided pages that download the models
   // ==========================================================================
   setup: {
     transcriberTitle: "Transcriber!",
@@ -435,7 +435,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  POP-UP MESSAGES — every dialog box that can appear
+  //  POP-UP MESSAGES - every dialog box that can appear
   // ==========================================================================
   dialog: {
     defaultOk: "OK",
@@ -535,7 +535,7 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
-  //  ERROR SCREEN — only shows if the app gets badly lost
+  //  ERROR SCREEN - only shows if the app gets badly lost
   // ==========================================================================
   notFound: {
     title: "Oops!",

@@ -36,7 +36,7 @@ const DURATION = 260;
  * the ACTIVE tab shows its label and expands to make room.
  *
  * Built on Reanimated, not the RN Animated API. The width change is a LAYOUT
- * animation — with RN Animated it's driven from JS, so every frame round-trips
+ * animation - with RN Animated it's driven from JS, so every frame round-trips
  * to the layout engine across the bridge and the bar visibly shakes. Reanimated
  * runs the same interpolation in a UI-thread worklet, so layout resolves in one
  * place at 60fps.
@@ -49,8 +49,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const { settings } = useSettings();
 
   // Chat only exists if there's a chat model to run it with. Without one the
-  // tab is dead weight — it can only show "No Chat Model Selected" and a button
-  // pointing at Models — so it's a fifth of the bar spent on nothing, for the
+  // tab is dead weight - it can only show "No Chat Model Selected" and a button
+  // pointing at Models - so it's a fifth of the bar spent on nothing, for the
   // many people who never wanted the heaviest download in the app.
   //
   // preferredChatModel rather than a fresh disk check: ensureModelSelections
@@ -58,7 +58,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   // cleared when the model is deleted), and it's persisted, so the answer is
   // there at launch without a file scan or a frame of flicker.
   //
-  // The ROUTE stays registered — only the button is hidden. The assistant's
+  // The ROUTE stays registered - only the button is hidden. The assistant's
   // NAVIGATE_TO can still reach chat, and anyone who lands there gets the
   // "download a model" screen rather than a dead end.
   const hasChatModel = !!settings.preferredChatModel;
@@ -115,7 +115,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
           const focused = state.routes[state.index]?.key === route.key;
           // tabBarLabel first, NOT title: the Chat screen sets `title` to the
           // active chat's name for its header, and this bar was reading the
-          // same option — so the tab itself was labelled "New Chat" instead of
+          // same option - so the tab itself was labelled "New Chat" instead of
           // "Chat", renaming a tab whenever you opened a conversation.
           const label =
             typeof options.tabBarLabel === 'string'
@@ -165,7 +165,7 @@ const TabItem = ({
     p.value = withTiming(focused ? 1 : 0, { duration: DURATION, easing: Easing.out(Easing.cubic) });
   }, [focused, p]);
 
-  // Active tab claims ~2.3x a collapsed one — that's the room the label needs.
+  // Active tab claims ~2.3x a collapsed one - that's the room the label needs.
   // With no label to show there's nothing to make room for, so stay equal.
   const growStyle = useAnimatedStyle(() => ({
     flexGrow: compact ? 1 : interpolate(p.value, [0, 1], [1, 2.3]),

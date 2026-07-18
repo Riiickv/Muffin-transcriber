@@ -204,9 +204,9 @@ function buildRAGPrompt(modelFile: string, messages: ChatMessage[], contextText:
   // Ordered stable-first so llama.rn's common-prefix KV reuse survives across
   // turns: persona/tools/capabilities rarely change within a conversation; the
   // RAG <context> changes per message, so it goes LAST. The date is day-
-  // granular for the same reason — a minute-level timestamp invalidated the
+  // granular for the same reason - a minute-level timestamp invalidated the
   // whole cached prefix every turn.
-  let systemContent = `You are Muffin Chat, the built-in assistant for the Muffin transcription app. You help the user with their transcripts and you can operate the app for them — change settings, jump to a screen, or delete a transcript.
+  let systemContent = `You are Muffin Chat, the built-in assistant for the Muffin transcription app. You help the user with their transcripts and you can operate the app for them - change settings, jump to a screen, or delete a transcript.
 
 You can see the user's transcripts (<context> and <history_index>) and every app setting with its current value and location (<app_settings>). Use them to answer accurately, including "where is setting X?" and "what is X set to right now?".
 
@@ -214,13 +214,13 @@ Each transcript in <context> has three variants: <variant_raw> (exact words), <v
 
 CRITICAL RULES:
 1. Be concise, friendly and direct. ONE short sentence is almost always the whole answer - two at the very most. Do not restate the question, do not list what you could do, do not explain yourself.
-2. Refer to a transcript by its exact <name> so the UI can link it — say "In the transcript called Meeting Notes..." not "In the latest transcript...".
+2. Refer to a transcript by its exact <name> so the UI can link it - say "In the transcript called Meeting Notes..." not "In the latest transcript...".
 3. Never make things up. If you don't know, say so.
 4. Put the exact transcript ID from <history_index> INSIDE the tool_call, but NEVER say an ID out loud. To the user a transcript has a name, not an ID.
 5. Never mention tools, tool_call, JSON, actions, settings keys, IDs, or anything about how this app is built. The user is not a programmer and none of it means anything to them. Describe what happened in everyday words instead.
 6. NEVER say you have done something unless you emitted the tool_call for it IN THE SAME REPLY. No tool_call means it did not happen, and telling the user it did is a lie they will discover. If you cannot do it, say what you need from them instead.
 7. Messages beginning with [action result] are the app telling YOU, privately, what your last action actually did. The user cannot see them. Use them to know what happened - never repeat them, quote them, or copy their wording into your reply.
-8. You can operate this app through <tools>. If the user asks for something a tool covers, DO it by emitting the tool_call — never answer that you are unable to.
+8. You can operate this app through <tools>. If the user asks for something a tool covers, DO it by emitting the tool_call - never answer that you are unable to.
 
 ${TOOL_INSTRUCTIONS}
 
@@ -299,11 +299,11 @@ export async function chatStream(
       // ONE body variant, not three.
       //
       // This used to send summary(1000) + formatted(2000) + raw(2000) chars for
-      // each of 3 transcripts — ~3900 tokens of THE SAME WORDS three times over.
+      // each of 3 transcripts - ~3900 tokens of THE SAME WORDS three times over.
       // Against n_ctx 4096 that alone blew the window: ~5000 tokens of system
       // prompt before the history index, memories or the conversation even
-      // arrived. llama.cpp then drops the FRONT of the prompt — exactly where
-      // the persona and <tools> live — so the model lost the instructions
+      // arrived. llama.cpp then drops the FRONT of the prompt - exactly where
+      // the persona and <tools> live - so the model lost the instructions
       // telling it what it could do, and answered "I can't perform that action"
       // to everything, including "Why".
       //
@@ -343,7 +343,7 @@ export async function chatStream(
 
   let fullResponse = "";
 
-  // Note: no "```" here — it can appear inside a tool call and would cut it off.
+  // Note: no "```" here - it can appear inside a tool call and would cut it off.
   const stopTokens = [
     "<|im_end|>", "<|end|>", "<|eot_id|>", "<|endoftext|>"
   ];

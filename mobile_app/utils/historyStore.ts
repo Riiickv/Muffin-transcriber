@@ -37,7 +37,7 @@ async function pruneHistoryAudio(history: HistoryItem[]) {
     const now = Date.now();
 
     // Collect which items' audio we actually delete. We DON'T persist the
-    // snapshot we were handed — any addOrUpdate/deleteItem that landed while we
+    // snapshot we were handed - any addOrUpdate/deleteItem that landed while we
     // awaited would be clobbered. Instead we re-read the current cache and apply
     // only the cleared ids.
     const cleared = new Set<string>();
@@ -66,7 +66,7 @@ async function pruneHistoryAudio(history: HistoryItem[]) {
 }
 
 // Merge a patch into an existing item. Returns false (writes nothing) if the
-// item was deleted in the meantime — background enrichment must never
+// item was deleted in the meantime - background enrichment must never
 // resurrect a memo the user removed, and merging over the CURRENT stored item
 // (not a caller snapshot) preserves concurrent edits like renames or the
 // audio-duration backfill.

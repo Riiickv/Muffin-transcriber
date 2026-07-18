@@ -35,7 +35,7 @@ export default function RootLayout() {
     Nunito_400Regular,
     Nunito_600SemiBold,
     Nunito_700Bold,
-    // Google's Material Symbols Rounded — Material 3 Expressive icon set.
+    // Google's Material Symbols Rounded - Material 3 Expressive icon set.
     MaterialSymbolsRounded: require('../assets/fonts/MaterialSymbolsRounded.ttf'),
   });
 

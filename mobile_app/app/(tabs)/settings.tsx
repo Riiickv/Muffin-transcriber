@@ -30,8 +30,8 @@ const THEME_SEGMENTS = [
   { key: 'amoled' as const, label: 'Black' },
 ] as const satisfies readonly { key: ThemeMode; label: string }[];
 
-// Mirrors ACCENT_COLORS in ThemeProvider. 'system' has no fixed colour — it's
-// pulled from the wallpaper at runtime — so it renders as an outlined dot.
+// Mirrors ACCENT_COLORS in ThemeProvider. 'system' has no fixed colour - it's
+// pulled from the wallpaper at runtime - so it renders as an outlined dot.
 const ACCENT_SWATCHES: { key: AccentColor; color: string | null; label: string }[] = [
   { key: 'system', color: null, label: 'System' },
   { key: 'muffin', color: '#FF9EBB', label: 'Muffin' },
@@ -128,7 +128,7 @@ export default function SettingsScreen() {
   const renderPreferences = () => (
     <>
       {/* First, because nothing else in this screen works until a model is
-          downloaded — and it's the one thing here that's a task rather than a
+          downloaded - and it's the one thing here that's a task rather than a
           preference. */}
       <SettingsGroup index={0}>
         <SettingsRow
@@ -192,7 +192,7 @@ export default function SettingsScreen() {
           description={t('settings.contextLearningDesc')}
           right={<Switch value={settings.enableContextLearning} onChange={(v) => setSetting('enableContextLearning', v)} />}
         />
-        {/* Only meaningful once there's something to remember — hide rather
+        {/* Only meaningful once there's something to remember - hide rather
             than disable, so the group stays short in the common case. */}
         {settings.enableContextLearning && (
           <SettingsRow label={t('settings.manageMemory')} icon="library" onPress={() => router.push('/memory' as any)} />
@@ -209,12 +209,12 @@ export default function SettingsScreen() {
       </SettingsGroup>
 
       {/* Label above, control full-width below. Four/five options crammed into
-          a row's right-hand slot wrapped raggedly — "Amoled" orphaned on its
+          a row's right-hand slot wrapped raggedly - "Amoled" orphaned on its
           own line, colours split across two rows. A picker with more than two
           or three choices needs the whole width. */}
       <SettingsGroup title={t('settings.appearance')} index={4}>
         {/* Language sits in Appearance rather than in a group of its own: it's
-            the same kind of choice as theme and accent — how the app looks to
+            the same kind of choice as theme and accent - how the app looks to
             you, not what it does. */}
         <SelectDropdown
           rowLabel={t('settings.appLanguage')}
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
 /**
  * Accent picker: five colour dots, evenly spaced across the full width.
  *
- * A colour is a better label for a colour than its name is — "Green" told the
+ * A colour is a better label for a colour than its name is - "Green" told the
  * user nothing the dot doesn't say instantly, and five word-chips wrapped onto
  * two ragged rows. Selected gets a ring rather than a fill, so the swatch keeps
  * showing its own colour truthfully.
@@ -479,7 +479,7 @@ const SwatchRow = ({ active, onPick }: { active: string; onPick: (v: AccentColor
                 s.color
                   ? { backgroundColor: s.color }
                   : // 'system' follows the wallpaper, so there's no colour to
-                    // show until runtime — outline it and let the icon say why.
+                    // show until runtime - outline it and let the icon say why.
                     { borderWidth: 1.5, borderColor: theme.textSubtle },
               ]}
             >

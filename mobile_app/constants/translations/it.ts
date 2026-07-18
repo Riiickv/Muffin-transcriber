@@ -1,5 +1,5 @@
 /**
- * ITALIANO — traduzione di constants/strings.ts
+ * ITALIANO - traduzione di constants/strings.ts
  *
  * Cambia solo il testo tra virgolette. NON cambiare i nomi a sinistra dei due
  * punti: sono quelli che il codice cerca.

@@ -126,14 +126,14 @@ interface HistoryCardProps {
  * One transcript in the History list.
  *
  * Was three IconButtons in three different colours (red / grey / pink), one of
- * which — the chevron — just repeated what tapping the card already does. Three
+ * which - the chevron - just repeated what tapping the card already does. Three
  * competing colours on every row turns a list into noise, and a button that
  * duplicates its own container is a decision the user shouldn't have to make.
  * Now: tap the card to open, two quiet ghost actions, and the row leads with an
  * icon so the list scans vertically.
  *
  * NOTE: no accessibilityRole="button" on the card. react-native-web maps that
- * to a real <button>, and the two IconButtons inside are buttons too — nesting
+ * to a real <button>, and the two IconButtons inside are buttons too - nesting
  * them is invalid HTML and throws a hydration error. Without the role the card
  * renders as a div and stays perfectly tappable on native.
  */

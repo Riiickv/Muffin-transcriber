@@ -1,4 +1,4 @@
-# Muffin — Play Store release checklist
+# Muffin - Play Store release checklist
 
 Everything needed to go from this repo to a live Play Store listing. The code is
 ready; this file covers the parts that happen outside the code.
@@ -8,7 +8,7 @@ ready; this file covers the parts that happen outside the code.
 ## 1. The keystore (one-time, ~5 minutes)
 
 **What it is:** a password-protected file containing your app's digital
-signature — the stamp that proves an update really comes from you. When you
+signature - the stamp that proves an update really comes from you. When you
 upload version 1.1 later, Play checks its stamp matches version 1.0's. No
 matching stamp, no update.
 
@@ -16,7 +16,7 @@ matching stamp, no update.
 Treat it like the key to the app itself.
 
 (Technical note: Play uses "Play App Signing", so your file is the *upload key*.
-If you ever lose it, Google support can reset it after identity checks — a slow
+If you ever lose it, Google support can reset it after identity checks - a slow
 nuisance rather than a catastrophe, but still: don't lose it.)
 
 ### Create it
@@ -28,20 +28,20 @@ keytool -genkey -v -keystore "$env:USERPROFILE\muffin-upload.jks" -alias muffin 
 ```
 
 The `-dname "CN=Muffin"` fills the certificate identity for you, so keytool
-won't prompt for a name, city or country — and nothing personal ends up baked
+won't prompt for a name, city or country - and nothing personal ends up baked
 into the certificate, which anyone can extract from a sideloaded APK. It will
 only ask:
 
-- **Keystore password** — invent a strong one and save it in a password manager
+- **Keystore password** - invent a strong one and save it in a password manager
   right now. You'll type it twice.
 - Confirm with `yes`.
 
 This creates `C:\Users\ricky\muffin-upload.jks`. **It is deliberately OUTSIDE
-the repo** — never move it into the project, never commit it.
+the repo** - never move it into the project, never commit it.
 
 ### Back it up
 
-Copy `muffin-upload.jks` to at least two places that survive this PC dying —
+Copy `muffin-upload.jks` to at least two places that survive this PC dying -
 cloud storage and a USB stick. Store the password separately (password manager).
 
 ### Tell Gradle about it
@@ -61,7 +61,7 @@ backslashes.)
 That file lives in your user folder, not the repo, so the passwords never touch
 git. The build reads it automatically: the repo contains a config plugin
 (`mobile_app/plugins/withReleaseSigning.js`) that wires this in on every
-prebuild — so the signing **survives `--prebuild`**, which regenerates the
+prebuild - so the signing **survives `--prebuild`**, which regenerates the
 android folder and would otherwise silently reset to debug signing.
 
 ### Build the uploadable file
@@ -97,7 +97,7 @@ Answer exactly this:
 |---|---|
 | Does your app collect or share any of the required user data types? | **No** |
 
-That's the whole form. "Collect" means *transmitted off the device* — Muffin
+That's the whole form. "Collect" means *transmitted off the device* - Muffin
 transcribes on-device, stores on-device, and sends nothing. Model downloads are
 plain HTTPS file fetches carrying no user data, and the app opts out of
 Android's cloud backup, so nothing leaves via that route either.
@@ -113,7 +113,7 @@ browser. Neither transmits user data.
 | Ads | **No, my app does not contain ads** |
 | App access | All functionality available without special access (no login) |
 | Content rating questionnaire | Utility/productivity; no violence, no user-to-user content, no location sharing. Lands at "Everyone"/PEGI 3 |
-| Target audience | **13 and over** (do NOT tick under-13 — that triggers the Families policy) |
+| Target audience | **13 and over** (do NOT tick under-13 - that triggers the Families policy) |
 | News app | No |
 | COVID-19 tracing | No |
 | Government app | No |
@@ -123,14 +123,14 @@ browser. Neither transmits user data.
 
 ## 5. Store listing needs (your department)
 
-- App icon 512×512 (have: `icon.png` — export at 512)
+- App icon 512×512 (have: `icon.png` - export at 512)
 - Feature graphic **1024×500**
 - At least 2 phone screenshots (take them from the real app; the welcome, a
   transcript, the setup wizard and the models list all photograph well)
 - Short description (max 80 chars) and full description (max 4000)
 - Category: Productivity or Tools
 
-## 6. Before uploading — the one test that matters
+## 6. Before uploading - the one test that matters
 
 Full first-run on a phone that has never had Muffin (or after Settings → Apps →
 Muffin → Clear storage): welcome → Setup! → three pages → download the suggested
