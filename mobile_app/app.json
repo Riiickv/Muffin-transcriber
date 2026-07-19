@@ -2,7 +2,7 @@
   "expo": {
     "name": "Muffin!",
     "slug": "muffin-transcriber",
-    "version": "1.2.8",
+    "version": "1.2.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobileapp",
@@ -16,7 +16,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "allowBackup": false,
-      "versionCode": 8,
+      "versionCode": 9,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
