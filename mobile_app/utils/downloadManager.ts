@@ -165,6 +165,15 @@ export async function cancelDownload(modelId: string): Promise<void> {
   await ModelManager.cleanupDownload(modelId).catch(() => {});
 }
 
+/** Non-React subscription to every state change (progress + structural). Used by
+ *  the foreground-service layer, which lives outside React. */
+export function subscribeDownloads(fn: (s: DownloadState) => void): () => void {
+  subscribers.push(fn);
+  return () => {
+    subscribers = subscribers.filter((x) => x !== fn);
+  };
+}
+
 /** Live map of active downloads. Re-renders the caller on any progress tick. */
 export function useDownloads(): DownloadState {
   const [state, setState] = useState<DownloadState>(tasks);
