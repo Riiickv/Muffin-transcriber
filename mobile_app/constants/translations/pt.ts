@@ -48,6 +48,7 @@ export const PT = {
   },
 
   record: {
+    optionsTitle: "Opções de gravação",
     readyToTranscribe: "Pronto a transcrever",
     listening: "A ouvir...",
     using: "A usar",

@@ -48,6 +48,7 @@ export const ES = {
   },
 
   record: {
+    optionsTitle: "Opciones de grabación",
     readyToTranscribe: "Listo para transcribir",
     listening: "Escuchando...",
     using: "Usando",
