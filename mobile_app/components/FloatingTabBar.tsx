@@ -20,10 +20,10 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/utils/haptics';
 import { useIsFirstRun } from '@/utils/modelPresence';
 import { useSettings } from '@/utils/settingsStore';
+import { RecordFab } from './RecordFab';
 
 const ICONS: Record<string, IconName> = {
   index: 'home',
-  record: 'mic',
   history: 'history',
   chat: 'chat',
   settings: 'settings',
@@ -91,22 +91,15 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
       style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, SPACING.md), paddingHorizontal: SPACING.lg }]}
       pointerEvents="box-none"
     >
-      {/* Capped and centred: on a tablet a full-width pill would stretch the
-          five items metres apart and put the reach target nowhere near a
-          thumb. On a phone contentWidth is the screen width, so nothing moves. */}
-      <View
-        style={[
-          styles.pill,
-          {
-            maxWidth: contentWidth - SPACING.lg * 2,
-            width: '100%',
-            alignSelf: 'center',
-            ...floatingChromeColors(theme.isDark),
-          },
-        ]}
-      >
+      {/* Capped and centred: on a tablet a full-width row would stretch the
+          items metres apart and put the reach target nowhere near a thumb. On a
+          phone contentWidth is the screen width, so nothing moves. The record
+          mic is a separate circle to the RIGHT of the pill - it's the primary
+          action, not a peer of the nav tabs. */}
+      <View style={[styles.row, { maxWidth: contentWidth - SPACING.lg * 2, width: '100%', alignSelf: 'center' }]}>
+        <View style={[styles.pill, { flex: 1, ...floatingChromeColors(theme.isDark) }]}>
         {state.routes
-          .filter((route) => route.name !== 'chat' || hasChatModel)
+          .filter((route) => route.name !== 'record' && (route.name !== 'chat' || hasChatModel))
           .map((route) => {
           const { options } = descriptors[route.key];
           // Compared by KEY, not by index: the list above is filtered, so a
@@ -139,6 +132,8 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
             />
           );
         })}
+        </View>
+        <RecordFab />
       </View>
     </View>
   );
@@ -220,6 +215,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   pill: {
     flexDirection: 'row',

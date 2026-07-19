@@ -8,6 +8,7 @@ import { View } from 'react-native';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { DownloadBanner } from '@/components/DownloadIndicator';
+import { RecordingProvider } from '@/components/RecordingProvider';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -110,12 +111,16 @@ function RootLayoutNav() {
       {/* flex container so the absolutely-positioned download banner can overlay
           the whole navigator from any screen. */}
       <View style={{ flex: 1 }}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/* Title is set dynamically inside history/[id].tsx via <Stack.Screen /> */}
-          <Stack.Screen name="history/[id]" />
-        </Stack>
-        <DownloadBanner />
+        {/* Recording is owned here, above the tabs, so the mic button records
+            from anywhere and the transcription survives navigating to History. */}
+        <RecordingProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            {/* Title is set dynamically inside history/[id].tsx via <Stack.Screen /> */}
+            <Stack.Screen name="history/[id]" />
+          </Stack>
+          <DownloadBanner />
+        </RecordingProvider>
       </View>
     </ThemeProvider>
   );

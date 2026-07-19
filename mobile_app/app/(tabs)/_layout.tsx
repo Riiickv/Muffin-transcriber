@@ -88,7 +88,6 @@ export default function TabLayout() {
     >
       {/* Icons come from FloatingTabBar's own route→icon map. */}
       <Tabs.Screen name="index" options={{ title: t('tabs.transcribe'), tabBarLabel: t('tabs.transcribe') }} />
-      <Tabs.Screen name="record" options={{ title: t('tabs.record'), tabBarLabel: t('tabs.record') }} />
       <Tabs.Screen name="history" options={{ title: t('tabs.history'), tabBarLabel: t('tabs.history') }} />
       <Tabs.Screen name="chat" options={{ title: t('tabs.chat'), tabBarLabel: t('tabs.chat') }} />
       <Tabs.Screen name="settings" options={{ title: t('tabs.settings'), tabBarLabel: t('tabs.settings') }} />
