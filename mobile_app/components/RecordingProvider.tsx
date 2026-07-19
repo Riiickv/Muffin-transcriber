@@ -184,13 +184,19 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
       rawTranscript: '',
       sourceFilePath: audioPath,
     };
-    await addOrUpdate(item);
+    try {
+      await addOrUpdate(item);
+    } catch (e) {
+      console.error('Could not save the recording to history:', e);
+    }
     setTranscribingId(id);
     haptics.success();
-    router.push({ pathname: '/history/[id]', params: { id } });
 
-    // Transcribe + enrich in the background. This runs in the always-mounted
-    // provider, so leaving the History screen doesn't stop it.
+    // Transcribe + enrich in the background - kicked off BEFORE navigating, so a
+    // navigation hiccup can never abort it. (A router.push fired synchronously
+    // from inside the stop handler was sometimes throwing mid-transition, which
+    // skipped everything after it: the note saved but never transcribed and never
+    // opened.) Runs in the always-mounted provider, so it survives the navigation.
     (async () => {
       try {
         await activateKeepAwakeAsync('record-transcription');
@@ -242,6 +248,17 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         setTranscribingId(null);
       }
     })();
+
+    // Now open the new note. Deferred (next tick) so it lands after the stop's
+    // state settles, and guarded so a navigation failure can't touch anything
+    // else - the transcription above is already running regardless.
+    setTimeout(() => {
+      try {
+        router.push({ pathname: '/history/[id]', params: { id } });
+      } catch (e) {
+        console.error('Could not open the new transcript:', e);
+      }
+    }, 0);
   };
 
   const toggle = () => {
@@ -270,6 +287,11 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         }
         if (isRecording) await stopAndTranscribe();
         else await startRecording();
+      } catch (e) {
+        // Never let a stray error vanish silently: it was exactly a swallowed
+        // throw here (from a mid-transition router.push) that left notes saved
+        // but untranscribed and unopened.
+        console.error('Record toggle failed:', e);
       } finally {
         transitioning.current = false;
       }
