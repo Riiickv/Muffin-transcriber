@@ -23,6 +23,7 @@ import { useDialog } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t, APP_LANGUAGE_OPTIONS, AppLanguage } from '@/utils/i18n';
 import { openPrivacyPolicy } from '@/utils/support';
+import Constants from 'expo-constants';
 const THEME_SEGMENTS = [
   { key: 'system' as const, label: 'Auto' },
   { key: 'light' as const, label: 'Light' },
@@ -40,7 +41,11 @@ const ACCENT_SWATCHES: { key: AccentColor; color: string | null; label: string }
   { key: 'red', color: '#ED6F62', label: 'Red' },
 ];
 
-const APP_VERSION = '1.2.1';
+// Read from the build, never hand-typed: a hardcoded string here silently rots
+// - it sat at "1.2.1" through several version bumps and told the user (and me)
+// the update hadn't installed when it had. expoConfig.version is app.json's
+// version baked in at build time, so this always matches the real build.
+const APP_VERSION = Constants.expoConfig?.version ?? '';
 const AUTO_DELETE_OPTIONS = [
   { label: t('settings.autoDeleteNever') || 'Never', value: 'Never' },
   { label: t('settings.autoDelete1Week') || '1 Week', value: '1 Week' },
