@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, View, ScrollView } from 'react-native';
+import { StyleSheet, TextInput, View, ScrollView, ActivityIndicator } from 'react-native';
 import { useEffect, useState } from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
@@ -16,6 +16,7 @@ import { WaitingCard } from '@/components/WaitingCard';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory } from '@/utils/historyStore';
+import { useRecording } from '@/components/RecordingProvider';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
@@ -64,6 +65,12 @@ export default function HistoryDetailScreen() {
   const { whisperOptions, formatterOptions } = useModelOptions();
   // Re-Transcribe is one tap away - warm the model while the user reads.
   useWhisperPreload(!!item?.sourceFilePath);
+
+  // A just-recorded note lands here empty while the recording provider
+  // transcribes it in the background. Show a live "Transcribing..." state until
+  // the raw text arrives.
+  const { transcribingId } = useRecording();
+  const isTranscribingThis = transcribingId === id && !item?.rawTranscript;
 
   const transcript =
     transcriptTab === 'summary'
@@ -264,6 +271,16 @@ export default function HistoryDetailScreen() {
   };
 
   const renderHighlightedText = () => {
+    if (isTranscribingThis) {
+      return (
+        <View style={{ alignItems: 'center', paddingVertical: SPACING.xl }}>
+          <ActivityIndicator color={theme.tint} />
+          <Text style={{ color: theme.textMuted, marginTop: SPACING.md }}>
+            {t('record.transcribing') || 'Transcribing...'}
+          </Text>
+        </View>
+      );
+    }
     if (!item?.extractedDates || item.extractedDates.length === 0) {
       return <Text style={[styles.transcriptText, { color: theme.text }]}>{transcript}</Text>;
     }

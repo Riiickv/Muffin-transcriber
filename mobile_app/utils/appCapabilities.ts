@@ -38,8 +38,7 @@ export function getSettingSpec(key: string): SettingSpec | undefined {
 export type ScreenSpec = { id: string; name: string; description: string };
 
 export const SCREENS: ScreenSpec[] = [
-  { id: 'index', name: 'Home', description: 'Pick or share an audio/video file and transcribe it.' },
-  { id: 'record', name: 'Record', description: 'Record a voice memo and transcribe it.' },
+  { id: 'index', name: 'Home', description: 'Pick or share an audio/video file and transcribe it. Or use the mic button to record a voice memo.' },
   { id: 'history', name: 'History', description: 'Browse, read and edit past transcriptions.' },
   { id: 'chat', name: 'Chat', description: 'This assistant.' },
   { id: 'settings', name: 'Settings', description: 'All preferences, models, appearance and prompts.' },
