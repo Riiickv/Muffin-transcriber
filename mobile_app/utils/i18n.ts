@@ -28,9 +28,28 @@ export const APP_LANGUAGE_OPTIONS: { label: string; value: AppLanguage }[] = [
   { label: 'Português', value: 'pt' },
 ];
 
-/** Set by the root layout from the saved setting. Module-level rather than
- *  React state because t() is a plain function called from everywhere. */
-let currentLanguage: Exclude<AppLanguage, 'auto'> = 'en';
+/**
+ * The active language, set by the root layout from the saved setting. Kept on
+ * globalThis, NOT as a module-level `let`, and that's load-bearing:
+ *
+ * Screens import this file as '@/utils/i18n'; the utils/ files (ModelManager,
+ * languages) import it as './i18n'. On Windows, Metro resolves those two
+ * specifiers to TWO SEPARATE module instances, each with its own module state.
+ * setAppLanguage() runs from a screen and would set the `let` in the alias copy,
+ * while t() inside modelName()/getLanguageOptions() reads the relative copy,
+ * where it's still the default 'en'. That's the bug where the app chrome was
+ * Italian but the model tiers and the language picker stayed English.
+ *
+ * globalThis is one object shared by every copy of the module, so the language a
+ * screen sets is the exact one every reader sees, however the module got
+ * duplicated. (The right structural fix is one import style everywhere, but this
+ * makes correctness independent of the bundler.)
+ */
+const LANGUAGE_GLOBAL = '__muffinCurrentLanguage';
+
+function readCurrentLanguage(): Exclude<AppLanguage, 'auto'> {
+  return ((globalThis as any)[LANGUAGE_GLOBAL] as Exclude<AppLanguage, 'auto'>) || 'en';
+}
 
 /** What 'auto' resolves to: the phone's language, if we speak it, else English. */
 export function resolveDeviceLanguage(): Exclude<AppLanguage, 'auto'> {
@@ -51,11 +70,11 @@ export function resolveDeviceLanguage(): Exclude<AppLanguage, 'auto'> {
 }
 
 export function setAppLanguage(lang: AppLanguage): void {
-  currentLanguage = lang === 'auto' ? resolveDeviceLanguage() : lang;
+  (globalThis as any)[LANGUAGE_GLOBAL] = lang === 'auto' ? resolveDeviceLanguage() : lang;
 }
 
 export function getAppLanguage(): Exclude<AppLanguage, 'auto'> {
-  return currentLanguage;
+  return readCurrentLanguage();
 }
 
 function lookup(source: any, keys: string[]): string | undefined {
@@ -76,6 +95,7 @@ function lookup(source: any, keys: string[]): string | undefined {
 export function t(key: string): string {
   try {
     const keys = key.split('.');
+    const currentLanguage = readCurrentLanguage();
     if (currentLanguage !== 'en') {
       const translated = lookup(TRANSLATIONS[currentLanguage], keys);
       // An empty string in a translation file means "not translated yet", so
