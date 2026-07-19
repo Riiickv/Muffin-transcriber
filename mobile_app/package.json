@@ -1,6 +1,6 @@
 {
   "name": "mobile_app",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "1.2.1",
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
@@ -23,7 +23,6 @@
     "expo-keep-awake": "^57.0.0",
     "expo-linking": "~57.0.1",
     "expo-localization": "~57.0.1",
-    "expo-notifications": "~57.0.6",
     "expo-router": "~57.0.3",
     "expo-share-intent": "~8.0.0",
     "expo-splash-screen": "~57.0.2",
@@ -36,6 +35,7 @@
     "react-dom": "19.2.3",
     "react-native": "0.86.0",
     "react-native-keyboard-controller": "1.21.9",
+    "react-native-notify-kit": "^10.4.9",
     "react-native-reanimated": "4.5.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
