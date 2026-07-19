@@ -69,6 +69,7 @@ export const IT = {
   },
 
   record: {
+    optionsTitle: "Opzioni di registrazione",
     readyToTranscribe: "Pronto a trascrivere",
     listening: "Sto ascoltando...",
     using: "Uso",

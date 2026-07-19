@@ -112,6 +112,7 @@ export const APP_STRINGS = {
   //  "RECORD" TAB - the big microphone button screen
   // ==========================================================================
   record: {
+    optionsTitle: "Recording options",
     readyToTranscribe: "Ready to Transcribe",
     listening: "Listening...",
     using: "Using",

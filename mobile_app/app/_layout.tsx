@@ -9,6 +9,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { DownloadBanner } from '@/components/DownloadIndicator';
 import { RecordingProvider } from '@/components/RecordingProvider';
+import { RecordOptionsSheet } from '@/components/RecordOptionsSheet';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -120,6 +121,7 @@ function RootLayoutNav() {
             <Stack.Screen name="history/[id]" />
           </Stack>
           <DownloadBanner />
+          <RecordOptionsSheet />
         </RecordingProvider>
       </View>
     </ThemeProvider>

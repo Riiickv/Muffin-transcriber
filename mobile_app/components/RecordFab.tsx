@@ -14,6 +14,8 @@ import { Icon } from './Icon';
 import { AnimatedPressable } from './AnimatedPressable';
 import { useRecording } from './RecordingProvider';
 import { FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
+import { setRecordSheetOpen } from '@/utils/recordSheet';
+import { haptics } from '@/utils/haptics';
 
 // Matches the tab-bar pill height (item 40 + padding 5*2 + border 1*2), so the
 // circle lines up as a sibling of the bar, not a button hovering next to it.
@@ -50,6 +52,10 @@ export function RecordFab() {
     <Animated.View style={pulseStyle}>
       <AnimatedPressable
         onPress={toggle}
+        onLongPress={() => {
+          haptics.select();
+          setRecordSheetOpen(true);
+        }}
         accessibilityRole="button"
         accessibilityLabel={isRecording ? 'Stop recording' : 'Start recording'}
         accessibilityState={{ selected: isRecording }}
