@@ -46,6 +46,9 @@ export const DEFAULT_SETTINGS: Settings = {
 // preferences so the picker doesn't show a ghost entry.
 const MODEL_RENAMES: Record<string, string> = {
   'ggml-large-v3-turbo-q5_0.bin': 'ggml-large-v3-turbo-q8_0.bin',
+  // The English-only Base model is gone. Anyone who had it selected gets moved
+  // to Balanced (Small) - multilingual, the closest thing to what they had.
+  'ggml-base.en.bin': 'ggml-small.bin',
 };
 
 // hydrate spreads over defaults so settings added in later versions are present

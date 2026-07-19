@@ -1,5 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
+import { t } from './i18n';
+
 const MODELS_DIR = FileSystem.documentDirectory + 'models/';
 
 export interface ModelDef {
@@ -13,6 +15,12 @@ export interface ModelDef {
    * Tiers are ORDINAL, not measured: within a group each entry is faster than
    * the one below it. Real times depend on the phone, so the app doesn't
    * promise seconds.
+   *
+   * `name`/`description` are the English text AND the fallback. What actually
+   * shows on screen goes through modelName()/modelDesc(), which look up
+   * `nameKey`/`descKey` in the current language and fall back to these. Render
+   * anything through the helpers, never the raw fields - otherwise the pickers
+   * stay English while the rest of the app is translated.
    */
   name: string;
   /** The actual model, kept for debugging and the curious. Not shown by default. */
@@ -20,11 +28,28 @@ export interface ModelDef {
   url: string;
   size: string;
   description: string;
+  /** i18n keys under `models.` - the translated tier name and per-model blurb. */
+  nameKey: string;
+  descKey: string;
   isEnglishOnly?: boolean;
+}
+
+/** The tier label in the current app language, English if untranslated. */
+export function modelName(m: ModelDef): string {
+  return t(m.nameKey) || m.name;
+}
+
+/** The one-line blurb in the current app language, English if untranslated. */
+export function modelDesc(m: ModelDef): string {
+  return t(m.descKey) || m.description;
 }
 
 // Each group is ordered fastest -> best, so the list itself is the ladder.
 export const WHISPER_MODELS: readonly ModelDef[] = [
+  // No English-only Whisper here on purpose: the app is multilingual, and a
+  // "Fast" option that silently only did English was a trap - people picked it
+  // for the speed and got nothing in their language. Tiny is already the fast
+  // multilingual floor, so that's the fast tier.
   {
     id: 'ggml-tiny.bin',
     name: 'Fastest',
@@ -32,15 +57,8 @@ export const WHISPER_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin',
     size: '74 MB',
     description: 'Roughest wording. Fine for short, clear notes.',
-  },
-  {
-    id: 'ggml-base.en.bin',
-    name: 'Fast',
-    technicalName: 'Whisper Base',
-    url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin',
-    size: '142 MB',
-    description: 'English only. Good with clear speech.',
-    isEnglishOnly: true,
+    nameKey: 'models.tierFastest',
+    descKey: 'models.descWhisperFastest',
   },
   {
     id: 'ggml-small.bin',
@@ -49,6 +67,8 @@ export const WHISPER_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin',
     size: '466 MB',
     description: 'The sweet spot for most voice notes.',
+    nameKey: 'models.tierBalanced',
+    descKey: 'models.descWhisperBalanced',
   },
   // q8_0, not q5_0: q5 bit-unpacking has no fast SIMD path in this build's
   // plain-NEON kernels and measures several times slower than q8_0 on phones.
@@ -59,6 +79,8 @@ export const WHISPER_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin',
     size: '874 MB',
     description: 'Best with accents and background noise. Slowest.',
+    nameKey: 'models.tierAccurate',
+    descKey: 'models.descWhisperAccurate',
   },
 ];
 
@@ -73,6 +95,8 @@ export const FORMATTER_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf',
     size: '409 MB',
     description: 'Tuned for newer phone chips.',
+    nameKey: 'models.tierFastest',
+    descKey: 'models.descFmtFastest',
   },
   {
     id: 'qwen2.5-0.5b-instruct-q4_k_m.gguf',
@@ -81,6 +105,8 @@ export const FORMATTER_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf',
     size: '398 MB',
     description: 'Slightly better wording than Fastest.',
+    nameKey: 'models.tierFast',
+    descKey: 'models.descFmtFast',
   },
   {
     id: 'qwen2.5-1.5b-instruct-q4_0.gguf',
@@ -89,6 +115,8 @@ export const FORMATTER_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_0.gguf',
     size: '1.0 GB',
     description: 'Bigger, still quick on newer phones.',
+    nameKey: 'models.tierBalanced',
+    descKey: 'models.descFmtBalanced',
   },
   {
     id: 'qwen2.5-1.5b-instruct-q4_k_m.gguf',
@@ -97,6 +125,8 @@ export const FORMATTER_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf',
     size: '1.1 GB',
     description: 'Cleanest wording. Slowest.',
+    nameKey: 'models.tierBest',
+    descKey: 'models.descFmtBest',
   },
 ];
 
@@ -108,6 +138,8 @@ export const CHAT_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/bartowski/Llama-3.2-1B-Instruct-GGUF/resolve/main/Llama-3.2-1B-Instruct-Q4_K_M.gguf',
     size: '814 MB',
     description: 'Quick replies, simpler answers.',
+    nameKey: 'models.tierFast',
+    descKey: 'models.descChatFast',
   },
   {
     id: 'Phi-3-mini-4k-instruct-q4.gguf',
@@ -116,6 +148,8 @@ export const CHAT_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf',
     size: '2.3 GB',
     description: 'Smarter answers. Wants a newer phone.',
+    nameKey: 'models.tierBest',
+    descKey: 'models.descChatBest',
   },
 ];
 
@@ -129,6 +163,8 @@ export const EMBEDDING_MODELS: readonly ModelDef[] = [
     url: 'https://huggingface.co/Mungert/all-MiniLM-L6-v2-GGUF/resolve/main/all-MiniLM-L6-v2-q4_k_m.gguf',
     size: '14 MB',
     description: 'Lets Chat find the right transcript by meaning, not just words.',
+    nameKey: 'models.tierSmartSearch',
+    descKey: 'models.descEmbed',
   },
 ];
 
