@@ -1,6 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
-import { t } from './i18n';
+import { t } from '@/utils/i18n';
 
 const MODELS_DIR = FileSystem.documentDirectory + 'models/';
 

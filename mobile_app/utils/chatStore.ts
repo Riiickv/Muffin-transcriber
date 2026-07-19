@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChatMessage } from './ChatEngine';
 import { createPersistentStore } from './persistentStore';
-import { t } from './i18n';
+import { t } from '@/utils/i18n';
 
 const CHATS_KEY = 'muffin.chats.v1';
 const LEGACY_KEY = 'chat_messages';
