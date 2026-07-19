@@ -18,6 +18,9 @@ export const WHISPER_RECORDING_PRESET = {
   sampleRate: 16000,
   numberOfChannels: 1,
   bitRate: 128000,
+  // Puts a live `metering` (dB) value on getStatus(), so the record button's
+  // bars can follow the voice.
+  isMeteringEnabled: true,
   android: {
     // Explicit rather than 'default': mpeg4+aac is the format the converter is
     // known to handle, and it's what 'default' resolved to anyway.
