@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useSharedValue, withTiming, SharedValue } from 'react-native-reanimated';
 import {
   useAudioRecorder,
   requestRecordingPermissionsAsync,
@@ -34,12 +35,16 @@ interface RecordingContextValue {
   transcribingId: string | null;
   /** Tap the mic: start if idle, stop + transcribe if recording. */
   toggle: () => void;
+  /** Live mic level 0..1 (UI-thread shared value) for the waveform. */
+  level: SharedValue<number>;
 }
 
+const noopLevel = { value: 0 } as SharedValue<number>;
 const RecordingContext = createContext<RecordingContextValue>({
   isRecording: false,
   transcribingId: null,
   toggle: () => {},
+  level: noopLevel,
 });
 
 export const useRecording = () => useContext(RecordingContext);
@@ -57,6 +62,30 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
   // Serialise the handler: a fast double-tap otherwise starts twice, and
   // prepareToRecordAsync() throws on an already-recording recorder.
   const transitioning = useRef(false);
+  const level = useSharedValue(0);
+
+  // While recording, poll the mic level into a shared value on the UI thread -
+  // no React re-render, so the whole app doesn't repaint 12x/second. The record
+  // button's bars read this. metering is dBFS (~-50 quiet .. 0 loud).
+  useEffect(() => {
+    if (!isRecording) {
+      level.value = withTiming(0, { duration: 150 });
+      return;
+    }
+    const iv = setInterval(() => {
+      try {
+        const status: any = (recorder as any).getStatus?.();
+        const m = status?.metering;
+        if (typeof m === 'number') {
+          const mapped = Math.max(0, Math.min(1, (m + 50) / 50));
+          level.value = withTiming(mapped, { duration: 90 });
+        }
+      } catch {
+        // metering not available on this device - bars just stay flat
+      }
+    }, 90);
+    return () => clearInterval(iv);
+  }, [isRecording]);
 
   useEffect(() => {
     (async () => {
@@ -248,7 +277,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <RecordingContext.Provider value={{ isRecording, transcribingId, toggle }}>
+    <RecordingContext.Provider value={{ isRecording, transcribingId, toggle, level }}>
       {children}
     </RecordingContext.Provider>
   );

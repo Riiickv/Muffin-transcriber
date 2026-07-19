@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, {
   Easing,
+  SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -12,33 +13,38 @@ import { useTheme } from './ThemeProvider';
 import { Icon } from './Icon';
 import { AnimatedPressable } from './AnimatedPressable';
 import { useRecording } from './RecordingProvider';
+import { FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
 
-const SIZE = 56;
+// Matches the tab-bar pill height (item 40 + padding 5*2 + border 1*2), so the
+// circle lines up as a sibling of the bar, not a button hovering next to it.
+const SIZE = 52;
 // A distinctly darker red than the danger accent, so "recording" reads as a
-// deliberate state, not just a colour tint.
+// deliberate state.
 const RECORDING_RED = '#B3261E';
 const BAR_COUNT = 3;
+const MID = (BAR_COUNT - 1) / 2;
 
 /**
- * The standalone record button that lives at the right of the tab bar. Tap to
- * start/stop. While recording it goes a darker red, pulses very lightly, and the
- * mic icon is replaced by three bars pulsing from the middle. (The bars will
- * follow the mic level once metering is wired; for now they animate on their own.)
+ * The record button at the right of the tab bar. Idle, it wears the same frosted
+ * chrome as the pill (so it reads as a detached piece of the same bar); while
+ * recording it fills a darker red, pulses faintly, and the mic icon becomes
+ * three bars whose height follows the live mic level.
  */
 export function RecordFab() {
   const { theme } = useTheme();
-  const { isRecording, toggle } = useRecording();
+  const { isRecording, toggle, level } = useRecording();
 
-  // Faint breathing pulse while recording.
   const pulse = useSharedValue(1);
   useEffect(() => {
     if (isRecording) {
-      pulse.value = withRepeat(withTiming(1.06, { duration: 700, easing: Easing.inOut(Easing.quad) }), -1, true);
+      pulse.value = withRepeat(withTiming(1.04, { duration: 750, easing: Easing.inOut(Easing.quad) }), -1, true);
     } else {
       pulse.value = withTiming(1, { duration: 200 });
     }
   }, [isRecording]);
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+
+  const idleChrome = { ...FLOATING_CHROME, ...floatingChromeColors(theme.isDark) };
 
   return (
     <Animated.View style={pulseStyle}>
@@ -49,46 +55,33 @@ export function RecordFab() {
         accessibilityState={{ selected: isRecording }}
         style={[
           styles.fab,
-          {
-            backgroundColor: isRecording ? RECORDING_RED : theme.tint,
-            shadowColor: isRecording ? RECORDING_RED : theme.tint,
-          },
+          isRecording
+            ? { backgroundColor: RECORDING_RED, borderColor: RECORDING_RED }
+            : idleChrome,
         ]}
       >
-        {isRecording ? <Waveform /> : <Icon name="mic" filled size={26} color={theme.tintForeground} />}
+        {isRecording ? <Waveform level={level} /> : <Icon name="mic" filled size={24} color={theme.tint} />}
       </AnimatedPressable>
     </Animated.View>
   );
 }
 
-function Waveform() {
+function Waveform({ level }: { level: SharedValue<number> }) {
   return (
     <View style={styles.waveRow}>
       {Array.from({ length: BAR_COUNT }).map((_, i) => (
-        <WaveBar key={i} index={i} />
+        <WaveBar key={i} index={i} level={level} />
       ))}
     </View>
   );
 }
 
-// Each bar breathes between a short and a tall height. The middle bar leads and
-// is tallest, so the group reads as "pulsing from the middle".
-function WaveBar({ index }: { index: number }) {
-  const mid = (BAR_COUNT - 1) / 2;
-  const distance = Math.abs(index - mid); // 0 for the middle bar
-  const tall = 22 - distance * 6; // middle tallest
-  const short = 8;
-  const h = useSharedValue(short);
-
-  useEffect(() => {
-    h.value = withRepeat(
-      withTiming(tall, { duration: 520 + distance * 90, easing: Easing.inOut(Easing.quad) }),
-      -1,
-      true
-    );
-  }, []);
-
-  const style = useAnimatedStyle(() => ({ height: h.value }));
+// Height tracks the mic level. The middle bar swings widest, so louder speech
+// makes the group bloom from the centre.
+function WaveBar({ index, level }: { index: number; level: SharedValue<number> }) {
+  const minH = 6;
+  const maxH = index === MID ? 22 : 13;
+  const style = useAnimatedStyle(() => ({ height: minH + level.value * (maxH - minH) }));
   return <Animated.View style={[styles.bar, style]} />;
 }
 
@@ -99,10 +92,6 @@ const styles = StyleSheet.create({
     borderRadius: SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 6,
   },
   waveRow: {
     flexDirection: 'row',
