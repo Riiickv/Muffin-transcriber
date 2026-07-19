@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 
@@ -8,6 +8,7 @@ import { Icon } from '@/components/Icon';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { SuggestedGlow } from '@/components/SuggestedGlow';
 import { ModelManager, ModelDef, modelName, modelDesc } from '@/utils/ModelManager';
+import { useDownloads, startModelDownload } from '@/utils/downloadManager';
 import { formatEta } from '@/utils/format';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
@@ -51,9 +52,13 @@ export function ModelDownloadList({
   /** Model to mark as suggested for this device. */
   highlightId?: string | null;
 }) {
-  const [downloadProgress, setDownloadProgress] = useState<Record<string, DownloadInfo>>({});
+  // Progress comes from the module-level manager, not local state, so a download
+  // started here keeps running (and keeps reporting) after you leave the screen.
+  const downloads = useDownloads();
   const [downloadedModels, setDownloadedModels] = useState<Record<string, boolean>>({});
-  const lastDownloadUpdate = useRef<Record<string, { time: number; written: number }>>({});
+  // Which models were downloading on the previous render. When one leaves the
+  // active set we re-check the disk and flip its row - see the effect below.
+  const activeIds = useRef<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
@@ -73,61 +78,34 @@ export function ModelDownloadList({
     }, [models])
   );
 
+  // A download leaving the active set means it finished or failed. Ask the disk
+  // which: installed -> the row becomes "Delete" and we buzz success; missing ->
+  // it failed and the row goes back to "Get". This is also what catches a
+  // download that completed while you were watching (the focus check covers ones
+  // that finished while you were away).
+  useEffect(() => {
+    const nowActive = new Set(Object.keys(downloads));
+    activeIds.current.forEach((id) => {
+      if (!nowActive.has(id)) {
+        ModelManager.isModelDownloaded(id).then((done) => {
+          setDownloadedModels((prev) => ({ ...prev, [id]: done }));
+          if (done) haptics.success();
+        });
+      }
+    });
+    activeIds.current = nowActive;
+  }, [downloads]);
+
   const handleDownload = async (modelId: string, url: string) => {
     haptics.tap();
     if (downloadedModels[modelId]) {
       await ModelManager.deleteModel(modelId);
       setDownloadedModels((prev) => ({ ...prev, [modelId]: false }));
-      setDownloadProgress((prev) => {
-        const next = { ...prev };
-        delete next[modelId];
-        return next;
-      });
       return;
     }
-
-    try {
-      setDownloadProgress((prev) => ({
-        ...prev,
-        [modelId]: { progress: 0.01, written: 0, total: 1, speed: 0, eta: 0 },
-      }));
-      lastDownloadUpdate.current[modelId] = { time: Date.now(), written: 0 };
-
-      await ModelManager.startDownload(url, modelId, (info) => {
-        const now = Date.now();
-        const last = lastDownloadUpdate.current[modelId];
-        let speed = 0;
-        let eta = 0;
-        if (last && now - last.time > 500) {
-          speed = (info.written - last.written) / ((now - last.time) / 1000);
-          eta = speed > 0 ? (info.total - info.written) / speed : 0;
-          lastDownloadUpdate.current[modelId] = { time: now, written: info.written };
-        }
-        setDownloadProgress((prev) => {
-          const prevInfo = prev[modelId] ?? { speed: 0, eta: 0, progress: 0, written: 0, total: 0 };
-          return {
-            ...prev,
-            [modelId]: { ...info, speed: speed > 0 ? speed : prevInfo.speed, eta: speed > 0 ? eta : prevInfo.eta },
-          };
-        });
-      });
-
-      setDownloadedModels((prev) => ({ ...prev, [modelId]: true }));
-      setDownloadProgress((prev) => {
-        const next = { ...prev };
-        delete next[modelId];
-        return next;
-      });
-      haptics.success();
-    } catch (e) {
-      console.error('Download failed', e);
-      haptics.error();
-      setDownloadProgress((prev) => {
-        const next = { ...prev };
-        delete next[modelId];
-        return next;
-      });
-    }
+    // Hand it to the manager and walk away. It owns the download from here, so
+    // leaving this screen no longer stops it; progress flows back via useDownloads.
+    startModelDownload(modelId, url);
   };
 
   return (
@@ -137,7 +115,7 @@ export function ModelDownloadList({
           <ModelRow
             model={model}
             downloaded={!!downloadedModels[model.id]}
-            info={downloadProgress[model.id]}
+            info={downloads[model.id]}
             onPress={() => handleDownload(model.id, model.url)}
           />
         );
