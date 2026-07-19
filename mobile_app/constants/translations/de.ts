@@ -312,6 +312,9 @@ export const DE = {
   downloads: {
     downloading: "Lädt",
     downloadingModel: "{model} wird geladen",
+    pause: "Pause",
+    resume: "Fortsetzen",
+    cancel: "Abbrechen",
   },
 
   dialog: {

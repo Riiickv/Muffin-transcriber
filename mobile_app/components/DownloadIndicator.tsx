@@ -7,7 +7,15 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { useTheme } from './ThemeProvider';
 import { ProgressCircle } from './ProgressCircle';
 import { AnimatedPressable } from './AnimatedPressable';
-import { useDownloads, getDownloads, DownloadState } from '@/utils/downloadManager';
+import {
+  useDownloads,
+  getDownloads,
+  pauseDownload,
+  resumeDownload,
+  cancelDownload,
+  DownloadState,
+} from '@/utils/downloadManager';
+import { Icon } from './Icon';
 import { useBannerExpanded, setBannerExpanded } from '@/utils/downloadBanner';
 import {
   ensureNotificationSetup,
@@ -148,25 +156,57 @@ export function DownloadBanner() {
   const pct = Math.round(agg.avg * 100);
   const label = labelFor(agg.primaryId);
   const downloadingText = (t('downloads.downloadingModel') || 'Downloading {model}').replace('{model}', label);
+  const paused = downloads[agg.primaryId]?.status === 'paused';
 
   return (
     <View pointerEvents="box-none" style={[styles.overlay, { top: insets.top + 52 }]}>
       <Animated.View pointerEvents={expanded ? 'auto' : 'none'} style={animStyle}>
-        <Pressable
-          onPress={() => {
-            haptics.tap();
-            setBannerExpanded(false);
-            router.push('/models' as any);
-          }}
-          style={[styles.card, { backgroundColor: theme.background, borderColor: theme.divider }]}
-          accessibilityRole="button"
-          accessibilityLabel={`${downloadingText} ${pct}%`}
-        >
-          <ProgressCircle progress={agg.avg} size={40} />
-          <Text numberOfLines={1} style={[styles.title, { color: theme.text, flex: 1, marginLeft: SPACING.md }]}>
-            {downloadingText}
-          </Text>
-        </Pressable>
+        <View style={[styles.card, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+          {/* Tapping the ring/name jumps to the Models screen; the buttons are
+              separate so they don't trigger that. */}
+          <Pressable
+            style={styles.cardMain}
+            onPress={() => {
+              haptics.tap();
+              setBannerExpanded(false);
+              router.push('/models' as any);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`${downloadingText} ${pct}%`}
+          >
+            <ProgressCircle progress={agg.avg} size={40} />
+            <Text numberOfLines={1} style={[styles.title, { color: theme.text, flex: 1, marginLeft: SPACING.md }]}>
+              {downloadingText}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              haptics.tap();
+              if (paused) resumeDownload(agg.primaryId);
+              else pauseDownload(agg.primaryId);
+            }}
+            style={styles.iconBtn}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={paused ? t('downloads.resume') || 'Resume' : t('downloads.pause') || 'Pause'}
+          >
+            <Icon name={paused ? 'play' : 'pause'} size={22} color={theme.text} />
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              haptics.tap();
+              cancelDownload(agg.primaryId);
+            }}
+            style={styles.iconBtn}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('downloads.cancel') || 'Cancel'}
+          >
+            <Icon name="close" size={22} color={theme.textMuted} />
+          </Pressable>
+        </View>
       </Animated.View>
     </View>
   );
@@ -186,5 +226,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 10,
   },
+  cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   title: { fontSize: 15, fontWeight: '600' },
+  iconBtn: { padding: SPACING.sm, marginLeft: SPACING.xs, alignItems: 'center', justifyContent: 'center' },
 });

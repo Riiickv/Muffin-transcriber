@@ -312,6 +312,9 @@ export const PT = {
   downloads: {
     downloading: "A transferir",
     downloadingModel: "A transferir {model}",
+    pause: "Pausar",
+    resume: "Retomar",
+    cancel: "Cancelar",
   },
 
   dialog: {

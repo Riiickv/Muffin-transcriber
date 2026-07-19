@@ -312,6 +312,9 @@ export const FR = {
   downloads: {
     downloading: "Téléchargement",
     downloadingModel: "Téléchargement de {model}",
+    pause: "Pause",
+    resume: "Reprendre",
+    cancel: "Annuler",
   },
 
   dialog: {
