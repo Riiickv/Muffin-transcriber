@@ -309,6 +309,11 @@ export const PT = {
     original: "Original",
   },
 
+  downloads: {
+    downloading: "A transferir",
+    downloadingModel: "A transferir {model}",
+  },
+
   dialog: {
     defaultOk: "OK",
     selectOption: "Escolhe uma opção",

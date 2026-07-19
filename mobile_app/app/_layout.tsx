@@ -4,8 +4,10 @@ import {
   Nunito_600SemiBold,
   Nunito_700Bold,
 } from '@expo-google-fonts/nunito';
+import { View } from 'react-native';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { DownloadBanner } from '@/components/DownloadIndicator';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -105,11 +107,16 @@ function RootLayoutNav() {
     <ThemeProvider value={customNavigationTheme} key={settings.appLanguage}>
       {/* Status bar icons must invert with the app theme, not the OS theme. */}
       <StatusBar style={theme.isDark ? 'light' : 'dark'} />
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        {/* Title is set dynamically inside history/[id].tsx via <Stack.Screen /> */}
-        <Stack.Screen name="history/[id]" />
-      </Stack>
+      {/* flex container so the absolutely-positioned download banner can overlay
+          the whole navigator from any screen. */}
+      <View style={{ flex: 1 }}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          {/* Title is set dynamically inside history/[id].tsx via <Stack.Screen /> */}
+          <Stack.Screen name="history/[id]" />
+        </Stack>
+        <DownloadBanner />
+      </View>
     </ThemeProvider>
   );
 }

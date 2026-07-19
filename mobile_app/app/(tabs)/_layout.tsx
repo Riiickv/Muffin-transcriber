@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Image, Pressable } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 import React from 'react';
 
 import { useTheme } from '@/components/ThemeProvider';
@@ -10,6 +10,7 @@ import { useIsFirstRun } from '@/utils/modelPresence';
 import { haptics } from '@/utils/haptics';
 import { openSupportPage } from '@/utils/support';
 import { useDialog } from '@/components/Dialog';
+import { HeaderDownloadRing } from '@/components/DownloadIndicator';
 import { t } from '@/utils/i18n';
 
 export default function TabLayout() {
@@ -43,7 +44,11 @@ export default function TabLayout() {
           alignSelf: 'center',
         },
         headerRight: () => (
-          <Pressable
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* The download progress ring parks here, just left of the support
+                logo, whenever something is downloading. */}
+            <HeaderDownloadRing />
+            <Pressable
             onPress={() => {
               haptics.tap();
               // Confirm before leaving: the logo sits in the header of every
@@ -76,7 +81,8 @@ export default function TabLayout() {
               resizeMode="contain"
               accessibilityIgnoresInvertColors
             />
-          </Pressable>
+            </Pressable>
+          </View>
         ),
       }}
     >
