@@ -24,7 +24,7 @@ import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore
 import { useSettings } from '@/utils/settingsStore';
 import { useDialog } from '@/components/Dialog';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
-import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
+import { ModelManager, WHISPER_MODELS, modelName } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
 import { warmWhisperIfReady } from '@/hooks/useWhisperPreload';
 import { errorToMessage } from '@/utils/errors';
@@ -273,8 +273,9 @@ export default function RecordScreen() {
     }
   };
 
+  const selectedWhisper = WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel);
   const modelLabel = settings.preferredWhisperModel
-    ? WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel)?.name ?? settings.preferredWhisperModel
+    ? (selectedWhisper ? modelName(selectedWhisper) : settings.preferredWhisperModel)
     : (t('record.noModelSelected') || 'No model selected');
 
   return (

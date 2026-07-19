@@ -7,7 +7,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { Icon } from '@/components/Icon';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { SuggestedGlow } from '@/components/SuggestedGlow';
-import { ModelManager, ModelDef } from '@/utils/ModelManager';
+import { ModelManager, ModelDef, modelName, modelDesc } from '@/utils/ModelManager';
 import { formatEta } from '@/utils/format';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
@@ -174,13 +174,13 @@ const ModelRow = ({
   const subtitle =
     isDownloading && info!.total > 1
       ? `${formatBytes(info!.written)} / ${formatBytes(info!.total)} · ${formatBytes(info!.speed)}/s · ${formatEta(info!.eta)}`
-      : `${model.size} · ${model.description}`;
+      : `${model.size} · ${modelDesc(model)}`;
 
   return (
     <View>
       <View style={styles.row}>
         <View style={{ flex: 1, paddingRight: SPACING.md }}>
-          <Text style={styles.name}>{model.name}</Text>
+          <Text style={styles.name}>{modelName(model)}</Text>
           <Text style={[styles.sub, { color: theme.textMuted }]} numberOfLines={2}>
             {subtitle}
           </Text>
@@ -190,7 +190,7 @@ const ModelRow = ({
           onPress={onPress}
           disabled={isDownloading}
           accessibilityRole="button"
-          accessibilityLabel={`${downloaded ? t('settings.delete') : t('settings.get')} ${model.name}`}
+          accessibilityLabel={`${downloaded ? t('settings.delete') : t('settings.get')} ${modelName(model)}`}
           style={[
             styles.action,
             {

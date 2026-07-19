@@ -13,7 +13,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { Icon } from '@/components/Icon';
 import { SettingsGroup, SettingsRow } from '@/components/SettingsGroup';
 import { haptics } from '@/utils/haptics';
-import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS } from '@/utils/ModelManager';
+import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, modelName } from '@/utils/ModelManager';
 import { rollupMemories } from '@/utils/LLMEngine';
 import { clearAllChats } from '@/utils/chatStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
@@ -71,17 +71,17 @@ export default function SettingsScreen() {
   );
 
   const downloadedWhisperOptions = WHISPER_MODELS.filter((m) => downloadedModels[m.id]).map((m) => ({
-    label: m.name,
+    label: modelName(m),
     value: m.id,
   }));
 
   const downloadedFormatterOptions = FORMATTER_MODELS.filter((m) => downloadedModels[m.id]).map((m) => ({
-    label: m.name,
+    label: modelName(m),
     value: m.id,
   }));
 
   const downloadedChatOptions = CHAT_MODELS.filter((m) => downloadedModels[m.id]).map((m) => ({
-    label: m.name,
+    label: modelName(m),
     value: m.id,
   }));
 

@@ -406,27 +406,27 @@ export const APP_STRINGS = {
   },
 
   models: {
-    whisperTiny: "Faster",
-    whisperTinyDesc: "Extremely fast for basic transcriptions. Recommended for low-end devices.",
-    whisperBaseEn: "Base (English)",
-    whisperBaseEnDesc: "Fast and highly accurate in English.",
-    whisperSmall: "Balanced (Multilingual)",
-    whisperSmallDesc: "Good balance of speed and accuracy.",
-    whisperTurbo: "Slower",
-    whisperTurboDesc: "Best for high accuracy. Recommended for high-end devices.",
+    // Tier labels, shared across model groups. Each is a speed/quality rung,
+    // not a product name - see ModelDef in utils/ModelManager.ts. Shown through
+    // modelName()/modelDesc(), so these are what makes the pickers translate.
+    tierFastest: "Fastest",
+    tierFast: "Fast",
+    tierBalanced: "Balanced",
+    tierBest: "Best quality",
+    tierAccurate: "Most accurate",
+    tierSmartSearch: "Smart search",
 
-    qwenSmall: "Faster",
-    qwenSmallDesc: "Extremely fast but can make mistakes.",
-    qwenLarge: "Balanced",
-    qwenLargeDesc: "Good balance of speed and quality. Recommended for medium to high-end devices.",
-
-    llama1b: "Slow",
-    llama1bDesc: "Best quality. Recommended for high-end devices.",
-    phi3Mini: "Slower",
-    phi3MiniDesc: "Almost perfect. Recommended for very high-end devices.",
-
-    miniLm: "Helper (mandatory for chat)",
-    miniLmDesc: "This model allows the Chat to use the app for you if you're lazy.",
+    // One-line blurb per model.
+    descWhisperFastest: "Roughest wording. Fine for short, clear notes.",
+    descWhisperBalanced: "The sweet spot for most voice notes.",
+    descWhisperAccurate: "Best with accents and background noise. Slowest.",
+    descFmtFastest: "Tuned for newer phone chips.",
+    descFmtFast: "Slightly better wording than Fastest.",
+    descFmtBalanced: "Bigger, still quick on newer phones.",
+    descFmtBest: "Cleanest wording. Slowest.",
+    descChatFast: "Quick replies, simpler answers.",
+    descChatBest: "Smarter answers. Wants a newer phone.",
+    descEmbed: "Lets Chat find the right transcript by meaning, not just words.",
 
     // Shown inside a picker when there is nothing to pick yet.
     noneInstalled: "No models installed yet",
