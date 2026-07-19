@@ -109,28 +109,43 @@ RULES:
 
 function extractFormatterOutput(output: string): string {
   let text = output;
-  
-  if (text.includes('... (truncated)')) {
-    text = text.split('... (truncated)').pop() || text;
-  } else if (text.includes('<|im_start|>assistant')) {
-    text = text.split('<|im_start|>assistant').pop() || text;
-  } else if (text.includes('<|start_header_id|>assistant<|end_header_id|>')) {
-    text = text.split('<|start_header_id|>assistant<|end_header_id|>').pop() || text;
-  } else if (text.includes('<|assistant|>')) {
-    text = text.split('<|assistant|>').pop() || text;
-  }
-  
-  const markers = [
-    "[ Prompt:", "Exiting...", "<|im_end|>", "<|end|>", "<|eot_id|>", "<|endoftext|>",
-    "<|start_header_id|>", "<|im_start|>", "ggml_cuda_init:", "```"
-  ];
-  
-  for (const marker of markers) {
-    if (text.includes(marker)) {
-      text = text.split(marker)[0];
+
+  // If the model echoed its own chat template, keep only what came AFTER the
+  // assistant turn (pop = last segment = the reply).
+  for (const prefix of [
+    '... (truncated)',
+    '<|im_start|>assistant',
+    '<|start_header_id|>assistant<|end_header_id|>',
+    '<|assistant|>',
+  ]) {
+    if (text.includes(prefix)) {
+      text = text.split(prefix).pop() || text;
+      break;
     }
   }
-  
+
+  // Cut a trailing special token and everything after it, but ONLY when there's
+  // real content before it (idx > 0). Splitting on a leading token used to empty
+  // the string, and an empty result makes the caller fall back to the raw
+  // transcript - the "formatting did nothing" bug.
+  const trailing = [
+    '[ Prompt:', 'Exiting...', '<|im_end|>', '<|end|>', '<|eot_id|>',
+    '<|endoftext|>', '<|start_header_id|>', '<|im_start|>', 'ggml_cuda_init:',
+  ];
+  for (const marker of trailing) {
+    const i = text.indexOf(marker);
+    if (i > 0) text = text.slice(0, i);
+  }
+
+  // Small models love wrapping the whole answer in a markdown code fence. The
+  // old code split on ``` and kept text[0], which is EMPTY when the fence is at
+  // the start - the single biggest cause of formatting returning the raw text.
+  // Strip a surrounding fence instead of nuking everything.
+  text = text.trim();
+  if (text.startsWith('```')) {
+    text = text.replace(/^```[^\n]*\n?/, '').replace(/\n?```\s*$/, '');
+  }
+
   return text.trim();
 }
 
@@ -147,9 +162,7 @@ const PROMPT_ECHO_MARKERS = [
   'you are a precise text-processing assistant',
   'ensure you use the correct spelling and context',
   'do not wrap the output in quotes',
-  'transcript:',
-  'rules:',
-  'task:',
+  'act as a user profiling engine',
 ];
 
 /**
