@@ -127,20 +127,14 @@ export function DownloadBanner() {
             setBannerExpanded(false);
             router.push('/models' as any);
           }}
-          style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.divider }]}
+          style={[styles.card, { backgroundColor: theme.background, borderColor: theme.divider }]}
           accessibilityRole="button"
           accessibilityLabel={`${downloadingText} ${pct}%`}
         >
-          <ProgressCircle progress={agg.avg} size={34} />
-          <View style={{ flex: 1, marginLeft: SPACING.md }}>
-            <Text numberOfLines={1} style={[styles.title, { color: theme.text }]}>
-              {downloadingText}
-            </Text>
-            <View style={[styles.track, { backgroundColor: theme.divider }]}>
-              <View style={[styles.trackFill, { backgroundColor: theme.tint, width: `${pct}%` }]} />
-            </View>
-          </View>
-          <Text style={[styles.pct, { color: theme.textMuted }]}>{pct}%</Text>
+          <ProgressCircle progress={agg.avg} size={40} />
+          <Text numberOfLines={1} style={[styles.title, { color: theme.text, flex: 1, marginLeft: SPACING.md }]}>
+            {downloadingText}
+          </Text>
         </Pressable>
       </Animated.View>
     </View>
@@ -156,13 +150,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
   },
-  title: { fontSize: 14, fontWeight: '600' },
-  track: { height: 4, borderRadius: 2, marginTop: 6, overflow: 'hidden' },
-  trackFill: { height: 4, borderRadius: 2 },
-  pct: { fontSize: 13, fontWeight: '700', marginLeft: SPACING.sm },
+  title: { fontSize: 15, fontWeight: '600' },
 });
