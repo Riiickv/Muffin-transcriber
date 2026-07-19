@@ -435,6 +435,16 @@ export const APP_STRINGS = {
   },
 
   // ==========================================================================
+  //  SPOKEN-LANGUAGE PICKERS - the two special options. The ~100 real language
+  //  names are localized at runtime from their code (utils/languages.ts), so
+  //  they're not listed here.
+  // ==========================================================================
+  languages: {
+    autoDetect: "Auto-Detect",
+    original: "Original",
+  },
+
+  // ==========================================================================
   //  POP-UP MESSAGES - every dialog box that can appear
   // ==========================================================================
   dialog: {

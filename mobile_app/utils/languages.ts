@@ -1,6 +1,8 @@
 // The UI stores a display name (e.g. "Italian"); Whisper wants the ISO 639-1
 // code (e.g. "it"), or "auto" to detect the language itself.
 
+import { t, getAppLanguage } from './i18n';
+
 type Language = { name: string; code: string };
 
 // Every language Whisper's multilingual models can transcribe.
@@ -117,15 +119,65 @@ export function toLanguageCode(displayName: string | undefined | null): string {
   return LANGUAGE_CODE_MAP[displayName] ?? 'auto';
 }
 
-// Auto-Detect first, then alphabetical.
-export const LANGUAGE_OPTIONS = [
-  { label: 'Auto-Detect', value: 'Auto-Detect' },
-  ...LANGUAGES.map((l) => ({ label: l.name, value: l.name })),
+// The valid stored values, for the chat capability layer that only needs to
+// know what's allowed - never the labels, which are for humans and localized.
+export const LANGUAGE_VALUES = ['Auto-Detect', ...LANGUAGES.map((l) => l.name)];
+export const FORMAT_LANGUAGE_VALUES = [
+  'Auto-Detect / Original',
+  ...LANGUAGES.map((l) => l.name),
 ];
+
+// A language's name written in the current app language: "en" -> "inglese" when
+// the app is Italian. Intl.DisplayNames is driven by the platform's own language
+// data, so the whole ~100-name list localizes with no table to hand-write. Where
+// the engine lacks Intl.DisplayNames, or a non-standard code ('yue', 'jw') won't
+// resolve, we fall back to the English name rather than showing a bare code.
+//
+// Built once per list (not per name): one DisplayNames instance handles them all.
+function makeLocalizer(): (englishName: string, code: string) => string {
+  let dn: { of: (code: string) => string | undefined } | null = null;
+  try {
+    const DisplayNames = (Intl as any).DisplayNames;
+    if (DisplayNames) dn = new DisplayNames([getAppLanguage()], { type: 'language' });
+  } catch {
+    dn = null;
+  }
+  return (englishName, code) => {
+    if (dn) {
+      try {
+        const label = dn.of(code);
+        if (label && label.toLowerCase() !== code.toLowerCase()) {
+          return label.charAt(0).toUpperCase() + label.slice(1);
+        }
+      } catch {
+        // fall through to the English name
+      }
+    }
+    return englishName;
+  };
+}
+
+// Built at call time, NOT as a module constant: the labels depend on the app
+// language, and a const would freeze them to whatever language was active when
+// the file first loaded. Callers invoke these inside render, so they re-run on
+// the language remount. The VALUE stays the English name - it's the identity the
+// app stores and looks up the Whisper code by; only the LABEL is localized.
+
+// Auto-Detect first, then the rest.
+export function getLanguageOptions() {
+  const loc = makeLocalizer();
+  return [
+    { label: t('languages.autoDetect') || 'Auto-Detect', value: 'Auto-Detect' },
+    ...LANGUAGES.map((l) => ({ label: loc(l.name, l.code), value: l.name })),
+  ];
+}
 
 // Output language for the LLM formatter/summarizer. "Original" keeps whatever
 // language the transcript is in; any other choice asks the model to write in it.
-export const FORMAT_LANGUAGE_OPTIONS = [
-  { label: 'Original', value: 'Auto-Detect / Original' },
-  ...LANGUAGES.map((l) => ({ label: l.name, value: l.name })),
-];
+export function getFormatLanguageOptions() {
+  const loc = makeLocalizer();
+  return [
+    { label: t('languages.original') || 'Original', value: 'Auto-Detect / Original' },
+    ...LANGUAGES.map((l) => ({ label: loc(l.name, l.code), value: l.name })),
+  ];
+}

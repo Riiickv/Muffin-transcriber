@@ -330,6 +330,11 @@ export const IT = {
     goToModels: "Scarica un modello",
   },
 
+  languages: {
+    autoDetect: "Rilevamento automatico",
+    original: "Originale",
+  },
+
   dialog: {
     defaultOk: "OK",
     selectOption: "Scegli un'opzione",

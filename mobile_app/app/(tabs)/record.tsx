@@ -28,7 +28,7 @@ import { ModelManager, WHISPER_MODELS, modelName } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
 import { warmWhisperIfReady } from '@/hooks/useWhisperPreload';
 import { errorToMessage } from '@/utils/errors';
-import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
+import { toLanguageCode, getLanguageOptions, getFormatLanguageOptions } from '@/utils/languages';
 import { WHISPER_RECORDING_PRESET } from '@/utils/audioRecording';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { haptics } from '@/utils/haptics';
@@ -100,8 +100,8 @@ export default function RecordScreen() {
   const isEnglishOnly = selectedWhisperDef?.isEnglishOnly ?? false;
 
   const dynamicLanguageOptions = isEnglishOnly
-    ? LANGUAGE_OPTIONS.filter((o) => o.value === 'English' || o.value === 'Auto-Detect')
-    : LANGUAGE_OPTIONS;
+    ? getLanguageOptions().filter((o) => o.value === 'English' || o.value === 'Auto-Detect')
+    : getLanguageOptions();
 
   useEffect(() => {
     if (isEnglishOnly && settings.defaultLanguage !== 'English' && settings.defaultLanguage !== 'Auto-Detect') {
@@ -422,7 +422,7 @@ export default function RecordScreen() {
             <View style={{ flex: 1, paddingLeft: SPACING.sm }}>
               <Text style={{ fontSize: 12, marginBottom: 4, color: theme.textMuted }}>{t('record.formatLanguageLabel') || 'Output'}</Text>
               <SelectDropdown
-                options={FORMAT_LANGUAGE_OPTIONS}
+                options={getFormatLanguageOptions()}
                 fieldLabel={t('record.formatLanguageLabel') || 'Output'}
                 value={settings.formatLanguage}
                 onSelect={(val) => setSetting('formatLanguage', val)}

@@ -1,5 +1,5 @@
 import { Settings } from './settingsStore';
-import { LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from './languages';
+import { LANGUAGE_VALUES, FORMAT_LANGUAGE_VALUES } from './languages';
 
 // One description of the app that both the assistant prompt and the tool
 // executor read from, so "where is X", "turn on X" and the inline chat controls
@@ -24,8 +24,8 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   { key: 'normalizeAudio', store: 'settings', label: 'Normalize audio', location: 'Settings › General', description: 'Boost quiet audio before transcribing for better accuracy.', type: 'boolean', valuesHint: 'true or false' },
   { key: 'autoCopyTranscript', store: 'settings', label: 'Auto-copy transcript', location: 'Settings › General', description: 'Copy the finished transcript to the clipboard automatically.', type: 'boolean', valuesHint: 'true or false' },
   { key: 'enableContextLearning', store: 'settings', label: 'Context learning', location: 'Settings › General', description: 'Learn names and jargon from your memos to improve future transcriptions.', type: 'boolean', valuesHint: 'true or false' },
-  { key: 'defaultLanguage', store: 'settings', label: 'Default language', location: 'Settings › General', description: 'The spoken language to transcribe. Auto-Detect works for any language.', type: 'enum', options: LANGUAGE_OPTIONS.map((o) => o.value), valuesHint: 'a language name (e.g. English, Spanish) or Auto-Detect' },
-  { key: 'formatLanguage', store: 'settings', label: 'Output language', location: 'Home / Record screen', description: 'The language the formatted and summarized text is written in.', type: 'enum', options: FORMAT_LANGUAGE_OPTIONS.map((o) => o.value), valuesHint: 'a language name, or "Auto-Detect / Original" to keep the source language' },
+  { key: 'defaultLanguage', store: 'settings', label: 'Default language', location: 'Settings › General', description: 'The spoken language to transcribe. Auto-Detect works for any language.', type: 'enum', options: LANGUAGE_VALUES, valuesHint: 'a language name (e.g. English, Spanish) or Auto-Detect' },
+  { key: 'formatLanguage', store: 'settings', label: 'Output language', location: 'Home / Record screen', description: 'The language the formatted and summarized text is written in.', type: 'enum', options: FORMAT_LANGUAGE_VALUES, valuesHint: 'a language name, or "Auto-Detect / Original" to keep the source language' },
   { key: 'autoDeleteCacheDuration', store: 'settings', label: 'Auto-delete audio files', location: 'Settings › General', description: 'How long to keep original audio before deleting it.', type: 'enum', options: ['Never', '1 Week', '1 Month'], valuesHint: 'Never, 1 Week or 1 Month' },
   { key: 'themeMode', store: 'theme', label: 'Theme', location: 'Settings › Appearance', description: 'Light, dark, or pure-black (AMOLED) appearance.', type: 'enum', options: ['system', 'light', 'dark', 'amoled'], valuesHint: 'system, light, dark or amoled' },
   { key: 'accentColor', store: 'theme', label: 'Accent color', location: 'Settings › Appearance', description: 'The app highlight color.', type: 'enum', options: ['system', 'muffin', 'green', 'purple', 'red'], valuesHint: 'system, muffin, green, purple or red' },
