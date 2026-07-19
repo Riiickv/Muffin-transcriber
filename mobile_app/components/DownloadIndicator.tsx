@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -7,8 +7,13 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { useTheme } from './ThemeProvider';
 import { ProgressCircle } from './ProgressCircle';
 import { AnimatedPressable } from './AnimatedPressable';
-import { useDownloads, DownloadState } from '@/utils/downloadManager';
+import { useDownloads, getDownloads, DownloadState } from '@/utils/downloadManager';
 import { useBannerExpanded, setBannerExpanded } from '@/utils/downloadBanner';
+import {
+  ensureNotificationSetup,
+  showDownloadNotification,
+  dismissDownloadNotification,
+} from '@/utils/downloadNotifications';
 import { WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, modelName } from '@/utils/ModelManager';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
@@ -82,9 +87,35 @@ export function DownloadBanner() {
       if (!prevIds.current.has(id)) isNew = true;
     });
     prevIds.current = now;
-    if (isNew) setBannerExpanded(true);
+    if (isNew) {
+      setBannerExpanded(true);
+      // Ask for notification permission now, while we're in the foreground and
+      // the user just chose to download - so the background notification can
+      // appear later without a prompt landing out of context.
+      ensureNotificationSetup();
+    }
     if (ids.length === 0) setBannerExpanded(false);
   }, [downloads]);
+
+  // Backgrounded with a download running -> post a system notification with the
+  // progress at that moment; back to the front -> clear it. (It doesn't tick up
+  // on its own yet; that's Stage 3b, the foreground service.)
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        dismissDownloadNotification();
+        return;
+      }
+      const dl = getDownloads();
+      const ids = Object.keys(dl);
+      if (ids.length === 0) return;
+      const average = ids.reduce((s, id) => s + (dl[id].progress || 0), 0) / ids.length;
+      const label = labelFor(ids[0]);
+      const title = (t('downloads.downloadingModel') || 'Downloading {model}').replace('{model}', label);
+      showDownloadNotification(title, `${Math.round(average * 100)}%`);
+    });
+    return () => sub.remove();
+  }, []);
 
   // While open, arm the auto-collapse to the ring. Tapping the ring re-opens,
   // which re-arms this.
