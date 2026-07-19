@@ -8,7 +8,7 @@ import { Icon } from '@/components/Icon';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { SuggestedGlow } from '@/components/SuggestedGlow';
 import { ModelManager, ModelDef, modelName, modelDesc } from '@/utils/ModelManager';
-import { useDownloads, startModelDownload } from '@/utils/downloadManager';
+import { useDownloads, startModelDownload, pauseDownload, resumeDownload, cancelDownload } from '@/utils/downloadManager';
 import { formatEta } from '@/utils/format';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
@@ -34,6 +34,7 @@ interface DownloadInfo {
   total: number;
   speed: number;
   eta: number;
+  status?: 'downloading' | 'paused';
 }
 
 const formatBytes = (bytes: number) => {
@@ -164,28 +165,56 @@ const ModelRow = ({
           </Text>
         </View>
 
-        <AnimatedPressable
-          onPress={onPress}
-          disabled={isDownloading}
-          accessibilityRole="button"
-          accessibilityLabel={`${downloaded ? t('settings.delete') : t('settings.get')} ${modelName(model)}`}
-          style={[
-            styles.action,
-            {
-              backgroundColor: isDownloading ? theme.surface : downloaded ? theme.dangerSurface : theme.tint,
-              borderColor: downloaded && !isDownloading ? theme.danger : 'transparent',
-              borderWidth: downloaded && !isDownloading ? 1 : 0,
-            },
-          ]}
-        >
-          {isDownloading ? (
-            <Text style={[styles.actionText, { color: theme.textMuted }]}>{pct}%</Text>
-          ) : downloaded ? (
-            <Icon name="delete" size={18} color={theme.danger} />
-          ) : (
-            <Text style={[styles.actionText, { color: theme.tintForeground }]}>{t('settings.get')}</Text>
-          )}
-        </AnimatedPressable>
+        {isDownloading ? (
+          <View style={styles.controls}>
+            <Text style={[styles.actionText, { color: theme.textMuted, marginRight: SPACING.xs }]}>{pct}%</Text>
+            <AnimatedPressable
+              onPress={() => {
+                haptics.tap();
+                if (info!.status === 'paused') resumeDownload(model.id);
+                else pauseDownload(model.id);
+              }}
+              style={styles.ctrlBtn}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={info!.status === 'paused' ? t('downloads.resume') || 'Resume' : t('downloads.pause') || 'Pause'}
+            >
+              <Icon name={info!.status === 'paused' ? 'play' : 'pause'} size={22} color={theme.text} />
+            </AnimatedPressable>
+            <AnimatedPressable
+              onPress={() => {
+                haptics.tap();
+                cancelDownload(model.id);
+              }}
+              style={styles.ctrlBtn}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('downloads.cancel') || 'Cancel'}
+            >
+              <Icon name="close" size={22} color={theme.textMuted} />
+            </AnimatedPressable>
+          </View>
+        ) : (
+          <AnimatedPressable
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={`${downloaded ? t('settings.delete') : t('settings.get')} ${modelName(model)}`}
+            style={[
+              styles.action,
+              {
+                backgroundColor: downloaded ? theme.dangerSurface : theme.tint,
+                borderColor: downloaded ? theme.danger : 'transparent',
+                borderWidth: downloaded ? 1 : 0,
+              },
+            ]}
+          >
+            {downloaded ? (
+              <Icon name="delete" size={18} color={theme.danger} />
+            ) : (
+              <Text style={[styles.actionText, { color: theme.tintForeground }]}>{t('settings.get')}</Text>
+            )}
+          </AnimatedPressable>
+        )}
       </View>
 
       {isDownloading && info!.total > 1 && (
@@ -222,6 +251,16 @@ const styles = StyleSheet.create({
     width: 64,
     height: 32,
     borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ctrlBtn: {
+    padding: SPACING.xs,
+    marginLeft: SPACING.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
