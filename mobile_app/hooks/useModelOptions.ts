@@ -2,15 +2,20 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { setModelsPresent } from '@/utils/modelPresence';
 import { ensureModelSelections } from '@/utils/modelSelection';
-import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, ModelDef } from '@/utils/ModelManager';
+import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, ModelDef, modelName } from '@/utils/ModelManager';
 
 export interface DropdownOption {
   label: string;
   value: string;
 }
 
+// label goes through modelName(), NOT the raw m.name: m.name is the English
+// fallback, and using it directly here is exactly what left the Transcribe /
+// Record / History model pickers in English while the rest of the app was
+// translated. Every screen that shows a model MUST resolve the label the same
+// way - see modelName() in utils/ModelManager.ts.
 const toOptions = (models: readonly ModelDef[], downloaded: string[]): DropdownOption[] =>
-  models.filter((m) => downloaded.includes(m.id)).map((m) => ({ label: m.name, value: m.id }));
+  models.filter((m) => downloaded.includes(m.id)).map((m) => ({ label: modelName(m), value: m.id }));
 
 // Downloaded model ids -> {label,value} dropdown options for each model group,
 // refreshed whenever the screen regains focus so a model just downloaded on the

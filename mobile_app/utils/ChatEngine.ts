@@ -5,7 +5,7 @@ import { loadHistory, HistoryItem } from './historyStore';
 import { loadMemories } from './memoryStore';
 import { generateEmbedding, cosineSimilarity } from './EmbeddingEngine';
 import { buildCapabilitiesBlock, TOOL_INSTRUCTIONS } from './appCapabilities';
-import { t } from './i18n';
+import { t } from '@/utils/i18n';
 import { unloadWhisper } from './WhisperEngine';
 import { unloadLLM } from './LLMEngine';
 

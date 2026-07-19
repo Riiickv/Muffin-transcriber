@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPersistentStore } from './persistentStore';
-import type { AppLanguage } from './i18n';
+import type { AppLanguage } from '@/utils/i18n';
 
 const SETTINGS_KEY = 'muffin.settings.v1';
 

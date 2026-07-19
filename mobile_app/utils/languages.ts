@@ -1,7 +1,7 @@
 // The UI stores a display name (e.g. "Italian"); Whisper wants the ISO 639-1
 // code (e.g. "it"), or "auto" to detect the language itself.
 
-import { t, getAppLanguage } from './i18n';
+import { t, getAppLanguage } from '@/utils/i18n';
 
 type Language = { name: string; code: string };
 
