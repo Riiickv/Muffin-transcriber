@@ -448,6 +448,9 @@ export const APP_STRINGS = {
   downloads: {
     downloading: "Downloading",
     downloadingModel: "Downloading {model}",
+    pause: "Pause",
+    resume: "Resume",
+    cancel: "Cancel",
   },
 
   // ==========================================================================

@@ -245,45 +245,38 @@ export class ModelManager {
     }
   }
 
-  static startDownload(
+  // Downloads go to a .part file and are only promoted to the real name once
+  // COMPLETE (see finishDownload). Writing straight to the final path meant any
+  // interruption (leaving the screen, a dropped connection, the phone sleeping)
+  // left a truncated .gguf at the real filename - isModelDownloaded only checks
+  // existence, so that stump passed every check and llama.cpp then failed to
+  // load it with no hint why. With .part, an interrupted download is simply
+  // "not installed".
+  //
+  // Returns the resumable so the caller (downloadManager) can pause/resume/cancel
+  // it. The manager owns the completion promise and the promote/cleanup steps.
+  static createDownload(
     url: string,
     filename: string,
-    onProgress: (info: { progress: number, written: number, total: number }) => void
+    onProgress: (info: { progress: number; written: number; total: number }) => void
   ) {
+    const partPath = this.getModelPath(filename) + '.part';
+    return FileSystem.createDownloadResumable(url, partPath, {}, (downloadProgress) => {
+      const written = downloadProgress.totalBytesWritten;
+      const total = downloadProgress.totalBytesExpectedToWrite;
+      const progress = total > 0 ? Math.max(0, Math.min(1, written / total)) : 0;
+      onProgress({ progress, written, total });
+    });
+  }
+
+  /** Promote a finished .part file to its real model name. */
+  static async finishDownload(filename: string): Promise<void> {
     const path = this.getModelPath(filename);
+    await FileSystem.moveAsync({ from: path + '.part', to: path });
+  }
 
-    // Download to a .part file and only promote it to the real name once the
-    // download COMPLETED. It used to write straight to the final path, which
-    // meant any interruption (leaving the screen, connection drop, phone
-    // sleeping) left a truncated .gguf at the real filename. isModelDownloaded
-    // only checks existence, so that stump passed every check in the app - the
-    // Models screen showed it as installed, the picker offered it, Settings
-    // selected it - and llama.cpp then failed on the truncated file with
-    // "Failed to load model" and no hint why. With .part, an interrupted
-    // download simply never becomes "installed".
-    const partPath = path + '.part';
-    const downloadResumable = FileSystem.createDownloadResumable(
-      url,
-      partPath,
-      {},
-      (downloadProgress) => {
-        const written = downloadProgress.totalBytesWritten;
-        const total = downloadProgress.totalBytesExpectedToWrite;
-        const progress = written / total;
-        onProgress({ progress: Math.max(0, Math.min(1, progress)), written, total });
-      }
-    );
-
-    return (async () => {
-      const result = await downloadResumable.downloadAsync();
-      // downloadAsync resolves undefined when paused; anything but a 2xx means
-      // the server sent an error page, not a model.
-      if (!result || result.status < 200 || result.status >= 300) {
-        await FileSystem.deleteAsync(partPath, { idempotent: true }).catch(() => {});
-        throw new Error(`Download failed (HTTP ${result ? result.status : 'interrupted'})`);
-      }
-      await FileSystem.moveAsync({ from: partPath, to: path });
-      return result;
-    })();
+  /** Throw away a partial download (cancel or failure). */
+  static async cleanupDownload(filename: string): Promise<void> {
+    await FileSystem.deleteAsync(this.getModelPath(filename) + '.part', { idempotent: true }).catch(() => {});
   }
 }

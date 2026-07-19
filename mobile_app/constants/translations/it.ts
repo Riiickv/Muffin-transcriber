@@ -338,6 +338,9 @@ export const IT = {
   downloads: {
     downloading: "Scaricamento",
     downloadingModel: "Scaricamento di {model}",
+    pause: "Pausa",
+    resume: "Riprendi",
+    cancel: "Annulla",
   },
 
   dialog: {
