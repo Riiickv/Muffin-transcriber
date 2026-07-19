@@ -107,6 +107,32 @@ RULES:
   return buildChatPrompt(modelFile, systemPrompt, task);
 }
 
+/**
+ * Belt-and-suspenders against a small model looping. Even with a repetition
+ * penalty a tiny model can get stuck repeating a line ("- I have eaten breakfast
+ * for lunch." x200). This drops a line once it has repeated a few times in a row,
+ * and if the SAME line dominates the whole output it cuts there entirely, so a
+ * runaway never reaches the user as a wall of the same sentence.
+ */
+function capRunawayRepetition(text: string): string {
+  const lines = text.split('\n');
+  const out: string[] = [];
+  let prevNorm = '';
+  let run = 0;
+  for (const line of lines) {
+    const norm = line.trim().toLowerCase();
+    if (norm && norm === prevNorm) {
+      run++;
+      if (run >= 2) continue; // keep at most 2 identical lines in a row
+    } else {
+      run = 0;
+      prevNorm = norm;
+    }
+    out.push(line);
+  }
+  return out.join('\n').trim();
+}
+
 function extractFormatterOutput(output: string): string {
   let text = output;
 
@@ -238,9 +264,13 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
     prompt,
     n_predict: Math.max(512, Math.min(3072, Math.floor(transcript.length / 3) + 256)),
     temperature: 0.0,
+    // Small models loop without a repetition penalty - they repeat the same line
+    // until the token budget runs out. Penalise recently-seen tokens to break it.
+    penalty_repeat: 1.15,
+    penalty_last_n: 256,
   });
 
-  const formatted = extractFormatterOutput(result.text);
+  const formatted = capRunawayRepetition(extractFormatterOutput(result.text));
   // Default formatting only adds punctuation/casing, so output far shorter than
   // the input means the model got cut off - fall back to raw. Skip for custom
   // prompts, which may intentionally shorten (e.g. "remove filler words").
@@ -283,9 +313,13 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
     prompt,
     n_predict: 1024,
     temperature: 0.3,
+    // A summary is where the loop showed up worst ("- I have eaten breakfast for
+    // lunch." x200). Stronger penalty than formatting - a summary shouldn't repeat.
+    penalty_repeat: 1.2,
+    penalty_last_n: 256,
   });
 
-  const summary = extractFormatterOutput(result.text);
+  const summary = capRunawayRepetition(extractFormatterOutput(result.text));
   // Same failure as formatting: better to say the summary failed than to print
   // our own instructions and call them a summary.
   if (!summary || echoesPrompt(summary)) return "Summary failed.";
