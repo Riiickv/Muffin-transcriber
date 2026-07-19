@@ -304,6 +304,11 @@ export const DE = {
     goToModels: "Modell herunterladen",
   },
 
+  languages: {
+    autoDetect: "Automatisch erkennen",
+    original: "Original",
+  },
+
   dialog: {
     defaultOk: "OK",
     selectOption: "Option wählen",

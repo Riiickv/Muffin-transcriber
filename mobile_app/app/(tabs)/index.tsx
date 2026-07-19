@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WaitingCard } from '@/components/WaitingCard';
 import { useDialog } from '@/components/Dialog';
 import { router, useLocalSearchParams } from 'expo-router';
-import { toLanguageCode, LANGUAGE_OPTIONS, FORMAT_LANGUAGE_OPTIONS } from '@/utils/languages';
+import { toLanguageCode, getLanguageOptions, getFormatLanguageOptions } from '@/utils/languages';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
 
@@ -71,8 +71,8 @@ export default function HomeScreen() {
   const isEnglishOnly = selectedWhisperDef?.isEnglishOnly ?? false;
 
   const dynamicLanguageOptions = isEnglishOnly
-    ? LANGUAGE_OPTIONS.filter((o) => o.value === 'English' || o.value === 'Auto-Detect')
-    : LANGUAGE_OPTIONS;
+    ? getLanguageOptions().filter((o) => o.value === 'English' || o.value === 'Auto-Detect')
+    : getLanguageOptions();
 
   // Sync default language if current setting becomes invalid due to model switch
   useEffect(() => {
@@ -381,7 +381,7 @@ export default function HomeScreen() {
           <View style={styles.flex1}>
             <Text style={styles.label}>{t('transcribe.formatLanguageLabel') || 'Format Language'}</Text>
             <SelectDropdown
-              options={FORMAT_LANGUAGE_OPTIONS}
+              options={getFormatLanguageOptions()}
               fieldLabel={t('transcribe.formatLanguageLabel') || 'Format Language'}
               value={settings.formatLanguage}
               onSelect={(val) => setSetting('formatLanguage', val)}

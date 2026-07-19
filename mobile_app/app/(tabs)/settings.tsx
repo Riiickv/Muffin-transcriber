@@ -17,7 +17,7 @@ import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_
 import { rollupMemories } from '@/utils/LLMEngine';
 import { clearAllChats } from '@/utils/chatStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
-import { LANGUAGE_OPTIONS } from '@/utils/languages';
+import { getLanguageOptions } from '@/utils/languages';
 import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import { useDialog } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
@@ -142,7 +142,7 @@ export default function SettingsScreen() {
       <SettingsGroup title={t('settings.transcription')} index={1}>
         <SelectDropdown
           rowLabel={t('settings.defaultLanguage')}
-          options={LANGUAGE_OPTIONS}
+          options={getLanguageOptions()}
           value={settings.defaultLanguage}
           onSelect={(val) => setSetting('defaultLanguage', val)}
           placeholder="Auto-Detect"

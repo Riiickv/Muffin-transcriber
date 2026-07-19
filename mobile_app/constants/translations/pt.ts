@@ -304,6 +304,11 @@ export const PT = {
     goToModels: "Transferir um modelo",
   },
 
+  languages: {
+    autoDetect: "Deteção automática",
+    original: "Original",
+  },
+
   dialog: {
     defaultOk: "OK",
     selectOption: "Escolhe uma opção",
