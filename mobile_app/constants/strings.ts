@@ -444,6 +444,12 @@ export const APP_STRINGS = {
     original: "Original",
   },
 
+  // The download progress banner / header ring. {model} is the tier name.
+  downloads: {
+    downloading: "Downloading",
+    downloadingModel: "Downloading {model}",
+  },
+
   // ==========================================================================
   //  POP-UP MESSAGES - every dialog box that can appear
   // ==========================================================================

@@ -335,6 +335,11 @@ export const IT = {
     original: "Originale",
   },
 
+  downloads: {
+    downloading: "Scaricamento",
+    downloadingModel: "Scaricamento di {model}",
+  },
+
   dialog: {
     defaultOk: "OK",
     selectOption: "Scegli un'opzione",

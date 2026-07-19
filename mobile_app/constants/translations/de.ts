@@ -309,6 +309,11 @@ export const DE = {
     original: "Original",
   },
 
+  downloads: {
+    downloading: "Lädt",
+    downloadingModel: "{model} wird geladen",
+  },
+
   dialog: {
     defaultOk: "OK",
     selectOption: "Option wählen",
