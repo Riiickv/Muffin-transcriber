@@ -68,6 +68,10 @@ export const IT = {
     supportCancel: "Magari dopo",
   },
 
+  coach: {
+    micHint: "Tocca per registrare/fermare, tieni premuto per le opzioni!",
+  },
+
   record: {
     optionsTitle: "Opzioni di registrazione",
     readyToTranscribe: "Pronto a trascrivere",

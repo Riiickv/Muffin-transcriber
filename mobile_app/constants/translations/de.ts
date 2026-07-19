@@ -47,6 +47,10 @@ export const DE = {
     supportCancel: "Vielleicht später",
   },
 
+  coach: {
+    micHint: "Tippen zum Aufnehmen/Stoppen, halten für Optionen!",
+  },
+
   record: {
     optionsTitle: "Aufnahmeoptionen",
     readyToTranscribe: "Bereit zum Transkribieren",

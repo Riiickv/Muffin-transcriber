@@ -47,6 +47,10 @@ export const FR = {
     supportCancel: "Plus tard",
   },
 
+  coach: {
+    micHint: "Appuie pour enregistrer/arrêter, maintiens pour les options !",
+  },
+
   record: {
     optionsTitle: "Options d'enregistrement",
     readyToTranscribe: "Prêt à transcrire",

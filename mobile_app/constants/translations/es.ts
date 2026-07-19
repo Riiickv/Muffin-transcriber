@@ -47,6 +47,10 @@ export const ES = {
     supportCancel: "Quizá más tarde",
   },
 
+  coach: {
+    micHint: "¡Toca para grabar/parar, mantén pulsado para opciones!",
+  },
+
   record: {
     optionsTitle: "Opciones de grabación",
     readyToTranscribe: "Listo para transcribir",
