@@ -15,6 +15,7 @@ import { AnimatedPressable } from './AnimatedPressable';
 import { useRecording } from './RecordingProvider';
 import { FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
 import { setRecordSheetOpen } from '@/utils/recordSheet';
+import { markCoachDone } from '@/utils/coachMarks';
 import { haptics } from '@/utils/haptics';
 
 // Matches the tab-bar pill height (item 40 + padding 5*2 + border 1*2), so the
@@ -51,9 +52,13 @@ export function RecordFab() {
   return (
     <Animated.View style={pulseStyle}>
       <AnimatedPressable
-        onPress={toggle}
+        onPress={() => {
+          markCoachDone('mic');
+          toggle();
+        }}
         onLongPress={() => {
           haptics.select();
+          markCoachDone('mic');
           setRecordSheetOpen(true);
         }}
         accessibilityRole="button"

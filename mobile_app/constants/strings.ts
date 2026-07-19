@@ -111,6 +111,10 @@ export const APP_STRINGS = {
   // ==========================================================================
   //  "RECORD" TAB - the big microphone button screen
   // ==========================================================================
+  coach: {
+    micHint: "Click to record/stop, hold for options!",
+  },
+
   record: {
     optionsTitle: "Recording options",
     readyToTranscribe: "Ready to Transcribe",
