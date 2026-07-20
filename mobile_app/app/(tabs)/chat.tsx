@@ -353,6 +353,14 @@ export default function ChatScreen() {
       await updateChatMessages(targetChatId, finalMessages);
 
       if (settings.enableContextLearning) {
+        // REVIEW FLAG (2026-07-20): extractMemories runs on LLMEngine's MAIN
+        // context, but chat generates on ChatEngine's SEPARATE context. This
+        // loads the model a SECOND time (RAM pressure / possible OOM on device),
+        // and it's unqueued, so if a recording's enrichment is running on the
+        // main context it can collide with it. Only reachable with BOTH chat
+        // beta AND context-learning on (both default off), so it's flagged not
+        // fixed - the real fix is a design call: run this on the chat context,
+        // or skip memory extraction while chatting.
         extractMemories(userMsg.content, modelPath, activeModel).catch(console.warn);
       }
 
