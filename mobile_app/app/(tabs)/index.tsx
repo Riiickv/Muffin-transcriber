@@ -1,4 +1,4 @@
-import { Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '@/components/Themed';
@@ -13,7 +13,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
-import { createProgressTracker, describeProgress, ProgressReading } from '@/utils/transcribeProgress';
+import { createProgressTracker } from '@/utils/transcribeProgress';
+import { ProgressBar } from '@/components/ProgressBar';
+import { TranscriptFullscreen } from '@/components/TranscriptFullscreen';
+import { IconButton } from '@/components/IconButton';
 import { convertToWav } from '@/modules/audio-converter';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
@@ -25,7 +28,7 @@ import { errorToMessage } from '@/utils/errors';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WaitingCard, showSupportDialog } from '@/components/WaitingCard';
+import { WaitingCard } from '@/components/WaitingCard';
 import { StreamingText } from '@/components/StreamingText';
 import { useDialog } from '@/components/Dialog';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -59,9 +62,14 @@ export default function HomeScreen() {
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [rawText, setRawText] = useState('');
-  /** Live transcript while whisper runs, and the percent/estimate line under it. */
+  /** Live transcript while whisper runs, and how far along it is. */
   const [streamingText, setStreamingText] = useState('');
-  const [progressLine, setProgressLine] = useState('');
+  const [transcribePercent, setTranscribePercent] = useState(0);
+  const [fullscreen, setFullscreen] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const streamScrollRef = useRef<ScrollView>(null);
+  /** False once the user scrolls up, so auto-follow doesn't fight them. */
+  const stickToBottom = useRef(true);
   const [formattedText, setFormattedText] = useState('');
   const [summaryText, setSummaryText] = useState('');
 
@@ -193,12 +201,12 @@ export default function HomeScreen() {
           const now = Date.now();
           if (now - lastPush < 500 && reading.percent < 100) return;
           lastPush = now;
-          setProgressLine(describeProgress(transcribingLabel, reading));
+          setTranscribePercent(reading.percent);
         },
         onPartialText: setStreamingText,
       });
       setStreamingText('');
-      setProgressLine('');
+      setTranscribePercent(0);
       const cleanText = result.text.trim();
       setRawText(cleanText);
       setIsTranscribing(false);
@@ -281,7 +289,8 @@ export default function HomeScreen() {
       // Also on the failure path, or a half-finished transcript would sit under
       // the box after the error dialog is dismissed.
       setStreamingText('');
-      setProgressLine('');
+      setTranscribePercent(0);
+      setFullscreen(false);
     }
   };
 
@@ -489,37 +498,51 @@ export default function HomeScreen() {
             value={transcriptTab}
             onChange={setTranscriptTab}
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="copy"
-            onPress={handleCopy}
-            disabled={!currentText}
-          >
-            {t('historyDetail.copyButton') || 'Copy'}
-          </Button>
+          {/* Expand replaces Copy here; Copy still exists, it lives in the
+              fullscreen bar where there's room for a label. */}
+          <IconButton
+            icon="open-in-full"
+            onPress={() => {
+              haptics.tap();
+              setFullscreen(true);
+            }}
+            disabled={!currentText && !streamingText}
+          />
         </View>
 
         {isTranscribing ? (
-          <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1 }]}>
+          /* Bounded, not flex: inside a scroll container an unbounded box grows
+             with the transcript and drags the whole page taller, so following
+             the text meant scrolling the entire screen. Capped, the text scrolls
+             inside its own frame and the page stays put. */
+          <View
+            style={[
+              styles.transcriptBox,
+              { borderColor: theme.divider, height: Math.max(260, Math.round(windowHeight * 0.42)) },
+            ]}
+          >
             {streamingText ? (
-              /* Reads as a transcript, not as a status message: left aligned,
-                 normal text colour, with the progress line and a quiet support
-                 link tucked underneath rather than a card wrapped around it. */
-              <ScrollView nestedScrollEnabled>
-                <StreamingText text={streamingText} style={[styles.streamingText, { color: theme.text }]} />
-                {!!progressLine && (
-                  <Text style={[styles.streamingNote, { color: theme.textMuted }]}>{progressLine}</Text>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  style={{ alignSelf: 'flex-start', marginTop: SPACING.xs }}
-                  onPress={() => showSupportDialog(dialog)}
+              <>
+                <ScrollView
+                  ref={streamScrollRef}
+                  nestedScrollEnabled
+                  style={{ flex: 1 }}
+                  onScroll={(e) => {
+                    // Stop yanking them back down if they've scrolled up to
+                    // re-read something.
+                    const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+                    stickToBottom.current =
+                      layoutMeasurement.height + contentOffset.y >= contentSize.height - 40;
+                  }}
+                  scrollEventThrottle={100}
+                  onContentSizeChange={() => {
+                    if (stickToBottom.current) streamScrollRef.current?.scrollToEnd({ animated: true });
+                  }}
                 >
-                  {t('transcribe.supportMe') || 'Support me!'}
-                </Button>
-              </ScrollView>
+                  <StreamingText text={streamingText} style={[styles.streamingText, { color: theme.text }]} />
+                </ScrollView>
+                <ProgressBar percent={transcribePercent} style={{ marginTop: SPACING.sm }} />
+              </>
             ) : (
               <WaitingCard status={currentText} />
             )}
@@ -536,6 +559,15 @@ export default function HomeScreen() {
         )}
       </Card>
       </ScrollView>
+
+      <TranscriptFullscreen
+        visible={fullscreen}
+        onClose={() => setFullscreen(false)}
+        text={streamingText || currentText}
+        streaming={isTranscribing && !!streamingText}
+        percent={transcribePercent}
+        onCopy={currentText ? handleCopy : undefined}
+      />
     </FadeInView>
     </KeyboardScreen>
   );
@@ -626,10 +658,5 @@ const styles = StyleSheet.create({
   streamingText: {
     fontSize: 16,
     lineHeight: 24,
-  },
-  streamingNote: {
-    fontSize: 13,
-    marginTop: SPACING.md,
-    fontStyle: 'italic',
   },
 });

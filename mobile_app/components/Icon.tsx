@@ -34,6 +34,10 @@ const CODEPOINTS = {
   'arrow-forward': String.fromCharCode(0xe5c8),
   favorite: String.fromCharCode(0xe87d),
   compress: String.fromCharCode(0xe94d),
+  // Diagonal arrows apart / together. Both verified present in the bundled
+  // MaterialSymbolsRounded cmap, so neither renders as a tofu box.
+  'open-in-full': String.fromCharCode(0xf1ce),
+  'close-fullscreen': String.fromCharCode(0xf1cf),
   'check-circle': String.fromCharCode(0xe86c),
 } as const;
 
