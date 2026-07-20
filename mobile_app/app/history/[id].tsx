@@ -11,6 +11,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { Card } from '@/components/Card';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { IconButton } from '@/components/IconButton';
+import type { IconName } from '@/components/Icon';
 import { Button } from '@/components/Button';
 import { WaitingCard } from '@/components/WaitingCard';
 import { StreamingText } from '@/components/StreamingText';
@@ -38,7 +39,7 @@ import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t } from '@/utils/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
 import { queueLlama } from '@/utils/transcriptionPipeline';
-import { setAiActivity, useAiActivity } from '@/utils/aiActivity';
+import { startAiJob, updateAiJob, endAiJob, useAiJob } from '@/utils/aiActivity';
 import { AiBusyDialog } from '@/components/AiBusyDialog';
 import { usePacedReveal } from '@/hooks/usePacedReveal';
 
@@ -64,21 +65,25 @@ export default function HistoryDetailScreen() {
   const dialog = useDialog();
 
   const [transcriptTab, setTranscriptTab] = useState<TranscriptTab>('raw');
-  const [isProcessing, setIsProcessing] = useState(false);
-  // Re-transcribe runs on this screen rather than in the provider, so it keeps
-  // its own progress and its own partial text.
-  const [localProgress, setLocalProgress] = useState<ProgressReading | null>(null);
-  const [localPartial, setLocalPartial] = useState('');
+  // Derived from the app-wide job, NOT local state: local state dies with the
+  // screen, so leaving mid-run and returning showed idle buttons while the
+  // work carried on invisibly - worst while a model was still loading and
+  // there was no text yet to hint at it.
+  const job = useAiJob();
+  const myJob = job && job.itemId === id ? job : null;
+  const isProcessing = myJob !== null;
+  const localProgress = myJob?.progress ?? null;
+  const localPartial = myJob?.partial ?? '';
   const [fullscreen, setFullscreen] = useState(false);
   const streamScrollRef = useRef<ScrollView>(null);
   /** False once the user scrolls up, so auto-follow doesn't fight them. */
   const stickToBottom = useRef(true);
-  const [processingLabel, setProcessingLabel] = useState<null | 'retranscribe' | 'format' | 'summarize'>(null);
+  const processingLabel = (myJob?.kind ?? null) as null | 'retranscribe' | 'format' | 'summarize';
   /** Pending confirmation when a second AI action is tapped mid-run. */
   const [busyPrompt, setBusyPrompt] = useState<{ next: string; current: string; run: () => void } | null>(null);
   // App-wide, so work started on another screen (or before this one was
   // re-entered) is still visible here.
-  const aiActivity = useAiActivity();
+  const aiActivity = job?.label ?? null;
 
   const [activeEntity, setActiveEntity] = useState<{ quote: string; name: string; type: 'date' | 'time' } | null>(null);
   const [actionName, setActionName] = useState('');
@@ -154,6 +159,44 @@ export default function HistoryDetailScreen() {
     else player.play();
   };
 
+  /**
+   * Stops whatever is running on THIS entry. The engines keep their contexts
+   * loaded, so a restart is warm.
+   */
+  const stopMyJob = async () => {
+    haptics.tap();
+    await Promise.all([stopWhisperWork(), stopLlamaWork()]);
+  };
+
+  /**
+   * The running action's own button becomes a red Stop instead of going grey.
+   * A disabled button says "not now"; this says what is happening and offers
+   * the way out, which is the only control that makes sense mid-run.
+   */
+  const actionButton = (
+    kind: 'retranscribe' | 'format' | 'summarize',
+    icon: IconName,
+    label: string,
+    handler: () => void,
+    enabled: boolean
+  ) =>
+    processingLabel === kind ? (
+      <Button variant="danger" size="md" stacked icon="stop" onPress={stopMyJob}>
+        {t('historyDetail.stop') || 'Stop'}
+      </Button>
+    ) : (
+      <Button
+        variant="secondary"
+        size="md"
+        stacked
+        icon={icon}
+        onPress={() => startAction(kind, handler)}
+        disabled={isProcessing || !enabled}
+      >
+        {label}
+      </Button>
+    );
+
   const labelForAction = (a: 'retranscribe' | 'format' | 'summarize') =>
     a === 'retranscribe'
       ? t('historyDetail.retranscribe') || 'Re-Transcribe'
@@ -208,9 +251,7 @@ export default function HistoryDetailScreen() {
       return;
     }
     haptics.tap();
-    setIsProcessing(true);
-    setProcessingLabel('retranscribe');
-    setAiActivity(labelForAction('retranscribe'));
+    const jobToken = startAiJob({ kind: 'retranscribe', label: labelForAction('retranscribe'), itemId: id });
     try {
       const fileInfo = await FileSystemLegacy.getInfoAsync(item.sourceFilePath);
       if (!fileInfo.exists) {
@@ -238,11 +279,10 @@ export default function HistoryDetailScreen() {
           const now = Date.now();
           if (now - lastPush < 500 && reading.percent < 100) return;
           lastPush = now;
-          setLocalProgress(reading);
+          updateAiJob({ progress: reading });
         },
-        onPartialText: setLocalPartial,
+        onPartialText: (text) => updateAiJob({ partial: text }),
       });
-      setLocalProgress(null);
       // NOT cleared here: isProcessing is still true through the save below, and
       // an empty partial makes the render fall through to WaitingCard - so the
       // finished text would blink out and "While you're waiting..." would
@@ -255,11 +295,7 @@ export default function HistoryDetailScreen() {
       haptics.error();
       dialog.show({ title: t('dialog.reTranscribeFailed.title') || 'Re-transcribe failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
-      setIsProcessing(false);
-      setProcessingLabel(null);
-      setAiActivity(null);
-      setLocalProgress(null);
-      setLocalPartial('');
+      endAiJob(jobToken);
     }
   };
 
@@ -268,15 +304,15 @@ export default function HistoryDetailScreen() {
     const ready = await ensureFormatterReady();
     if (!ready) return;
     haptics.tap();
-    setIsProcessing(true);
-    setProcessingLabel('format');
-    setAiActivity(labelForAction('format'));
+    const jobToken = startAiJob({ kind: 'format', label: labelForAction('format'), itemId: id });
     try {
       // queueLlama: this screen used to call the engine directly, so leaving
       // mid-run let a recording's enrichment start on the same context and
       // wedge it. Every llama call from here goes through the shared queue.
       const formatted = await queueLlama(() =>
-        formatTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, setLocalPartial)
+        formatTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, (text) =>
+          updateAiJob({ partial: text })
+        )
       );
       // Save and release the UI HERE. What the user pressed the button for is
       // done; embedding, entity extraction and memories are three more passes
@@ -286,10 +322,7 @@ export default function HistoryDetailScreen() {
       await addOrUpdate({ ...item, formattedTranscript: formatted });
       setTranscriptTab('formatted');
       haptics.success();
-      setIsProcessing(false);
-      setProcessingLabel(null);
-      setAiActivity(null);
-      setLocalPartial('');
+      endAiJob(jobToken);
 
       const embedding = await generateEmbedding(formatted);
       // Against the raw text, so the quotes exist in the Raw tab too.
@@ -313,11 +346,7 @@ export default function HistoryDetailScreen() {
       haptics.error();
       dialog.show({ title: t('dialog.formattingFailed.title') || 'Formatting failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
-      setIsProcessing(false);
-      setProcessingLabel(null);
-      setAiActivity(null);
-      // If the model threw, the partial would otherwise stay on screen.
-      setLocalPartial('');
+      endAiJob(jobToken);
     }
   };
 
@@ -326,22 +355,19 @@ export default function HistoryDetailScreen() {
     const ready = await ensureFormatterReady();
     if (!ready) return;
     haptics.tap();
-    setIsProcessing(true);
-    setProcessingLabel('summarize');
-    setAiActivity(labelForAction('summarize'));
+    const jobToken = startAiJob({ kind: 'summarize', label: labelForAction('summarize'), itemId: id });
     try {
       const summarized = await queueLlama(() =>
-        summarizeTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, setLocalPartial)
+        summarizeTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, (text) =>
+          updateAiJob({ partial: text })
+        )
       );
       // Release the UI as soon as the summary exists; memory extraction is
       // another whole pass over the transcript and the user didn't ask for it.
       await addOrUpdate({ ...item, summary: summarized });
       setTranscriptTab('summary');
       haptics.success();
-      setIsProcessing(false);
-      setProcessingLabel(null);
-      setAiActivity(null);
-      setLocalPartial('');
+      endAiJob(jobToken);
 
       // Extract memories sequentially so it doesn't freeze the CPU
       await queueLlama(() => extractMemories(item.rawTranscript!, ready.modelPath, ready.modelFile)).catch(
@@ -352,11 +378,7 @@ export default function HistoryDetailScreen() {
       haptics.error();
       dialog.show({ title: t('dialog.summarizationFailed.title') || 'Summarization failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
-      setIsProcessing(false);
-      setProcessingLabel(null);
-      setAiActivity(null);
-      // If the model threw, the partial would otherwise stay on screen.
-      setLocalPartial('');
+      endAiJob(jobToken);
     }
   };
 
@@ -485,42 +507,15 @@ export default function HistoryDetailScreen() {
       <Card index={1} style={{ marginBottom: SPACING.lg }}>
         <View style={styles.actionsRow}>
           <View style={styles.flex1}>
-            <Button
-              variant="secondary"
-              size="md"
-              stacked
-              icon="mic"
-              onPress={() => startAction('retranscribe', handleReTranscribe)}
-              disabled={isProcessing || !item?.sourceFilePath}
-            >
-              {t('historyDetail.retranscribe') || 'Re-Transcribe'}
-            </Button>
+            {actionButton('retranscribe', 'mic', t('historyDetail.retranscribe') || 'Re-Transcribe', handleReTranscribe, !!item?.sourceFilePath)}
           </View>
           <View style={styles.gutterSm} />
           <View style={styles.flex1}>
-            <Button
-              variant="secondary"
-              size="md"
-              stacked
-              icon="wand"
-              onPress={() => startAction('format', handleFormat)}
-              disabled={isProcessing || !item?.rawTranscript}
-            >
-              {t('historyDetail.format') || 'Format'}
-            </Button>
+            {actionButton('format', 'wand', t('historyDetail.format') || 'Format', handleFormat, !!item?.rawTranscript)}
           </View>
           <View style={styles.gutterSm} />
           <View style={styles.flex1}>
-            <Button
-              variant="secondary"
-              size="md"
-              stacked
-              icon="library"
-              onPress={() => startAction('summarize', handleSummarize)}
-              disabled={isProcessing || !item?.rawTranscript}
-            >
-              {t('historyDetail.summarize') || 'Summarize'}
-            </Button>
+            {actionButton('summarize', 'library', t('historyDetail.summarize') || 'Summarize', handleSummarize, !!item?.rawTranscript)}
           </View>
         </View>
 
