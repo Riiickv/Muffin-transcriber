@@ -26,6 +26,7 @@ import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WaitingCard, showSupportDialog } from '@/components/WaitingCard';
+import { StreamingText } from '@/components/StreamingText';
 import { useDialog } from '@/components/Dialog';
 import { router, useLocalSearchParams } from 'expo-router';
 import { toLanguageCode, getLanguageOptions, getFormatLanguageOptions } from '@/utils/languages';
@@ -506,7 +507,7 @@ export default function HomeScreen() {
                  normal text colour, with the progress line and a quiet support
                  link tucked underneath rather than a card wrapped around it. */
               <ScrollView nestedScrollEnabled>
-                <Text style={[styles.streamingText, { color: theme.text }]}>{streamingText}</Text>
+                <StreamingText text={streamingText} style={[styles.streamingText, { color: theme.text }]} />
                 {!!progressLine && (
                   <Text style={[styles.streamingNote, { color: theme.textMuted }]}>{progressLine}</Text>
                 )}

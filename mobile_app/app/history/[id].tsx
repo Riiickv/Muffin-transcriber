@@ -13,6 +13,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { IconButton } from '@/components/IconButton';
 import { Button } from '@/components/Button';
 import { WaitingCard } from '@/components/WaitingCard';
+import { StreamingText } from '@/components/StreamingText';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory } from '@/utils/historyStore';
@@ -496,7 +497,7 @@ export default function HistoryDetailScreen() {
               the least we can do is give them something to read meanwhile. */}
           {streamingText ? (
             <ScrollView nestedScrollEnabled>
-              <Text style={[styles.transcriptText, { color: theme.text }]}>{streamingText}</Text>
+              <StreamingText text={streamingText} style={[styles.transcriptText, { color: theme.text }]} />
               <Text style={[styles.streamingNote, { color: theme.textMuted }]}>
                 {describeProgress(
                   t('record.transcribing') || 'Transcribing...',
