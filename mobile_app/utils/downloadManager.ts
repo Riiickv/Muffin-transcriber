@@ -15,7 +15,7 @@ export interface DownloadTask {
   progress: number; // 0..1
   written: number;
   total: number;
-  speed: number; // bytes/sec, smoothed
+  speed: number; // bytes/sec, instantaneous (measured over the last >500ms tick)
   eta: number; // seconds remaining
   status: 'downloading' | 'paused';
 }
