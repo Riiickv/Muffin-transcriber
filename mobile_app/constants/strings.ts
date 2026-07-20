@@ -201,6 +201,7 @@ export const APP_STRINGS = {
   //  "CHAT" TAB - talking to the AI about your transcripts
   // ==========================================================================
   chat: {
+    betaEnableBody: "Chat with Muffin isn't quite ready yet. You can test it and send feedback, which would speed its development up a lot.\n\nWhat works right now:\n• It can change the app's settings for you, and point you to them.\n• It knows the whole app, so it can help you find anything you need.\n• It can sometimes find the transcription you need if you tell it the topic.\n\nWhat doesn't:\n• You can't reliably chat with it, so it can't really help you brainstorm with your transcriptions yet. That's a limit of mobile devices, and I'm working on as many ways as I can to lighten the load on medium and lower-end phones.\n\nThere's a lot more planned, but it needs time and testing.\n\nThanks for your patience!\n\n-Rick",
     header: "Chat",
     beta: "Beta",
     betaTitle: "Chat in beta",
@@ -278,6 +279,7 @@ export const APP_STRINGS = {
   //  "SETTINGS" TAB
   // ==========================================================================
   settings: {
+    chatBetaLabel: "Chat with Muffin",
     header: "Settings",
 
     // -- The two buttons at the bottom that switch the page --

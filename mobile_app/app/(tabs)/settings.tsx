@@ -182,13 +182,41 @@ export default function SettingsScreen() {
           onSelect={(val) => setSetting('preferredFormatterModel', val)}
           placeholder={t('common.notSet')}
         />
-        <SelectDropdown
-          rowLabel={t('settings.preferredChat')}
-          options={[...downloadedFormatterOptions, ...downloadedChatOptions]}
-          value={settings.preferredChatModel}
-          onSelect={(val) => setSetting('preferredChatModel', val)}
-          placeholder={t('common.notSet')}
+        {/* Chat is opt-in while it's beta: the tab stays hidden until this is on,
+            so nobody meets a half-finished feature without choosing to. Turning
+            it ON explains exactly what does and doesn't work yet. */}
+        <SettingsRow
+          label={t('settings.chatBetaLabel')}
+          right={
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={[styles.betaPill, { backgroundColor: theme.tintFill }]}>
+                <Text style={[styles.betaPillText, { color: theme.tint }]}>{t('chat.beta') || 'Beta'}</Text>
+              </View>
+              <Switch
+                value={settings.enableChatBeta}
+                onChange={(v) => {
+                  setSetting('enableChatBeta', v);
+                  if (v) {
+                    dialog.show({
+                      title: t('chat.betaTitle'),
+                      message: t('chat.betaEnableBody'),
+                      buttons: [{ label: t('chat.betaOk') || 'Ok!', variant: 'primary' }],
+                    });
+                  }
+                }}
+              />
+            </View>
+          }
         />
+        {settings.enableChatBeta && (
+          <SelectDropdown
+            rowLabel={t('settings.preferredChat')}
+            options={[...downloadedFormatterOptions, ...downloadedChatOptions]}
+            value={settings.preferredChatModel}
+            onSelect={(val) => setSetting('preferredChatModel', val)}
+            placeholder={t('common.notSet')}
+          />
+        )}
       </SettingsGroup>
 
       <SettingsGroup title={t('settings.memoryContext')} index={3} footer={t('settings.memoryDesc')}>
@@ -398,6 +426,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  betaPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: RADIUS.pill,
+    marginRight: SPACING.sm,
+  },
+  betaPillText: { fontSize: 11, fontWeight: '700' },
   versionText: {
     textAlign: 'center',
     marginVertical: SPACING.xl,

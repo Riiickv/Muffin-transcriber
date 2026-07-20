@@ -18,6 +18,12 @@ export interface Settings {
   customSummarySystemPrompt: string;
   enableContextLearning: boolean;
   preferredChatModel: string;
+  /**
+   * Chat with Muffin is opt-in while it's still beta. Off by default and the
+   * Chat tab stays hidden until it's on, so nobody meets a half-finished feature
+   * without choosing to.
+   */
+  enableChatBeta: boolean;
   /** UI language. 'auto' follows the phone. See utils/i18n.ts. */
   appLanguage: AppLanguage;
 }
@@ -36,6 +42,7 @@ export const DEFAULT_SETTINGS: Settings = {
   customSummarySystemPrompt: '',
   enableContextLearning: false,
   preferredChatModel: '',
+  enableChatBeta: false,
   // 'auto' so an Italian phone opens in Italian without anyone hunting for
   // a setting. Existing installs hydrate over these defaults, so they get
   // 'auto' too rather than being pinned to English.
