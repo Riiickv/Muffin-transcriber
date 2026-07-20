@@ -471,8 +471,7 @@ export default function HistoryDetailScreen() {
       {/* minHeight: `flex: 1` is flexBasis:0%, so inside a scroll container
           with no free space this card would collapse to zero. */}
       <Card index={2} style={{ flex: 1, minHeight: 260 }}>
-        <Text style={styles.sectionTitle}>{t('transcribe.transcriptTitle') || 'Transcript'}</Text>
-
+        {/* No heading: the segmented control already names the card. */}
         <View style={styles.tabRow}>
           <SegmentedControl
             style={{ flex: 1, marginRight: SPACING.md }}
