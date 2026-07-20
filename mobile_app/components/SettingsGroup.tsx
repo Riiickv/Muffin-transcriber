@@ -57,6 +57,8 @@ type RowTone = 'default' | 'danger';
 
 interface SettingsRowProps {
   label: string;
+  /** Small tag rendered right after the label, e.g. a "Beta" pill. */
+  badge?: React.ReactNode;
   description?: string;
   /** Leading icon. Optional - use sparingly, only where it aids scanning. */
   icon?: IconName;
@@ -78,6 +80,7 @@ interface SettingsRowProps {
  */
 export const SettingsRow = ({
   label,
+  badge,
   description,
   icon,
   right,
@@ -102,7 +105,14 @@ export const SettingsRow = ({
         />
       )}
       <View style={styles.labelWrap}>
-        <Text style={[styles.label, { color: fg }]}>{label}</Text>
+        {badge ? (
+          <View style={styles.labelLine}>
+            <Text style={[styles.label, { color: fg }]}>{label}</Text>
+            {badge}
+          </View>
+        ) : (
+          <Text style={[styles.label, { color: fg }]}>{label}</Text>
+        )}
         {!!description && (
           <Text style={[styles.description, { color: theme.textMuted }]}>{description}</Text>
         )}
@@ -153,6 +163,11 @@ const styles = StyleSheet.create({
   labelWrap: {
     flex: 1,
     paddingRight: SPACING.md,
+  },
+  /** Label + its badge on one line, badge hugging the label. */
+  labelLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   label: {
     fontSize: 15,
