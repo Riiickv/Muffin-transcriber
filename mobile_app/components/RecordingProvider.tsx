@@ -36,6 +36,8 @@ interface RecordingContextValue {
   transcribingId: string | null;
   /** Live progress for that item: percent done, and seconds left once measurable. */
   transcribeProgress: ProgressReading | null;
+  /** The transcript so far while it's still being transcribed. */
+  partialText: string;
   /** Tap the mic: start if idle, stop + transcribe if recording. */
   toggle: () => void;
   /** Live mic level 0..1 (UI-thread shared value) for the waveform. */
@@ -47,6 +49,7 @@ const RecordingContext = createContext<RecordingContextValue>({
   isRecording: false,
   transcribingId: null,
   transcribeProgress: null,
+  partialText: '',
   toggle: () => {},
   level: noopLevel,
 });
@@ -63,6 +66,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
   const [isRecording, setIsRecording] = useState(false);
   const [transcribingId, setTranscribingId] = useState<string | null>(null);
   const [transcribeProgress, setTranscribeProgress] = useState<ProgressReading | null>(null);
+  const [partialText, setPartialText] = useState('');
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   // Serialise the handler: a fast double-tap otherwise starts twice, and
   // prepareToRecordAsync() throws on an already-recording recorder.
@@ -221,14 +225,20 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         // transcription isn't also a re-render storm.
         const tracker = createProgressTracker();
         let lastPush = 0;
-        const result = await transcribeAudio(audioPath!, langCode, (raw) => {
-          const reading = tracker.update(raw);
-          const now = Date.now();
-          if (now - lastPush < 500 && reading.percent < 100) return;
-          lastPush = now;
-          setTranscribeProgress(reading);
+        const result = await transcribeAudio(audioPath!, langCode, {
+          onProgress: (raw) => {
+            const reading = tracker.update(raw);
+            const now = Date.now();
+            if (now - lastPush < 500 && reading.percent < 100) return;
+            lastPush = now;
+            setTranscribeProgress(reading);
+          },
+          // Show the words as they land. On a lecture-length recording this is
+          // the difference between minutes of a spinner and something to read.
+          onPartialText: setPartialText,
         });
         setTranscribeProgress(null);
+        setPartialText('');
         await updateHistoryItem(id, { rawTranscript: result.text.trim() });
 
         const hasLlm = !!settings.preferredFormatterModel;
@@ -264,6 +274,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         deactivateKeepAwake('record-transcription');
         setTranscribingId(null);
         setTranscribeProgress(null);
+        setPartialText('');
       }
     })();
 
@@ -317,7 +328,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <RecordingContext.Provider value={{ isRecording, transcribingId, transcribeProgress, toggle, level }}>
+    <RecordingContext.Provider value={{ isRecording, transcribingId, transcribeProgress, partialText, toggle, level }}>
       {children}
     </RecordingContext.Provider>
   );

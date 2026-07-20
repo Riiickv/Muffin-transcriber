@@ -106,11 +106,43 @@ export function preloadWhisper(modelPath: string): void {
  *                      Do NOT pass display names like "Italian" - call
  *                      `toLanguageCode()` from utils/languages.ts first.
  */
+export type TranscribeCallbacks = {
+  /** 0-100, straight from whisper. Fires many times a second, so throttle in the UI. */
+  onProgress?: (progress: number) => void;
+  /**
+   * The transcript so far, growing as whisper finishes each window of audio.
+   *
+   * This is why we don't split long recordings into one-minute files: whisper
+   * already works through the audio in windows and hands back each one as it
+   * lands, so the text can stream out with the audio left whole. Cutting a
+   * 10-minute lecture into 10 files would slice ~9 boundaries mid-word and
+   * throw away the context across each join, for the same visible result.
+   */
+  onPartialText?: (text: string) => void;
+};
+
+/**
+ * Stitches whisper's segment callbacks into the transcript so far.
+ *
+ * The native side hands back ONLY the segments it just finished, reading from
+ * `totalNNew - nNew` onward (cpp/jsi/RNWhisperJSI.cpp). Treating `result` as
+ * cumulative - which its name invites - would show the newest chunk alone, so
+ * the box would appear to wipe itself every few seconds on a long recording.
+ */
+export function createSegmentAccumulator(onText: (text: string) => void) {
+  let textSoFar = '';
+  return (r: { result?: string } | null | undefined) => {
+    if (!r?.result) return;
+    textSoFar += r.result;
+    const trimmed = textSoFar.trim();
+    if (trimmed) onText(trimmed);
+  };
+}
+
 export async function transcribeFile(
   audioPath: string,
   languageCode: string = 'auto',
-  /** 0-100, straight from whisper. Fires many times a second, so throttle in the UI. */
-  onProgress?: (progress: number) => void
+  callbacks?: TranscribeCallbacks
 ): Promise<{ text: string; segments: Segment[] }> {
   if (!whisperContext) {
     throw new Error('Whisper not loaded. Call loadWhisper first.');
@@ -148,6 +180,8 @@ export async function transcribeFile(
     }
   }
 
+  const handleNewSegments = createSegmentAccumulator((text) => callbacks?.onPartialText?.(text));
+
   const options: any = {
     // Must be the literal string 'auto' - NOT undefined. whisper.rn's
     // docstring claims undefined means auto-detect, but the implementation
@@ -174,7 +208,8 @@ export async function transcribeFile(
     // Bias Whisper toward user-taught vocabulary; undefined when empty so we
     // don't prime the decoder with an empty string.
     prompt: initialPrompt,
-    ...(onProgress ? { onProgress } : null),
+    ...(callbacks?.onProgress ? { onProgress: callbacks.onProgress } : null),
+    ...(callbacks?.onPartialText ? { onNewSegments: handleNewSegments } : null),
   };
 
   const { promise } = whisperContext.transcribe(audioPath, options);

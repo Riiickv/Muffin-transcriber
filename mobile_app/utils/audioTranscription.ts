@@ -1,7 +1,7 @@
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 
 import { convertToWav } from '@/modules/audio-converter';
-import { transcribeFile } from './WhisperEngine';
+import { transcribeFile, TranscribeCallbacks } from './WhisperEngine';
 
 /**
  * Transcribe an audio file in whatever format it happens to be.
@@ -21,7 +21,7 @@ import { transcribeFile } from './WhisperEngine';
 export async function transcribeAudio(
   sourcePath: string,
   languageCode: string,
-  onProgress?: (progress: number) => void
+  callbacks?: TranscribeCallbacks
 ): Promise<{ text: string; segments: any[] }> {
   const tmpWav = `${FileSystemLegacy.cacheDirectory}muffin_tmp_${Date.now()}.wav`;
   try {
@@ -32,9 +32,9 @@ export async function transcribeAudio(
       // is a file that's ALREADY the PCM WAV whisper wants, so let whisper look
       // at the source before giving up. If it isn't, whisper's own error is the
       // more useful one to surface anyway.
-      return await transcribeFile(sourcePath, languageCode, onProgress);
+      return await transcribeFile(sourcePath, languageCode, callbacks);
     }
-    return await transcribeFile(tmpWav, languageCode, onProgress);
+    return await transcribeFile(tmpWav, languageCode, callbacks);
   } finally {
     await FileSystemLegacy.deleteAsync(tmpWav, { idempotent: true }).catch(() => {});
   }
