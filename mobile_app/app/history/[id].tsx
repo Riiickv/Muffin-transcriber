@@ -37,6 +37,7 @@ import { useDialog, DialogCard } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t } from '@/utils/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
+import { queueLlama } from '@/utils/transcriptionPipeline';
 import { usePacedReveal } from '@/hooks/usePacedReveal';
 
 type TranscriptTab = 'raw' | 'formatted' | 'summary';
@@ -231,11 +232,11 @@ export default function HistoryDetailScreen() {
     setIsProcessing(true);
     setProcessingLabel('format');
     try {
-      const formatted = await formatTranscript(
-        item.rawTranscript,
-        ready.modelPath,
-        ready.modelFile,
-        setLocalPartial
+      // queueLlama: this screen used to call the engine directly, so leaving
+      // mid-run let a recording's enrichment start on the same context and
+      // wedge it. Every llama call from here goes through the shared queue.
+      const formatted = await queueLlama(() =>
+        formatTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, setLocalPartial)
       );
       // Save and release the UI HERE. What the user pressed the button for is
       // done; embedding, entity extraction and memories are three more passes
@@ -251,7 +252,9 @@ export default function HistoryDetailScreen() {
 
       const embedding = await generateEmbedding(formatted);
       // Against the raw text, so the quotes exist in the Raw tab too.
-      const extractedDates = await extractActionableEntities(item.rawTranscript, ready.modelPath, ready.modelFile);
+      const extractedDates = await queueLlama(() =>
+        extractActionableEntities(item.rawTranscript!, ready.modelPath, ready.modelFile)
+      );
 
       await addOrUpdate({
         ...item,
@@ -261,7 +264,9 @@ export default function HistoryDetailScreen() {
       });
 
       // Extract memories sequentially so it doesn't freeze the CPU
-      await extractMemories(item.rawTranscript, ready.modelPath, ready.modelFile).catch(console.warn);
+      await queueLlama(() => extractMemories(item.rawTranscript!, ready.modelPath, ready.modelFile)).catch(
+        console.warn
+      );
     } catch (e) {
       console.error(e);
       haptics.error();
@@ -282,11 +287,8 @@ export default function HistoryDetailScreen() {
     setIsProcessing(true);
     setProcessingLabel('summarize');
     try {
-      const summarized = await summarizeTranscript(
-        item.rawTranscript,
-        ready.modelPath,
-        ready.modelFile,
-        setLocalPartial
+      const summarized = await queueLlama(() =>
+        summarizeTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, setLocalPartial)
       );
       // Release the UI as soon as the summary exists; memory extraction is
       // another whole pass over the transcript and the user didn't ask for it.
@@ -298,7 +300,9 @@ export default function HistoryDetailScreen() {
       setLocalPartial('');
 
       // Extract memories sequentially so it doesn't freeze the CPU
-      await extractMemories(item.rawTranscript, ready.modelPath, ready.modelFile).catch(console.warn);
+      await queueLlama(() => extractMemories(item.rawTranscript!, ready.modelPath, ready.modelFile)).catch(
+        console.warn
+      );
     } catch (e) {
       console.error(e);
       haptics.error();

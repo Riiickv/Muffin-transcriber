@@ -49,11 +49,28 @@ export interface EnrichmentResult {
 // user can start a second recording before the first one's enrichment finishes.
 let enrichmentQueue: Promise<unknown> = Promise.resolve();
 
-export function runEnrichment(opts: EnrichmentOptions): Promise<EnrichmentResult> {
-  const run = enrichmentQueue.then(() => runEnrichmentNow(opts));
+/**
+ * Run a job on the shared llama context, never alongside another one.
+ *
+ * Exported because this queue used to guard runEnrichment ALONE, while the
+ * History screen called formatTranscript/summarizeTranscript/entity extraction
+ * directly. Start a Format there, leave the screen, and a recording's
+ * background enrichment would begin on the same context - the exact
+ * concurrency the comment above warns about, which wedges the context and
+ * leaves the app unable to do any further AI work.
+ *
+ * Do NOT call this from inside runEnrichment's steps: that would wait on a
+ * queue this run already holds, and deadlock.
+ */
+export function queueLlama<T>(job: () => Promise<T>): Promise<T> {
+  const run = enrichmentQueue.then(job);
   // Keep the chain alive even when a run rejects.
   enrichmentQueue = run.catch(() => {});
   return run;
+}
+
+export function runEnrichment(opts: EnrichmentOptions): Promise<EnrichmentResult> {
+  return queueLlama(() => runEnrichmentNow(opts));
 }
 
 async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResult> {

@@ -106,6 +106,14 @@ export function preloadWhisper(modelPath: string): void {
  *                      Do NOT pass display names like "Italian" - call
  *                      `toLanguageCode()` from utils/languages.ts first.
  */
+/** Serializes work on the single shared whisper context. */
+let whisperChain: Promise<unknown> = Promise.resolve();
+function whisperQueue<T>(job: () => Promise<T>): Promise<T> {
+  const run = whisperChain.then(job);
+  whisperChain = run.catch(() => {});
+  return run;
+}
+
 export type TranscribeCallbacks = {
   /** 0-100, straight from whisper. Fires many times a second, so throttle in the UI. */
   onProgress?: (progress: number) => void;
@@ -212,13 +220,19 @@ export async function transcribeFile(
     ...(callbacks?.onPartialText ? { onNewSegments: handleNewSegments } : null),
   };
 
-  const { promise } = whisperContext.transcribe(audioPath, options);
-  const result = await promise;
-
-  return {
-    text: result.result,
-    segments: result.segments || [],
-  };
+  // Serialized on the ONE shared whisper context, for the same reason the llama
+  // steps are: two transcriptions decoding at once corrupt each other. There is
+  // no queue in whisper.rn, and the call sites are easy to miss - Re-transcribe
+  // on a history entry, an imported file, and the recorder all land here - so
+  // the guard lives at the engine where nothing can route around it.
+  return whisperQueue(async () => {
+    const { promise } = whisperContext!.transcribe(audioPath, options);
+    const result = await promise;
+    return {
+      text: result.result,
+      segments: result.segments || [],
+    };
+  });
 }
 
 export async function unloadWhisper(): Promise<void> {
