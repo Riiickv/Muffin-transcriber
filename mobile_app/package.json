@@ -54,7 +54,10 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/streamingDrip.test.ts tests/entityExtraction.test.ts tests/textCleanup.test.ts tests/transcribeProgress.test.ts",
+    "typecheck:tests": "tsc -p tests/tsconfig.json"
   },
   "private": true
 }
