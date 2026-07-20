@@ -335,7 +335,13 @@ export default function HomeScreen() {
   const liveText = live?.text ?? '';
   // ONE reveal for the inline panel and fullscreen, so the typing carries
   // over when fullscreen opens instead of starting again from zero.
-  const revealed = usePacedReveal(liveText, live?.paced ?? false);
+  const { revealed, done: revealDone } = usePacedReveal(liveText, live?.paced ?? false, {
+    enabled: settings.enableTypewriter,
+    speed: settings.typewriterSpeed,
+  });
+  // Hold the typewriter view until the reveal catches up, so a short import
+  // still types out after its single burst completes.
+  const revealing = revealed.length > 0 && !revealDone;
 
   const handleCopy = async () => {
     if (!currentText) return;
@@ -553,13 +559,13 @@ export default function HomeScreen() {
           />
         </View>
 
-        {live || isTranscribing ? (
+        {live || isTranscribing || revealing ? (
           /* flex, not a fixed height: a hard height can't know what the cards
              above it left over, so it either overflowed the screen or wasted
              space. Filling the remainder is what makes the page exactly one
              screen tall. */
           <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1 }]}>
-            {live ? (
+            {live || revealing ? (
               <>
                 <ScrollView
                   ref={streamScrollRef}
@@ -604,7 +610,7 @@ export default function HomeScreen() {
         visible={fullscreen}
         onClose={() => setFullscreen(false)}
         text={revealed || currentText}
-        streaming={!!live}
+        streaming={!!live || revealing}
         percent={isTranscribing ? transcribePercent : undefined}
         onCopy={currentText ? handleCopy : undefined}
       />

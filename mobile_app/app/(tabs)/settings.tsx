@@ -162,6 +162,33 @@ export default function SettingsScreen() {
           description={t('settings.autoCopyDesc')}
           right={<Switch value={settings.autoCopyTranscript} onChange={(v) => setSetting('autoCopyTranscript', v)} />}
         />
+        <SettingsRow
+          label={t('settings.typewriter')}
+          description={t('settings.typewriterDesc')}
+          right={
+            <Switch
+              value={settings.enableTypewriter}
+              onChange={(v) => setSetting('enableTypewriter', v)}
+            />
+          }
+        />
+        {settings.enableTypewriter && (
+          <SettingsRow
+            label={t('settings.typewriterSpeed')}
+            right={
+              <SegmentedControl
+                style={{ minWidth: 190 }}
+                segments={[
+                  { key: 'slow', label: t('settings.speedSlow') || 'Slow' },
+                  { key: 'balanced', label: t('settings.speedBalanced') || 'Balanced' },
+                  { key: 'fast', label: t('settings.speedFast') || 'Fast' },
+                ]}
+                value={settings.typewriterSpeed}
+                onChange={(v) => setSetting('typewriterSpeed', v as 'slow' | 'balanced' | 'fast')}
+              />
+            }
+          />
+        )}
       </SettingsGroup>
 
       <SettingsGroup title={t('settings.formatSummarize')} index={2}>
