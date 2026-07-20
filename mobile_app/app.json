@@ -34,7 +34,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.riiickv.muffin"
+      "package": "com.riiick.muffin"
     },
     "web": {
       "bundler": "metro",
