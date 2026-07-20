@@ -498,8 +498,10 @@ const DATE_PATTERNS = [
 const TIME_PATTERNS = [
   new RegExp(`\\b\\d{1,2}\\s*[:.]\\s*\\d{2}\\b${FRACTION}`, 'gi'),
   /\b\d{1,2}\s*(?:am|pm|a\.m\.|p\.m\.)\b/gi,
-  // "alle 4 e un quarto", "at 4", "a las 5"
-  new RegExp(`\\b(?:alle|all'|at|um|às|as|a\\s+las)\\s+\\d{1,2}\\b${FRACTION}`, 'gi'),
+  // "alle 4 e un quarto", "at 4", "a las 5", "alle 16:15". The minutes are
+  // optional but must be swallowed here, or the wider "alle 16" wins the
+  // overlap against "16:15" and the highlight loses the :15.
+  new RegExp(`\\b(?:alle|all'|at|um|às|as|a\\s+las)\\s+\\d{1,2}(?:\\s*[:.]\\s*\\d{2})?\\b${FRACTION}`, 'gi'),
 ];
 
 type Span = { start: number; end: number; type: 'date' | 'time' };
@@ -605,6 +607,20 @@ function mergeEntities(modelEntities: ActionableEntity[], transcript: string): A
     if (out.length >= 5) break;
   }
   return out;
+}
+
+/**
+ * Highlights for whatever text is currently on screen.
+ *
+ * Entities are extracted once, from the raw transcript, but the screen can be
+ * showing the formatted or summarized version, where those exact quotes may not
+ * survive the rewording. Since the patterns are pure regex, re-running them on
+ * the visible text is instant and needs no model, so every tab can highlight -
+ * reusing the stored titles wherever they line up.
+ */
+export function findHighlights(text: string, stored: ActionableEntity[] = []): ActionableEntity[] {
+  if (!text) return [];
+  return mergeEntities(stored, text);
 }
 
 export async function extractActionableEntities(transcript: string, modelPath: string, modelFile: string): Promise<ActionableEntity[]> {
