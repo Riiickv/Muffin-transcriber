@@ -1,15 +1,22 @@
 {
-  "//": "Tests run under Node (node --test), not React Native, so they need Node types and .ts-extension imports. Kept separate so the app's typecheck stays RN-only.",
+  // Tests run under Node (node --test), not React Native, so they need Node
+  // types and .ts-extension imports. Kept separate so the app's typecheck stays
+  // RN-only.
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "types": ["node"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    // esnext, not nodenext: node runs these as ESM (strip-types), so import.meta
+    // is valid; nodenext would infer CommonJS from the app's package.json and
+    // reject it.
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "//exclude": "the base tsconfig excludes 'tests' (so the app check skips them); that exclude is inherited here and would leave this config with no inputs, so clear it",
+  // The base tsconfig excludes "tests" (so the app check skips them); that
+  // exclude is inherited here and would leave this config with no inputs, so
+  // clear it. Include the test files; tsc follows their imports into the pure
+  // utils/ modules under test.
   "exclude": [],
-  "//include": "the test files; tsc follows their imports into the pure utils/ modules under test",
   "include": ["**/*.ts"]
 }
