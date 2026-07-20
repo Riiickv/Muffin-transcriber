@@ -99,6 +99,10 @@ export const FR = {
     working: "Traitement...",
     summaryTooShort: "Trop court pour être résumé.",
     summaryFailed: "Je n'ai pas pu le résumer.",
+    busyTitle: "Une à la fois !",
+    busyMessage: "Lancer {next} arrêtera {current}.",
+    busyDontAsk: "Ne plus afficher",
+    busyConfirm: "Ok !",
 
     whisperModelLabel: "Qualité de transcription",
     formatterModelLabel: "Qualité de mise en forme",

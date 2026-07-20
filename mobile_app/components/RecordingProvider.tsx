@@ -13,6 +13,7 @@ import { useDialog } from '@/components/Dialog';
 import { loadWhisper } from '@/utils/WhisperEngine';
 import { transcribeAudio, ensureAudioDir, AUDIO_DIR } from '@/utils/audioTranscription';
 import { createProgressTracker, ProgressReading } from '@/utils/transcribeProgress';
+import { setAiActivity } from '@/utils/aiActivity';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings } from '@/utils/settingsStore';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
@@ -218,6 +219,9 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
           });
           return;
         }
+        // App-wide, so History's buttons know this is running and can offer
+        // to interrupt it instead of silently colliding.
+        setAiActivity(t('record.transcribing') || 'Transcribing...');
         await loadWhisper(ModelManager.getModelPath(settings.preferredWhisperModel));
         const langCode = toLanguageCode(settings.defaultLanguage);
 
@@ -272,6 +276,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         });
       } finally {
         deactivateKeepAwake('record-transcription');
+        setAiActivity(null);
         setTranscribingId(null);
         setTranscribeProgress(null);
         setPartialText('');

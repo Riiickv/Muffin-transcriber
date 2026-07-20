@@ -99,6 +99,10 @@ export const DE = {
     working: "Arbeitet...",
     summaryTooShort: "Zu kurz für eine Zusammenfassung.",
     summaryFailed: "Konnte das nicht zusammenfassen.",
+    busyTitle: "Eins nach dem anderen!",
+    busyMessage: "{next} zu starten stoppt {current}.",
+    busyDontAsk: "Nicht mehr anzeigen",
+    busyConfirm: "Ok!",
 
     whisperModelLabel: "Transkriptionsqualität",
     formatterModelLabel: "Formatierungsqualität",

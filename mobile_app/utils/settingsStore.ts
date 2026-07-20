@@ -24,6 +24,8 @@ export interface Settings {
    * without choosing to.
    */
   enableChatBeta: boolean;
+  /** Suppresses the "starting this stops that" warning once the user ticks it. */
+  hideAiBusyWarning: boolean;
   /** UI language. 'auto' follows the phone. See utils/i18n.ts. */
   appLanguage: AppLanguage;
 }
@@ -43,6 +45,7 @@ export const DEFAULT_SETTINGS: Settings = {
   enableContextLearning: false,
   preferredChatModel: '',
   enableChatBeta: false,
+  hideAiBusyWarning: false,
   // 'auto' so an Italian phone opens in Italian without anyone hunting for
   // a setting. Existing installs hydrate over these defaults, so they get
   // 'auto' too rather than being pinned to English.

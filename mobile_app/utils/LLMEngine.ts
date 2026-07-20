@@ -68,6 +68,20 @@ export async function loadLLM(modelPath: string): Promise<void> {
   }
 }
 
+/**
+ * Abort whatever the model is generating, without unloading it.
+ *
+ * The context stays alive and warm, so the next task starts immediately. The
+ * aborted call resolves with whatever it had produced, which callers discard.
+ */
+export async function stopLlamaWork(): Promise<void> {
+  try {
+    await llamaContext?.stopCompletion();
+  } catch (e) {
+    console.warn('Could not stop the model:', e);
+  }
+}
+
 export async function unloadLLM(): Promise<void> {
   if (llamaContext) {
     try {
