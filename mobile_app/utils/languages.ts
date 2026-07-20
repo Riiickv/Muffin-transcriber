@@ -125,6 +125,19 @@ export function toLanguageCode(displayName: string | undefined | null): string {
   return LANGUAGE_CODE_MAP[displayName] ?? 'auto';
 }
 
+/**
+ * Whisper's detected code ("it") back to an English name ("Italian").
+ *
+ * For naming the output language in a prompt. "Reply in the original language
+ * of the text" is too weak for a small model reading an otherwise English
+ * prompt - it answers in English. "You must reply in Italian." is not.
+ */
+export function languageNameFromCode(code: string | undefined | null): string | null {
+  if (!code || code === 'auto') return null;
+  const match = LANGUAGES.find((l) => l.code === code);
+  return match ? match.name : null;
+}
+
 // The valid stored values, for the chat capability layer that only needs to
 // know what's allowed - never the labels, which are for humans and localized.
 export const LANGUAGE_VALUES = ['Auto-Detect', ...LANGUAGES.map((l) => l.name)];

@@ -22,7 +22,7 @@ export async function transcribeAudio(
   sourcePath: string,
   languageCode: string,
   callbacks?: TranscribeCallbacks
-): Promise<{ text: string; segments: any[] }> {
+): Promise<{ text: string; segments: any[]; language?: string }> {
   const tmpWav = `${FileSystemLegacy.cacheDirectory}muffin_tmp_${Date.now()}.wav`;
   try {
     try {

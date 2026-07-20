@@ -166,7 +166,7 @@ export async function transcribeFile(
   audioPath: string,
   languageCode: string = 'auto',
   callbacks?: TranscribeCallbacks
-): Promise<{ text: string; segments: Segment[] }> {
+): Promise<{ text: string; segments: Segment[]; language?: string }> {
   if (!whisperContext) {
     throw new Error('Whisper not loaded. Call loadWhisper first.');
   }
@@ -248,6 +248,10 @@ export async function transcribeFile(
       return {
         text: result.result,
         segments: result.segments || [],
+        // Whisper's auto-detected language. Was thrown away; the LLM prompts
+        // need it to name the output language explicitly, or a small model
+        // reading an English prompt answers in English.
+        language: (result as any).language,
       };
     } finally {
       stopCurrentTranscription = null;
