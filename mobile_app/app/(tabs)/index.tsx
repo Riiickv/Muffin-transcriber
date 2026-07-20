@@ -401,19 +401,17 @@ export default function HomeScreen() {
   return (
     <KeyboardScreen>
     <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>
-      {/* A ScrollView with flexGrow:1 on its content, NOT a plain View: when
-          everything fits (the normal phone case) the content is exactly one
-          screen tall and there is nothing to scroll, so this still behaves as
-          the fixed page it's meant to be. When it does NOT fit - short screen,
-          large system font, big display-size setting - the page scrolls instead
-          of quietly cutting the Transcript card off the bottom. RN children
-          don't shrink by default, so without this the overflow is unreachable. */}
-      <ScrollView
-        style={styles.root}
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      {/* A plain View, NOT a ScrollView, and the reasoning above was wrong in a
+          way that mattered: a scroller measures its content with an unbounded
+          main axis, so `flex: 1` on the Transcript card inside it never actually
+          bounded the card. The card grew with the transcript and took the page
+          with it - the thing the ScrollView was supposed to make unnecessary.
+          With a fixed-height parent the constraint is real: the card gets
+          exactly the leftover space and only the transcript scrolls.
+          The cost is the case that comment worried about - a short screen or a
+          large system font can now clip the bottom instead of scrolling to it.
+          Worth knowing rather than trading away silently. */}
+      <View style={[styles.root, styles.container]}>
       {/* Formatting card first - configure once, then hit Transcribe. */}
       <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <View style={styles.switchRow}>
@@ -596,7 +594,7 @@ export default function HomeScreen() {
           />
         )}
       </Card>
-      </ScrollView>
+      </View>
 
       <TranscriptFullscreen
         visible={fullscreen}
