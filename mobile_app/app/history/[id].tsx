@@ -383,14 +383,15 @@ export default function HistoryDetailScreen() {
     <View style={[styles.root, { backgroundColor: theme.background }, { maxWidth: contentWidth, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: item?.sourceFileName?.replace(/\.[^/.]+$/, "") ?? (t('transcribe.transcriptTitle') || 'Transcript') }} />
 
-      {/* Scrolls only when it has to - see the note on the Transcribe tab.
-          Fixed page on a normal screen, reachable content on a short one. */}
-      <ScrollView
-        style={styles.root}
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      {/* A plain View, NOT a ScrollView. A scroller measures its content with an
+          unbounded main axis, so `flex: 1` on a child inside it doesn't actually
+          bound that child - which is why the transcript kept growing and taking
+          the page with it however the panel was styled. With a fixed-height
+          parent the constraint is real, so the card gets exactly what's left and
+          the only thing that scrolls is the transcript. KeyboardScreen still
+          shrinks this view when the keyboard opens, and the flexible card
+          absorbs it, keeping the prompt field visible. */}
+      <View style={[styles.root, styles.container]}>
 
       <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <Text style={styles.title}>{item?.sourceFileName?.replace(/\.[^/.]+$/, "") || `${t('transcribe.noTitle') || 'Voice Memo'} ${id}`}</Text>
@@ -580,7 +581,7 @@ export default function HistoryDetailScreen() {
           )}
         </View>
       </Card>
-      </ScrollView>
+      </View>
 
       <TranscriptFullscreen
         visible={fullscreen}
