@@ -191,6 +191,8 @@ export const APP_STRINGS = {
     busyConfirm: "Ok!",
     /** Replaces the running action's own button while it works. */
     stop: "Stop",
+    /** While the engine winds down - aborting isn't instant. */
+    stopping: "Stopping...",
 
     // -- Model pickers --
     whisperModelLabel: "Transcription quality",

@@ -14,6 +14,8 @@ export type AiJob = {
   partial: string;
   /** Whisper only; the LLM reports no percentage. */
   progress: ProgressReading | null;
+  /** Abort requested, engine still winding down. */
+  stopping: boolean;
 };
 
 /**
@@ -38,8 +40,8 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
-export function startAiJob(next: Omit<AiJob, 'partial' | 'progress'>): number {
-  job = { ...next, partial: '', progress: null };
+export function startAiJob(next: Omit<AiJob, 'partial' | 'progress' | 'stopping'>): number {
+  job = { ...next, partial: '', progress: null, stopping: false };
   emit();
   return ++token;
 }
@@ -60,6 +62,20 @@ export function endAiJob(forToken?: number): void {
   if (!job) return;
   if (forToken !== undefined && forToken !== token) return;
   job = null;
+  emit();
+}
+
+/**
+ * Mark the job as winding down.
+ *
+ * Aborting is NOT instant: llama checks the stop flag between chunks and
+ * never during prefill, and whisper's lands between 30s windows. On a
+ * CPU-only device that's seconds to tens of seconds. The UI says "Stopping"
+ * for that stretch rather than freezing on a button that looks ignored.
+ */
+export function markAiJobStopping(): void {
+  if (!job || job.stopping) return;
+  job = { ...job, stopping: true };
   emit();
 }
 

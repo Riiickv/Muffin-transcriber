@@ -39,7 +39,7 @@ import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t } from '@/utils/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
 import { queueLlama } from '@/utils/transcriptionPipeline';
-import { startAiJob, updateAiJob, endAiJob, useAiJob } from '@/utils/aiActivity';
+import { startAiJob, updateAiJob, endAiJob, markAiJobStopping, useAiJob } from '@/utils/aiActivity';
 import { AiBusyDialog } from '@/components/AiBusyDialog';
 import { usePacedReveal } from '@/hooks/usePacedReveal';
 
@@ -163,9 +163,14 @@ export default function HistoryDetailScreen() {
    * Stops whatever is running on THIS entry. The engines keep their contexts
    * loaded, so a restart is warm.
    */
-  const stopMyJob = async () => {
+  const stopMyJob = () => {
     haptics.tap();
-    await Promise.all([stopWhisperWork(), stopLlamaWork()]);
+    markAiJobStopping();
+    // Deliberately NOT awaited. The engines only notice the flag between chunks
+    // (and never during prefill), so awaiting froze the UI for the whole
+    // wind-down and made Stop look ignored. Fire it and say "Stopping".
+    void stopWhisperWork();
+    void stopLlamaWork();
   };
 
   /**
@@ -181,8 +186,15 @@ export default function HistoryDetailScreen() {
     enabled: boolean
   ) =>
     processingLabel === kind ? (
-      <Button variant="danger" size="md" stacked icon="stop" onPress={stopMyJob}>
-        {t('historyDetail.stop') || 'Stop'}
+      <Button
+        variant="danger"
+        size="md"
+        stacked
+        icon="stop"
+        onPress={stopMyJob}
+        disabled={!!myJob?.stopping}
+      >
+        {myJob?.stopping ? t('historyDetail.stopping') || 'Stopping...' : t('historyDetail.stop') || 'Stop'}
       </Button>
     ) : (
       <Button
@@ -216,8 +228,13 @@ export default function HistoryDetailScreen() {
       job();
       return;
     }
-    const interrupt = async () => {
-      await Promise.all([stopWhisperWork(), stopLlamaWork()]);
+    const interrupt = () => {
+      markAiJobStopping();
+      // Not awaited, for the same reason: the new job goes through queueLlama /
+      // whisperQueue, so it starts the moment the old one actually lets go
+      // rather than after a blocked UI.
+      void stopWhisperWork();
+      void stopLlamaWork();
       job();
     };
     if (settings.hideAiBusyWarning) {

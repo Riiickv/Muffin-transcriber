@@ -129,6 +129,7 @@ export const IT = {
     busyDontAsk: "Non mostrare più",
     busyConfirm: "Ok!",
     stop: "Stop",
+    stopping: "Arresto...",
 
     whisperModelLabel: "Qualità trascrizione",
     formatterModelLabel: "Qualità formattazione",

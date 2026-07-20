@@ -104,6 +104,7 @@ export const FR = {
     busyDontAsk: "Ne plus afficher",
     busyConfirm: "Ok !",
     stop: "Arrêter",
+    stopping: "Arrêt...",
 
     whisperModelLabel: "Qualité de transcription",
     formatterModelLabel: "Qualité de mise en forme",
