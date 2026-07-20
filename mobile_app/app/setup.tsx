@@ -10,7 +10,7 @@ import { FadeInView } from '@/components/FadeInView';
 import { ModelDownloadList } from '@/components/ModelDownloadList';
 import { WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS } from '@/utils/ModelManager';
 import { withRecommendedFirst, recommendedModelId } from '@/utils/deviceTier';
-import { SPACING, RADIUS, TAB_BAR_SPACE } from '@/constants/tokens';
+import { SPACING, RADIUS } from '@/constants/tokens';
 import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';

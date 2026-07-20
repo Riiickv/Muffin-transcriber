@@ -3,7 +3,6 @@ import { Keyboard, Platform, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
-  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withTiming,

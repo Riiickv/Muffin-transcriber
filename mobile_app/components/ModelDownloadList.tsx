@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 
 import { Text } from '@/components/Themed';
@@ -13,7 +13,6 @@ import { formatEta } from '@/utils/format';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
-import { StyleSheet } from 'react-native';
 
 /**
  * A downloadable list of models, with progress, speed and ETA.

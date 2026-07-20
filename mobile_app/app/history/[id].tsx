@@ -26,7 +26,7 @@ import { formatTranscript, summarizeTranscript, extractMemories, extractActionab
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
 import { loadWhisper, stopWhisperWork } from '@/utils/WhisperEngine';
 import { transcribeAudio } from '@/utils/audioTranscription';
-import { createProgressTracker, describeProgress, ProgressReading } from '@/utils/transcribeProgress';
+import { createProgressTracker, describeProgress } from '@/utils/transcribeProgress';
 import { ModelManager } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
 import { useWhisperPreload } from '@/hooks/useWhisperPreload';
