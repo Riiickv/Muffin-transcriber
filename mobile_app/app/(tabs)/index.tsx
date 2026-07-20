@@ -25,7 +25,7 @@ import { errorToMessage } from '@/utils/errors';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WaitingCard } from '@/components/WaitingCard';
+import { WaitingCard, showSupportDialog } from '@/components/WaitingCard';
 import { useDialog } from '@/components/Dialog';
 import { router, useLocalSearchParams } from 'expo-router';
 import { toLanguageCode, getLanguageOptions, getFormatLanguageOptions } from '@/utils/languages';
@@ -58,6 +58,9 @@ export default function HomeScreen() {
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [rawText, setRawText] = useState('');
+  /** Live transcript while whisper runs, and the percent/estimate line under it. */
+  const [streamingText, setStreamingText] = useState('');
+  const [progressLine, setProgressLine] = useState('');
   const [formattedText, setFormattedText] = useState('');
   const [summaryText, setSummaryText] = useState('');
 
@@ -180,25 +183,21 @@ export default function HomeScreen() {
       // that most needs to say how far along it is.
       const tracker = createProgressTracker();
       let lastPush = 0;
-      let reading: ProgressReading | null = null;
-      let streamed = '';
-      // Once there are words, they replace the status line entirely - an
-      // imported lecture is long no matter what, so reading it as it arrives
-      // beats watching a percentage climb.
-      const paint = () => setRawText(streamed || describeProgress(transcribingLabel, reading));
+      // Kept OUT of rawText: rawText feeds the WaitingCard's status line, so
+      // streaming into it rendered the whole transcript as a centred, muted
+      // status message stacked above the support button.
       const result = await transcribeFile(wavPath, langCode, {
         onProgress: (raw) => {
-          reading = tracker.update(raw);
+          const reading = tracker.update(raw);
           const now = Date.now();
           if (now - lastPush < 500 && reading.percent < 100) return;
           lastPush = now;
-          paint();
+          setProgressLine(describeProgress(transcribingLabel, reading));
         },
-        onPartialText: (text) => {
-          streamed = text;
-          paint();
-        },
+        onPartialText: setStreamingText,
       });
+      setStreamingText('');
+      setProgressLine('');
       const cleanText = result.text.trim();
       setRawText(cleanText);
       setIsTranscribing(false);
@@ -278,6 +277,10 @@ export default function HomeScreen() {
     } finally {
       deactivateKeepAwake('home-transcription');
       setIsTranscribing(false);
+      // Also on the failure path, or a half-finished transcript would sit under
+      // the box after the error dialog is dismissed.
+      setStreamingText('');
+      setProgressLine('');
     }
   };
 
@@ -498,7 +501,27 @@ export default function HomeScreen() {
 
         {isTranscribing ? (
           <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1 }]}>
-            <WaitingCard status={currentText} />
+            {streamingText ? (
+              /* Reads as a transcript, not as a status message: left aligned,
+                 normal text colour, with the progress line and a quiet support
+                 link tucked underneath rather than a card wrapped around it. */
+              <ScrollView nestedScrollEnabled>
+                <Text style={[styles.streamingText, { color: theme.text }]}>{streamingText}</Text>
+                {!!progressLine && (
+                  <Text style={[styles.streamingNote, { color: theme.textMuted }]}>{progressLine}</Text>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  style={{ alignSelf: 'flex-start', marginTop: SPACING.xs }}
+                  onPress={() => showSupportDialog(dialog)}
+                >
+                  {t('transcribe.supportMe') || 'Support me!'}
+                </Button>
+              </ScrollView>
+            ) : (
+              <WaitingCard status={currentText} />
+            )}
           </View>
         ) : (
           <TextInput
@@ -597,5 +620,15 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     minHeight: 150,
     textAlignVertical: 'top',
+  },
+  /** Live transcript: matches the finished one so nothing shifts when it lands. */
+  streamingText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  streamingNote: {
+    fontSize: 13,
+    marginTop: SPACING.md,
+    fontStyle: 'italic',
   },
 });
