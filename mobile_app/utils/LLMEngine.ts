@@ -404,7 +404,7 @@ export async function formatTranscript(
   // grounding rule below is what holds it.
   const taskInstruction =
     customFormat ||
-    'Write the transcript out as correct, readable text in its own language. Add punctuation, capitalization and paragraph breaks, and fix clear speech-to-text errors such as wrong verb forms, wrong agreement, and words split or joined incorrectly. Keep the speaker\'s wording wherever it is already correct, keep the meaning exactly, and add nothing that was not said.';
+    'Write the transcript out as correct, readable text in its own language. Put commas where the sentence needs them, full stops at the ends of sentences, and capital letters on names of people, places and brands. Fix clear speech-to-text errors such as wrong verb forms, wrong agreement, and words split or joined incorrectly. Keep the speaker\'s wording where it is already correct, keep the meaning exactly, and add nothing that was not said.';
   
   let memoryContext = "";
   if (settings.enableContextLearning) {
