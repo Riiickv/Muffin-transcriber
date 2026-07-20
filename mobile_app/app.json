@@ -16,7 +16,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "allowBackup": false,
-      "versionCode": 37,
+      "versionCode": 38,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
