@@ -187,25 +187,25 @@ export default function SettingsScreen() {
             it ON explains exactly what does and doesn't work yet. */}
         <SettingsRow
           label={t('settings.chatBetaLabel')}
-          right={
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={[styles.betaPill, { backgroundColor: theme.tintFill }]}>
-                <Text style={[styles.betaPillText, { color: theme.tint }]}>{t('chat.beta') || 'Beta'}</Text>
-              </View>
-              <Switch
-                value={settings.enableChatBeta}
-                onChange={(v) => {
-                  setSetting('enableChatBeta', v);
-                  if (v) {
-                    dialog.show({
-                      title: t('chat.betaTitle'),
-                      message: t('chat.betaEnableBody'),
-                      buttons: [{ label: t('chat.betaOk') || 'Ok!', variant: 'primary' }],
-                    });
-                  }
-                }}
-              />
+          badge={
+            <View style={[styles.betaPill, { backgroundColor: theme.tintFill }]}>
+              <Text style={[styles.betaPillText, { color: theme.tint }]}>{t('chat.beta') || 'Beta'}</Text>
             </View>
+          }
+          right={
+            <Switch
+              value={settings.enableChatBeta}
+              onChange={(v) => {
+                setSetting('enableChatBeta', v);
+                if (v) {
+                  dialog.show({
+                    title: t('chat.betaTitle'),
+                    message: t('chat.betaEnableBody'),
+                    buttons: [{ label: t('chat.betaOk') || 'Ok!', variant: 'primary' }],
+                  });
+                }
+              }}
+            />
           }
         />
         {settings.enableChatBeta && (
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: RADIUS.pill,
-    marginRight: SPACING.sm,
+    marginLeft: SPACING.sm,
   },
   betaPillText: { fontSize: 11, fontWeight: '700' },
   versionText: {
