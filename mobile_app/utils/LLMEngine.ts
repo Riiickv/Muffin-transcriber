@@ -517,11 +517,16 @@ export async function summarizeTranscript(
   const summary = stripLeadingLabel(
     stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)))
   );
-  // Same failure as formatting: better to say the summary failed than to print
-  // our own instructions and call them a summary.
-  // A summary that's just the transcript back is a failure wearing a success
-  // costume - saying so beats handing the user their own words.
-  if (!summary || echoesPrompt(summary) || looksLikeCopy(summary, transcript))
+  // echoesPrompt always applies: printing our own instructions is a failure
+  // whatever the prompt was.
+  if (!summary || echoesPrompt(summary))
+    return t('historyDetail.summaryFailed') || "Couldn't summarize this one.";
+  // looksLikeCopy only guards the DEFAULT summary, which is meant to be shorter.
+  // A custom prompt owns its output: "fix the grammar" or "rewrite formally"
+  // legitimately returns near-full-length, high-overlap text, and flagging that
+  // as a copy is why custom prompts were erroring with "couldn't summarize".
+  const isCustomSummary = !!customSummary.trim();
+  if (!isCustomSummary && looksLikeCopy(summary, transcript))
     return t('historyDetail.summaryFailed') || "Couldn't summarize this one.";
   return summary;
 }
