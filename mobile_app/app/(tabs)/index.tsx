@@ -13,6 +13,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
+import { createProgressTracker, describeProgress } from '@/utils/transcribeProgress';
 import { convertToWav } from '@/modules/audio-converter';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
@@ -173,8 +174,19 @@ export default function HomeScreen() {
         await FileSystemLegacy.deleteAsync(localPath, { idempotent: true });
       }
 
-      setRawText(t('transcribe.transcribing'));
-      const result = await transcribeFile(wavPath, langCode);
+      const transcribingLabel = t('transcribe.transcribing');
+      setRawText(transcribingLabel);
+      // An imported file is the longest job the app takes, so this is the one
+      // that most needs to say how far along it is.
+      const tracker = createProgressTracker();
+      let lastPush = 0;
+      const result = await transcribeFile(wavPath, langCode, (raw) => {
+        const reading = tracker.update(raw);
+        const now = Date.now();
+        if (now - lastPush < 500 && reading.percent < 100) return;
+        lastPush = now;
+        setRawText(describeProgress(transcribingLabel, reading));
+      });
       const cleanText = result.text.trim();
       setRawText(cleanText);
       setIsTranscribing(false);

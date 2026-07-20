@@ -108,7 +108,9 @@ export function preloadWhisper(modelPath: string): void {
  */
 export async function transcribeFile(
   audioPath: string,
-  languageCode: string = 'auto'
+  languageCode: string = 'auto',
+  /** 0-100, straight from whisper. Fires many times a second, so throttle in the UI. */
+  onProgress?: (progress: number) => void
 ): Promise<{ text: string; segments: Segment[] }> {
   if (!whisperContext) {
     throw new Error('Whisper not loaded. Call loadWhisper first.');
@@ -172,6 +174,7 @@ export async function transcribeFile(
     // Bias Whisper toward user-taught vocabulary; undefined when empty so we
     // don't prime the decoder with an empty string.
     prompt: initialPrompt,
+    ...(onProgress ? { onProgress } : null),
   };
 
   const { promise } = whisperContext.transcribe(audioPath, options);

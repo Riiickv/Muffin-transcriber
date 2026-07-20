@@ -22,6 +22,7 @@ import { formatTranscript, summarizeTranscript, extractMemories, extractActionab
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
 import { loadWhisper } from '@/utils/WhisperEngine';
 import { transcribeAudio } from '@/utils/audioTranscription';
+import { createProgressTracker, describeProgress, ProgressReading } from '@/utils/transcribeProgress';
 import { ModelManager } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
 import { useWhisperPreload } from '@/hooks/useWhisperPreload';
@@ -57,6 +58,9 @@ export default function HistoryDetailScreen() {
 
   const [transcriptTab, setTranscriptTab] = useState<TranscriptTab>('raw');
   const [isProcessing, setIsProcessing] = useState(false);
+  // Re-transcribe runs on this screen rather than in the provider, so it keeps
+  // its own progress.
+  const [localProgress, setLocalProgress] = useState<ProgressReading | null>(null);
   const [processingLabel, setProcessingLabel] = useState<null | 'retranscribe' | 'format' | 'summarize'>(null);
 
   const [activeEntity, setActiveEntity] = useState<{ quote: string; name: string; type: 'date' | 'time' } | null>(null);
@@ -69,7 +73,7 @@ export default function HistoryDetailScreen() {
   // A just-recorded note lands here empty while the recording provider
   // transcribes it in the background. Show a live "Transcribing..." state until
   // the raw text arrives.
-  const { transcribingId } = useRecording();
+  const { transcribingId, transcribeProgress } = useRecording();
   const isTranscribingThis = transcribingId === id && !item?.rawTranscript;
 
   const transcript =
@@ -164,7 +168,16 @@ export default function HistoryDetailScreen() {
       // the recording is in, and handing that straight to whisper is what made
       // Re-transcribe fail with "Invalid WAV file" on anything recorded before
       // the converter was wired into the Record tab.
-      const result = await transcribeAudio(item.sourceFilePath, langCode);
+      const tracker = createProgressTracker();
+      let lastPush = 0;
+      const result = await transcribeAudio(item.sourceFilePath, langCode, (raw) => {
+        const reading = tracker.update(raw);
+        const now = Date.now();
+        if (now - lastPush < 500 && reading.percent < 100) return;
+        lastPush = now;
+        setLocalProgress(reading);
+      });
+      setLocalProgress(null);
       await addOrUpdate({ ...item, rawTranscript: result.text.trim() });
       setTranscriptTab('raw');
       haptics.success();
@@ -175,6 +188,7 @@ export default function HistoryDetailScreen() {
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
+      setLocalProgress(null);
     }
   };
 
@@ -472,9 +486,9 @@ export default function HistoryDetailScreen() {
             <WaitingCard
               status={
                 isTranscribingThis
-                  ? t('record.transcribing') || 'Transcribing...'
+                  ? describeProgress(t('record.transcribing') || 'Transcribing...', transcribeProgress)
                   : processingLabel === 'retranscribe'
-                  ? t('historyDetail.retranscribing') || 'Re-transcribing...'
+                  ? describeProgress(t('historyDetail.retranscribing') || 'Re-transcribing...', localProgress)
                   : processingLabel === 'format'
                   ? t('historyDetail.formatting') || 'Formatting...'
                   : t('historyDetail.summarizing') || 'Summarizing...'

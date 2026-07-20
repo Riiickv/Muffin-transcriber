@@ -20,7 +20,8 @@ import { transcribeFile } from './WhisperEngine';
  */
 export async function transcribeAudio(
   sourcePath: string,
-  languageCode: string
+  languageCode: string,
+  onProgress?: (progress: number) => void
 ): Promise<{ text: string; segments: any[] }> {
   const tmpWav = `${FileSystemLegacy.cacheDirectory}muffin_tmp_${Date.now()}.wav`;
   try {
@@ -31,9 +32,9 @@ export async function transcribeAudio(
       // is a file that's ALREADY the PCM WAV whisper wants, so let whisper look
       // at the source before giving up. If it isn't, whisper's own error is the
       // more useful one to surface anyway.
-      return await transcribeFile(sourcePath, languageCode);
+      return await transcribeFile(sourcePath, languageCode, onProgress);
     }
-    return await transcribeFile(tmpWav, languageCode);
+    return await transcribeFile(tmpWav, languageCode, onProgress);
   } finally {
     await FileSystemLegacy.deleteAsync(tmpWav, { idempotent: true }).catch(() => {});
   }
