@@ -421,7 +421,13 @@ export async function formatTranscript(
     {
       prompt,
       n_predict: Math.max(512, Math.min(3072, Math.floor(transcript.length / 3) + 256)),
-      temperature: 0.0,
+      // NOT 0.0. Greedy decoding on a rewrite task makes a small model lazy: the
+      // single likeliest continuation of "rewrite this" is to reproduce the
+      // input, so it copied the transcript back and only ensureBasicPunctuation
+      // touched it. The SAME model at 0.3 (Summarize) actually applied commas,
+      // proper nouns and verb fixes to this exact note. A little randomness is
+      // what lets it commit to the transformation instead of echoing.
+      temperature: 0.3,
       // Small models loop without a repetition penalty - they repeat the same line
       // until the token budget runs out. Penalise recently-seen tokens to break it.
       penalty_repeat: 1.15,
