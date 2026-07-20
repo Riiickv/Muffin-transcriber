@@ -116,14 +116,19 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
     // rawText, not textForAnalysis: a highlight works by finding the quote in
     // the transcript on screen, and the Raw tab is what opens by default.
     // Formatting rewords things, so quotes taken from it often aren't in raw.
-    const dates = await extractActionableEntities(rawText, modelPath, modelFile).catch(
+    const dates = await extractActionableEntities(rawText, modelPath, modelFile, opts.sourceLanguage).catch(
       () => [] as ActionableEntity[]
     );
     result.extractedDates = dates.length > 0 ? dates : undefined;
   }
 
   if (opts.title) {
-    result.title = await generateTitle(textForAnalysis, modelPath, modelFile).catch(() => undefined);
+    result.title = await generateTitle(
+      textForAnalysis,
+      modelPath,
+      modelFile,
+      opts.sourceLanguage
+    ).catch(() => undefined);
   }
 
   const embedding = await embeddingPromise;

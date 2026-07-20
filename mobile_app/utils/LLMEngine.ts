@@ -839,16 +839,25 @@ export function findHighlights(text: string, stored: ActionableEntity[] = []): A
   return mergeEntities(stored, text);
 }
 
-export async function extractActionableEntities(transcript: string, modelPath: string, modelFile: string): Promise<ActionableEntity[]> {
+export async function extractActionableEntities(
+  transcript: string,
+  modelPath: string,
+  modelFile: string,
+  sourceLanguage?: string
+): Promise<ActionableEntity[]> {
   await loadLLM(modelPath);
   // The patterns don't need the model, so a failed load costs naming, not highlights.
   if (!llamaContext) return mergeEntities([], transcript);
 
+  // "name" becomes the calendar event title the user sees, so it has to be in
+  // their language too - same fix as the note title.
+  const detected = languageNameFromCode(sourceLanguage);
+  const nameLanguage = detected ? ` Write it in ${detected}.` : ' Write it in the transcript\'s language.';
   const task = `TASK: Extract dates, times, or specific event occurrences (e.g. "tomorrow at 5pm", "September 12th") from the transcript.
 1. Return ONLY a valid JSON array of objects.
 2. Each object must have exactly 3 keys:
    - "quote": The exact substring from the transcript containing the date/time. MUST match exactly.
-   - "name": A short 2-4 word suggested title for a calendar event based on the surrounding context.
+   - "name": A short 2-4 word suggested title for a calendar event based on the surrounding context.${nameLanguage}
    - "type": Either "date" (if it's a full day event) or "time" (if a specific hour is mentioned).
 3. If no dates or times are found, return [].`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
@@ -873,17 +882,32 @@ export async function extractActionableEntities(transcript: string, modelPath: s
   }
 }
 
-export async function generateTitle(transcript: string, modelPath: string, modelFile: string): Promise<string> {
+export async function generateTitle(
+  transcript: string,
+  modelPath: string,
+  modelFile: string,
+  sourceLanguage?: string
+): Promise<string> {
+  // Localized, not "Short Audio"/"Audio Memo": these are SHOWN as the note's
+  // name in History, so an English fallback lands in an otherwise Italian list.
+  const fallback = t('transcribe.noTitle') || 'Voice Memo';
   const wordCount = transcript.trim().split(/\s+/).length;
-  if (wordCount < 4) return "Short Audio";
-  
+  if (wordCount < 4) return fallback;
+
   await loadLLM(modelPath);
   if (!llamaContext) throw new Error("LLM not loaded");
-  
+
+  // The title prompt had NO language instruction at all, which is why an
+  // Italian note came back as "Patent's 15th and 17th of July" - the most
+  // visible text in History, in the wrong language.
+  const detected = languageNameFromCode(sourceLanguage);
+  const languageLine = detected
+    ? `\n4. Write the title in ${detected}.`
+    : '\n4. Write the title in the same language as the transcript.';
   const task = `TASK: Generate a short, descriptive title for the transcript (maximum 4 words).
 1. Return ONLY the title string. No quotes, brackets, or conversational text.
 2. The title must reflect the main topic or context of the transcript.
-3. If the transcript is incomprehensible, return "Audio Memo".`;
+3. If the transcript is incomprehensible, return "${fallback}".${languageLine}`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   try {
@@ -896,10 +920,10 @@ export async function generateTitle(transcript: string, modelPath: string, model
     let title = extractFormatterOutput(result.text).trim();
     // remove quotes if the model hallucinated them
     title = title.replace(/^"|"$/g, '').trim();
-    return title.length > 0 ? title : "Audio Memo";
+    return title.length > 0 ? title : fallback;
   } catch(e) {
     console.warn("Failed to generate title", e);
-    return "Audio Memo";
+    return fallback;
   }
 }
 
