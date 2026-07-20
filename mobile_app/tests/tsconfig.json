@@ -1,0 +1,12 @@
+{
+  "//": "Tests run under Node (node --test), not React Native, so they need Node types and .ts-extension imports. Kept separate so the app's typecheck stays RN-only.",
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": ["**/*.ts", "../utils/streamingDrip.ts", "../utils/transcribeProgress.ts", "../utils/entityExtraction.ts", "../utils/textCleanup.ts"]
+}
