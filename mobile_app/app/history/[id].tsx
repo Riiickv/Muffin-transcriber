@@ -117,7 +117,14 @@ export default function HistoryDetailScreen() {
   const isStreamingWhisper = isTranscribingThis || processingLabel === 'retranscribe';
   // ONE reveal, shared by the inline panel and fullscreen, so opening
   // fullscreen mid-generation carries the typing over instead of restarting.
-  const revealed = usePacedReveal(streamingText, isStreamingWhisper);
+  const { revealed, done: revealDone } = usePacedReveal(streamingText, isStreamingWhisper, {
+    enabled: settings.enableTypewriter,
+    speed: settings.typewriterSpeed,
+  });
+  // Keep the typewriter view up until the reveal catches up, so a short note -
+  // which arrives as one burst and completes at once - still types out.
+  const revealing = revealed.length > 0 && !revealDone;
+  const showStreaming = streamingText !== '' || revealing;
 
   // Recomputed per tab: the stored quotes come from the raw transcript, but
   // formatted and summary are reworded, so they need their own pass.
@@ -619,7 +626,7 @@ export default function HistoryDetailScreen() {
           {/* Once whisper starts handing back words, showing them beats any
               waiting card: a long recording is long no matter what we do, so
               the least we can do is give them something to read meanwhile. */}
-          {streamingText ? (
+          {showStreaming ? (
             <>
               <ScrollView
                 ref={streamScrollRef}
@@ -675,7 +682,7 @@ export default function HistoryDetailScreen() {
         visible={fullscreen}
         onClose={() => setFullscreen(false)}
         text={revealed || transcript}
-        streaming={!!streamingText}
+        streaming={showStreaming}
         percent={
           isStreamingWhisper ? (isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0 : undefined
         }

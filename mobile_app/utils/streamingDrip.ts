@@ -34,7 +34,7 @@ const MAX_CPS = 2000;
 /** A tick longer than this means we were suspended; don't credit the whole gap. */
 const MAX_TICK_MS = 500;
 
-export function createDrip(now: () => number = Date.now) {
+export function createDrip(now: () => number = Date.now, speed = 1) {
   let shown = 0;
   let target = 0;
   let lastArrival = now();
@@ -45,6 +45,17 @@ export function createDrip(now: () => number = Date.now) {
   let firstBurstChars = 0;
 
   return {
+    /** Start over for a new stream, keeping the same speed. */
+    reset() {
+      shown = 0;
+      target = 0;
+      gapMs = DEFAULT_GAP_MS;
+      seenBurst = false;
+      firstBurstChars = 0;
+      lastArrival = now();
+      lastTick = now();
+    },
+
     /** A new burst landed; `length` is the full transcript length so far. */
     push(length: number) {
       const t = now();
@@ -85,9 +96,12 @@ export function createDrip(now: () => number = Date.now) {
       // the one moment the user is waiting for any sign of life, so it gets a
       // flat rate sized to finish on time. From the second burst the real gap
       // is known and the normal pacing takes over.
-      const cps = seenBurst
-        ? Math.min(MAX_CPS, Math.max(MIN_CPS, backlog / Math.max(1, (gapMs * DRAIN_RATIO) / 1000)))
-        : Math.max(MIN_CPS, firstBurstChars / (FIRST_BURST_DRAIN_MS / 1000));
+      // `speed` is the user's typewriter-speed setting: a plain multiplier on
+      // the reveal rate. Higher = fewer seconds to type the same text out.
+      const cps =
+        (seenBurst
+          ? Math.min(MAX_CPS, Math.max(MIN_CPS, backlog / Math.max(1, (gapMs * DRAIN_RATIO) / 1000)))
+          : Math.max(MIN_CPS, firstBurstChars / (FIRST_BURST_DRAIN_MS / 1000))) * speed;
       shown = Math.min(target, shown + cps * dt);
       return shown;
     },

@@ -26,6 +26,9 @@ export interface Settings {
   enableChatBeta: boolean;
   /** Suppresses the "starting this stops that" warning once the user ticks it. */
   hideAiBusyWarning: boolean;
+  /** Type transcription out progressively instead of showing it at once. */
+  enableTypewriter: boolean;
+  typewriterSpeed: 'slow' | 'balanced' | 'fast';
   /** UI language. 'auto' follows the phone. See utils/i18n.ts. */
   appLanguage: AppLanguage;
 }
@@ -46,6 +49,9 @@ export const DEFAULT_SETTINGS: Settings = {
   preferredChatModel: '',
   enableChatBeta: false,
   hideAiBusyWarning: false,
+  // On by default: the user asked for it always active.
+  enableTypewriter: true,
+  typewriterSpeed: 'balanced',
   // 'auto' so an Italian phone opens in Italian without anyone hunting for
   // a setting. Existing installs hydrate over these defaults, so they get
   // 'auto' too rather than being pinned to English.
