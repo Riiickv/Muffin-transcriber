@@ -103,6 +103,7 @@ export const FR = {
     busyMessage: "Lancer {next} arrêtera {current}.",
     busyDontAsk: "Ne plus afficher",
     busyConfirm: "Ok !",
+    stop: "Arrêter",
 
     whisperModelLabel: "Qualité de transcription",
     formatterModelLabel: "Qualité de mise en forme",

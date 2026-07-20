@@ -103,6 +103,7 @@ export const PT = {
     busyMessage: "Iniciar {next} vai parar {current}.",
     busyDontAsk: "Não mostrar novamente",
     busyConfirm: "Ok!",
+    stop: "Parar",
 
     whisperModelLabel: "Qualidade da transcrição",
     formatterModelLabel: "Qualidade da formatação",

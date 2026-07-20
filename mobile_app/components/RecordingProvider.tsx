@@ -13,7 +13,7 @@ import { useDialog } from '@/components/Dialog';
 import { loadWhisper } from '@/utils/WhisperEngine';
 import { transcribeAudio, ensureAudioDir, AUDIO_DIR } from '@/utils/audioTranscription';
 import { createProgressTracker, ProgressReading } from '@/utils/transcribeProgress';
-import { setAiActivity } from '@/utils/aiActivity';
+import { startAiJob, updateAiJob, endAiJob } from '@/utils/aiActivity';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings } from '@/utils/settingsStore';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
@@ -221,7 +221,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         }
         // App-wide, so History's buttons know this is running and can offer
         // to interrupt it instead of silently colliding.
-        setAiActivity(t('record.transcribing') || 'Transcribing...');
+        startAiJob({ kind: 'transcribe', label: t('record.transcribing') || 'Transcribing...', itemId: id });
         await loadWhisper(ModelManager.getModelPath(settings.preferredWhisperModel));
         const langCode = toLanguageCode(settings.defaultLanguage);
 
@@ -236,10 +236,14 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
             if (now - lastPush < 500 && reading.percent < 100) return;
             lastPush = now;
             setTranscribeProgress(reading);
+            updateAiJob({ progress: reading });
           },
           // Show the words as they land. On a lecture-length recording this is
           // the difference between minutes of a spinner and something to read.
-          onPartialText: setPartialText,
+          onPartialText: (text) => {
+            setPartialText(text);
+            updateAiJob({ partial: text });
+          },
         });
         setTranscribeProgress(null);
         setPartialText('');
@@ -276,7 +280,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         });
       } finally {
         deactivateKeepAwake('record-transcription');
-        setAiActivity(null);
+        endAiJob();
         setTranscribingId(null);
         setTranscribeProgress(null);
         setPartialText('');

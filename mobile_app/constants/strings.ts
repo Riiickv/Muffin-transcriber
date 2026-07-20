@@ -189,6 +189,8 @@ export const APP_STRINGS = {
     busyMessage: "Starting {next} will stop {current}.",
     busyDontAsk: "Don't show this again",
     busyConfirm: "Ok!",
+    /** Replaces the running action's own button while it works. */
+    stop: "Stop",
 
     // -- Model pickers --
     whisperModelLabel: "Transcription quality",
