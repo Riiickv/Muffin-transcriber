@@ -14,6 +14,7 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
 import { createProgressTracker } from '@/utils/transcribeProgress';
+import { usePacedReveal } from '@/hooks/usePacedReveal';
 import { ProgressBar } from '@/components/ProgressBar';
 import { TranscriptFullscreen } from '@/components/TranscriptFullscreen';
 import { IconButton } from '@/components/IconButton';
@@ -328,6 +329,9 @@ export default function HomeScreen() {
       ? { text: summaryPartial, paced: false }
       : null;
   const liveText = live?.text ?? '';
+  // ONE reveal for the inline panel and fullscreen, so the typing carries
+  // over when fullscreen opens instead of starting again from zero.
+  const revealed = usePacedReveal(liveText, live?.paced ?? false);
 
   const handleCopy = async () => {
     if (!currentText) return;
@@ -569,10 +573,7 @@ export default function HomeScreen() {
                     if (stickToBottom.current) streamScrollRef.current?.scrollToEnd({ animated: true });
                   }}
                 >
-                  <StreamingText
-                    text={live.text}
-                    style={[styles.streamingText, { color: theme.text }]}
-                  />
+                  <StreamingText text={revealed} style={[styles.streamingText, { color: theme.text }]} />
                 </ScrollView>
                 {isTranscribing && (
                   <ProgressBar percent={transcribePercent} style={{ marginTop: SPACING.sm }} />
@@ -598,7 +599,7 @@ export default function HomeScreen() {
       <TranscriptFullscreen
         visible={fullscreen}
         onClose={() => setFullscreen(false)}
-        text={liveText || currentText}
+        text={revealed || currentText}
         streaming={!!live}
         percent={isTranscribing ? transcribePercent : undefined}
         onCopy={currentText ? handleCopy : undefined}

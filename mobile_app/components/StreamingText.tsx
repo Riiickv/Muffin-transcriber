@@ -1,24 +1,22 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useMemo } from 'react';
 import { StyleProp, TextStyle } from 'react-native';
 
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
-import { createDrip, mixHex } from '@/utils/streamingDrip';
+import { mixHex } from '@/utils/streamingDrip';
 
-/** ~25fps. Fast enough to read as typing, slow enough to be cheap. */
-const TICK_MS = 40;
 /** How much of the end carries the accent trail. */
 const TAIL_CHARS = 44;
 /** Colour steps across that trail. More is smoother and costs more nodes. */
 const TAIL_STEPS = 8;
 /**
- * Text older than the trail is frozen in blocks of this size.
+ * Text behind the trail is frozen in blocks of this size.
  *
  * This is the whole performance story. A 10-minute podcast is tens of thousands
  * of characters, and re-rendering that as one growing string 25 times a second
- * would melt exactly the long transcriptions this exists for. Everything behind
- * the trail is split into blocks that stop changing once complete, so a tick
- * only re-lays-out the last partial block plus the handful of trail nodes.
+ * would melt exactly the long transcriptions this exists for. Blocks stop
+ * changing once complete, so an update only re-lays-out the last partial block
+ * plus the handful of trail nodes.
  */
 const BLOCK_CHARS = 600;
 
@@ -27,47 +25,20 @@ const FrozenBlock = memo(function FrozenBlock({ text }: { text: string }) {
   return <Text>{text}</Text>;
 });
 
-export function StreamingText({
-  text,
-  done,
-  paced = true,
-  style,
-}: {
-  /** The full text so far. */
-  text: string;
-  /** Reveal everything immediately - the job has finished. */
-  done?: boolean;
-  /**
-   * Pace the reveal (whisper: paragraph-sized bursts 30s apart, which need
-   * spreading out). Turn OFF for an LLM, whose tokens already arrive one at a
-   * time at a readable rate - pacing that would only add lag to something
-   * already typing itself.
-   */
-  paced?: boolean;
-  style?: StyleProp<TextStyle>;
-}) {
+/**
+ * Draws already-revealed text with an accent trail on the newest characters.
+ *
+ * Deliberately has NO timing of its own. The reveal lives in usePacedReveal at
+ * the screen, so the inline and fullscreen panels share one - two components
+ * with private drips disagreed with each other, which is what stopped the
+ * typing carrying into fullscreen.
+ */
+export function StreamingText({ text, style }: { text: string; style?: StyleProp<TextStyle> }) {
   const { theme } = useTheme();
-  const drip = useRef(createDrip()).current;
-  const [shown, setShown] = useState(0);
 
-  useEffect(() => {
-    drip.push(text.length);
-  }, [text, drip]);
-
-  useEffect(() => {
-    if (!paced) return;
-    const id = setInterval(() => {
-      const next = Math.floor(drip.tick(!!done));
-      setShown((prev) => (prev === next ? prev : next));
-    }, TICK_MS);
-    return () => clearInterval(id);
-  }, [drip, done, paced]);
-
-  const visible = paced ? text.slice(0, Math.min(shown, text.length)) : text;
-  const tailStart = Math.max(0, visible.length - TAIL_CHARS);
-
-  // Only advances a block at a time, so `frozen` keeps its identity for
-  // hundreds of ticks and the memo above actually bites.
+  const tailStart = Math.max(0, text.length - TAIL_CHARS);
+  // Only advances a block at a time, so `blocks` keeps its identity for many
+  // updates and the memo above actually bites.
   const frozenEnd = Math.floor(tailStart / BLOCK_CHARS) * BLOCK_CHARS;
   const blocks = useMemo(() => {
     const out: string[] = [];
@@ -75,8 +46,8 @@ export function StreamingText({
     return out;
   }, [text, frozenEnd]);
 
-  const settled = visible.slice(frozenEnd, tailStart);
-  const tail = visible.slice(tailStart);
+  const settled = text.slice(frozenEnd, tailStart);
+  const tail = text.slice(tailStart);
 
   // theme.tint is a PlatformColor object under Material You and can't be
   // interpolated; tintString is the hex kept alongside it for exactly this.
