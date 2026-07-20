@@ -200,7 +200,10 @@ export default function HistoryDetailScreen() {
         onPartialText: setLocalPartial,
       });
       setLocalProgress(null);
-      setLocalPartial('');
+      // NOT cleared here: isProcessing is still true through the save below, and
+      // an empty partial makes the render fall through to WaitingCard - so the
+      // finished text would blink out and "While you're waiting..." would
+      // appear AFTER the work was done. The finally clears it.
       await addOrUpdate({ ...item, rawTranscript: result.text.trim() });
       setTranscriptTab('raw');
       haptics.success();
@@ -230,7 +233,9 @@ export default function HistoryDetailScreen() {
         ready.modelFile,
         setLocalPartial
       );
-      setLocalPartial('');
+      // Kept on screen: embedding, entity extraction and memories all still run
+      // below with isProcessing true, and clearing now would swap the finished
+      // text for the waiting card for the whole of that tail.
 
       const embedding = await generateEmbedding(formatted);
       // Against the raw text, so the quotes exist in the Raw tab too.
@@ -273,7 +278,9 @@ export default function HistoryDetailScreen() {
         ready.modelFile,
         setLocalPartial
       );
-      setLocalPartial('');
+      // Kept on screen: embedding, entity extraction and memories all still run
+      // below with isProcessing true, and clearing now would swap the finished
+      // text for the waiting card for the whole of that tail.
       await addOrUpdate({ ...item, summary: summarized });
       setTranscriptTab('summary');
       haptics.success();

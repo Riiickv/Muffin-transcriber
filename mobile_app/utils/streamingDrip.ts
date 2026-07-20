@@ -21,6 +21,8 @@ const DEFAULT_GAP_MS = 30000;
  * arrives in one dump.
  */
 const DRAIN_RATIO = 0.8;
+/** How long the first burst takes to appear, before any gap has been measured. */
+const FIRST_BURST_DRAIN_MS = 6000;
 /**
  * Never slower than this, or a tiny burst looks stuck. Low on purpose: a slow
  * device bursting every 90s needs ~5 chars/s to fill the gap, and a floor above
@@ -39,6 +41,8 @@ export function createDrip(now: () => number = Date.now) {
   let lastTick = now();
   let gapMs = DEFAULT_GAP_MS;
   let seenBurst = false;
+  /** Size of the very first burst, so it can be revealed at a flat rate. */
+  let firstBurstChars = 0;
 
   return {
     /** A new burst landed; `length` is the full transcript length so far. */
@@ -53,6 +57,7 @@ export function createDrip(now: () => number = Date.now) {
         seenBurst = true;
       }
       lastArrival = t;
+      if (!firstBurstChars) firstBurstChars = length;
       target = length;
     },
 
@@ -69,8 +74,20 @@ export function createDrip(now: () => number = Date.now) {
       const backlog = target - shown;
       if (backlog <= 0) return shown;
 
-      const drainSeconds = Math.max(1, (gapMs * DRAIN_RATIO) / 1000);
-      const cps = Math.min(MAX_CPS, Math.max(MIN_CPS, backlog / drainSeconds));
+      // Note `backlog` shrinks as text is revealed, so `backlog / drainSeconds`
+      // is an exponential decay, not a linear drain - drainSeconds is a time
+      // constant, not a deadline. That decay is deliberate for later bursts:
+      // it keeps trickling instead of finishing early and freezing.
+      //
+      // The FIRST burst is different. There's no measured gap yet, only the 30s
+      // assumption, and decaying against it takes ~27s to show one paragraph -
+      // long enough that re-transcribe reads as broken rather than slow. It's
+      // the one moment the user is waiting for any sign of life, so it gets a
+      // flat rate sized to finish on time. From the second burst the real gap
+      // is known and the normal pacing takes over.
+      const cps = seenBurst
+        ? Math.min(MAX_CPS, Math.max(MIN_CPS, backlog / Math.max(1, (gapMs * DRAIN_RATIO) / 1000)))
+        : Math.max(MIN_CPS, firstBurstChars / (FIRST_BURST_DRAIN_MS / 1000));
       shown = Math.min(target, shown + cps * dt);
       return shown;
     },
