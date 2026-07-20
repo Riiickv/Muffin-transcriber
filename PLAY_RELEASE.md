@@ -123,18 +123,30 @@ browser. Neither transmits user data.
 
 ## 4b. Foreground service declaration (Play Console → App content → App access / Foreground service)
 
-REQUIRED, and easy to miss: the app declares two foreground services (visible in
-the manifest), and on target SDK 34+ Play makes you justify each type. Without
-this the release is blocked.
+REQUIRED, and easy to miss: the app declares a foreground service (visible in the
+manifest), and on target SDK 34+ Play makes you justify each type AND, for the
+"Other" tasks, demands a **video link** demonstrating the use. Without this the
+release is blocked.
 
-| Service type | Why the app uses it | What to say |
+The app declares exactly ONE foreground service, `dataSync`:
+
+| Service type | Task to tick | Why / what to say |
 |---|---|---|
-| `dataSync` | Model downloads (hundreds of MB) must survive leaving the screen / backgrounding, with a live progress notification | "Downloads large AI model files in the background so transcription works fully offline; shown as an ongoing progress notification the user can pause/cancel." |
-| `mediaPlayback` | Playing back a recording's audio with lock-screen / notification controls | "Plays the user's recorded audio with standard media controls." |
+| `dataSync` | Network processing → **Other** | Model downloads (hundreds of MB) must survive leaving the screen / backgrounding, with a live progress notification. Justify: "User-initiated download of large AI model files from a public model repository, run as a foreground service with an ongoing, cancellable progress notification so the download survives backgrounding; enables fully on-device offline transcription." |
 
-`dataSync` gets extra scrutiny - be specific that it's user-initiated model
-downloading, not background data collection. A short screen recording of the
-download notification is worth having ready in case review asks.
+Because it's an "Other" task, Play requires a **video** (unlisted YouTube or a
+public Google-Drive link): record a model downloading, show the progress
+notification, then leave the app / lock the screen to show it keeps going. That
+is the whole justification for a foreground service.
+
+**`mediaPlayback` was intentionally removed** (versionCode 59). expo-audio ships
+an `AudioControlsService` (`FOREGROUND_SERVICE_MEDIA_PLAYBACK`) by default via its
+`enableBackgroundPlayback` plugin option, but the app never enables background
+playback (`setAudioModeAsync` is never called with `shouldPlayInBackground`), so
+the service never started. It was dead weight that Play still demanded a demo
+video for. Setting `enableBackgroundPlayback: false` on the `expo-audio` plugin
+(plus dropping the permission from `app.json`) strips the service, so only the
+`dataSync` declaration above remains. In-app (foreground) playback is unaffected.
 
 ## 5. Store listing needs (your department)
 
