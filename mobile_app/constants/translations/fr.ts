@@ -116,6 +116,7 @@ export const FR = {
   },
 
   chat: {
+    betaEnableBody: "Le Chat avec Muffin n'est pas encore prêt. Tu peux le tester et m'envoyer un retour, ça accélérerait beaucoup son développement.\n\nCe qui marche pour l'instant :\n• Il peut changer les réglages de l'app pour toi, et te montrer où ils sont.\n• Il connaît toute l'app, donc il peut t'aider à trouver ce que tu veux.\n• Il retrouve parfois la transcription qu'il te faut si tu lui donnes le sujet.\n\nCe qui ne marche pas :\n• Tu ne peux pas discuter avec lui de façon fiable, donc il ne peut pas vraiment t'aider à réfléchir à partir de tes transcriptions. C'est une limite des appareils mobiles, et je cherche tous les moyens possibles d'alléger la charge sur les téléphones moyens et moins puissants.\n\nIl y a beaucoup d'autres fonctions prévues, mais ça demande du temps et des tests.\n\nMerci pour ta patience !\n\n-Rick",
     header: "Chat",
     beta: "Beta",
     betaTitle: "Chat en bêta",
@@ -174,6 +175,7 @@ export const FR = {
   },
 
   settings: {
+    chatBetaLabel: "Chat avec Muffin",
     header: "Réglages",
 
     segmentPreferences: "Préférences",

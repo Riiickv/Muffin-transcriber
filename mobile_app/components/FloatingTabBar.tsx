@@ -61,7 +61,9 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   // The ROUTE stays registered - only the button is hidden. The assistant's
   // NAVIGATE_TO can still reach chat, and anyone who lands there gets the
   // "download a model" screen rather than a dead end.
-  const hasChatModel = !!settings.preferredChatModel;
+  // Two gates now: the beta opt-in (Settings) AND a model to run it with. Chat
+  // stays completely out of sight until someone deliberately turns it on.
+  const hasChatModel = settings.enableChatBeta && !!settings.preferredChatModel;
   const [kbVisible, setKbVisible] = useState(false);
 
   // A floating bar sits ON the content, so unlike a docked bar it would cover
