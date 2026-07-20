@@ -121,6 +121,21 @@ browser. Neither transmits user data.
 | Health | None |
 | Account deletion | Not applicable (no accounts) |
 
+## 4b. Foreground service declaration (Play Console → App content → App access / Foreground service)
+
+REQUIRED, and easy to miss: the app declares two foreground services (visible in
+the manifest), and on target SDK 34+ Play makes you justify each type. Without
+this the release is blocked.
+
+| Service type | Why the app uses it | What to say |
+|---|---|---|
+| `dataSync` | Model downloads (hundreds of MB) must survive leaving the screen / backgrounding, with a live progress notification | "Downloads large AI model files in the background so transcription works fully offline; shown as an ongoing progress notification the user can pause/cancel." |
+| `mediaPlayback` | Playing back a recording's audio with lock-screen / notification controls | "Plays the user's recorded audio with standard media controls." |
+
+`dataSync` gets extra scrutiny - be specific that it's user-initiated model
+downloading, not background data collection. A short screen recording of the
+download notification is worth having ready in case review asks.
+
 ## 5. Store listing needs (your department)
 
 - App icon 512×512 (have: `icon.png` - export at 512)
