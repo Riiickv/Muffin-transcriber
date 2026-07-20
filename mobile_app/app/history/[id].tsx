@@ -59,8 +59,9 @@ export default function HistoryDetailScreen() {
   const [transcriptTab, setTranscriptTab] = useState<TranscriptTab>('raw');
   const [isProcessing, setIsProcessing] = useState(false);
   // Re-transcribe runs on this screen rather than in the provider, so it keeps
-  // its own progress.
+  // its own progress and its own partial text.
   const [localProgress, setLocalProgress] = useState<ProgressReading | null>(null);
+  const [localPartial, setLocalPartial] = useState('');
   const [processingLabel, setProcessingLabel] = useState<null | 'retranscribe' | 'format' | 'summarize'>(null);
 
   const [activeEntity, setActiveEntity] = useState<{ quote: string; name: string; type: 'date' | 'time' } | null>(null);
@@ -73,7 +74,7 @@ export default function HistoryDetailScreen() {
   // A just-recorded note lands here empty while the recording provider
   // transcribes it in the background. Show a live "Transcribing..." state until
   // the raw text arrives.
-  const { transcribingId, transcribeProgress } = useRecording();
+  const { transcribingId, transcribeProgress, partialText } = useRecording();
   const isTranscribingThis = transcribingId === id && !item?.rawTranscript;
 
   const transcript =
@@ -82,6 +83,12 @@ export default function HistoryDetailScreen() {
       : transcriptTab === 'formatted'
       ? item?.formattedTranscript || ''
       : item?.rawTranscript || '';
+
+  // Live text from whichever transcription is running: the recorder's, or a
+  // Re-transcribe started on this screen. Only while it's actually running, so
+  // a leftover value can't sit on top of the finished transcript.
+  const streamingText =
+    (isTranscribingThis && partialText) || (isProcessing && processingLabel === 'retranscribe' && localPartial) || '';
 
   // Recomputed per tab: the stored quotes come from the raw transcript, but
   // formatted and summary are reworded, so they need their own pass.
@@ -170,14 +177,18 @@ export default function HistoryDetailScreen() {
       // the converter was wired into the Record tab.
       const tracker = createProgressTracker();
       let lastPush = 0;
-      const result = await transcribeAudio(item.sourceFilePath, langCode, (raw) => {
-        const reading = tracker.update(raw);
-        const now = Date.now();
-        if (now - lastPush < 500 && reading.percent < 100) return;
-        lastPush = now;
-        setLocalProgress(reading);
+      const result = await transcribeAudio(item.sourceFilePath, langCode, {
+        onProgress: (raw) => {
+          const reading = tracker.update(raw);
+          const now = Date.now();
+          if (now - lastPush < 500 && reading.percent < 100) return;
+          lastPush = now;
+          setLocalProgress(reading);
+        },
+        onPartialText: setLocalPartial,
       });
       setLocalProgress(null);
+      setLocalPartial('');
       await addOrUpdate({ ...item, rawTranscript: result.text.trim() });
       setTranscriptTab('raw');
       haptics.success();
@@ -189,6 +200,7 @@ export default function HistoryDetailScreen() {
       setIsProcessing(false);
       setProcessingLabel(null);
       setLocalProgress(null);
+      setLocalPartial('');
     }
   };
 
@@ -479,10 +491,20 @@ export default function HistoryDetailScreen() {
         </View>
 
         <View style={[styles.transcriptBox, { borderColor: theme.divider }]}>
-          {/* Arriving here straight from a recording is the longest wait of the
-              lot, so it gets the same card as every other wait rather than a
-              bare spinner. */}
-          {isProcessing || isTranscribingThis ? (
+          {/* Once whisper starts handing back words, showing them beats any
+              waiting card: a long recording is long no matter what we do, so
+              the least we can do is give them something to read meanwhile. */}
+          {streamingText ? (
+            <ScrollView nestedScrollEnabled>
+              <Text style={[styles.transcriptText, { color: theme.text }]}>{streamingText}</Text>
+              <Text style={[styles.streamingNote, { color: theme.textMuted }]}>
+                {describeProgress(
+                  t('record.transcribing') || 'Transcribing...',
+                  isTranscribingThis ? transcribeProgress : localProgress
+                )}
+              </Text>
+            </ScrollView>
+          ) : isProcessing || isTranscribingThis ? (
             <WaitingCard
               status={
                 isTranscribingThis
@@ -630,6 +652,12 @@ const styles = StyleSheet.create({
   transcriptText: {
     fontSize: 16,
     lineHeight: 24,
+  },
+  /** The "still going" line under the text that's streaming in. */
+  streamingNote: {
+    fontSize: 13,
+    marginTop: SPACING.md,
+    fontStyle: 'italic',
   },
   dialogInput: {
     borderWidth: 1,

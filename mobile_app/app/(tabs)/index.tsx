@@ -13,7 +13,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
-import { createProgressTracker, describeProgress } from '@/utils/transcribeProgress';
+import { createProgressTracker, describeProgress, ProgressReading } from '@/utils/transcribeProgress';
 import { convertToWav } from '@/modules/audio-converter';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
@@ -180,12 +180,24 @@ export default function HomeScreen() {
       // that most needs to say how far along it is.
       const tracker = createProgressTracker();
       let lastPush = 0;
-      const result = await transcribeFile(wavPath, langCode, (raw) => {
-        const reading = tracker.update(raw);
-        const now = Date.now();
-        if (now - lastPush < 500 && reading.percent < 100) return;
-        lastPush = now;
-        setRawText(describeProgress(transcribingLabel, reading));
+      let reading: ProgressReading | null = null;
+      let streamed = '';
+      // Once there are words, they replace the status line entirely - an
+      // imported lecture is long no matter what, so reading it as it arrives
+      // beats watching a percentage climb.
+      const paint = () => setRawText(streamed || describeProgress(transcribingLabel, reading));
+      const result = await transcribeFile(wavPath, langCode, {
+        onProgress: (raw) => {
+          reading = tracker.update(raw);
+          const now = Date.now();
+          if (now - lastPush < 500 && reading.percent < 100) return;
+          lastPush = now;
+          paint();
+        },
+        onPartialText: (text) => {
+          streamed = text;
+          paint();
+        },
       });
       const cleanText = result.text.trim();
       setRawText(cleanText);
