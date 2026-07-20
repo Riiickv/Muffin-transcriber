@@ -352,7 +352,7 @@ export default function HistoryDetailScreen() {
       const embedding = await generateEmbedding(formatted);
       // Against the raw text, so the quotes exist in the Raw tab too.
       const extractedDates = await queueLlama(() =>
-        extractActionableEntities(item.rawTranscript!, ready.modelPath, ready.modelFile)
+        extractActionableEntities(item.rawTranscript!, ready.modelPath, ready.modelFile, item.detectedLanguage)
       );
 
       await addOrUpdate({
