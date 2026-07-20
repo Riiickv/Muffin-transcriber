@@ -1,6 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
 import { Modal, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from './Themed';
@@ -11,16 +10,23 @@ import { ProgressBar } from './ProgressBar';
 import { StreamingText } from './StreamingText';
 import { showSupportDialog } from './WaitingCard';
 import { useDialog } from './Dialog';
-import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
+import { RADIUS, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
+
+/** Fixed chrome, so the frame's height can be arithmetic rather than a guess. */
+const BAR_HEIGHT = 56;
+const FOOTER_HEIGHT = 52;
 
 /**
  * The transcript at full height.
  *
- * Deliberately the same frame as the inline panel - same border, radius and
- * text metrics - so it reads as that panel growing rather than a different
- * screen appearing. The collapse control sits where the expand control was.
+ * EVERY height here is computed, and there is no flex and no animated wrapper.
+ * Three builds tried to fix this panel by adjusting flex, and each time it
+ * still rendered as a hairline with the support link stranded below it: inside
+ * a Modal, `flex: 1` had nothing definite to resolve against. Rather than keep
+ * guessing which ancestor was at fault, the layout no longer depends on any of
+ * them - the frame is told exactly how tall it is.
  */
 export function TranscriptFullscreen({
   visible,
@@ -33,7 +39,7 @@ export function TranscriptFullscreen({
   visible: boolean;
   onClose: () => void;
   text: string;
-  /** Something is still generating: type it out as it arrives. */
+  /** Something is still generating: shows the progress hairline and support link. */
   streaming?: boolean;
   /** Only whisper reports progress; omitted for the LLM steps. */
   percent?: number;
@@ -47,28 +53,23 @@ export function TranscriptFullscreen({
   const scrollRef = useRef<ScrollView>(null);
   const stick = useRef(true);
 
-  const scale = useSharedValue(0.96);
-  const opacity = useSharedValue(0);
-  useEffect(() => {
-    scale.value = withTiming(visible ? 1 : 0.96, MOTION.timingBase);
-    opacity.value = withTiming(visible ? 1 : 0, MOTION.timingBase);
-  }, [visible, scale, opacity]);
-  const grow = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }));
+  const footer = streaming ? FOOTER_HEIGHT : 0;
+  const frameHeight = Math.max(
+    120,
+    windowHeight - insets.top - insets.bottom - BAR_HEIGHT - footer - SPACING.md * 2
+  );
 
   return (
     <Modal visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      {/* Explicit window height, not `flex: 1`. Inside a Modal there is no
-          definite height to resolve flex against, so the frame's `flex: 1`
-          collapsed to nothing and the whole panel rendered as a hairline.
-          Measuring is the deterministic fix - the same lesson as the page
-          layout, where flex inside a ScrollView bounded nothing either. */}
       <View
-        style={[
-          styles.root,
-          { backgroundColor: theme.background, paddingTop: insets.top, height: windowHeight, width: windowWidth },
-        ]}
+        style={{
+          width: windowWidth,
+          height: windowHeight,
+          paddingTop: insets.top,
+          backgroundColor: theme.background,
+        }}
       >
-        <View style={styles.bar}>
+        <View style={[styles.bar, { height: BAR_HEIGHT }]}>
           <IconButton
             icon="close-fullscreen"
             variant="ghost-tint"
@@ -77,20 +78,18 @@ export function TranscriptFullscreen({
               onClose();
             }}
           />
-          {/* Icon-only here too - the label was the last one left. */}
           {!!onCopy && <IconButton icon="copy" variant="ghost-tint" onPress={onCopy} />}
         </View>
 
-        <Animated.View
+        <View
           style={[
             styles.frame,
-            { borderColor: theme.divider, marginBottom: insets.bottom + SPACING.md },
-            grow,
+            { height: frameHeight, borderColor: theme.divider, marginHorizontal: SPACING.md },
           ]}
         >
           <ScrollView
             ref={scrollRef}
-            style={{ flex: 1 }}
+            style={{ height: frameHeight - 2 }}
             contentContainerStyle={{ padding: SPACING.md }}
             onScroll={(e) => {
               const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
@@ -102,28 +101,22 @@ export function TranscriptFullscreen({
             }}
           >
             {/* `text` is already revealed by the screen's shared usePacedReveal,
-                so this shows exactly what the inline panel shows - the typing
-                carries over on open instead of restarting or stalling. */}
+                so this shows exactly what the inline panel shows. */}
             {streaming ? (
               <StreamingText text={text} style={[styles.text, { color: theme.text }]} />
             ) : (
               <Text style={[styles.text, { color: theme.text }]}>{text}</Text>
             )}
           </ScrollView>
+        </View>
 
-          {streaming && percent !== undefined && <ProgressBar percent={percent} />}
-        </Animated.View>
-
-        {/* Room for it here, unlike the inline panel where every line counts. */}
         {streaming && (
-          <Button
-            variant="ghost"
-            size="sm"
-            style={{ alignSelf: 'center', marginBottom: insets.bottom + SPACING.sm }}
-            onPress={() => showSupportDialog(dialog)}
-          >
-            {t('transcribe.supportMe') || 'Support me!'}
-          </Button>
+          <View style={[styles.footer, { height: FOOTER_HEIGHT, paddingHorizontal: SPACING.md }]}>
+            {percent !== undefined && <ProgressBar percent={percent} />}
+            <Button variant="ghost" size="sm" onPress={() => showSupportDialog(dialog)}>
+              {t('transcribe.supportMe') || 'Support me!'}
+            </Button>
+          </View>
         )}
       </View>
     </Modal>
@@ -131,20 +124,20 @@ export function TranscriptFullscreen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
   },
   frame: {
-    flex: 1,
-    marginHorizontal: SPACING.md,
     borderWidth: 1,
     borderRadius: RADIUS.sm,
     overflow: 'hidden',
+  },
+  footer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   /** Same metrics as the inline panel so nothing reflows on open. */
   text: { fontSize: 16, lineHeight: 24 },
