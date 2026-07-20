@@ -53,7 +53,13 @@ export function HeaderDownloadRing() {
         haptics.tap();
         setBannerExpanded(true);
       }}
-      style={{ marginRight: 14 }}
+      // alignSelf + explicit height, not just a margin: AnimatedPressable's
+      // inner view is `alignSelf: stretch, flexGrow: 1`, so if anything
+      // stretches this Pressable to the header's full height the 28px circle
+      // lands at the TOP of that box instead of on the logo's centre line.
+      // Sizing it to its content is the call-site fix the shared component's
+      // own comment asks for.
+      style={{ marginRight: 14, alignSelf: 'center', height: 28 }}
       accessibilityRole="button"
       accessibilityLabel={`${t('downloads.downloading') || 'Downloading'} ${Math.round(agg.avg * 100)}%`}
     >
