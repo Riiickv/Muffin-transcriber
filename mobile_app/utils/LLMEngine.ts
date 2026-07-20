@@ -383,6 +383,86 @@ export interface ActionableEntity {
   type: 'date' | 'time';
 }
 
+/**
+ * A clock reading: "5pm", "17:30", "5.30", "18h". Decides date-vs-time by
+ * inspection instead of trusting the model's guess.
+ */
+const CLOCK_RE = /\b\d{1,2}\s*[:.]\s*\d{2}\b|\b\d{1,2}\s*(?:am|pm|a\.m\.|p\.m\.)\b|\b\d{1,2}\s*h\b/i;
+
+/**
+ * Temporal cues in the languages the app itself speaks. NOT a parser - Whisper
+ * transcribes ~100 languages, so this can't be exhaustive. It's a sanity filter:
+ * a real date/time nearly always carries a digit, and this catches the common
+ * wordy ones ("tomorrow", "domani", "nächste Woche") that don't.
+ */
+const TEMPORAL_WORDS = [
+  // en
+  'today', 'tomorrow', 'tonight', 'yesterday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+  'saturday', 'sunday', 'january', 'february', 'march', 'april', 'june', 'july', 'august', 'september',
+  'october', 'november', 'december', 'morning', 'afternoon', 'evening', 'noon', 'midnight', 'week',
+  'month', 'year', 'weekend',
+  // it
+  'oggi', 'domani', 'stasera', 'ieri', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato',
+  'domenica', 'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto',
+  'settembre', 'ottobre', 'novembre', 'dicembre', 'mattina', 'pomeriggio', 'sera', 'mezzogiorno',
+  'settimana', 'mese', 'anno',
+  // es
+  'hoy', 'mañana', 'ayer', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'domingo', 'enero',
+  'febrero', 'abril', 'mayo', 'junio', 'julio', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  'tarde', 'noche', 'mediodía', 'semana', 'año',
+  // fr
+  "aujourd'hui", 'demain', 'hier', 'soir', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi',
+  'dimanche', 'janvier', 'février', 'mars', 'avril', 'juin', 'juillet', 'août', 'octobre', 'décembre',
+  'matin', 'midi', 'semaine', 'mois', 'année',
+  // de
+  'heute', 'morgen', 'gestern', 'abend', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag',
+  'samstag', 'sonntag', 'januar', 'februar', 'märz', 'juni', 'juli', 'oktober', 'dezember',
+  'vormittag', 'nachmittag', 'mittag', 'woche', 'monat', 'jahr',
+  // pt
+  'hoje', 'amanhã', 'ontem', 'noite', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'janeiro',
+  'fevereiro', 'março', 'maio', 'junho', 'julho', 'setembro', 'outubro', 'novembro', 'dezembro',
+  'manhã', 'meio-dia', 'mês',
+];
+
+function looksTemporal(quote: string): boolean {
+  if (/\d/.test(quote)) return true;
+  const lower = quote.toLowerCase();
+  return TEMPORAL_WORDS.some((w) => lower.includes(w));
+}
+
+/**
+ * Keep only entities we can actually stand behind.
+ *
+ * The highlight works by locating `quote` inside the transcript, so a quote the
+ * model invented either fails to match or latches onto something unrelated -
+ * which is exactly the "it highlights words that make no sense" problem. So:
+ * the quote must appear VERBATIM, must look temporal at all, must be unique, and
+ * the date/time type is decided by inspection rather than the model's guess.
+ */
+function sanitiseEntities(parsed: unknown, transcript: string): ActionableEntity[] {
+  if (!Array.isArray(parsed)) return [];
+  const haystack = transcript.toLowerCase();
+  const seen = new Set<string>();
+  const out: ActionableEntity[] = [];
+
+  for (const raw of parsed) {
+    if (!raw || typeof raw !== 'object') continue;
+    const quote = typeof (raw as any).quote === 'string' ? (raw as any).quote.trim() : '';
+    const name = typeof (raw as any).name === 'string' ? (raw as any).name.trim() : '';
+    if (quote.length < 3 || !name) continue;
+
+    const key = quote.toLowerCase();
+    if (!haystack.includes(key)) continue; // hallucinated quote
+    if (!looksTemporal(quote)) continue; // not actually a date or time
+    if (seen.has(key)) continue; // same moment twice
+    seen.add(key);
+
+    out.push({ quote, name, type: CLOCK_RE.test(quote) ? 'time' : 'date' });
+    if (out.length >= 5) break; // don't litter a transcript with highlights
+  }
+  return out;
+}
+
 export async function extractActionableEntities(transcript: string, modelPath: string, modelFile: string): Promise<ActionableEntity[]> {
   await loadLLM(modelPath);
   if (!llamaContext) return [];
@@ -401,15 +481,15 @@ export async function extractActionableEntities(transcript: string, modelPath: s
       prompt,
       n_predict: 512,
       temperature: 0.0,
+      // Without this a small model can emit the same entity over and over until
+      // it runs out of tokens, which also truncates the JSON.
+      penalty_repeat: 1.15,
+      penalty_last_n: 256,
     });
-    
+
     const output = extractFormatterOutput(result.text);
     const parsed = parseModelJson<any[]>(output);
-
-    if (Array.isArray(parsed)) {
-      return parsed.filter(item => item.quote && item.name && item.type);
-    }
-    return [];
+    return sanitiseEntities(parsed, transcript);
   } catch(e) {
     console.warn("Failed to extract actionable entities", e);
     return [];
