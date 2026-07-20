@@ -122,6 +122,8 @@ export const IT = {
     formatting: "Formattazione...",
     summarizing: "Riassunto in corso...",
     working: "Elaborazione...",
+    summaryTooShort: "Troppo corto per riassumerlo.",
+    summaryFailed: "Non sono riuscito a riassumerlo.",
 
     whisperModelLabel: "Qualità trascrizione",
     formatterModelLabel: "Qualità formattazione",

@@ -97,6 +97,8 @@ export const DE = {
     formatting: "Wird formatiert...",
     summarizing: "Wird zusammengefasst...",
     working: "Arbeitet...",
+    summaryTooShort: "Zu kurz für eine Zusammenfassung.",
+    summaryFailed: "Konnte das nicht zusammenfassen.",
 
     whisperModelLabel: "Transkriptionsqualität",
     formatterModelLabel: "Formatierungsqualität",
