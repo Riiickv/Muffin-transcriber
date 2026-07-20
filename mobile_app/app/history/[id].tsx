@@ -1,5 +1,5 @@
-import { StyleSheet, TextInput, View, ScrollView } from 'react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, TextInput, useWindowDimensions, View, ScrollView } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Clipboard from 'expo-clipboard';
@@ -14,6 +14,8 @@ import { IconButton } from '@/components/IconButton';
 import { Button } from '@/components/Button';
 import { WaitingCard } from '@/components/WaitingCard';
 import { StreamingText } from '@/components/StreamingText';
+import { ProgressBar } from '@/components/ProgressBar';
+import { TranscriptFullscreen } from '@/components/TranscriptFullscreen';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory } from '@/utils/historyStore';
@@ -63,6 +65,11 @@ export default function HistoryDetailScreen() {
   // its own progress and its own partial text.
   const [localProgress, setLocalProgress] = useState<ProgressReading | null>(null);
   const [localPartial, setLocalPartial] = useState('');
+  const [fullscreen, setFullscreen] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
+  const streamScrollRef = useRef<ScrollView>(null);
+  /** False once the user scrolls up, so auto-follow doesn't fight them. */
+  const stickToBottom = useRef(true);
   const [processingLabel, setProcessingLabel] = useState<null | 'retranscribe' | 'format' | 'summarize'>(null);
 
   const [activeEntity, setActiveEntity] = useState<{ quote: string; name: string; type: 'date' | 'time' } | null>(null);
@@ -85,11 +92,16 @@ export default function HistoryDetailScreen() {
       ? item?.formattedTranscript || ''
       : item?.rawTranscript || '';
 
-  // Live text from whichever transcription is running: the recorder's, or a
-  // Re-transcribe started on this screen. Only while it's actually running, so
-  // a leftover value can't sit on top of the finished transcript.
-  const streamingText =
-    (isTranscribingThis && partialText) || (isProcessing && processingLabel === 'retranscribe' && localPartial) || '';
+  // Live text from whatever is running here: the recorder's transcription, or
+  // a Re-transcribe / Format / Summarize started on this screen. Only while
+  // it's actually running, so a leftover can't sit on the finished transcript.
+  const streamingText = (isTranscribingThis && partialText) || (isProcessing && localPartial) || '';
+  /**
+   * Whisper's output is paced (paragraph bursts need spreading); the LLM's is
+   * not, since its tokens already arrive at reading speed. Only whisper
+   * reports a percentage, so the hairline follows the same flag.
+   */
+  const isStreamingWhisper = isTranscribingThis || processingLabel === 'retranscribe';
 
   // Recomputed per tab: the stored quotes come from the raw transcript, but
   // formatted and summary are reworded, so they need their own pass.
@@ -213,8 +225,14 @@ export default function HistoryDetailScreen() {
     setIsProcessing(true);
     setProcessingLabel('format');
     try {
-      const formatted = await formatTranscript(item.rawTranscript, ready.modelPath, ready.modelFile);
-      
+      const formatted = await formatTranscript(
+        item.rawTranscript,
+        ready.modelPath,
+        ready.modelFile,
+        setLocalPartial
+      );
+      setLocalPartial('');
+
       const embedding = await generateEmbedding(formatted);
       // Against the raw text, so the quotes exist in the Raw tab too.
       const extractedDates = await extractActionableEntities(item.rawTranscript, ready.modelPath, ready.modelFile);
@@ -237,6 +255,8 @@ export default function HistoryDetailScreen() {
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
+      // If the model threw, the partial would otherwise stay on screen.
+      setLocalPartial('');
     }
   };
 
@@ -248,7 +268,13 @@ export default function HistoryDetailScreen() {
     setIsProcessing(true);
     setProcessingLabel('summarize');
     try {
-      const summarized = await summarizeTranscript(item.rawTranscript, ready.modelPath, ready.modelFile);
+      const summarized = await summarizeTranscript(
+        item.rawTranscript,
+        ready.modelPath,
+        ready.modelFile,
+        setLocalPartial
+      );
+      setLocalPartial('');
       await addOrUpdate({ ...item, summary: summarized });
       setTranscriptTab('summary');
       haptics.success();
@@ -262,6 +288,8 @@ export default function HistoryDetailScreen() {
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
+      // If the model threw, the partial would otherwise stay on screen.
+      setLocalPartial('');
     }
   };
 
@@ -479,31 +507,57 @@ export default function HistoryDetailScreen() {
             value={transcriptTab}
             onChange={setTranscriptTab}
           />
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="copy"
-            onPress={handleCopy}
-            disabled={!transcript}
-          >
-            {t('historyDetail.copyButton') || 'Copy'}
-          </Button>
+          <IconButton icon="copy" onPress={handleCopy} disabled={!transcript} />
+          <IconButton
+            icon="open-in-full"
+            onPress={() => {
+              haptics.tap();
+              setFullscreen(true);
+            }}
+            disabled={!transcript && !streamingText}
+          />
         </View>
 
-        <View style={[styles.transcriptBox, { borderColor: theme.divider }]}>
+        {/* Bounded, like the Muffin! tab: an unbounded box inside a scroll
+            container grows with the text and drags the whole page taller. */}
+        <View
+          style={[
+            styles.transcriptBox,
+            { borderColor: theme.divider, height: Math.max(260, Math.round(windowHeight * 0.42)) },
+          ]}
+        >
           {/* Once whisper starts handing back words, showing them beats any
               waiting card: a long recording is long no matter what we do, so
               the least we can do is give them something to read meanwhile. */}
           {streamingText ? (
-            <ScrollView nestedScrollEnabled>
-              <StreamingText text={streamingText} style={[styles.transcriptText, { color: theme.text }]} />
-              <Text style={[styles.streamingNote, { color: theme.textMuted }]}>
-                {describeProgress(
-                  t('record.transcribing') || 'Transcribing...',
-                  isTranscribingThis ? transcribeProgress : localProgress
-                )}
-              </Text>
-            </ScrollView>
+            <>
+              <ScrollView
+                ref={streamScrollRef}
+                nestedScrollEnabled
+                style={{ flex: 1 }}
+                onScroll={(e) => {
+                  const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+                  stickToBottom.current =
+                    layoutMeasurement.height + contentOffset.y >= contentSize.height - 40;
+                }}
+                scrollEventThrottle={100}
+                onContentSizeChange={() => {
+                  if (stickToBottom.current) streamScrollRef.current?.scrollToEnd({ animated: true });
+                }}
+              >
+                <StreamingText
+                  text={streamingText}
+                  paced={isStreamingWhisper}
+                  style={[styles.transcriptText, { color: theme.text }]}
+                />
+              </ScrollView>
+              {isStreamingWhisper && (
+                <ProgressBar
+                  percent={(isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0}
+                  style={{ marginTop: SPACING.sm }}
+                />
+              )}
+            </>
           ) : isProcessing || isTranscribingThis ? (
             <WaitingCard
               status={
@@ -527,6 +581,18 @@ export default function HistoryDetailScreen() {
         </View>
       </Card>
       </ScrollView>
+
+      <TranscriptFullscreen
+        visible={fullscreen}
+        onClose={() => setFullscreen(false)}
+        text={streamingText || transcript}
+        streaming={!!streamingText}
+        paced={isStreamingWhisper}
+        percent={
+          isStreamingWhisper ? (isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0 : undefined
+        }
+        onCopy={transcript ? handleCopy : undefined}
+      />
 
       {/* Uses DialogCard directly, not dialog.show, because it needs a live TextInput. */}
       <DialogCard
@@ -652,12 +718,6 @@ const styles = StyleSheet.create({
   transcriptText: {
     fontSize: 16,
     lineHeight: 24,
-  },
-  /** The "still going" line under the text that's streaming in. */
-  streamingNote: {
-    fontSize: 13,
-    marginTop: SPACING.md,
-    fontStyle: 'italic',
   },
   dialogInput: {
     borderWidth: 1,
