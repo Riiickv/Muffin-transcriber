@@ -16,7 +16,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "allowBackup": false,
-      "versionCode": 58,
+      "versionCode": 59,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
@@ -25,7 +25,6 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.VIBRATE",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "com.android.alarm.permission.SET_ALARM"
       ],
       "adaptiveIcon": {
@@ -64,7 +63,12 @@
           }
         }
       ],
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": false
+        }
+      ],
       [
         "expo-share-intent",
         {
