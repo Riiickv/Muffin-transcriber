@@ -8,5 +8,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["**/*.ts", "../utils/streamingDrip.ts", "../utils/transcribeProgress.ts", "../utils/entityExtraction.ts", "../utils/textCleanup.ts"]
+  "//include": "just the test files; tsc follows their imports into the pure utils/ modules under test",
+  "include": ["**/*.ts"]
 }
