@@ -522,8 +522,8 @@ export default function HomeScreen() {
           is flexBasis:0%, so with no free space to grow into the card would
           collapse to zero instead of pushing the page taller. */}
       <Card index={2} style={{ flex: 1, minHeight: 260 }}>
-        <Text style={styles.sectionTitle}>{t('transcribe.transcriptTitle') || 'Transcript'}</Text>
-
+        {/* No heading: the Raw/Formatted/Summary control already says what this
+            card is, and the card itself does the grouping a title used to. */}
         <View style={styles.tabRow}>
           <SegmentedControl
             style={{ flex: 1, marginRight: SPACING.md }}
