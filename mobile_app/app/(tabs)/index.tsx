@@ -1,4 +1,4 @@
-import { Image, ScrollView, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '@/components/Themed';
@@ -66,7 +66,6 @@ export default function HomeScreen() {
   const [streamingText, setStreamingText] = useState('');
   const [transcribePercent, setTranscribePercent] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
-  const { height: windowHeight } = useWindowDimensions();
   /** Partial format/summary output while the LLM generates it. */
   const [formatPartial, setFormatPartial] = useState('');
   const [summaryPartial, setSummaryPartial] = useState('');
@@ -518,10 +517,11 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      {/* minHeight matters now that this sits in a scroll container: `flex: 1`
-          is flexBasis:0%, so with no free space to grow into the card would
-          collapse to zero instead of pushing the page taller. */}
-      <Card index={2} style={{ flex: 1, minHeight: 260 }}>
+      {/* flex:1 so this card absorbs exactly the space the other cards leave,
+          which is what makes the page fill the screen and stop scrolling.
+          minHeight is the floor for a short screen: below it the page scrolls
+          rather than crushing the transcript to nothing. */}
+      <Card index={2} style={{ flex: 1, minHeight: 200 }}>
         {/* No heading: the Raw/Formatted/Summary control already says what this
             card is, and the card itself does the grouping a title used to. */}
         <View style={styles.tabRow}>
@@ -531,11 +531,14 @@ export default function HomeScreen() {
             value={transcriptTab}
             onChange={setTranscriptTab}
           />
-          {/* Both icon-only: the labels were spending a third of the row on
-              two words the glyphs already say. */}
-          <IconButton icon="copy" onPress={handleCopy} disabled={!currentText} />
+          {/* ghost-tint + sm: same look as the ghost Button they replaced, so
+              they read as part of the row rather than a new kind of control. */}
+          <IconButton icon="copy" variant="ghost-tint" size="sm" onPress={handleCopy} disabled={!currentText} />
           <IconButton
             icon="open-in-full"
+            variant="ghost-tint"
+            size="sm"
+            style={{ marginLeft: SPACING.xs }}
             onPress={() => {
               haptics.tap();
               setFullscreen(true);
@@ -545,16 +548,11 @@ export default function HomeScreen() {
         </View>
 
         {live || isTranscribing ? (
-          /* Bounded, not flex: inside a scroll container an unbounded box grows
-             with the transcript and drags the whole page taller, so following
-             the text meant scrolling the entire screen. Capped, the text scrolls
-             inside its own frame and the page stays put. */
-          <View
-            style={[
-              styles.transcriptBox,
-              { borderColor: theme.divider, height: Math.max(260, Math.round(windowHeight * 0.42)) },
-            ]}
-          >
+          /* flex, not a fixed height: a hard height can't know what the cards
+             above it left over, so it either overflowed the screen or wasted
+             space. Filling the remainder is what makes the page exactly one
+             screen tall. */
+          <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1 }]}>
             {live ? (
               <>
                 <ScrollView
