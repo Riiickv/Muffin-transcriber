@@ -552,7 +552,6 @@ export default function HistoryDetailScreen() {
               >
                 <StreamingText
                   text={streamingText}
-                  paced={isStreamingWhisper}
                   style={[styles.transcriptText, { color: theme.text }]}
                 />
               </ScrollView>
@@ -595,7 +594,6 @@ export default function HistoryDetailScreen() {
         onClose={() => setFullscreen(false)}
         text={streamingText || transcript}
         streaming={!!streamingText}
-        paced={isStreamingWhisper}
         percent={
           isStreamingWhisper ? (isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0 : undefined
         }

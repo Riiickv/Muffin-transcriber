@@ -571,7 +571,6 @@ export default function HomeScreen() {
                 >
                   <StreamingText
                     text={live.text}
-                    paced={live.paced}
                     style={[styles.streamingText, { color: theme.text }]}
                   />
                 </ScrollView>
@@ -601,7 +600,6 @@ export default function HomeScreen() {
         onClose={() => setFullscreen(false)}
         text={liveText || currentText}
         streaming={!!live}
-        paced={live?.paced ?? true}
         percent={isTranscribing ? transcribePercent : undefined}
         onCopy={currentText ? handleCopy : undefined}
       />
