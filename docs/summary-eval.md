@@ -44,6 +44,25 @@ worth more than a description of it.
 - [ ] Both dates and the time survive
 - [ ] Highlights appear on Raw, Formatted and Summary
 
+## 2b. Format must actually fix the text
+
+Record something with a real speech-to-text error in it. The known case:
+
+> "...perché se no poi fare tardi"
+
+`se no ... fare` is not grammatical Italian; a person would write
+`perché sennò poi fai tardi`.
+
+- [ ] First letter capitalized, sentence ends with a full stop
+- [ ] Run-together/split words corrected (`se no` to `sennò`)
+- [ ] Wrong verb forms corrected (`fare` to `fai`)
+- [ ] Meaning unchanged, and NOTHING added that wasn't said
+- [ ] Still Italian
+
+The last two are the risk. Allowing the model to change words is what lets it
+fix grammar, and also what lets it drift. If it starts inventing, the
+instruction has gone too far and needs pulling back.
+
 ## 3. Nothing to do
 
 > "Just thinking out loud about the colours for the poster, the blue one felt

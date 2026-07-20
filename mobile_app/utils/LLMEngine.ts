@@ -392,9 +392,19 @@ export async function formatTranscript(
   // Positive phrasing, same reasoning as the rules above: "keep every word and
   // add only punctuation" says the same thing as the old list of five "do not"s
   // and gives the model something to follow rather than avoid.
+  // "Word for word" made Format useless. On "perché se no poi fare tardi" -
+  // which is not grammatical Italian - the only honest output under that rule
+  // was the same broken sentence back. Speech-to-text produces exactly this:
+  // run-together words ("se no" for "sennò") and wrong verb forms ("fare" for
+  // "fai"). Cleaning those up IS the job.
+  //
+  // The line it must not cross is inventing content, so the instruction asks
+  // for corrections to what was said and nothing added. That's a real
+  // trade: a model allowed to change words can change meaning, and the
+  // grounding rule below is what holds it.
   const taskInstruction =
     customFormat ||
-    'Repeat the transcript word for word in its original language, adding punctuation, capitalization and paragraph breaks. Keep every word the speaker said and stop when the transcript stops.';
+    'Write the transcript out as correct, readable text in its own language. Add punctuation, capitalization and paragraph breaks, and fix clear speech-to-text errors such as wrong verb forms, wrong agreement, and words split or joined incorrectly. Keep the speaker\'s wording wherever it is already correct, keep the meaning exactly, and add nothing that was not said.';
   
   let memoryContext = "";
   if (settings.enableContextLearning) {
