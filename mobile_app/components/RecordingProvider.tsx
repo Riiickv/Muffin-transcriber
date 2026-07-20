@@ -12,6 +12,7 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { useDialog } from '@/components/Dialog';
 import { loadWhisper } from '@/utils/WhisperEngine';
 import { transcribeAudio, ensureAudioDir, AUDIO_DIR } from '@/utils/audioTranscription';
+import { createProgressTracker, ProgressReading } from '@/utils/transcribeProgress';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useSettings } from '@/utils/settingsStore';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
@@ -33,6 +34,8 @@ interface RecordingContextValue {
   isRecording: boolean;
   /** id of the history item currently being transcribed, or null. */
   transcribingId: string | null;
+  /** Live progress for that item: percent done, and seconds left once measurable. */
+  transcribeProgress: ProgressReading | null;
   /** Tap the mic: start if idle, stop + transcribe if recording. */
   toggle: () => void;
   /** Live mic level 0..1 (UI-thread shared value) for the waveform. */
@@ -43,6 +46,7 @@ const noopLevel = { value: 0 } as SharedValue<number>;
 const RecordingContext = createContext<RecordingContextValue>({
   isRecording: false,
   transcribingId: null,
+  transcribeProgress: null,
   toggle: () => {},
   level: noopLevel,
 });
@@ -58,6 +62,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
 
   const [isRecording, setIsRecording] = useState(false);
   const [transcribingId, setTranscribingId] = useState<string | null>(null);
+  const [transcribeProgress, setTranscribeProgress] = useState<ProgressReading | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   // Serialise the handler: a fast double-tap otherwise starts twice, and
   // prepareToRecordAsync() throws on an already-recording recorder.
@@ -211,7 +216,19 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         }
         await loadWhisper(ModelManager.getModelPath(settings.preferredWhisperModel));
         const langCode = toLanguageCode(settings.defaultLanguage);
-        const result = await transcribeAudio(audioPath!, langCode);
+
+        // whisper fires this many times a second; throttle to ~2/s so a long
+        // transcription isn't also a re-render storm.
+        const tracker = createProgressTracker();
+        let lastPush = 0;
+        const result = await transcribeAudio(audioPath!, langCode, (raw) => {
+          const reading = tracker.update(raw);
+          const now = Date.now();
+          if (now - lastPush < 500 && reading.percent < 100) return;
+          lastPush = now;
+          setTranscribeProgress(reading);
+        });
+        setTranscribeProgress(null);
         await updateHistoryItem(id, { rawTranscript: result.text.trim() });
 
         const hasLlm = !!settings.preferredFormatterModel;
@@ -246,6 +263,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
       } finally {
         deactivateKeepAwake('record-transcription');
         setTranscribingId(null);
+        setTranscribeProgress(null);
       }
     })();
 
@@ -299,7 +317,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <RecordingContext.Provider value={{ isRecording, transcribingId, toggle, level }}>
+    <RecordingContext.Provider value={{ isRecording, transcribingId, transcribeProgress, toggle, level }}>
       {children}
     </RecordingContext.Provider>
   );
