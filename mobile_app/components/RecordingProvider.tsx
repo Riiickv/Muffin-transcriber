@@ -247,7 +247,10 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         });
         setTranscribeProgress(null);
         setPartialText('');
-        await updateHistoryItem(id, { rawTranscript: result.text.trim() });
+        await updateHistoryItem(id, {
+          rawTranscript: result.text.trim(),
+          detectedLanguage: result.language,
+        });
 
         const hasLlm = !!settings.preferredFormatterModel;
         const llmPath = hasLlm ? ModelManager.getModelPath(settings.preferredFormatterModel) : '';
@@ -255,6 +258,9 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
           rawText: result.text,
           modelPath: llmPath,
           modelFile: settings.preferredFormatterModel,
+          // Names the output language in the prompts; without it a small
+          // model reading an English prompt answers in English.
+          sourceLanguage: result.language,
           format: settings.formatByDefault && hasLlm,
           summarize: settings.summarizeByDefault && hasLlm,
           title: hasLlm,

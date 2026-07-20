@@ -26,6 +26,8 @@ export interface EnrichmentOptions {
   /** Partial output as the model generates it, for the live typewriter. */
   onFormatPartial?: (text: string) => void;
   onSummaryPartial?: (text: string) => void;
+  /** Whisper's detected code, so prompts can name the output language. */
+  sourceLanguage?: string;
 }
 
 export interface EnrichmentResult {
@@ -79,7 +81,7 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
 
   if (opts.format) {
     opts.onStage?.('formatting');
-    result.formatted = await formatTranscript(rawText, modelPath, modelFile, opts.onFormatPartial).catch(
+    result.formatted = await formatTranscript(rawText, modelPath, modelFile, opts.onFormatPartial, opts.sourceLanguage).catch(
       () => undefined
     );
     if (result.formatted) opts.onFormatted?.(result.formatted);
@@ -87,7 +89,7 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
 
   if (opts.summarize) {
     opts.onStage?.('summarizing');
-    result.summarized = await summarizeTranscript(rawText, modelPath, modelFile, opts.onSummaryPartial).catch(
+    result.summarized = await summarizeTranscript(rawText, modelPath, modelFile, opts.onSummaryPartial, opts.sourceLanguage).catch(
       () => undefined
     );
     if (result.summarized) opts.onSummarized?.(result.summarized);

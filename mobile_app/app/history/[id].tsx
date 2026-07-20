@@ -304,7 +304,11 @@ export default function HistoryDetailScreen() {
       // an empty partial makes the render fall through to WaitingCard - so the
       // finished text would blink out and "While you're waiting..." would
       // appear AFTER the work was done. The finally clears it.
-      await addOrUpdate({ ...item, rawTranscript: result.text.trim() });
+      await addOrUpdate({
+        ...item,
+        rawTranscript: result.text.trim(),
+        detectedLanguage: result.language ?? item.detectedLanguage,
+      });
       setTranscriptTab('raw');
       haptics.success();
     } catch (e) {
@@ -327,8 +331,12 @@ export default function HistoryDetailScreen() {
       // mid-run let a recording's enrichment start on the same context and
       // wedge it. Every llama call from here goes through the shared queue.
       const formatted = await queueLlama(() =>
-        formatTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, (text) =>
-          updateAiJob({ partial: text })
+        formatTranscript(
+          item.rawTranscript!,
+          ready.modelPath,
+          ready.modelFile,
+          (text) => updateAiJob({ partial: text }),
+          item.detectedLanguage
         )
       );
       // Save and release the UI HERE. What the user pressed the button for is
@@ -375,8 +383,12 @@ export default function HistoryDetailScreen() {
     const jobToken = startAiJob({ kind: 'summarize', label: labelForAction('summarize'), itemId: id });
     try {
       const summarized = await queueLlama(() =>
-        summarizeTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, (text) =>
-          updateAiJob({ partial: text })
+        summarizeTranscript(
+          item.rawTranscript!,
+          ready.modelPath,
+          ready.modelFile,
+          (text) => updateAiJob({ partial: text }),
+          item.detectedLanguage
         )
       );
       // Release the UI as soon as the summary exists; memory extraction is

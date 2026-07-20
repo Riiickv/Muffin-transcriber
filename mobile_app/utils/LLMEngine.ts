@@ -5,6 +5,7 @@ import { loadMemories, saveMemories, suggestMemories } from './memoryStore';
 // Relative, matching this file - mixing '@/utils/x' and './x' for the same
 // module makes Metro load it twice, which is what split the language state.
 import { t } from './i18n';
+import { languageNameFromCode } from './languages';
 
 // Strips the markdown code fences an LLM may wrap JSON in, then parses. Returns
 // null on any failure so callers can fall back gracefully.
@@ -205,6 +206,60 @@ function stripMarkdownArtifacts(text: string): string {
     .trim();
 }
 
+/**
+ * Guarantee the basics of formatting, whatever the model did.
+ *
+ * The default Format prompt asks for punctuation and capitalization, and on a
+ * real Italian note the model handed the text back essentially unchanged: no
+ * leading capital, no final stop, one word quietly swapped. So the minimum is
+ * DONE here rather than hoped for. Deterministic, language-agnostic, and it
+ * cannot invent or alter words - it only touches case and a trailing mark.
+ */
+export function ensureBasicPunctuation(text: string): string {
+  let out = text.trim();
+  if (!out) return out;
+
+  // First letter of the text, and of anything following a sentence end.
+  out = out.replace(/(^|[.!?]\s+|\n\s*)(\p{Ll})/gu, (_m, lead: string, ch: string) => lead + ch.toUpperCase());
+
+  if (!/[.!?:;)\]"'’”]$/.test(out)) out += '.';
+  return out;
+}
+
+/**
+ * Strip a label the model prefixed to its answer ("Summary note:", "Riassunto:").
+ * The rules ask it to begin with the result itself; small models add one anyway.
+ */
+export function stripLeadingLabel(text: string): string {
+  const lines = text.split('\n');
+  const first = lines[0]?.trim() ?? '';
+  // A short line that is only a heading and a colon.
+  if (lines.length > 1 && /^[\p{L} ]{1,24}:$/u.test(first)) {
+    return lines.slice(1).join('\n').trim();
+  }
+  return text;
+}
+
+/**
+ * True when a "summary" is really the transcript handed back.
+ *
+ * An Italian custom prompt made the model echo its input verbatim - a failure
+ * dressed as success, since the user gets their own words under a Summary tab.
+ * Measured by word overlap, not equality, because a near-copy is the same
+ * problem.
+ */
+export function looksLikeCopy(output: string, source: string): boolean {
+  const words = (x: string) =>
+    x.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').split(/\s+/).filter(Boolean);
+  const out = words(output);
+  const src = words(source);
+  if (out.length < 8 || src.length < 8) return false;
+  // A real summary is shorter. Only suspect it when it's near full length.
+  if (out.length < src.length * 0.6) return false;
+  const srcSet = new Set(src);
+  return out.filter((w) => srcSet.has(w)).length / out.length > 0.9;
+}
+
 function extractFormatterOutput(output: string): string {
   let text = output;
 
@@ -307,7 +362,9 @@ export async function formatTranscript(
   transcript: string,
   modelPath: string,
   modelFile: string,
-  onPartial?: (text: string) => void
+  onPartial?: (text: string) => void,
+  /** Whisper's detected code ("it"), so the prompt can name the language. */
+  sourceLanguage?: string
 ): Promise<string> {
   // Nothing to punctuate in a handful of words, and a model given a degenerate
   // transcript ("TRASH!") has no work to do - which is exactly when it starts
@@ -319,9 +376,17 @@ export async function formatTranscript(
   if (!llamaContext) throw new Error("LLM not loaded");
   
   const settings = await loadSettings();
-  const languageInstruction = settings.formatLanguage === "Auto-Detect / Original" 
-    ? "in the original language of the text" 
-    : `strictly in ${settings.formatLanguage} (DO NOT translate to English)`;
+  // Naming the language beats describing it. "in the original language of the
+  // text" left a small model reading an otherwise-English prompt to answer in
+  // English on an Italian note; "strictly in Italian" does not. sourceLanguage
+  // is whisper's own detection, which the app used to discard.
+  const detected = languageNameFromCode(sourceLanguage);
+  const languageInstruction =
+    settings.formatLanguage === "Auto-Detect / Original"
+      ? detected
+        ? `strictly in ${detected} (DO NOT translate)`
+        : "in the original language of the text"
+      : `strictly in ${settings.formatLanguage} (DO NOT translate to English)`;
     
   const customFormat = settings.customFormatSystemPrompt;
   // Positive phrasing, same reasoning as the rules above: "keep every word and
@@ -355,13 +420,16 @@ export async function formatTranscript(
     makeTokenStreamer(onPartial)
   );
 
-  const formatted = stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)));
+  const formatted = ensureBasicPunctuation(
+    stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)))
+  );
   // Default formatting only adds punctuation/casing, so output far shorter than
   // the input means the model got cut off - fall back to raw. Skip for custom
   // prompts, which may intentionally shorten (e.g. "remove filler words").
   const isDefaultFormatting = !customFormat.trim();
   if (looksUnstable(formatted, transcript) || (isDefaultFormatting && formatted.length < transcript.length * 0.7)) {
-    return transcript;
+    // Even the fallback gets the basics, so Format is never a no-op.
+    return isDefaultFormatting ? ensureBasicPunctuation(transcript) : transcript;
   }
   return formatted;
 }
@@ -370,7 +438,8 @@ export async function summarizeTranscript(
   transcript: string,
   modelPath: string,
   modelFile: string,
-  onPartial?: (text: string) => void
+  onPartial?: (text: string) => void,
+  sourceLanguage?: string
 ): Promise<string> {
   const wordCount = transcript.trim().split(/\s+/).length;
   if (wordCount < 15) return t('historyDetail.summaryTooShort') || 'Too short to summarize.';
@@ -379,9 +448,13 @@ export async function summarizeTranscript(
   if (!llamaContext) throw new Error("LLM not loaded");
   
   const settings = await loadSettings();
-  const languageInstruction = settings.formatLanguage === "Auto-Detect / Original"
-    ? "in the original language of the text"
-    : `strictly in ${settings.formatLanguage}`;
+  const detected = languageNameFromCode(sourceLanguage);
+  const languageInstruction =
+    settings.formatLanguage === "Auto-Detect / Original"
+      ? detected
+        ? `strictly in ${detected} (DO NOT translate)`
+        : "in the original language of the text"
+      : `strictly in ${settings.formatLanguage}`;
 
   // Fall back to the format prompt so the Home/Detail "Custom Prompt" field
   // (which only edits customFormatSystemPrompt) still affects Summarize.
@@ -425,10 +498,15 @@ export async function summarizeTranscript(
     makeTokenStreamer(onPartial)
   );
 
-  const summary = stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)));
+  const summary = stripLeadingLabel(
+    stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)))
+  );
   // Same failure as formatting: better to say the summary failed than to print
   // our own instructions and call them a summary.
-  if (!summary || echoesPrompt(summary)) return t('historyDetail.summaryFailed') || "Couldn't summarize this one.";
+  // A summary that's just the transcript back is a failure wearing a success
+  // costume - saying so beats handing the user their own words.
+  if (!summary || echoesPrompt(summary) || looksLikeCopy(summary, transcript))
+    return t('historyDetail.summaryFailed') || "Couldn't summarize this one.";
   return summary;
 }
 

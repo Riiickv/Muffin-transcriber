@@ -223,6 +223,9 @@ export default function HomeScreen() {
         sourceFileName: selectedFileName ?? t('transcribe.noTitle'),
         language: settings.defaultLanguage || 'Auto-Detect',
         rawTranscript: cleanText,
+        // Stored so a later Format/Summarize from History can name the language
+        // in its prompt rather than hoping the model infers it.
+        detectedLanguage: result.language,
         sourceFilePath: wavPath,
       };
       await addOrUpdate(currentItem);
@@ -248,6 +251,7 @@ export default function HomeScreen() {
             rawText: cleanText,
             modelPath,
             modelFile: settings.preferredFormatterModel,
+            sourceLanguage: result.language,
             format: settings.formatByDefault,
             summarize: settings.summarizeByDefault,
             title: true,

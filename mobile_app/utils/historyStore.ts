@@ -16,6 +16,8 @@ export interface HistoryItem {
   audioDurationMs?: number;
   embedding?: number[];
   extractedDates?: { quote: string; name: string; type: 'date' | 'time' }[];
+  /** Whisper's detected code ("it"). Names the language in LLM prompts. */
+  detectedLanguage?: string;
 }
 
 const store = createPersistentStore<HistoryItem[]>(HISTORY_KEY, [], {
