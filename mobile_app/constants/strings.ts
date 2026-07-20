@@ -177,6 +177,12 @@ export const APP_STRINGS = {
     summarizing: "Summarizing...",
     working: "Working...",
 
+    // -- When a summary can't be produced. These are STORED as the summary and
+    //    shown in the transcript box, so they have to speak the user's language
+    //    like everything else. --
+    summaryTooShort: "Too short to summarize.",
+    summaryFailed: "Couldn't summarize this one.",
+
     // -- Model pickers --
     whisperModelLabel: "Transcription quality",
     formatterModelLabel: "Format quality",

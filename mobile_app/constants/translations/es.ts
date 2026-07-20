@@ -97,6 +97,8 @@ export const ES = {
     formatting: "Formateando...",
     summarizing: "Resumiendo...",
     working: "Trabajando...",
+    summaryTooShort: "Demasiado corto para resumirlo.",
+    summaryFailed: "No he podido resumirlo.",
 
     whisperModelLabel: "Calidad de transcripción",
     formatterModelLabel: "Calidad del formato",

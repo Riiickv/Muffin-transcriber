@@ -2,6 +2,9 @@ import { Platform } from 'react-native';
 import type { LlamaContext } from 'llama.rn';
 import { loadSettings } from './settingsStore';
 import { loadMemories, saveMemories, suggestMemories } from './memoryStore';
+// Relative, matching this file - mixing '@/utils/x' and './x' for the same
+// module makes Metro load it twice, which is what split the language state.
+import { t } from './i18n';
 
 // Strips the markdown code fences an LLM may wrap JSON in, then parses. Returns
 // null on any failure so callers can fall back gracefully.
@@ -133,6 +136,47 @@ function capRunawayRepetition(text: string): string {
   return out.join('\n').trim();
 }
 
+/**
+ * Appended to every format/summary task, custom prompts included.
+ *
+ * A custom prompt REPLACES the task, so without this a user's "summarize for
+ * my boss" quietly drops every guardrail and the model reverts to sounding
+ * like a chat assistant: advice, opinions, "please follow these steps".
+ * Bullets are allowed because they read fine as plain text; headings and bold
+ * are not, because nothing in the app renders markdown and they arrive on
+ * screen as literal # and * characters.
+ */
+const OUTPUT_RULES = [
+  'Rules for your reply:',
+  '- Plain text only. No markdown headings (#), no bold or italics (* or _). Simple "- " bullets are fine.',
+  '- Use only what the transcript actually says. Never add facts, examples, opinions, advice or conclusions of your own.',
+  '- Do not address the reader, do not mention yourself, the transcript or these instructions, and do not add a preamble or a sign-off.',
+  '- Give the result and nothing else.',
+].join('\n');
+
+/**
+ * Last line of defence for the rules above: a small model will still emit a
+ * "## Heading" now and then, and the transcript box draws plain text, so the
+ * markup would be shown to the user exactly as typed.
+ */
+function stripMarkdownArtifacts(text: string): string {
+  return text
+    .split('\n')
+    .map((line) =>
+      line
+        .replace(/^\s{0,3}#{1,6}\s*/, '') // "## Main Ideas" -> "Main Ideas"
+        .replace(/^(\s*)\*\s+/, '$1- ') // "* item" -> "- item"
+        .replace(/\*\*([^*]+)\*\*/g, '$1') // bold
+        .replace(/__([^_]+)__/g, '$1')
+        .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,;:!?]|$)/g, '$1$2') // italics
+        .replace(/`{1,3}([^`]*)`{1,3}/g, '$1') // code ticks
+        .trimEnd()
+    )
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function extractFormatterOutput(output: string): string {
   let text = output;
 
@@ -257,7 +301,7 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
     }
   }
 
-  const task = `TASK: ${taskInstruction}${memoryContext}\n\nYou must reply ${languageInstruction}. Process the transcript now.`;
+  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${OUTPUT_RULES}\n\nYou must reply ${languageInstruction}. Process the transcript now.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   const result = await llamaContext.completion({
@@ -270,7 +314,7 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
     penalty_last_n: 256,
   });
 
-  const formatted = capRunawayRepetition(extractFormatterOutput(result.text));
+  const formatted = stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)));
   // Default formatting only adds punctuation/casing, so output far shorter than
   // the input means the model got cut off - fall back to raw. Skip for custom
   // prompts, which may intentionally shorten (e.g. "remove filler words").
@@ -283,7 +327,7 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
 
 export async function summarizeTranscript(transcript: string, modelPath: string, modelFile: string): Promise<string> {
   const wordCount = transcript.trim().split(/\s+/).length;
-  if (wordCount < 15) return "Text is too short or lacks content to summarize.";
+  if (wordCount < 15) return t('historyDetail.summaryTooShort') || 'Too short to summarize.';
   
   await loadLLM(modelPath);
   if (!llamaContext) throw new Error("LLM not loaded");
@@ -296,7 +340,13 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
   // Fall back to the format prompt so the Home/Detail "Custom Prompt" field
   // (which only edits customFormatSystemPrompt) still affects Summarize.
   const customSummary = settings.customSummarySystemPrompt || settings.customFormatSystemPrompt;
-  const taskInstruction = customSummary || "Extract the main ideas, key bullet points, and actionable items from the transcript. Use clear markdown bullet points.";
+  // The old default asked for "main ideas, key bullet points and actionable
+  // items ... in clear markdown", so the model dutifully produced "## Main
+  // Ideas", "### Key Bullet Points" and an empty "#### Actionable Items:" on a
+  // note about Christmas shopping. Ask for a summary, not a report template.
+  const taskInstruction =
+    customSummary ||
+    'Summarize the transcript: what it is about, and anything that needs doing. A few short sentences, or "- " bullets if there are several separate points. It must be shorter than the transcript.';
   
   let memoryContext = "";
   if (settings.enableContextLearning) {
@@ -306,12 +356,15 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
     }
   }
 
-  const task = `TASK: ${taskInstruction}${memoryContext}\n\nYou must reply ${languageInstruction}. Summarize the transcript now.`;
+  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${OUTPUT_RULES}\n\nYou must reply ${languageInstruction}. Summarize the transcript now.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
-  
+
   const result = await llamaContext.completion({
     prompt,
-    n_predict: 1024,
+    // Budget tied to the input, not a flat 1024. A short note given a big
+    // budget is an invitation to pad, which is how a 20-second voice memo came
+    // back longer than itself with invented advice about Thanksgiving.
+    n_predict: Math.max(128, Math.min(1024, Math.floor(transcript.length / 3))),
     temperature: 0.3,
     // A summary is where the loop showed up worst ("- I have eaten breakfast for
     // lunch." x200). Stronger penalty than formatting - a summary shouldn't repeat.
@@ -319,10 +372,10 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
     penalty_last_n: 256,
   });
 
-  const summary = capRunawayRepetition(extractFormatterOutput(result.text));
+  const summary = stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)));
   // Same failure as formatting: better to say the summary failed than to print
   // our own instructions and call them a summary.
-  if (!summary || echoesPrompt(summary)) return "Summary failed.";
+  if (!summary || echoesPrompt(summary)) return t('historyDetail.summaryFailed') || "Couldn't summarize this one.";
   return summary;
 }
 
