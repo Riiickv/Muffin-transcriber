@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, TextInput, FlatList, Platform, Animated, Easing, Keyboard, Pressable } from 'react-native';
+import { View, StyleSheet, TextInput, FlatList, Animated, Easing, Keyboard, Pressable } from 'react-native';
 import { Stack, router } from 'expo-router';
 
 import { Text } from '@/components/Themed';
@@ -337,7 +337,7 @@ export default function ChatScreen() {
       const modelPath = ModelManager.getModelPath(activeModel);
       
       let finalMessages = [...newMessages];
-      const fullResponse = await chatStream(newMessages, modelPath, activeModel, (token) => {
+      await chatStream(newMessages, modelPath, activeModel, (token) => {
         setMessages((prev) => {
           const lastIndex = prev.length - 1;
           const updated = [...prev];

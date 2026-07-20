@@ -5,7 +5,7 @@ import {
   Nunito_700Bold,
 } from '@expo-google-fonts/nunito';
 import { View } from 'react-native';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { DownloadBanner } from '@/components/DownloadIndicator';
 import { RecordingProvider } from '@/components/RecordingProvider';
@@ -15,14 +15,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
 import { ThemeProvider as CustomThemeProvider, useTheme } from '@/components/ThemeProvider';
 import { DialogProvider } from '@/components/Dialog';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useShareIntent } from 'expo-share-intent';
 import { useSettings } from '@/utils/settingsStore';
 import { setAppLanguage } from '@/utils/i18n';
-import { useRouter } from 'expo-router';
 
 export {
   ErrorBoundary,

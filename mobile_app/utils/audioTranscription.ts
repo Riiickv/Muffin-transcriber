@@ -27,7 +27,7 @@ export async function transcribeAudio(
   try {
     try {
       await convertToWav(sourcePath, tmpWav);
-    } catch (conversionError) {
+    } catch {
       // The converter couldn't read it. The one case where that's recoverable
       // is a file that's ALREADY the PCM WAV whisper wants, so let whisper look
       // at the source before giving up. If it isn't, whisper's own error is the

@@ -49,7 +49,7 @@ async function pruneHistoryAudio(history: HistoryItem[]) {
         if (now - itemTime > thresholdMs) {
           try {
             await FileSystemLegacy.deleteAsync(item.sourceFilePath, { idempotent: true });
-          } catch (e) {}
+          } catch {}
           cleared.add(item.id);
         }
       }

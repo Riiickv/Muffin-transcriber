@@ -1,5 +1,4 @@
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useCallback } from 'react';
 import { useFocusEffect, router } from 'expo-router';
 
@@ -74,11 +73,6 @@ export default function SettingsScreen() {
       check();
     }, [])
   );
-
-  const downloadedWhisperOptions = WHISPER_MODELS.filter((m) => downloadedModels[m.id]).map((m) => ({
-    label: modelName(m),
-    value: m.id,
-  }));
 
   const downloadedFormatterOptions = FORMATTER_MODELS.filter((m) => downloadedModels[m.id]).map((m) => ({
     label: modelName(m),
