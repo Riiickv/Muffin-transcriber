@@ -27,7 +27,6 @@ export function TranscriptFullscreen({
   onClose,
   text,
   streaming,
-  paced = true,
   percent,
   onCopy,
 }: {
@@ -36,8 +35,6 @@ export function TranscriptFullscreen({
   text: string;
   /** Something is still generating: type it out as it arrives. */
   streaming?: boolean;
-  /** Pace the reveal (whisper) or follow the source exactly (LLM tokens). */
-  paced?: boolean;
   /** Only whisper reports progress; omitted for the LLM steps. */
   percent?: number;
   onCopy?: () => void;
@@ -104,8 +101,15 @@ export function TranscriptFullscreen({
               if (streaming && stick.current) scrollRef.current?.scrollToEnd({ animated: true });
             }}
           >
+            {/* Never paced here, whatever the caller asks. Pacing exists to
+                spread whisper's bursts across a small panel; in fullscreen it
+                bought nothing and cost everything - a second drip instance
+                revealed nothing, so the panel sat empty while the inline one
+                behind it filled up. Fullscreen shows the live text as it
+                arrives. The cost is that whisper's output lands in paragraphs
+                here rather than typing out. */}
             {streaming ? (
-              <StreamingText text={text} paced={paced} style={[styles.text, { color: theme.text }]} />
+              <StreamingText text={text} paced={false} style={[styles.text, { color: theme.text }]} />
             ) : (
               <Text style={[styles.text, { color: theme.text }]}>{text}</Text>
             )}
