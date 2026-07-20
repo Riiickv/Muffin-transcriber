@@ -289,7 +289,12 @@ function looksUnstable(formatted: string, raw: string): boolean {
   return false;
 }
 
-export async function formatTranscript(transcript: string, modelPath: string, modelFile: string): Promise<string> {
+export async function formatTranscript(
+  transcript: string,
+  modelPath: string,
+  modelFile: string,
+  onPartial?: (text: string) => void
+): Promise<string> {
   // Nothing to punctuate in a handful of words, and a model given a degenerate
   // transcript ("TRASH!") has no work to do - which is exactly when it starts
   // reciting the prompt back. summarizeTranscript already refused short input;
@@ -323,15 +328,18 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
   const task = `TASK: ${taskInstruction}${memoryContext}\n\n${GROUNDING_RULE}\n\nYou must reply ${languageInstruction}. Process the transcript now.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
   
-  const result = await llamaContext.completion({
-    prompt,
-    n_predict: Math.max(512, Math.min(3072, Math.floor(transcript.length / 3) + 256)),
-    temperature: 0.0,
-    // Small models loop without a repetition penalty - they repeat the same line
-    // until the token budget runs out. Penalise recently-seen tokens to break it.
-    penalty_repeat: 1.15,
-    penalty_last_n: 256,
-  });
+  const result = await llamaContext.completion(
+    {
+      prompt,
+      n_predict: Math.max(512, Math.min(3072, Math.floor(transcript.length / 3) + 256)),
+      temperature: 0.0,
+      // Small models loop without a repetition penalty - they repeat the same line
+      // until the token budget runs out. Penalise recently-seen tokens to break it.
+      penalty_repeat: 1.15,
+      penalty_last_n: 256,
+    },
+    makeTokenStreamer(onPartial)
+  );
 
   const formatted = stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)));
   // Default formatting only adds punctuation/casing, so output far shorter than
@@ -344,7 +352,12 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
   return formatted;
 }
 
-export async function summarizeTranscript(transcript: string, modelPath: string, modelFile: string): Promise<string> {
+export async function summarizeTranscript(
+  transcript: string,
+  modelPath: string,
+  modelFile: string,
+  onPartial?: (text: string) => void
+): Promise<string> {
   const wordCount = transcript.trim().split(/\s+/).length;
   if (wordCount < 15) return t('historyDetail.summaryTooShort') || 'Too short to summarize.';
   
@@ -382,18 +395,21 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
   const task = `TASK: ${taskInstruction}${memoryContext}\n\n${rules}\n\nYou must reply ${languageInstruction}. Summarize the transcript now.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
 
-  const result = await llamaContext.completion({
-    prompt,
-    // Budget tied to the input, not a flat 1024. A short note given a big
-    // budget is an invitation to pad, which is how a 20-second voice memo came
-    // back longer than itself with invented advice about Thanksgiving.
-    n_predict: Math.max(128, Math.min(1024, Math.floor(transcript.length / 3))),
-    temperature: 0.3,
-    // A summary is where the loop showed up worst ("- I have eaten breakfast for
-    // lunch." x200). Stronger penalty than formatting - a summary shouldn't repeat.
-    penalty_repeat: 1.2,
-    penalty_last_n: 256,
-  });
+  const result = await llamaContext.completion(
+    {
+      prompt,
+      // Budget tied to the input, not a flat 1024. A short note given a big
+      // budget is an invitation to pad, which is how a 20-second voice memo came
+      // back longer than itself with invented advice about Thanksgiving.
+      n_predict: Math.max(128, Math.min(1024, Math.floor(transcript.length / 3))),
+      temperature: 0.3,
+      // A summary is where the loop showed up worst ("- I have eaten breakfast for
+      // lunch." x200). Stronger penalty than formatting - a summary shouldn't repeat.
+      penalty_repeat: 1.2,
+      penalty_last_n: 256,
+    },
+    makeTokenStreamer(onPartial)
+  );
 
   const summary = stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)));
   // Same failure as formatting: better to say the summary failed than to print
@@ -694,6 +710,28 @@ function mergeEntities(modelEntities: ActionableEntity[], transcript: string): A
  * the visible text is instant and needs no model, so every tab can highlight -
  * reusing the stored titles wherever they line up.
  */
+/**
+ * Feeds partial output to the UI as the model generates it.
+ *
+ * The raw stream contains the chat template and whatever preamble the model
+ * emitted, so each update goes through the same cleanup as the final result -
+ * otherwise the first thing on screen is "<|im_start|>assistant". Throttled,
+ * because a token callback fires far faster than a screen needs repainting.
+ */
+function makeTokenStreamer(onPartial?: (text: string) => void) {
+  if (!onPartial) return undefined;
+  let acc = '';
+  let last = 0;
+  return (data: { token?: string }) => {
+    acc += data?.token ?? '';
+    const now = Date.now();
+    if (now - last < 60) return;
+    last = now;
+    const cleaned = stripMarkdownArtifacts(extractFormatterOutput(acc));
+    if (cleaned) onPartial(cleaned);
+  };
+}
+
 export function findHighlights(text: string, stored: ActionableEntity[] = []): ActionableEntity[] {
   if (!text) return [];
   return mergeEntities(stored, text);

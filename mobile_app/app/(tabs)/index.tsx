@@ -67,6 +67,9 @@ export default function HomeScreen() {
   const [transcribePercent, setTranscribePercent] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
   const { height: windowHeight } = useWindowDimensions();
+  /** Partial format/summary output while the LLM generates it. */
+  const [formatPartial, setFormatPartial] = useState('');
+  const [summaryPartial, setSummaryPartial] = useState('');
   const streamScrollRef = useRef<ScrollView>(null);
   /** False once the user scrolls up, so auto-follow doesn't fight them. */
   const stickToBottom = useRef(true);
@@ -251,15 +254,23 @@ export default function HomeScreen() {
             embedding: false,
             entities: false,
             memories: true,
+            onFormatPartial: (p) => {
+              if (isCurrent()) setFormatPartial(p);
+            },
+            onSummaryPartial: (p) => {
+              if (isCurrent()) setSummaryPartial(p);
+            },
             onFormatted: (f) => {
               formattedOut = f;
               if (isCurrent()) {
+                setFormatPartial('');
                 setFormattedText(f);
                 setTranscriptTab('formatted');
               }
             },
             onSummarized: (s) => {
               if (isCurrent()) {
+                setSummaryPartial('');
                 setSummaryText(s);
                 if (!formattedOut) setTranscriptTab('summary');
               }
@@ -277,6 +288,13 @@ export default function HomeScreen() {
           }
         } catch (err) {
           console.error("Background LLM processing failed:", err);
+        } finally {
+          // If format or summarize threw, their onFormatted/onSummarized never
+          // fired, and a half-generated partial would sit on screen for good.
+          if (isCurrent()) {
+            setFormatPartial('');
+            setSummaryPartial('');
+          }
         }
       })();
     } catch (e) {
@@ -296,6 +314,21 @@ export default function HomeScreen() {
 
   const currentText =
     transcriptTab === 'raw' ? rawText : transcriptTab === 'formatted' ? formattedText : summaryText;
+
+  /**
+   * Whatever is being generated for the tab on screen. Whisper's output is
+   * paced (bursts need spreading); the LLM's isn't, because its tokens already
+   * arrive one at a time and pacing them would only add lag.
+   */
+  const live =
+    transcriptTab === 'raw' && isTranscribing && streamingText
+      ? { text: streamingText, paced: true }
+      : transcriptTab === 'formatted' && formatPartial
+      ? { text: formatPartial, paced: false }
+      : transcriptTab === 'summary' && summaryPartial
+      ? { text: summaryPartial, paced: false }
+      : null;
+  const liveText = live?.text ?? '';
 
   const handleCopy = async () => {
     if (!currentText) return;
@@ -498,19 +531,20 @@ export default function HomeScreen() {
             value={transcriptTab}
             onChange={setTranscriptTab}
           />
-          {/* Expand replaces Copy here; Copy still exists, it lives in the
-              fullscreen bar where there's room for a label. */}
+          {/* Both icon-only: the labels were spending a third of the row on
+              two words the glyphs already say. */}
+          <IconButton icon="copy" onPress={handleCopy} disabled={!currentText} />
           <IconButton
             icon="open-in-full"
             onPress={() => {
               haptics.tap();
               setFullscreen(true);
             }}
-            disabled={!currentText && !streamingText}
+            disabled={!currentText && !liveText}
           />
         </View>
 
-        {isTranscribing ? (
+        {live || isTranscribing ? (
           /* Bounded, not flex: inside a scroll container an unbounded box grows
              with the transcript and drags the whole page taller, so following
              the text meant scrolling the entire screen. Capped, the text scrolls
@@ -521,7 +555,7 @@ export default function HomeScreen() {
               { borderColor: theme.divider, height: Math.max(260, Math.round(windowHeight * 0.42)) },
             ]}
           >
-            {streamingText ? (
+            {live ? (
               <>
                 <ScrollView
                   ref={streamScrollRef}
@@ -539,9 +573,15 @@ export default function HomeScreen() {
                     if (stickToBottom.current) streamScrollRef.current?.scrollToEnd({ animated: true });
                   }}
                 >
-                  <StreamingText text={streamingText} style={[styles.streamingText, { color: theme.text }]} />
+                  <StreamingText
+                    text={live.text}
+                    paced={live.paced}
+                    style={[styles.streamingText, { color: theme.text }]}
+                  />
                 </ScrollView>
-                <ProgressBar percent={transcribePercent} style={{ marginTop: SPACING.sm }} />
+                {isTranscribing && (
+                  <ProgressBar percent={transcribePercent} style={{ marginTop: SPACING.sm }} />
+                )}
               </>
             ) : (
               <WaitingCard status={currentText} />
@@ -563,9 +603,10 @@ export default function HomeScreen() {
       <TranscriptFullscreen
         visible={fullscreen}
         onClose={() => setFullscreen(false)}
-        text={streamingText || currentText}
-        streaming={isTranscribing && !!streamingText}
-        percent={transcribePercent}
+        text={liveText || currentText}
+        streaming={!!live}
+        paced={live?.paced ?? true}
+        percent={isTranscribing ? transcribePercent : undefined}
         onCopy={currentText ? handleCopy : undefined}
       />
     </FadeInView>

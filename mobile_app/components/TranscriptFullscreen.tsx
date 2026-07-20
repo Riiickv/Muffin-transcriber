@@ -27,14 +27,18 @@ export function TranscriptFullscreen({
   onClose,
   text,
   streaming,
+  paced = true,
   percent,
   onCopy,
 }: {
   visible: boolean;
   onClose: () => void;
   text: string;
-  /** Live transcription: types the text out and shows the progress hairline. */
+  /** Something is still generating: type it out as it arrives. */
   streaming?: boolean;
+  /** Pace the reveal (whisper) or follow the source exactly (LLM tokens). */
+  paced?: boolean;
+  /** Only whisper reports progress; omitted for the LLM steps. */
   percent?: number;
   onCopy?: () => void;
 }) {
@@ -92,13 +96,13 @@ export function TranscriptFullscreen({
             }}
           >
             {streaming ? (
-              <StreamingText text={text} style={[styles.text, { color: theme.text }]} />
+              <StreamingText text={text} paced={paced} style={[styles.text, { color: theme.text }]} />
             ) : (
               <Text style={[styles.text, { color: theme.text }]}>{text}</Text>
             )}
           </ScrollView>
 
-          {streaming && <ProgressBar percent={percent ?? 0} />}
+          {streaming && percent !== undefined && <ProgressBar percent={percent} />}
         </Animated.View>
 
         {/* Room for it here, unlike the inline panel where every line counts. */}

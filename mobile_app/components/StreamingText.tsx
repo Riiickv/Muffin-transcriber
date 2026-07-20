@@ -30,12 +30,20 @@ const FrozenBlock = memo(function FrozenBlock({ text }: { text: string }) {
 export function StreamingText({
   text,
   done,
+  paced = true,
   style,
 }: {
-  /** The full transcript so far. Grows in bursts as whisper finishes windows. */
+  /** The full text so far. */
   text: string;
-  /** Reveal everything immediately - transcription has finished. */
+  /** Reveal everything immediately - the job has finished. */
   done?: boolean;
+  /**
+   * Pace the reveal (whisper: paragraph-sized bursts 30s apart, which need
+   * spreading out). Turn OFF for an LLM, whose tokens already arrive one at a
+   * time at a readable rate - pacing that would only add lag to something
+   * already typing itself.
+   */
+  paced?: boolean;
   style?: StyleProp<TextStyle>;
 }) {
   const { theme } = useTheme();
@@ -47,14 +55,15 @@ export function StreamingText({
   }, [text, drip]);
 
   useEffect(() => {
+    if (!paced) return;
     const id = setInterval(() => {
       const next = Math.floor(drip.tick(!!done));
       setShown((prev) => (prev === next ? prev : next));
     }, TICK_MS);
     return () => clearInterval(id);
-  }, [drip, done]);
+  }, [drip, done, paced]);
 
-  const visible = text.slice(0, Math.min(shown, text.length));
+  const visible = paced ? text.slice(0, Math.min(shown, text.length)) : text;
   const tailStart = Math.max(0, visible.length - TAIL_CHARS);
 
   // Only advances a block at a time, so `frozen` keeps its identity for
