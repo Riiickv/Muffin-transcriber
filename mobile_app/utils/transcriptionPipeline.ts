@@ -23,6 +23,9 @@ export interface EnrichmentOptions {
   onStage?: (stage: EnrichmentStage) => void;
   onFormatted?: (text: string) => void;
   onSummarized?: (text: string) => void;
+  /** Partial output as the model generates it, for the live typewriter. */
+  onFormatPartial?: (text: string) => void;
+  onSummaryPartial?: (text: string) => void;
 }
 
 export interface EnrichmentResult {
@@ -59,13 +62,17 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
 
   if (opts.format) {
     opts.onStage?.('formatting');
-    result.formatted = await formatTranscript(rawText, modelPath, modelFile).catch(() => undefined);
+    result.formatted = await formatTranscript(rawText, modelPath, modelFile, opts.onFormatPartial).catch(
+      () => undefined
+    );
     if (result.formatted) opts.onFormatted?.(result.formatted);
   }
 
   if (opts.summarize) {
     opts.onStage?.('summarizing');
-    result.summarized = await summarizeTranscript(rawText, modelPath, modelFile).catch(() => undefined);
+    result.summarized = await summarizeTranscript(rawText, modelPath, modelFile, opts.onSummaryPartial).catch(
+      () => undefined
+    );
     if (result.summarized) opts.onSummarized?.(result.summarized);
   }
 

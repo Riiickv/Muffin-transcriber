@@ -20,7 +20,7 @@ const DEFAULT_GAP_MS = 30000;
  * finishes late, so the lag compounds across a long recording and the end
  * arrives in one dump.
  */
-const DRAIN_RATIO = 0.95;
+const DRAIN_RATIO = 0.8;
 /**
  * Never slower than this, or a tiny burst looks stuck. Low on purpose: a slow
  * device bursting every 90s needs ~5 chars/s to fill the gap, and a floor above
