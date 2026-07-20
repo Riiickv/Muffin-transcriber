@@ -137,7 +137,7 @@ interface HistoryCardProps {
  * them is invalid HTML and throws a hydration error. Without the role the card
  * renders as a div and stays perfectly tappable on native.
  */
-const HistoryCard = React.memo(({ entry, onOpen, onDelete, onRename }: HistoryCardProps) => {
+const HistoryCard = React.memo(function HistoryCard({ entry, onOpen, onDelete, onRename }: HistoryCardProps) {
   const { theme } = useTheme();
   return (
     <AnimatedPressable

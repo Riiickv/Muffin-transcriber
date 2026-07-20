@@ -1,0 +1,41 @@
+name: CI
+
+# Runs the safety net on every push and PR: the app typechecks (React Native),
+# the tests typecheck (Node), and the test suite passes. No device or emulator
+# needed - these are the checks that CAN run without one, which is exactly the
+# gap that made this project's bugs surface on a phone instead of in CI.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # 22.6+ for `node --experimental-strip-types --test` (zero-dep TS tests).
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile_app/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck app
+        run: npm run typecheck
+
+      - name: Typecheck tests
+        run: npm run typecheck:tests
+
+      - name: Run tests
+        run: npm test

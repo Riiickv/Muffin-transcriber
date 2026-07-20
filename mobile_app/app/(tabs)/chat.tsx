@@ -845,7 +845,7 @@ export default function ChatScreen() {
               {t('chat.addTo') || 'Add to'} {activeEntity.type === 'date' ? (t('chat.calendar') || 'Calendar') : (t('chat.alarms') || 'Alarms')}
             </Text>
             <Text style={[styles.dialogQuote, { color: theme.textMuted }]}>
-              "{activeEntity.quote}"
+              {`"${activeEntity.quote}"`}
             </Text>
             
             <Text style={styles.label}>{t('chat.eventName') || 'Event Name'}</Text>

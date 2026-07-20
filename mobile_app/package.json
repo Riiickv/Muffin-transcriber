@@ -46,6 +46,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.0",
     "patch-package": "^8.0.1",
     "typescript": "~6.0.3"
   },
@@ -57,7 +59,8 @@
     "postinstall": "patch-package",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/streamingDrip.test.ts tests/entityExtraction.test.ts tests/textCleanup.test.ts tests/transcribeProgress.test.ts",
-    "typecheck:tests": "tsc -p tests/tsconfig.json"
+    "typecheck:tests": "tsc -p tests/tsconfig.json",
+    "lint": "eslint ."
   },
   "private": true
 }
