@@ -568,10 +568,13 @@ export default function HistoryDetailScreen() {
               }
             />
           ) : (
-            /* nestedScrollEnabled: this ScrollView now lives inside the
-               page ScrollView, and on Android a nested same-axis scroller
+            /* flex:1 is what bounds it. Without it the scroller sizes to its
+               content, grows past the card and drags the page - which is
+               exactly what still scrolled after the panel was made flexible,
+               because only the streaming branch had been given it.
+               nestedScrollEnabled: on Android a nested same-axis scroller
                doesn't receive drags without it. */
-            <ScrollView nestedScrollEnabled>
+            <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
               {renderHighlightedText()}
             </ScrollView>
           )}
