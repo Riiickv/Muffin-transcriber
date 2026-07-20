@@ -20,6 +20,25 @@ import { t } from '@/utils/i18n';
 // more than a spinner ever did.
 // A ScrollView so it can never paint outside a short container (RN views
 // don't clip overflowing children).
+/**
+ * The confirm-before-leaving support dialog, shared so the waiting card and the
+ * compact link shown beside streaming text can't drift apart.
+ */
+export function showSupportDialog(dialog: ReturnType<typeof useDialog>) {
+  haptics.tap();
+  // Transcription is still running behind this, so the tap shouldn't yank them
+  // out of the app unannounced.
+  dialog.show({
+    title: t('transcribe.supportMe') || 'Support me!',
+    message: t('transcribe.supportDesc'),
+    image: require('@/assets/images/RickLogo.png'),
+    imageAspect: 488 / 366,
+    iconTone: 'primary',
+    secondaryAction: { label: t('transcribe.supportCancel') || 'Maybe later', onPress: () => {} },
+    primaryAction: { label: t('settings.supportButton') || 'Buy a coffee', onPress: openSupportPage },
+  });
+}
+
 export function WaitingCard({ status }: { status?: string }) {
   const { theme } = useTheme();
   const dialog = useDialog();
@@ -50,20 +69,7 @@ export function WaitingCard({ status }: { status?: string }) {
         // Explicit height: an unsized Button inside this centered container
         // balloons to fill it (AnimatedPressable's inner surface uses flexGrow).
         style={{ marginTop: SPACING.lg, height: 44 }}
-        onPress={() => {
-          haptics.tap();
-          // Confirm before leaving: transcription is still running behind this
-          // card, so the tap shouldn't yank them out of the app unannounced.
-          dialog.show({
-            title: t('transcribe.supportMe') || 'Support me!',
-            message: t('transcribe.supportDesc'),
-            image: require('@/assets/images/RickLogo.png'),
-            imageAspect: 488 / 366,
-            iconTone: 'primary',
-            secondaryAction: { label: t('transcribe.supportCancel') || 'Maybe later', onPress: () => {} },
-            primaryAction: { label: t('settings.supportButton') || 'Buy a coffee', onPress: openSupportPage },
-          });
-        }}
+        onPress={() => showSupportDialog(dialog)}
       >
         {t('transcribe.supportMe') || 'Support me!'}
       </Button>
