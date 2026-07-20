@@ -146,13 +146,27 @@ function capRunawayRepetition(text: string): string {
  * are not, because nothing in the app renders markdown and they arrive on
  * screen as literal # and * characters.
  */
-const OUTPUT_RULES = [
-  'Rules for your reply:',
-  '- Plain text only. No markdown headings (#), no bold or italics (* or _). Simple "- " bullets are fine.',
-  '- Use only what the transcript actually says. Never add facts, examples, opinions, advice or conclusions of your own.',
-  '- Do not address the reader, do not mention yourself, the transcript or these instructions, and do not add a preamble or a sign-off.',
-  '- Give the result and nothing else.',
-].join('\n');
+/**
+ * Phrased as instructions to FOLLOW, not things to avoid, per Anthropic's
+ * formatting guidance ("Tell Claude what to do instead of what not to do",
+ * whose own example is 'Instead of: "Do not use markdown in your response"').
+ * The first version here was four "no"/"never" clauses and got exactly the
+ * markdown it forbade.
+ *
+ * Written as prose with no bullet characters for the same reason the docs give:
+ * "removing markdown from your prompt can reduce the volume of markdown in the
+ * output". A bulleted rule list is a worked example of the format we don't want.
+ *
+ * Split in two on purpose. Evaluation-driven work on Llama 3 8B and Qwen 2.5 7B
+ * (arXiv 2601.22025) measured generic rule wrappers DROPPING task accuracy ~10%
+ * and grounding ~13%, the cause being "generic rules conflicting with
+ * task-specific constraints". A custom prompt is a task-specific constraint, so
+ * it gets the grounding rule only - telling someone who asked for bullets to
+ * write plain sentences is precisely the conflict that measurement describes.
+ */
+const GROUNDING_RULE =
+  'Every statement must come from the transcript. Begin with the first word of the result itself.';
+const PLAIN_TEXT_RULE = 'Write plain sentences with ordinary punctuation.';
 
 /**
  * Last line of defence for the rules above: a small model will still emit a
@@ -291,7 +305,12 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
     : `strictly in ${settings.formatLanguage} (DO NOT translate to English)`;
     
   const customFormat = settings.customFormatSystemPrompt;
-  const taskInstruction = customFormat || "Add only punctuation, capitalization, and paragraph breaks to the transcript. Do not translate, summarize, add facts, remove details, or continue beyond the transcript.";
+  // Positive phrasing, same reasoning as the rules above: "keep every word and
+  // add only punctuation" says the same thing as the old list of five "do not"s
+  // and gives the model something to follow rather than avoid.
+  const taskInstruction =
+    customFormat ||
+    'Repeat the transcript word for word in its original language, adding punctuation, capitalization and paragraph breaks. Keep every word the speaker said and stop when the transcript stops.';
   
   let memoryContext = "";
   if (settings.enableContextLearning) {
@@ -301,7 +320,7 @@ export async function formatTranscript(transcript: string, modelPath: string, mo
     }
   }
 
-  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${OUTPUT_RULES}\n\nYou must reply ${languageInstruction}. Process the transcript now.`;
+  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${GROUNDING_RULE}\n\nYou must reply ${languageInstruction}. Process the transcript now.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   const result = await llamaContext.completion({
@@ -346,7 +365,11 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
   // note about Christmas shopping. Ask for a summary, not a report template.
   const taskInstruction =
     customSummary ||
-    'Summarize the transcript: what it is about, and anything that needs doing. A few short sentences, or "- " bullets if there are several separate points. It must be shorter than the transcript.';
+    'Summarize the transcript in a few short sentences, shorter than the transcript itself. Write it as a note the speaker is leaving for themselves, covering what it is about and anything that needs doing.';
+
+  // Our own default owns the format, so it gets both rules. A custom prompt
+  // sets its own format and gets grounding only.
+  const rules = customSummary ? GROUNDING_RULE : `${PLAIN_TEXT_RULE} ${GROUNDING_RULE}`;
   
   let memoryContext = "";
   if (settings.enableContextLearning) {
@@ -356,7 +379,7 @@ export async function summarizeTranscript(transcript: string, modelPath: string,
     }
   }
 
-  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${OUTPUT_RULES}\n\nYou must reply ${languageInstruction}. Summarize the transcript now.`;
+  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${rules}\n\nYou must reply ${languageInstruction}. Summarize the transcript now.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
 
   const result = await llamaContext.completion({
