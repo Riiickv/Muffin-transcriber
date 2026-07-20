@@ -87,7 +87,10 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
     : Promise.resolve(null);
 
   if (opts.entities) {
-    const dates = await extractActionableEntities(textForAnalysis, modelPath, modelFile).catch(
+    // rawText, not textForAnalysis: a highlight works by finding the quote in
+    // the transcript on screen, and the Raw tab is what opens by default.
+    // Formatting rewords things, so quotes taken from it often aren't in raw.
+    const dates = await extractActionableEntities(rawText, modelPath, modelFile).catch(
       () => [] as ActionableEntity[]
     );
     result.extractedDates = dates.length > 0 ? dates : undefined;
