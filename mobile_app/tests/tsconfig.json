@@ -8,6 +8,8 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "//include": "just the test files; tsc follows their imports into the pure utils/ modules under test",
+  "//exclude": "the base tsconfig excludes 'tests' (so the app check skips them); that exclude is inherited here and would leave this config with no inputs, so clear it",
+  "exclude": [],
+  "//include": "the test files; tsc follows their imports into the pure utils/ modules under test",
   "include": ["**/*.ts"]
 }
