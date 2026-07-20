@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -45,6 +45,7 @@ export function TranscriptFullscreen({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const dialog = useDialog();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
 
   const scrollRef = useRef<ScrollView>(null);
   const stick = useRef(true);
@@ -59,7 +60,17 @@ export function TranscriptFullscreen({
 
   return (
     <Modal visible={visible} animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <View style={[styles.root, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+      {/* Explicit window height, not `flex: 1`. Inside a Modal there is no
+          definite height to resolve flex against, so the frame's `flex: 1`
+          collapsed to nothing and the whole panel rendered as a hairline.
+          Measuring is the deterministic fix - the same lesson as the page
+          layout, where flex inside a ScrollView bounded nothing either. */}
+      <View
+        style={[
+          styles.root,
+          { backgroundColor: theme.background, paddingTop: insets.top, height: windowHeight, width: windowWidth },
+        ]}
+      >
         <View style={styles.bar}>
           <IconButton
             icon="close-fullscreen"
