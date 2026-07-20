@@ -1,5 +1,5 @@
-import { StyleSheet, TextInput, View, ScrollView, ActivityIndicator } from 'react-native';
-import { useEffect, useState } from 'react';
+import { StyleSheet, TextInput, View, ScrollView } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Clipboard from 'expo-clipboard';
@@ -18,7 +18,7 @@ import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory } from '@/utils/historyStore';
 import { useRecording } from '@/components/RecordingProvider';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
-import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities } from '@/utils/LLMEngine';
+import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities, findHighlights } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
 import { loadWhisper } from '@/utils/WhisperEngine';
 import { transcribeAudio } from '@/utils/audioTranscription';
@@ -78,6 +78,13 @@ export default function HistoryDetailScreen() {
       : transcriptTab === 'formatted'
       ? item?.formattedTranscript || ''
       : item?.rawTranscript || '';
+
+  // Recomputed per tab: the stored quotes come from the raw transcript, but
+  // formatted and summary are reworded, so they need their own pass.
+  const highlights = useMemo(
+    () => findHighlights(transcript, item?.extractedDates ?? []),
+    [transcript, item?.extractedDates]
+  );
 
   const dateStr = item ? formatHistoryDate(item.timestampISO) : '';
 
@@ -272,24 +279,14 @@ export default function HistoryDetailScreen() {
   };
 
   const renderHighlightedText = () => {
-    if (isTranscribingThis) {
-      return (
-        <View style={{ alignItems: 'center', paddingVertical: SPACING.xl }}>
-          <ActivityIndicator color={theme.tint} />
-          <Text style={{ color: theme.textMuted, marginTop: SPACING.md }}>
-            {t('record.transcribing') || 'Transcribing...'}
-          </Text>
-        </View>
-      );
-    }
-    if (!item?.extractedDates || item.extractedDates.length === 0) {
+    if (highlights.length === 0) {
       return <Text style={[styles.transcriptText, { color: theme.text }]}>{transcript}</Text>;
     }
-    
+
     let parts = [{ text: transcript, isEntity: false, entity: null as any }];
-    
+
     // Naive split for each entity quote
-    for (const entity of item.extractedDates) {
+    for (const entity of highlights) {
       const nextParts: any[] = [];
       for (const part of parts) {
         if (part.isEntity) {
@@ -468,10 +465,15 @@ export default function HistoryDetailScreen() {
         </View>
 
         <View style={[styles.transcriptBox, { borderColor: theme.divider }]}>
-          {isProcessing ? (
+          {/* Arriving here straight from a recording is the longest wait of the
+              lot, so it gets the same card as every other wait rather than a
+              bare spinner. */}
+          {isProcessing || isTranscribingThis ? (
             <WaitingCard
               status={
-                processingLabel === 'retranscribe'
+                isTranscribingThis
+                  ? t('record.transcribing') || 'Transcribing...'
+                  : processingLabel === 'retranscribe'
                   ? t('historyDetail.retranscribing') || 'Re-transcribing...'
                   : processingLabel === 'format'
                   ? t('historyDetail.formatting') || 'Formatting...'
