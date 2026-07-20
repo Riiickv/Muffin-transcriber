@@ -4,7 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { Icon, IconName } from './Icon';
 import { RADIUS } from '@/constants/tokens';
 
-export type IconButtonVariant = 'tint' | 'ghost' | 'danger' | 'subtle';
+export type IconButtonVariant = 'tint' | 'ghost' | 'ghost-tint' | 'danger' | 'subtle';
 export type IconButtonSize = 'sm' | 'md' | 'lg';
 
 interface IconButtonProps {
@@ -40,6 +40,9 @@ export const IconButton = ({
   const palette: Record<IconButtonVariant, { bg: string; fg: string }> = {
     tint: { bg: theme.tintFill, fg: theme.tint },
     ghost: { bg: 'transparent', fg: theme.text },
+    // Matches a ghost Button (transparent, tint-coloured) so an icon-only
+    // action sits in a row of ghost buttons without looking like a new control.
+    'ghost-tint': { bg: 'transparent', fg: theme.tint },
     danger: { bg: theme.dangerSurface, fg: theme.danger },
     subtle: { bg: theme.surface, fg: theme.text },
   };

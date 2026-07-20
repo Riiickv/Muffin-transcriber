@@ -63,16 +63,14 @@ export function TranscriptFullscreen({
         <View style={styles.bar}>
           <IconButton
             icon="close-fullscreen"
+            variant="ghost-tint"
             onPress={() => {
               haptics.tap();
               onClose();
             }}
           />
-          {!!onCopy && (
-            <Button variant="ghost" size="sm" icon="copy" onPress={onCopy}>
-              {t('historyDetail.copyButton') || 'Copy'}
-            </Button>
-          )}
+          {/* Icon-only here too - the label was the last one left. */}
+          {!!onCopy && <IconButton icon="copy" variant="ghost-tint" onPress={onCopy} />}
         </View>
 
         <Animated.View

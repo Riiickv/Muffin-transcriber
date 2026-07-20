@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, useWindowDimensions, View, ScrollView } from 'react-native';
+import { StyleSheet, TextInput, View, ScrollView } from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
@@ -66,7 +66,6 @@ export default function HistoryDetailScreen() {
   const [localProgress, setLocalProgress] = useState<ProgressReading | null>(null);
   const [localPartial, setLocalPartial] = useState('');
   const [fullscreen, setFullscreen] = useState(false);
-  const { height: windowHeight } = useWindowDimensions();
   const streamScrollRef = useRef<ScrollView>(null);
   /** False once the user scrolls up, so auto-follow doesn't fight them. */
   const stickToBottom = useRef(true);
@@ -496,9 +495,10 @@ export default function HistoryDetailScreen() {
         </View>
       </Card>
 
-      {/* minHeight: `flex: 1` is flexBasis:0%, so inside a scroll container
-          with no free space this card would collapse to zero. */}
-      <Card index={2} style={{ flex: 1, minHeight: 260 }}>
+      {/* flex:1 so this card absorbs whatever the cards above leave, making the
+          page exactly one screen tall. minHeight is the floor for a short
+          screen: below it the page scrolls rather than crushing this to nothing. */}
+      <Card index={2} style={{ flex: 1, minHeight: 200 }}>
         {/* No heading: the segmented control already names the card. */}
         <View style={styles.tabRow}>
           <SegmentedControl
@@ -507,9 +507,12 @@ export default function HistoryDetailScreen() {
             value={transcriptTab}
             onChange={setTranscriptTab}
           />
-          <IconButton icon="copy" onPress={handleCopy} disabled={!transcript} />
+          <IconButton icon="copy" variant="ghost-tint" size="sm" onPress={handleCopy} disabled={!transcript} />
           <IconButton
             icon="open-in-full"
+            variant="ghost-tint"
+            size="sm"
+            style={{ marginLeft: SPACING.xs }}
             onPress={() => {
               haptics.tap();
               setFullscreen(true);
@@ -518,14 +521,8 @@ export default function HistoryDetailScreen() {
           />
         </View>
 
-        {/* Bounded, like the Muffin! tab: an unbounded box inside a scroll
-            container grows with the text and drags the whole page taller. */}
-        <View
-          style={[
-            styles.transcriptBox,
-            { borderColor: theme.divider, height: Math.max(260, Math.round(windowHeight * 0.42)) },
-          ]}
-        >
+        {/* Fills the remainder, like the Muffin! tab. */}
+        <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1 }]}>
           {/* Once whisper starts handing back words, showing them beats any
               waiting card: a long recording is long no matter what we do, so
               the least we can do is give them something to read meanwhile. */}
