@@ -37,6 +37,7 @@ import { useDialog, DialogCard } from '@/components/Dialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t } from '@/utils/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
+import { usePacedReveal } from '@/hooks/usePacedReveal';
 
 type TranscriptTab = 'raw' | 'formatted' | 'summary';
 
@@ -101,6 +102,9 @@ export default function HistoryDetailScreen() {
    * reports a percentage, so the hairline follows the same flag.
    */
   const isStreamingWhisper = isTranscribingThis || processingLabel === 'retranscribe';
+  // ONE reveal, shared by the inline panel and fullscreen, so opening
+  // fullscreen mid-generation carries the typing over instead of restarting.
+  const revealed = usePacedReveal(streamingText, isStreamingWhisper);
 
   // Recomputed per tab: the stored quotes come from the raw transcript, but
   // formatted and summary are reworded, so they need their own pass.
@@ -233,23 +237,29 @@ export default function HistoryDetailScreen() {
         ready.modelFile,
         setLocalPartial
       );
-      // Kept on screen: embedding, entity extraction and memories all still run
-      // below with isProcessing true, and clearing now would swap the finished
-      // text for the waiting card for the whole of that tail.
+      // Save and release the UI HERE. What the user pressed the button for is
+      // done; embedding, entity extraction and memories are three more passes
+      // over the same long transcript, and on a CPU-only device that tail is
+      // most of the wait. Holding the screen through it made Format feel far
+      // slower than it is.
+      await addOrUpdate({ ...item, formattedTranscript: formatted });
+      setTranscriptTab('formatted');
+      haptics.success();
+      setIsProcessing(false);
+      setProcessingLabel(null);
+      setLocalPartial('');
 
       const embedding = await generateEmbedding(formatted);
       // Against the raw text, so the quotes exist in the Raw tab too.
       const extractedDates = await extractActionableEntities(item.rawTranscript, ready.modelPath, ready.modelFile);
 
-      await addOrUpdate({ 
-        ...item, 
+      await addOrUpdate({
+        ...item,
         formattedTranscript: formatted,
         embedding: embedding || item.embedding,
         extractedDates: extractedDates.length > 0 ? extractedDates : item.extractedDates,
       });
-      setTranscriptTab('formatted');
-      haptics.success();
-      
+
       // Extract memories sequentially so it doesn't freeze the CPU
       await extractMemories(item.rawTranscript, ready.modelPath, ready.modelFile).catch(console.warn);
     } catch (e) {
@@ -278,12 +288,14 @@ export default function HistoryDetailScreen() {
         ready.modelFile,
         setLocalPartial
       );
-      // Kept on screen: embedding, entity extraction and memories all still run
-      // below with isProcessing true, and clearing now would swap the finished
-      // text for the waiting card for the whole of that tail.
+      // Release the UI as soon as the summary exists; memory extraction is
+      // another whole pass over the transcript and the user didn't ask for it.
       await addOrUpdate({ ...item, summary: summarized });
       setTranscriptTab('summary');
       haptics.success();
+      setIsProcessing(false);
+      setProcessingLabel(null);
+      setLocalPartial('');
 
       // Extract memories sequentially so it doesn't freeze the CPU
       await extractMemories(item.rawTranscript, ready.modelPath, ready.modelFile).catch(console.warn);
@@ -550,10 +562,7 @@ export default function HistoryDetailScreen() {
                   if (stickToBottom.current) streamScrollRef.current?.scrollToEnd({ animated: true });
                 }}
               >
-                <StreamingText
-                  text={streamingText}
-                  style={[styles.transcriptText, { color: theme.text }]}
-                />
+                <StreamingText text={revealed} style={[styles.transcriptText, { color: theme.text }]} />
               </ScrollView>
               {isStreamingWhisper && (
                 <ProgressBar
@@ -592,7 +601,7 @@ export default function HistoryDetailScreen() {
       <TranscriptFullscreen
         visible={fullscreen}
         onClose={() => setFullscreen(false)}
-        text={streamingText || transcript}
+        text={revealed || transcript}
         streaming={!!streamingText}
         percent={
           isStreamingWhisper ? (isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0 : undefined

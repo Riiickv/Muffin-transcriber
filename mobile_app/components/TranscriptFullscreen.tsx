@@ -101,15 +101,11 @@ export function TranscriptFullscreen({
               if (streaming && stick.current) scrollRef.current?.scrollToEnd({ animated: true });
             }}
           >
-            {/* Never paced here, whatever the caller asks. Pacing exists to
-                spread whisper's bursts across a small panel; in fullscreen it
-                bought nothing and cost everything - a second drip instance
-                revealed nothing, so the panel sat empty while the inline one
-                behind it filled up. Fullscreen shows the live text as it
-                arrives. The cost is that whisper's output lands in paragraphs
-                here rather than typing out. */}
+            {/* `text` is already revealed by the screen's shared usePacedReveal,
+                so this shows exactly what the inline panel shows - the typing
+                carries over on open instead of restarting or stalling. */}
             {streaming ? (
-              <StreamingText text={text} paced={false} style={[styles.text, { color: theme.text }]} />
+              <StreamingText text={text} style={[styles.text, { color: theme.text }]} />
             ) : (
               <Text style={[styles.text, { color: theme.text }]}>{text}</Text>
             )}
