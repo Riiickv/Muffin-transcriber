@@ -183,6 +183,13 @@ export const APP_STRINGS = {
     summaryTooShort: "Too short to summarize.",
     summaryFailed: "Couldn't summarize this one.",
 
+    // -- Starting one AI action while another is running. {next} is what they
+    //    just tapped, {current} is what's already going. --
+    busyTitle: "One at a time!",
+    busyMessage: "Starting {next} will stop {current}.",
+    busyDontAsk: "Don't show this again",
+    busyConfirm: "Ok!",
+
     // -- Model pickers --
     whisperModelLabel: "Transcription quality",
     formatterModelLabel: "Format quality",

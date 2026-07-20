@@ -21,9 +21,9 @@ import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory } from '@/utils/historyStore';
 import { useRecording } from '@/components/RecordingProvider';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
-import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities, findHighlights } from '@/utils/LLMEngine';
+import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities, findHighlights, stopLlamaWork } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
-import { loadWhisper } from '@/utils/WhisperEngine';
+import { loadWhisper, stopWhisperWork } from '@/utils/WhisperEngine';
 import { transcribeAudio } from '@/utils/audioTranscription';
 import { createProgressTracker, describeProgress, ProgressReading } from '@/utils/transcribeProgress';
 import { ModelManager } from '@/utils/ModelManager';
@@ -38,6 +38,8 @@ import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t } from '@/utils/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
 import { queueLlama } from '@/utils/transcriptionPipeline';
+import { setAiActivity, useAiActivity } from '@/utils/aiActivity';
+import { AiBusyDialog } from '@/components/AiBusyDialog';
 import { usePacedReveal } from '@/hooks/usePacedReveal';
 
 type TranscriptTab = 'raw' | 'formatted' | 'summary';
@@ -72,6 +74,11 @@ export default function HistoryDetailScreen() {
   /** False once the user scrolls up, so auto-follow doesn't fight them. */
   const stickToBottom = useRef(true);
   const [processingLabel, setProcessingLabel] = useState<null | 'retranscribe' | 'format' | 'summarize'>(null);
+  /** Pending confirmation when a second AI action is tapped mid-run. */
+  const [busyPrompt, setBusyPrompt] = useState<{ next: string; current: string; run: () => void } | null>(null);
+  // App-wide, so work started on another screen (or before this one was
+  // re-entered) is still visible here.
+  const aiActivity = useAiActivity();
 
   const [activeEntity, setActiveEntity] = useState<{ quote: string; name: string; type: 'date' | 'time' } | null>(null);
   const [actionName, setActionName] = useState('');
@@ -147,6 +154,36 @@ export default function HistoryDetailScreen() {
     else player.play();
   };
 
+  const labelForAction = (a: 'retranscribe' | 'format' | 'summarize') =>
+    a === 'retranscribe'
+      ? t('historyDetail.retranscribe') || 'Re-Transcribe'
+      : a === 'format'
+      ? t('historyDetail.format') || 'Format'
+      : t('historyDetail.summarize') || 'Summarize';
+
+  /**
+   * Runs `job`, but if something is already generating, asks first - and if the
+   * user agrees, actually aborts the running job rather than queueing behind
+   * it. Queueing was the old behaviour and looked like the tap did nothing,
+   * since a run can take minutes on a CPU-only device.
+   */
+  const startAction = (action: 'retranscribe' | 'format' | 'summarize', job: () => void) => {
+    const running = aiActivity;
+    if (!running) {
+      job();
+      return;
+    }
+    const interrupt = async () => {
+      await Promise.all([stopWhisperWork(), stopLlamaWork()]);
+      job();
+    };
+    if (settings.hideAiBusyWarning) {
+      interrupt();
+      return;
+    }
+    setBusyPrompt({ next: labelForAction(action), current: running, run: interrupt });
+  };
+
   const ensureFormatterReady = async () => {
     if (!settings.preferredFormatterModel) {
       dialog.show({ title: t('dialog.noFormatterModel.title') || 'No formatter model', message: t('dialog.noFormatterModel.message') || 'Pick one on the Home tab.', icon: 'warning' });
@@ -173,6 +210,7 @@ export default function HistoryDetailScreen() {
     haptics.tap();
     setIsProcessing(true);
     setProcessingLabel('retranscribe');
+    setAiActivity(labelForAction('retranscribe'));
     try {
       const fileInfo = await FileSystemLegacy.getInfoAsync(item.sourceFilePath);
       if (!fileInfo.exists) {
@@ -219,6 +257,7 @@ export default function HistoryDetailScreen() {
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
+      setAiActivity(null);
       setLocalProgress(null);
       setLocalPartial('');
     }
@@ -231,6 +270,7 @@ export default function HistoryDetailScreen() {
     haptics.tap();
     setIsProcessing(true);
     setProcessingLabel('format');
+    setAiActivity(labelForAction('format'));
     try {
       // queueLlama: this screen used to call the engine directly, so leaving
       // mid-run let a recording's enrichment start on the same context and
@@ -248,6 +288,7 @@ export default function HistoryDetailScreen() {
       haptics.success();
       setIsProcessing(false);
       setProcessingLabel(null);
+      setAiActivity(null);
       setLocalPartial('');
 
       const embedding = await generateEmbedding(formatted);
@@ -274,6 +315,7 @@ export default function HistoryDetailScreen() {
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
+      setAiActivity(null);
       // If the model threw, the partial would otherwise stay on screen.
       setLocalPartial('');
     }
@@ -286,6 +328,7 @@ export default function HistoryDetailScreen() {
     haptics.tap();
     setIsProcessing(true);
     setProcessingLabel('summarize');
+    setAiActivity(labelForAction('summarize'));
     try {
       const summarized = await queueLlama(() =>
         summarizeTranscript(item.rawTranscript!, ready.modelPath, ready.modelFile, setLocalPartial)
@@ -297,6 +340,7 @@ export default function HistoryDetailScreen() {
       haptics.success();
       setIsProcessing(false);
       setProcessingLabel(null);
+      setAiActivity(null);
       setLocalPartial('');
 
       // Extract memories sequentially so it doesn't freeze the CPU
@@ -310,6 +354,7 @@ export default function HistoryDetailScreen() {
     } finally {
       setIsProcessing(false);
       setProcessingLabel(null);
+      setAiActivity(null);
       // If the model threw, the partial would otherwise stay on screen.
       setLocalPartial('');
     }
@@ -445,7 +490,7 @@ export default function HistoryDetailScreen() {
               size="md"
               stacked
               icon="mic"
-              onPress={handleReTranscribe}
+              onPress={() => startAction('retranscribe', handleReTranscribe)}
               disabled={isProcessing || !item?.sourceFilePath}
             >
               {t('historyDetail.retranscribe') || 'Re-Transcribe'}
@@ -458,7 +503,7 @@ export default function HistoryDetailScreen() {
               size="md"
               stacked
               icon="wand"
-              onPress={handleFormat}
+              onPress={() => startAction('format', handleFormat)}
               disabled={isProcessing || !item?.rawTranscript}
             >
               {t('historyDetail.format') || 'Format'}
@@ -471,7 +516,7 @@ export default function HistoryDetailScreen() {
               size="md"
               stacked
               icon="library"
-              onPress={handleSummarize}
+              onPress={() => startAction('summarize', handleSummarize)}
               disabled={isProcessing || !item?.rawTranscript}
             >
               {t('historyDetail.summarize') || 'Summarize'}
@@ -611,6 +656,19 @@ export default function HistoryDetailScreen() {
           isStreamingWhisper ? (isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0 : undefined
         }
         onCopy={transcript ? handleCopy : undefined}
+      />
+
+      <AiBusyDialog
+        visible={busyPrompt !== null}
+        nextLabel={busyPrompt?.next ?? ''}
+        currentLabel={busyPrompt?.current ?? ''}
+        onCancel={() => setBusyPrompt(null)}
+        onConfirm={(dontAsk) => {
+          if (dontAsk) setSetting('hideAiBusyWarning', true);
+          const run = busyPrompt?.run;
+          setBusyPrompt(null);
+          run?.();
+        }}
       />
 
       {/* Uses DialogCard directly, not dialog.show, because it needs a live TextInput. */}

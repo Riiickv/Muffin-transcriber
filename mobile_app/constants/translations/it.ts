@@ -124,6 +124,10 @@ export const IT = {
     working: "Elaborazione...",
     summaryTooShort: "Troppo corto per riassumerlo.",
     summaryFailed: "Non sono riuscito a riassumerlo.",
+    busyTitle: "Una alla volta!",
+    busyMessage: "Se avvii {next}, {current} si fermerà.",
+    busyDontAsk: "Non mostrare più",
+    busyConfirm: "Ok!",
 
     whisperModelLabel: "Qualità trascrizione",
     formatterModelLabel: "Qualità formattazione",

@@ -106,6 +106,21 @@ export function preloadWhisper(modelPath: string): void {
  *                      Do NOT pass display names like "Italian" - call
  *                      `toLanguageCode()` from utils/languages.ts first.
  */
+/** Set while a transcription is decoding, so it can be interrupted. */
+let stopCurrentTranscription: (() => Promise<void>) | null = null;
+
+/**
+ * Abort the transcription in flight, if any. The context stays loaded, so a
+ * new one can start straight away.
+ */
+export async function stopWhisperWork(): Promise<void> {
+  try {
+    await stopCurrentTranscription?.();
+  } catch (e) {
+    console.warn('Could not stop the transcription:', e);
+  }
+}
+
 /** Serializes work on the single shared whisper context. */
 let whisperChain: Promise<unknown> = Promise.resolve();
 function whisperQueue<T>(job: () => Promise<T>): Promise<T> {
@@ -226,12 +241,17 @@ export async function transcribeFile(
   // on a history entry, an imported file, and the recorder all land here - so
   // the guard lives at the engine where nothing can route around it.
   return whisperQueue(async () => {
-    const { promise } = whisperContext!.transcribe(audioPath, options);
-    const result = await promise;
-    return {
-      text: result.result,
-      segments: result.segments || [],
-    };
+    const { promise, stop } = whisperContext!.transcribe(audioPath, options);
+    stopCurrentTranscription = stop;
+    try {
+      const result = await promise;
+      return {
+        text: result.result,
+        segments: result.segments || [],
+      };
+    } finally {
+      stopCurrentTranscription = null;
+    }
   });
 }
 

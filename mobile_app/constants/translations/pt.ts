@@ -99,6 +99,10 @@ export const PT = {
     working: "A trabalhar...",
     summaryTooShort: "Demasiado curto para resumir.",
     summaryFailed: "Não consegui resumir isto.",
+    busyTitle: "Uma de cada vez!",
+    busyMessage: "Iniciar {next} vai parar {current}.",
+    busyDontAsk: "Não mostrar novamente",
+    busyConfirm: "Ok!",
 
     whisperModelLabel: "Qualidade da transcrição",
     formatterModelLabel: "Qualidade da formatação",
