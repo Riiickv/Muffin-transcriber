@@ -1,11 +1,15 @@
 // Shared formatting helpers so screens don't each reimplement duration/date logic.
 
-// Audio duration as MM:SS (zero-padded). Used by the player and history cards.
+// Audio duration, zero-padded. MM:SS normally, H:MM:SS past an hour so an
+// imported lecture reads "1:30:00" instead of "90:00". Used by the player and
+// history cards.
 export function formatDuration(totalSeconds: number): string {
   if (!isFinite(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
-  const m = Math.floor(totalSeconds / 60);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
   const s = Math.floor(totalSeconds % 60);
-  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
 // Human-readable ETA ("...", "45s", "2m 5s"). Used by download progress.
