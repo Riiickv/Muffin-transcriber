@@ -10,7 +10,7 @@
 export const IT = {
   tester: {
     welcomeTitle: "Sei un tester!",
-    welcomeBody: "Muffin è ancora in sviluppo e tu sei uno dei miei tester. Se lo trovi utile, dimmi pure cosa ne pensi, in particolare cosa cambieresti, aggiungeresti o correggeresti. Grazie!",
+    welcomeBody: "Muffin è ancora in sviluppo e sei un tester! Se lo trovi utile, dimmi pure cosa ne pensi, in particolare cosa cambieresti, aggiungeresti o correggeresti. Grazie!",
     welcomeOk: "Ho capito",
   },
 

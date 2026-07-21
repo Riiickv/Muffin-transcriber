@@ -16,6 +16,7 @@ import { Button } from '@/components/Button';
 import { WaitingCard } from '@/components/WaitingCard';
 import { StreamingText } from '@/components/StreamingText';
 import { ProgressBar } from '@/components/ProgressBar';
+import { WaveformSeekBar } from '@/components/WaveformSeekBar';
 import { TranscriptFullscreen } from '@/components/TranscriptFullscreen';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { RADIUS, SPACING } from '@/constants/tokens';
@@ -538,9 +539,16 @@ export default function HistoryDetailScreen() {
             accessibilityLabel={isPlaying ? (t('historyDetail.pause') || 'Pause') : (t('historyDetail.play') || 'Play')}
           />
           <Text style={[styles.timeLabel, { color: theme.textMuted }]}>{formatDuration(currentTime)}</Text>
-          <View style={[styles.progressTrack, { backgroundColor: theme.surface }]}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%`, backgroundColor: theme.tint }]} />
-          </View>
+          <WaveformSeekBar
+            progress={progress}
+            seedId={id}
+            onSeek={(f) => {
+              if (duration > 0) {
+                haptics.tap();
+                player.seekTo(f * duration);
+              }
+            }}
+          />
           <Text style={[styles.timeLabel, { color: theme.textMuted }]}>{formatDuration(duration)}</Text>
         </View>
       </Card>
