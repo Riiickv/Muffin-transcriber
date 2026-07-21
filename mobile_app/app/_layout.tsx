@@ -42,17 +42,25 @@ export default function RootLayout() {
     MaterialSymbolsRounded: require('../assets/fonts/MaterialSymbolsRounded.ttf'),
   });
 
+  // A font that fails to load must NOT take the whole app down. The Expo template
+  // rethrows here, but an error thrown in an effect is caught by no boundary - it
+  // just crashes, about a second after the splash, on whatever device couldn't
+  // load the font. Older phones and some OEM ROMs choke on the large variable
+  // icon font; when that happens, log it and carry on with the system font.
   useEffect(() => {
-    if (error) throw error;
+    if (error) console.warn('Font load failed, falling back to system fonts:', error);
   }, [error]);
 
+  // Hide the splash once fonts are in OR have failed - never wait forever on a
+  // font that is never going to arrive.
   useEffect(() => {
-    if (loaded) {
+    if (loaded || error) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, error]);
 
-  if (!loaded) {
+  // Render when fonts are ready, or immediately if they errored (fallback fonts).
+  if (!loaded && !error) {
     return null;
   }
 
