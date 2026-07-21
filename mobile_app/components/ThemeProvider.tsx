@@ -106,7 +106,12 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
 
   let theme: Theme;
 
-  if (accentColor === 'system' && Platform.OS === 'android') {
+  // Material You's dynamic palette (@android:color/system_accent1_*) only exists
+  // on Android 12+ (API 31). On older versions those resources are absent, and
+  // PlatformColor throws Resources$NotFoundException at render - crashing the app
+  // ~1s after the splash on every pre-12 device (reported on a Nova 5T, Android
+  // 10). Below API 31 we fall through to the 'muffin' brand accent instead.
+  if (accentColor === 'system' && Platform.OS === 'android' && (Platform.Version as number) >= 31) {
     theme = {
       isDark,
       isAmoled,
