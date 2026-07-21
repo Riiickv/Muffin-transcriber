@@ -19,15 +19,28 @@ export function formatEta(seconds: number): string {
   return `${Math.floor(seconds / 60)}m ${Math.floor(seconds % 60)}s`;
 }
 
+const pad2 = (n: number) => n.toString().padStart(2, '0');
+
+// toLocaleDateString with options leans on the phone's Intl engine, and a few
+// stripped-down builds throw instead of degrading. Guard it so a date can never
+// crash a screen: on failure fall back to a plain, locale-agnostic string.
+function localeDate(iso: string, options: Intl.DateTimeFormatOptions, fallback: (d: Date) => string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  try {
+    return d.toLocaleDateString(undefined, options);
+  } catch {
+    return fallback(d);
+  }
+}
+
 // History timestamp -> locale short date+time, e.g. "Mon, Jan 5, 3:04 PM".
 export function formatHistoryDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return localeDate(
+    iso,
+    { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' },
+    (d) => `${d.toDateString()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+  );
 }
 
 // Compact "how long ago", for list subtitles: "now", "5m", "3h", "2d", "Jul 6".
@@ -41,5 +54,5 @@ export function formatRelativeTime(iso: string): string {
   if (diffH < 24) return `${diffH}h`;
   const diffD = Math.floor(diffH / 24);
   if (diffD < 7) return `${diffD}d`;
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return localeDate(iso, { month: 'short', day: 'numeric' }, (d) => d.toDateString().slice(4, 10));
 }
