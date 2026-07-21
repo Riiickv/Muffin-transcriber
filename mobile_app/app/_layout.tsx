@@ -9,6 +9,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter } from 'expo-r
 import { StatusBar } from 'expo-status-bar';
 import { DownloadBanner } from '@/components/DownloadIndicator';
 import { RecordingProvider } from '@/components/RecordingProvider';
+import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { RecordOptionsSheet } from '@/components/RecordOptionsSheet';
 import { MicCoachMark } from '@/components/MicCoachMark';
 import * as SplashScreen from 'expo-splash-screen';
@@ -65,13 +66,15 @@ export default function RootLayout() {
   }
 
   return (
-    <KeyboardProvider>
-      <CustomThemeProvider>
-        <DialogProvider>
-          <RootLayoutNav />
-        </DialogProvider>
-      </CustomThemeProvider>
-    </KeyboardProvider>
+    <AppErrorBoundary>
+      <KeyboardProvider>
+        <CustomThemeProvider>
+          <DialogProvider>
+            <RootLayoutNav />
+          </DialogProvider>
+        </CustomThemeProvider>
+      </KeyboardProvider>
+    </AppErrorBoundary>
   );
 }
 
