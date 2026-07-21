@@ -60,6 +60,12 @@ test('extractFormatterOutput unwraps a leading code fence instead of emptying it
 test('echoesPrompt detects the model reciting our instructions', () => {
   assert.ok(echoesPrompt('You are a precise text-processing assistant that...'));
   assert.ok(!echoesPrompt('Domani devo comprare le patate.'));
+  // The exact leak a tester saw in the Formatted tab: the model recited the
+  // tail of the format prompt. The streaming partial now suppresses this.
+  assert.ok(
+    echoesPrompt('You must reply in the original language of the text. Process the transcript now'),
+    'the reported format-prompt tail is caught'
+  );
 });
 
 test('capRunawayRepetition keeps at most two identical lines in a row', () => {

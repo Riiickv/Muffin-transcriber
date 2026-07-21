@@ -27,6 +27,15 @@
 
 export const APP_STRINGS = {
   // ==========================================================================
+  //  TESTER WELCOME - one-time popup shown to closed-testing users
+  // ==========================================================================
+  tester: {
+    welcomeTitle: "You're a tester!",
+    welcomeBody: "Muffin is still in development and you're one of my testers. If you find it useful, feel free to tell me what you think, especially what you'd change, add, or fix. Thank you!",
+    welcomeOk: "Got it",
+  },
+
+  // ==========================================================================
   //  BOTTOM NAVIGATION BAR - the 5 buttons at the bottom of the screen
   // ==========================================================================
   tabs: {

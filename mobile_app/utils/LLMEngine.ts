@@ -437,7 +437,12 @@ function makeTokenStreamer(onPartial?: (text: string) => void) {
     if (now - last < 60) return;
     last = now;
     const cleaned = stripMarkdownArtifacts(extractFormatterOutput(acc));
-    if (cleaned) onPartial(cleaned);
+    // A weak model handed a short or odd transcript sometimes recites the prompt
+    // instead of doing the work ("...Process the transcript now"). The FINAL
+    // result already falls back to raw via looksUnstable, but the streaming
+    // partial is what the user watches - and freezes on if they open fullscreen
+    // mid-stream. Hold the last good frame rather than typing the prompt out.
+    if (cleaned && !echoesPrompt(cleaned)) onPartial(cleaned);
   };
 }
 

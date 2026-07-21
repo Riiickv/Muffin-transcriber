@@ -8,6 +8,12 @@
  * riga senza rompere niente.
  */
 export const IT = {
+  tester: {
+    welcomeTitle: "Sei un tester!",
+    welcomeBody: "Muffin è ancora in sviluppo e tu sei uno dei miei tester. Se lo trovi utile, dimmi pure cosa ne pensi, in particolare cosa cambieresti, aggiungeresti o correggeresti. Grazie!",
+    welcomeOk: "Ho capito",
+  },
+
   tabs: {
     transcribe: "Muffin!",
     record: "Registra",
