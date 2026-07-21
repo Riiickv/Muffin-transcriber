@@ -42,6 +42,7 @@ import { queueLlama } from '@/utils/transcriptionPipeline';
 import { startAiJob, updateAiJob, endAiJob, markAiJobStopping, useAiJob } from '@/utils/aiActivity';
 import { AiBusyDialog } from '@/components/AiBusyDialog';
 import { usePacedReveal } from '@/hooks/usePacedReveal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TranscriptTab = 'raw' | 'formatted' | 'summary';
 
@@ -63,6 +64,7 @@ export default function HistoryDetailScreen() {
   const { settings, setSetting } = useSettings();
   const [customPrompt, setCustomPrompt] = useDebouncedSetting('customFormatSystemPrompt');
   const dialog = useDialog();
+  const insets = useSafeAreaInsets();
 
   const [transcriptTab, setTranscriptTab] = useState<TranscriptTab>('raw');
   // Derived from the app-wide job, NOT local state: local state dies with the
@@ -517,7 +519,10 @@ export default function HistoryDetailScreen() {
           the only thing that scrolls is the transcript. KeyboardScreen still
           shrinks this view when the keyboard opens, and the flexible card
           absorbs it, keeping the prompt field visible. */}
-      <View style={[styles.root, styles.container]}>
+      {/* paddingBottom clears the system nav bar: this is a pushed screen with no
+          floating tab bar, so nothing else reserves the bottom inset, and on a
+          3-button-nav device the transcript card was clipped underneath it. */}
+      <View style={[styles.root, styles.container, { paddingBottom: SPACING.lg + insets.bottom }]}>
 
       <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <Text style={styles.title}>{item?.sourceFileName?.replace(/\.[^/.]+$/, "") || `${t('transcribe.noTitle') || 'Voice Memo'} ${id}`}</Text>

@@ -31,6 +31,9 @@ export interface Settings {
   typewriterSpeed: 'slow' | 'balanced' | 'fast';
   /** UI language. 'auto' follows the phone. See utils/i18n.ts. */
   appLanguage: AppLanguage;
+  /** One-time tester feedback popup. False until dismissed; a new key, so
+   *  existing testers see it once after updating (hydrate fills the default). */
+  seenTesterWelcome: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -56,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // a setting. Existing installs hydrate over these defaults, so they get
   // 'auto' too rather than being pinned to English.
   appLanguage: 'auto',
+  seenTesterWelcome: false,
 };
 
 // Model ids that changed in the catalog (e.g. quant swaps) - remap stale

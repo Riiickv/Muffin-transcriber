@@ -59,6 +59,9 @@ export default function HomeScreen() {
   const activeRunIdRef = useRef<string | null>(null);
 
   const [transcriptTab, setTranscriptTab] = useState<TranscriptTab>('raw');
+  // Armed when enrichment starts; the effect below switches to it once the raw
+  // typewriter has finished, so transcription isn't cut off mid-reveal.
+  const [pendingAutoTab, setPendingAutoTab] = useState<TranscriptTab | null>(null);
   const [selectedFileUri, setSelectedFileUri] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -96,6 +99,24 @@ export default function HomeScreen() {
       setSetting('defaultLanguage', 'Auto-Detect');
     }
   }, [isEnglishOnly, settings.defaultLanguage]);
+
+  // One-time tester feedback popup. seenTesterWelcome is a new setting defaulting
+  // to false, so BOTH fresh installs and existing testers (who just updated) see
+  // it exactly once, on the first functional Home. The ref guards a double-show
+  // while the saved flag is still being written.
+  const testerShownRef = useRef(false);
+  useEffect(() => {
+    if (testerShownRef.current) return;
+    if (modelsChecked && downloadedIds.length > 0 && !settings.seenTesterWelcome) {
+      testerShownRef.current = true;
+      setSetting('seenTesterWelcome', true);
+      dialog.show({
+        title: t('tester.welcomeTitle'),
+        message: t('tester.welcomeBody'),
+        buttons: [{ label: t('tester.welcomeOk') || 'Got it', variant: 'primary' }],
+      });
+    }
+  }, [modelsChecked, downloadedIds.length, settings.seenTesterWelcome]);
 
   // Share intent target - copy the file into cache with the legacy API,
   // because the new expo-file-system module has no `cacheDirectory`.
@@ -144,6 +165,7 @@ export default function HomeScreen() {
     haptics.tap();
     setIsTranscribing(true);
     setTranscriptTab('raw');
+    setPendingAutoTab(null);
     setRawText('');
     setFormattedText('');
     setSummaryText('');
@@ -241,12 +263,14 @@ export default function HomeScreen() {
           if (isCurrent()) {
             setFormattedText(settings.formatByDefault ? (t('transcribe.formatting') || '') : '');
             setSummaryText(settings.summarizeByDefault ? (t('transcribe.summarizing') || '') : '');
-            if (settings.formatByDefault) setTranscriptTab('formatted');
+            // Arm, don't switch: the raw typewriter is still catching up, and
+            // jumping tabs now cuts it off mid-type (a tester hit this). The
+            // effect switches once the raw reveal is done.
+            setPendingAutoTab(settings.formatByDefault ? 'formatted' : settings.summarizeByDefault ? 'summary' : null);
           }
 
           // Serialized under the hood: format, summarize and title all share the
           // one llama context, so runEnrichment awaits them in sequence.
-          let formattedOut = '';
           const enrich = await runEnrichment({
             rawText: cleanText,
             modelPath,
@@ -265,18 +289,15 @@ export default function HomeScreen() {
               if (isCurrent()) setSummaryPartial(p);
             },
             onFormatted: (f) => {
-              formattedOut = f;
               if (isCurrent()) {
                 setFormatPartial('');
                 setFormattedText(f);
-                setTranscriptTab('formatted');
               }
             },
             onSummarized: (s) => {
               if (isCurrent()) {
                 setSummaryPartial('');
                 setSummaryText(s);
-                if (!formattedOut) setTranscriptTab('summary');
               }
             },
           });
@@ -342,6 +363,16 @@ export default function HomeScreen() {
   // Hold the typewriter view until the reveal catches up, so a short import
   // still types out after its single burst completes.
   const revealing = revealed.length > 0 && !revealDone;
+
+  // Hold on Raw until its typewriter finishes, THEN switch to the tab the run
+  // armed. Switching the instant enrichment started cut the raw transcription
+  // off mid-type. Guarded on 'raw' so a manual switch during the run wins.
+  useEffect(() => {
+    if (pendingAutoTab && revealDone && transcriptTab === 'raw') {
+      setTranscriptTab(pendingAutoTab);
+      setPendingAutoTab(null);
+    }
+  }, [pendingAutoTab, revealDone, transcriptTab]);
 
   const handleCopy = async () => {
     if (!currentText) return;
@@ -425,7 +456,10 @@ export default function HomeScreen() {
           The cost is the case that comment worried about - a short screen or a
           large system font can now clip the bottom instead of scrolling to it.
           Worth knowing rather than trading away silently. */}
-      <View style={[styles.root, styles.container]}>
+      {/* Reserve the tab bar's real height: the pill (~60) plus the device's
+          bottom inset. A fixed 84 clipped the bottom on phones with a 3-button
+          nav bar, whose larger inset pushes the tab bar taller than the reserve. */}
+      <View style={[styles.root, styles.container, { paddingBottom: Math.max(TAB_BAR_SPACE, insets.bottom + 60) }]}>
       {/* Formatting card first - configure once, then hit Transcribe. */}
       <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <View style={styles.switchRow}>
