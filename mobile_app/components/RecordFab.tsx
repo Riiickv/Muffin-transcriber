@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
 import Animated, {
   Easing,
   SharedValue,
@@ -50,29 +50,69 @@ export function RecordFab() {
   const idleChrome = { ...FLOATING_CHROME, ...floatingChromeColors(theme.isDark) };
 
   return (
-    <Animated.View style={pulseStyle}>
-      <AnimatedPressable
-        onPress={() => {
-          markCoachDone('mic');
-          toggle();
-        }}
-        onLongPress={() => {
-          haptics.select();
-          markCoachDone('mic');
-          setRecordSheetOpen(true);
-        }}
-        accessibilityRole="button"
-        accessibilityLabel={isRecording ? 'Stop recording' : 'Start recording'}
-        accessibilityState={{ selected: isRecording }}
-        style={[
-          styles.fab,
-          isRecording
-            ? { backgroundColor: RECORDING_RED, borderColor: RECORDING_RED }
-            : idleChrome,
-        ]}
-      >
-        {isRecording ? <Waveform level={level} /> : <Icon name="mic" filled size={24} color={theme.tint} />}
-      </AnimatedPressable>
+    <View style={styles.fabWrap}>
+      <RecordingTimer visible={isRecording} />
+      <Animated.View style={pulseStyle}>
+        <AnimatedPressable
+          onPress={() => {
+            markCoachDone('mic');
+            toggle();
+          }}
+          onLongPress={() => {
+            haptics.select();
+            markCoachDone('mic');
+            setRecordSheetOpen(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={isRecording ? 'Stop recording' : 'Start recording'}
+          accessibilityState={{ selected: isRecording }}
+          style={[
+            styles.fab,
+            isRecording
+              ? { backgroundColor: RECORDING_RED, borderColor: RECORDING_RED }
+              : idleChrome,
+          ]}
+        >
+          {isRecording ? <Waveform level={level} /> : <Icon name="mic" filled size={24} color={theme.tint} />}
+        </AnimatedPressable>
+      </Animated.View>
+    </View>
+  );
+}
+
+// A slim timer that slides up from beneath the mic while recording, so you can
+// see how long you've been going. Counts from when recording started; resets
+// and hides on stop.
+function RecordingTimer({ visible }: { visible: boolean }) {
+  const [elapsed, setElapsed] = useState(0);
+  const anim = useSharedValue(0);
+
+  useEffect(() => {
+    anim.value = withTiming(visible ? 1 : 0, { duration: 220, easing: Easing.out(Easing.quad) });
+    if (!visible) {
+      setElapsed(0);
+      return;
+    }
+    const start = Date.now();
+    setElapsed(0);
+    const iv = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 500);
+    return () => clearInterval(iv);
+  }, [visible]);
+
+  // Fades in and rises the last 10px, so it reads as emerging from under the mic.
+  const style = useAnimatedStyle(() => ({
+    opacity: anim.value,
+    transform: [{ translateY: (1 - anim.value) * 10 }],
+  }));
+
+  const mm = Math.floor(elapsed / 60);
+  const ss = String(elapsed % 60).padStart(2, '0');
+
+  return (
+    <Animated.View pointerEvents="none" style={[styles.timerWrap, style]}>
+      <View style={styles.timerPill}>
+        <Text style={styles.timerText}>{`${mm}:${ss}`}</Text>
+      </View>
     </Animated.View>
   );
 }
@@ -97,6 +137,31 @@ function WaveBar({ index, level }: { index: number; level: SharedValue<number> }
 }
 
 const styles = StyleSheet.create({
+  fabWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timerWrap: {
+    position: 'absolute',
+    // Above the mic, so it reads as sliding out from beneath it. left/right
+    // spread past the circle so a wider "10:05" pill still centres over it.
+    bottom: SIZE + 10,
+    left: -24,
+    right: -24,
+    alignItems: 'center',
+  },
+  timerPill: {
+    backgroundColor: RECORDING_RED,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  timerText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
   fab: {
     width: SIZE,
     height: SIZE,
