@@ -58,7 +58,7 @@
     "web": "expo start --web",
     "postinstall": "patch-package",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/streamingDrip.test.ts tests/segmentAccumulator.test.ts tests/entityExtraction.test.ts tests/textCleanup.test.ts tests/transcribeProgress.test.ts tests/languageData.test.ts tests/format.test.ts tests/deviceTierData.test.ts",
+    "test": "node --experimental-strip-types --test tests/streamingDrip.test.ts tests/segmentAccumulator.test.ts tests/entityExtraction.test.ts tests/textCleanup.test.ts tests/transcribeProgress.test.ts tests/languageData.test.ts tests/format.test.ts tests/deviceTierData.test.ts tests/waveform.test.ts",
     "typecheck:tests": "tsc -p tests/tsconfig.json",
     "lint": "eslint ."
   },

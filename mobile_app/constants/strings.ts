@@ -31,7 +31,7 @@ export const APP_STRINGS = {
   // ==========================================================================
   tester: {
     welcomeTitle: "You're a tester!",
-    welcomeBody: "Muffin is still in development and you're one of my testers. If you find it useful, feel free to tell me what you think, especially what you'd change, add, or fix. Thank you!",
+    welcomeBody: "Muffin is still in development and you're a tester! If you find it useful, feel free to tell me what you think, especially what you'd change, add, or fix. Thank you!",
     welcomeOk: "Got it",
   },
 
