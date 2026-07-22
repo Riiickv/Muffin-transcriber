@@ -655,7 +655,10 @@ export default function HomeScreen() {
       <TranscriptFullscreen
         visible={fullscreen}
         onClose={() => setFullscreen(false)}
-        text={revealed || currentText}
+        // Only prefer the reveal while something genuinely streams: after it
+        // ends `revealed` still holds the LAST streamed text, and preferring it
+        // showed a stale (even aborted) run's words instead of the saved ones.
+        text={!!live || revealing ? revealed : currentText}
         streaming={!!live || revealing}
         percent={isTranscribing ? transcribePercent : undefined}
         onCopy={currentText ? handleCopy : undefined}
