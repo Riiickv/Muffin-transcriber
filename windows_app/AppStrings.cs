@@ -11,7 +11,7 @@ public static class AppStrings
     public static string Nav_Settings => LocalizationManager.GetString("Nav_Settings", "Settings");
 
     public static string App_Title => LocalizationManager.GetString("App_Title", "Muffin Transcriber");
-    public static string AppVersion => LocalizationManager.GetString("AppVersion", "v1.2.1");
+    public static string AppVersion => LocalizationManager.GetString("AppVersion", "v1.2.2");
     public static string Credits => LocalizationManager.GetString("Credits", "made by Rick in his free time");
     public static string Settings_BtnChangelog => LocalizationManager.GetString("Settings_BtnChangelog", "View Changelog");
 
