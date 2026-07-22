@@ -512,18 +512,22 @@ export default function HistoryDetailScreen() {
     <View style={[styles.root, { backgroundColor: theme.background }, { maxWidth: contentWidth, width: '100%', alignSelf: 'center' }]}>
       <Stack.Screen options={{ title: item?.sourceFileName?.replace(/\.[^/.]+$/, "") ?? (t('transcribe.transcriptTitle') || 'Transcript') }} />
 
-      {/* A plain View, NOT a ScrollView. A scroller measures its content with an
-          unbounded main axis, so `flex: 1` on a child inside it doesn't actually
-          bound that child - which is why the transcript kept growing and taking
-          the page with it however the panel was styled. With a fixed-height
-          parent the constraint is real, so the card gets exactly what's left and
-          the only thing that scrolls is the transcript. KeyboardScreen still
-          shrinks this view when the keyboard opens, and the flexible card
-          absorbs it, keeping the prompt field visible. */}
+      {/* ScrollView + flexGrow content + the ABSOLUTE transcript layer (below):
+          fill the screen normally, scroll only when the fixed chrome genuinely
+          doesn't fit (short or font-scaled screens - a ZTE Blade A76 pushed the
+          transcript card clean off the bottom with no way to reach it). The
+          absolute layer keeps a long transcript from growing the card and
+          dragging the page into scrolling - the everything-scrolls bug that
+          made this a plain View for a while. */}
       {/* paddingBottom clears the system nav bar: this is a pushed screen with no
           floating tab bar, so nothing else reserves the bottom inset, and on a
           3-button-nav device the transcript card was clipped underneath it. */}
-      <View style={[styles.root, styles.container, { paddingBottom: SPACING.lg + insets.bottom }]}>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={[styles.container, { paddingBottom: SPACING.lg + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
 
       <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <Text style={styles.title}>{item?.sourceFileName?.replace(/\.[^/.]+$/, "") || `${t('transcribe.noTitle') || 'Voice Memo'} ${id}`}</Text>
@@ -634,7 +638,11 @@ export default function HistoryDetailScreen() {
           />
         </View>
 
-        {/* Fills the remainder, like the Muffin! tab. */}
+        {/* Height from flex within the card (floored by minHeight); the CONTENT
+            lives in an absolute layer so it can never grow the card - see the
+            ScrollView note above. */}
+        <View style={styles.transcriptArea}>
+        <View style={StyleSheet.absoluteFill}>
         <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1 }]}>
           {/* Once whisper starts handing back words, showing them beats any
               waiting card: a long recording is long no matter what we do, so
@@ -688,8 +696,10 @@ export default function HistoryDetailScreen() {
             </ScrollView>
           )}
         </View>
+        </View>
+        </View>
       </Card>
-      </View>
+      </ScrollView>
 
       <TranscriptFullscreen
         visible={fullscreen}
@@ -829,6 +839,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.md,
+  },
+  /** The transcript's bounded home: flex height inside the card, with a floor so
+   *  it stays usable when a short screen forces the page to scroll. Its only
+   *  child is absolute, so nothing inside can inflate it. */
+  transcriptArea: {
+    flex: 1,
+    minHeight: 180,
   },
   transcriptBox: {
     flex: 1,
