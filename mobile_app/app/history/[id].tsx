@@ -704,7 +704,11 @@ export default function HistoryDetailScreen() {
       <TranscriptFullscreen
         visible={fullscreen}
         onClose={() => setFullscreen(false)}
-        text={revealed || transcript}
+        // Only prefer the reveal while streaming: afterwards `revealed` keeps
+        // the last streamed text, so a stale (even aborted) run's words showed
+        // fullscreen instead of this item's saved transcript - which is how a
+        // stopped re-transcribe's Chinese hallucination ended up on screen.
+        text={showStreaming ? revealed : transcript}
         streaming={showStreaming}
         percent={
           isStreamingWhisper ? (isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0 : undefined

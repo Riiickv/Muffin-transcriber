@@ -47,7 +47,14 @@ export function Text(props: TextProps) {
     fontFamily = 'Nunito_600SemiBold';
   }
 
-  return <DefaultText style={[{ color: theme.text, fontFamily }, style]} {...otherProps} />;
+  // Cap how far the system font-size setting can inflate the UI. Uncapped, a
+  // phone on a large accessibility scale wraps labels, truncates buttons and
+  // pushes fixed layouts off-screen (ZTE Blade A76 report). 1.2 still honours
+  // larger-font users without letting the chrome explode; a caller can pass its
+  // own maxFontSizeMultiplier to override (otherProps spreads after this).
+  return (
+    <DefaultText maxFontSizeMultiplier={1.2} style={[{ color: theme.text, fontFamily }, style]} {...otherProps} />
+  );
 }
 
 export function View(props: ViewProps) {
