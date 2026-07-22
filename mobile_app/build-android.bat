@@ -8,7 +8,7 @@ REM     build-android.bat              Build the release APK
 REM     build-android.bat --clean      Wipe build caches first (slow, ~15 min)
 REM     build-android.bat --install     Build, then install to the plugged-in phone
 REM     build-android.bat --serve      Build, then host the APK over Wi-Fi
-REM     build-android.bat --prebuild   Regenerate android/ from app.json first
+REM     build-android.bat --prebuild   Sync android/ from app.json first (incremental; add --clean for a full wipe)
 REM     build-android.bat --aab        Build the .aab for the Play Store (not an APK)
 REM
 REM  Flags can be combined:  build-android.bat --clean --install
@@ -154,8 +154,19 @@ REM  5. Prebuild (only when asked - it overwrites android/)
 REM ---------------------------------------------------------------------------
 echo [5/6] Native project...
 if defined DO_PREBUILD (
-  echo       Regenerating android/ from app.json...
-  call npx expo prebuild --platform android --clean
+  REM Incremental by default: --clean wiped android/ INCLUDING the C++ object
+  REM caches, so every build recompiled whisper.rn + llama.rn from scratch on
+  REM every core for minutes - fans, heat, dead audio. A plain prebuild still
+  REM syncs app.json onto the project - versionCode, plugins, manifest - but
+  REM lets ninja reuse its caches and mostly no-op. Combine --prebuild --clean
+  REM when the native project seems haunted.
+  if defined DO_CLEAN (
+    echo       Regenerating android/ from app.json - clean...
+    call npx expo prebuild --platform android --clean
+  ) else (
+    echo       Syncing android/ from app.json - incremental...
+    call npx expo prebuild --platform android
+  )
   if errorlevel 1 (
     echo       ERROR: prebuild failed.
     set "FAILED=1"
@@ -199,10 +210,15 @@ REM "not recognized" even while standing in android\.
 REM Play Store takes an App Bundle, not an APK - it has been required for new
 REM apps since 2021. Same build, different Gradle task, so --aab produces the
 REM upload artifact while the default still gives an APK you can sideload.
+REM Gentle mode: BELOWNORMAL priority means Windows schedules the desktop -
+REM audio included - ahead of the compiler, and capping gradle workers leaves a
+REM couple of cores breathing room. The build barely slows; the PC stays usable.
+set /a GRADLE_WORKERS=NUMBER_OF_PROCESSORS-2
+if !GRADLE_WORKERS! LSS 2 set "GRADLE_WORKERS=2"
 if defined DO_AAB (
-  call .\gradlew.bat bundleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+  start "" /BELOWNORMAL /B /WAIT cmd /c ".\gradlew.bat bundleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --max-workers=!GRADLE_WORKERS!"
 ) else (
-  call .\gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+  start "" /BELOWNORMAL /B /WAIT cmd /c ".\gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --max-workers=!GRADLE_WORKERS!"
 )
 set "GRADLE_EXIT=!errorlevel!"
 popd
