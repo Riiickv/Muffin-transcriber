@@ -446,20 +446,25 @@ export default function HomeScreen() {
   return (
     <KeyboardScreen>
     <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>
-      {/* A plain View, NOT a ScrollView, and the reasoning above was wrong in a
-          way that mattered: a scroller measures its content with an unbounded
-          main axis, so `flex: 1` on the Transcript card inside it never actually
-          bounded the card. The card grew with the transcript and took the page
-          with it - the thing the ScrollView was supposed to make unnecessary.
-          With a fixed-height parent the constraint is real: the card gets
-          exactly the leftover space and only the transcript scrolls.
-          The cost is the case that comment worried about - a short screen or a
-          large system font can now clip the bottom instead of scrolling to it.
-          Worth knowing rather than trading away silently. */}
+      {/* ScrollView + flexGrow content + the ABSOLUTE transcript layer (below):
+          together they give "fill the screen normally, scroll only when it
+          genuinely doesn't fit". flexGrow makes the content at least viewport
+          tall, so on a normal phone the transcript card's flex:1 still absorbs
+          the leftover and the page does not scroll. Because the transcript's
+          CONTENT sits in an absolute layer it cannot grow the card, so a long
+          transcript can't drag the page into scrolling - the everything-scrolls
+          bug that made this a plain View for a while. What scrolls the page now
+          is fixed chrome exceeding a short or font-scaled screen (a ZTE Blade
+          A76 pushed the transcript card clean off the bottom, unreachable). */}
       {/* Reserve the tab bar's real height: the pill (~60) plus the device's
           bottom inset. A fixed 84 clipped the bottom on phones with a 3-button
           nav bar, whose larger inset pushes the tab bar taller than the reserve. */}
-      <View style={[styles.root, styles.container, { paddingBottom: Math.max(TAB_BAR_SPACE, insets.bottom + 60) }]}>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={[styles.container, { paddingBottom: Math.max(TAB_BAR_SPACE, insets.bottom + 60) }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
       {/* Formatting card first - configure once, then hit Transcribe. */}
       <Card index={0} style={{ marginBottom: SPACING.lg }}>
         <View style={styles.switchRow}>
@@ -593,6 +598,11 @@ export default function HomeScreen() {
           />
         </View>
 
+        {/* Height from flex within the card (floored by minHeight); the CONTENT
+            lives in an absolute layer so it can never grow the card - see the
+            ScrollView note above. */}
+        <View style={styles.transcriptArea}>
+        <View style={StyleSheet.absoluteFill}>
         {live || isTranscribing || revealing ? (
           /* flex, not a fixed height: a hard height can't know what the cards
              above it left over, so it either overflowed the screen or wasted
@@ -637,8 +647,10 @@ export default function HomeScreen() {
             value={currentText}
           />
         )}
+        </View>
+        </View>
       </Card>
-      </View>
+      </ScrollView>
 
       <TranscriptFullscreen
         visible={fullscreen}
@@ -726,6 +738,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.md,
+  },
+  /** The transcript's bounded home: flex height inside the card, with a floor so
+   *  it stays usable when a short screen forces the page to scroll. Its only
+   *  child is absolute, so nothing inside can inflate it. */
+  transcriptArea: {
+    flex: 1,
+    minHeight: 180,
   },
   transcriptBox: {
     borderWidth: 1,
