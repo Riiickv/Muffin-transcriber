@@ -16,7 +16,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "allowBackup": false,
-      "versionCode": 64,
+      "versionCode": 65,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW"
       ],
@@ -42,7 +42,6 @@
     },
     "plugins": [
       "./plugins/withReleaseSigning",
-      "./plugins/withUiScale",
       "expo-router",
       [
         "expo-splash-screen",

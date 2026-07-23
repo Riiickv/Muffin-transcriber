@@ -19,7 +19,6 @@ import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { getLanguageOptions } from '@/utils/languages';
 import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import { useDialog } from '@/components/Dialog';
-import { getUiScale, setUiScale, stepFromScale, type UiScaleStep } from '@/modules/ui-scale';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t, APP_LANGUAGE_OPTIONS, AppLanguage } from '@/utils/i18n';
 import { openPrivacyPolicy } from '@/utils/support';
@@ -57,9 +56,6 @@ export default function SettingsScreen() {
 
   const { settings, setSetting } = useSettings();
   const dialog = useDialog();
-  // The saved density step; reading it is sync and cheap. State only so the
-  // control repaints optimistically before the activity recreates.
-  const [uiScaleStep, setUiScaleStep] = useState<UiScaleStep>(() => stepFromScale(getUiScale()));
   const [formatPrompt, setFormatPrompt] = useDebouncedSetting('customFormatSystemPrompt');
   const [summaryPrompt, setSummaryPrompt] = useDebouncedSetting('customSummarySystemPrompt');
 
@@ -293,39 +289,6 @@ export default function SettingsScreen() {
         <View style={styles.pickerBlock}>
           <Text style={styles.pickerLabel}>{t('settings.accentColor')}</Text>
           <SwatchRow active={accentColor} onPick={(c) => setAccentColor(c as AccentColor)} />
-        </View>
-        {/* A per-app density override, the same mechanism as Android's own
-            Display Size setting. Three fixed steps only: lower breaks tap
-            targets, higher re-creates the overflow bugs. Applying RECREATES
-            the activity (the app visibly reloads), hence the confirm. */}
-        <View style={styles.pickerBlock}>
-          <Text style={styles.pickerLabel}>{t('settings.uiScale') || 'UI size'}</Text>
-          <SegmentedControl
-            segments={[
-              { key: 'compact', label: t('settings.uiScaleCompact') || 'Compact' },
-              { key: 'normal', label: t('settings.uiScaleNormal') || 'Normal' },
-              { key: 'comfy', label: t('settings.uiScaleComfy') || 'Comfy' },
-            ]}
-            value={uiScaleStep}
-            onChange={(step: UiScaleStep) => {
-              if (step === uiScaleStep) return;
-              dialog.show({
-                title: t('settings.uiScaleTitle') || 'Change UI size?',
-                message: t('settings.uiScaleMessage') || 'The app reloads for a moment to apply the new size.',
-                buttons: [
-                  { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary' },
-                  {
-                    label: t('settings.uiScaleApply') || 'Apply',
-                    variant: 'primary',
-                    onPress: () => {
-                      setUiScaleStep(step);
-                      setUiScale(step);
-                    },
-                  },
-                ],
-              });
-            }}
-          />
         </View>
       </SettingsGroup>
 
