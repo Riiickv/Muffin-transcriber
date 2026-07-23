@@ -1,5 +1,11 @@
 /** FRANÇAIS - traduction de constants/strings.ts. Si une clé manque, l'app affiche l'anglais. */
 export const FR = {
+  tester: {
+    welcomeTitle: "Tu es un testeur !",
+    welcomeBody: "Muffin est encore en développement et tu es un testeur ! S'il t'est utile, dis-moi ce que tu en penses, surtout ce que tu changerais, ajouterais ou corrigerais. Merci !",
+    welcomeOk: "Compris",
+  },
+
   tabs: { transcribe: "Muffin !", record: "Enregistrer", history: "Historique", chat: "Chat", settings: "Réglages" },
 
   common: {
@@ -235,6 +241,13 @@ export const FR = {
     appearance: "Apparence",
     themeMode: "Thème",
     accentColor: "Couleur principale",
+    uiScale: "Taille de l'interface",
+    uiScaleCompact: "Compacte",
+    uiScaleNormal: "Normale",
+    uiScaleComfy: "Confortable",
+    uiScaleTitle: "Changer la taille ?",
+    uiScaleMessage: "L'appli se recharge un instant pour appliquer la nouvelle taille.",
+    uiScaleApply: "Appliquer",
 
     customPrompts: "Prompts personnalisés",
     customPromptsFooter: "Laisse vide pour utiliser les réglages par défaut de Muffin. Ils s'appliquent à chaque transcription.",
