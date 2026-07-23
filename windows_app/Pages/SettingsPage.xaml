@@ -167,6 +167,10 @@
                 </StackPanel>
             </toolkit:SettingsCard>
 
+            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ManageModelsTitle}" Description="{x:Bind local:AppStrings.Settings_ManageModelsDesc}">
+                <Button Content="{x:Bind local:AppStrings.Settings_BtnManageModels}" Click="ManageModels_Click" Style="{StaticResource AccentButtonStyle}" />
+            </toolkit:SettingsCard>
+
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ModelsFolderTitle}" Description="{x:Bind local:AppStrings.Settings_ModelsFolderDesc}">
                 <Button Content="{x:Bind local:AppStrings.Settings_BtnOpen}" Click="OpenModelsFolder_Click" />
             </toolkit:SettingsCard>

@@ -10,6 +10,9 @@ namespace MuffinTranscriber.Pages;
 public sealed partial class HomePage : Page
 {
     private List<string> _queuedFiles = new();
+    // Recorded files are titled "Voice memo" in history rather than by their
+    // generated filename, which is a GUID nobody wants to read.
+    private readonly HashSet<string> _recordedFiles = new(StringComparer.OrdinalIgnoreCase);
     private ModelInfo? _selectedWhisperModel;
     private UserSettings _settings = new();
 
@@ -62,6 +65,26 @@ public sealed partial class HomePage : Page
         catch (Exception ex)
         {
             Debug.WriteLine($"HomePage share error: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Takes a finished recording from the app-wide mic button and transcribes
+    /// it immediately, with no extra click: pressing stop IS the intent.
+    /// </summary>
+    public void TranscribeRecording(string wavPath)
+    {
+        if (!File.Exists(wavPath)) return;
+
+        _recordedFiles.Add(wavPath);
+        _queuedFiles.Clear();
+        _queuedFiles.Add(wavPath);
+        FileButton.Content = AppStrings.Record_VoiceMemoName;
+        UpdateTranscribeState();
+
+        if (_transcribeCts is null)
+        {
+            TranscribeButton_Click(this, new RoutedEventArgs());
         }
     }
 
@@ -288,7 +311,9 @@ public sealed partial class HomePage : Page
             foreach (string file in filesToProcess)
             {
                 current++;
-                string baseFileName = Path.GetFileName(file);
+                string baseFileName = _recordedFiles.Contains(file)
+                    ? AppStrings.Record_VoiceMemoName
+                    : Path.GetFileName(file);
                 
                 if (total > 1)
                 {
