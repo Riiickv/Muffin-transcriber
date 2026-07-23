@@ -30,6 +30,7 @@ export function ProgressCircle({
 
   useEffect(() => {
     p.value = withTiming(clamped, { duration: 300 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- p is a stable animated value
   }, [clamped]);
 
   const r = (size - sw) / 2;

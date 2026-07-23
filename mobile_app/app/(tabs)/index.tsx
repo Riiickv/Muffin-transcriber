@@ -83,6 +83,7 @@ export default function HomeScreen() {
     if (isEnglishOnly && settings.defaultLanguage !== 'English' && settings.defaultLanguage !== 'Auto-Detect') {
       setSetting('defaultLanguage', 'Auto-Detect');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setSetting is a new function every render; the effect keys on the values it reads
   }, [isEnglishOnly, settings.defaultLanguage]);
 
   // One-time tester feedback popup. seenTesterWelcome is a new setting defaulting
@@ -101,6 +102,7 @@ export default function HomeScreen() {
         buttons: [{ label: t('tester.welcomeOk') || 'Got it', variant: 'primary' }],
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dialog/setSetting are recreated per render; the ref guard makes this fire once
   }, [modelsChecked, downloadedIds.length, settings.seenTesterWelcome]);
 
   // Share intent target - copy the file into cache with the legacy API,
