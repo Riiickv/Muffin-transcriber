@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="MuffinTranscriber.Pages.SetupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:MuffinTranscriber"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel
+            MaxWidth="620"
+            Margin="24,40,24,40"
+            HorizontalAlignment="Center"
+            Spacing="16">
+
+            <Image
+                Width="80"
+                Height="80"
+                HorizontalAlignment="Center"
+                Source="ms-appx:///Assets/StoreLogo.png" />
+
+            <TextBlock
+                HorizontalAlignment="Center"
+                Style="{StaticResource TitleTextBlockStyle}"
+                Text="{x:Bind local:AppStrings.Setup_Title}" />
+
+            <TextBlock
+                HorizontalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+                Text="{x:Bind local:AppStrings.Setup_Subtitle}" />
+
+            <!--  Required: a Whisper model  -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4">
+                        <TextBlock FontWeight="SemiBold" Text="{x:Bind local:AppStrings.Setup_WhisperCardTitle}" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap"
+                            Text="{x:Bind local:AppStrings.Setup_WhisperCardDesc}" />
+                        <TextBlock
+                            x:Name="WhisperStatus"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Visibility="Collapsed" />
+                        <ProgressBar
+                            x:Name="WhisperProgress"
+                            Margin="0,4,0,0"
+                            Maximum="100"
+                            Visibility="Collapsed" />
+                    </StackPanel>
+                    <Button
+                        x:Name="WhisperButton"
+                        Grid.Column="1"
+                        MinWidth="110"
+                        VerticalAlignment="Center"
+                        Click="WhisperButton_Click"
+                        Content="{x:Bind local:AppStrings.Setup_BtnDownload}"
+                        Style="{StaticResource AccentButtonStyle}" />
+                </Grid>
+            </Border>
+
+            <!--  Optional: a formatter LLM  -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4">
+                        <TextBlock FontWeight="SemiBold" Text="{x:Bind local:AppStrings.Setup_LlmCardTitle}" />
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap"
+                            Text="{x:Bind local:AppStrings.Setup_LlmCardDesc}" />
+                        <TextBlock
+                            x:Name="LlmStatus"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Visibility="Collapsed" />
+                        <ProgressBar
+                            x:Name="LlmProgress"
+                            Margin="0,4,0,0"
+                            Maximum="100"
+                            Visibility="Collapsed" />
+                    </StackPanel>
+                    <Button
+                        x:Name="LlmButton"
+                        Grid.Column="1"
+                        MinWidth="110"
+                        VerticalAlignment="Center"
+                        Click="LlmButton_Click"
+                        Content="{x:Bind local:AppStrings.Setup_BtnDownload}" />
+                </Grid>
+            </Border>
+
+            <Button
+                x:Name="FinishButton"
+                Margin="0,8,0,0"
+                HorizontalAlignment="Center"
+                Click="FinishButton_Click"
+                Content="{x:Bind local:AppStrings.Setup_BtnSkip}" />
+
+            <TextBlock
+                HorizontalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+                Text="{x:Bind local:AppStrings.Setup_MoreModelsHint}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -242,6 +242,36 @@ public static class AppStrings
     public static string Settings_Dialog_Save => LocalizationManager.GetString("Settings_Dialog_Save", "Save");
     public static string Settings_Dialog_Cancel => LocalizationManager.GetString("Settings_Dialog_Cancel", "Cancel");
 
+    // SETUP WIZARD
+    public static string Setup_Title => LocalizationManager.GetString("Setup_Title", "Welcome to Muffin!");
+    public static string Setup_Subtitle => LocalizationManager.GetString("Setup_Subtitle", "Free, private, 100% offline transcription. Muffin runs AI models on your own PC, so nothing ever leaves it. Grab the recommended models below (one-time download) and you're set.");
+    public static string Setup_WhisperCardTitle => LocalizationManager.GetString("Setup_WhisperCardTitle", "Transcription model (required)");
+    public static string Setup_WhisperCardDesc => LocalizationManager.GetString("Setup_WhisperCardDesc", "Whisper [small]: the best balance of speed and accuracy. 466 MB.");
+    public static string Setup_LlmCardTitle => LocalizationManager.GetString("Setup_LlmCardTitle", "Formatting model (optional)");
+    public static string Setup_LlmCardDesc => LocalizationManager.GetString("Setup_LlmCardDesc", "Qwen 2.5 [1.5B]: adds punctuation, cleanup and summaries. 1.1 GB.");
+    public static string Setup_BtnDownload => LocalizationManager.GetString("Setup_BtnDownload", "Download");
+    public static string Setup_BtnDownloaded => LocalizationManager.GetString("Setup_BtnDownloaded", "Installed");
+    public static string Setup_BtnSkip => LocalizationManager.GetString("Setup_BtnSkip", "Skip for now");
+    public static string Setup_BtnFinish => LocalizationManager.GetString("Setup_BtnFinish", "Start using Muffin");
+    public static string Setup_MoreModelsHint => LocalizationManager.GetString("Setup_MoreModelsHint", "You can add or remove models at any time from the Models tab.");
+    public static string Setup_Status_DownloadFailedFormat => LocalizationManager.GetString("Setup_Status_DownloadFailedFormat", "Download failed: {0}");
+
+    // ENGINE HEALTH / CRASH REPORTING
+    public static string Health_BannerTitle => LocalizationManager.GetString("Health_BannerTitle", "Muffin can't start its engines");
+    public static string Health_RuntimeMissingBody => LocalizationManager.GetString("Health_RuntimeMissingBody", "Windows is missing a component the transcription engines need (the Microsoft Visual C++ runtime). Install it, then restart Muffin.");
+    public static string Health_EnginesMissingBody => LocalizationManager.GetString("Health_EnginesMissingBody", "The engine files are missing from Muffin's folder. Reinstall Muffin with the full installer to restore them.");
+    public static string Health_UnknownBodyFormat => LocalizationManager.GetString("Health_UnknownBodyFormat", "An engine failed to start ({0}). Transcription may not work. Reinstalling Muffin usually fixes this.");
+    public static string Health_BtnInstallRuntime => LocalizationManager.GetString("Health_BtnInstallRuntime", "Install component");
+    public static string Health_BtnGetInstaller => LocalizationManager.GetString("Health_BtnGetInstaller", "Get installer");
+    public static string Crash_BannerTitle => LocalizationManager.GetString("Crash_BannerTitle", "Something went wrong");
+    public static string Crash_BannerBody => LocalizationManager.GetString("Crash_BannerBody", "Muffin hit an unexpected error but kept running. If something looks stuck, restart the app. Technical details were saved to the log.");
+    public static string Crash_BtnOpenLog => LocalizationManager.GetString("Crash_BtnOpenLog", "Open log");
+
+    // TRANSCRIPTION PROGRESS / CANCEL
+    public static string Home_CancelButton => LocalizationManager.GetString("Home_CancelButton", "Cancel");
+    public static string Home_Status_Cancelled => LocalizationManager.GetString("Home_Status_Cancelled", "Cancelled.");
+    public static string Home_Status_TranscribingPercentFormat => LocalizationManager.GetString("Home_Status_TranscribingPercentFormat", "Transcribing {0}%");
+
     // AUTO UPDATER
     public static string Update_BannerTitle => LocalizationManager.GetString("Update_BannerTitle", "Muffin update available!");
     public static string Update_BtnUpdate => LocalizationManager.GetString("Update_BtnUpdate", "Update!");

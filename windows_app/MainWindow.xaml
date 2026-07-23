@@ -91,21 +91,35 @@
             PointerReleased="PaneResizeGrip_PointerReleased"
             PointerCanceled="PaneResizeGrip_PointerReleased" />
 
-        <InfoBar x:Name="UpdateBanner"
-                 Grid.RowSpan="2"
-                 IsOpen="False"
-                 IsClosable="True"
-                 Severity="Success"
-                 Title="{x:Bind local:AppStrings.Update_BannerTitle}"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Top"
-                 Margin="0,56,0,0">
-            <InfoBar.ActionButton>
-                <Button x:Name="UpdateActionButton" Content="{x:Bind local:AppStrings.Update_BtnUpdate}" Click="UpdateActionButton_Click" />
-            </InfoBar.ActionButton>
-            <InfoBar.Content>
-                <ProgressBar x:Name="UpdateProgressBar" Visibility="Collapsed" Maximum="100" Margin="0,8,0,0"/>
-            </InfoBar.Content>
-        </InfoBar>
+        <StackPanel
+            Grid.RowSpan="2"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Margin="0,56,0,0"
+            Spacing="8">
+            <InfoBar x:Name="UpdateBanner"
+                     IsOpen="False"
+                     IsClosable="True"
+                     Severity="Success"
+                     Title="{x:Bind local:AppStrings.Update_BannerTitle}">
+                <InfoBar.ActionButton>
+                    <Button x:Name="UpdateActionButton" Content="{x:Bind local:AppStrings.Update_BtnUpdate}" Click="UpdateActionButton_Click" />
+                </InfoBar.ActionButton>
+                <InfoBar.Content>
+                    <ProgressBar x:Name="UpdateProgressBar" Visibility="Collapsed" Maximum="100" Margin="0,8,0,0"/>
+                </InfoBar.Content>
+            </InfoBar>
+
+            <!-- Engine health problems and crash notices; content set from code. -->
+            <InfoBar x:Name="AlertBanner"
+                     IsOpen="False"
+                     IsClosable="True"
+                     Severity="Error"
+                     MaxWidth="560">
+                <InfoBar.ActionButton>
+                    <Button x:Name="AlertActionButton" Click="AlertActionButton_Click" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+        </StackPanel>
     </Grid>
 </Window>

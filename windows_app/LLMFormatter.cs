@@ -10,7 +10,7 @@ namespace MuffinTranscriber;
 
 public static class LLMFormatter
 {
-    public static async Task<string?> FormatTranscriptAsync(string transcript, string? selectedFormatter, string formatLanguage = "Auto-Detect / Original", string? customPromptOverride = null)
+    public static async Task<string?> FormatTranscriptAsync(string transcript, string? selectedFormatter, string formatLanguage = "Auto-Detect / Original", string? customPromptOverride = null, System.Threading.CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(AppModel.LlamaExe))
         {
@@ -50,7 +50,7 @@ public static class LLMFormatter
         {
             int maxTokens = Math.Max(512, Math.Min(2048, transcript.Length / 3 + 256));
             string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n {maxTokens} --temp 0.0 -ngl 33 -c 4096 --log-disable --no-display-prompt -st";
-            ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130]);
+            ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130], ct);
             string formatted = ExtractFormatterOutput(result.Output);
             return LooksUnstableFormatOutput(formatted, transcript) ? null : formatted;
         }
@@ -63,7 +63,7 @@ public static class LLMFormatter
         }
     }
 
-    public static async Task<string?> SummarizeTranscriptAsync(string transcript, string? selectedFormatter, string formatLanguage = "Auto-Detect / Original", string? customPromptOverride = null)
+    public static async Task<string?> SummarizeTranscriptAsync(string transcript, string? selectedFormatter, string formatLanguage = "Auto-Detect / Original", string? customPromptOverride = null, System.Threading.CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(AppModel.LlamaExe))
         {
@@ -113,7 +113,7 @@ public static class LLMFormatter
         {
             int maxTokens = 1024;
             string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n {maxTokens} --temp 0.3 -ngl 999 -c 4096 --log-disable --no-display-prompt -st -jf \"{schemaPath}\"";
-            ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130]);
+            ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130], ct);
             string formatted = ExtractFormatterOutput(result.Output);
 
             try
@@ -322,7 +322,9 @@ public static class LLMFormatter
         string fileName,
         string arguments,
         TimeSpan? timeout = null,
-        IReadOnlyCollection<int>? allowedExitCodes = null)
+        IReadOnlyCollection<int>? allowedExitCodes = null,
+        System.Threading.CancellationToken ct = default,
+        Action<string>? onStderrLine = null)
     {
         if (string.IsNullOrWhiteSpace(fileName) || !File.Exists(fileName))
         {
@@ -342,8 +344,18 @@ public static class LLMFormatter
         };
 
         using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException($"Could not start {fileName}");
+
+        // Cancellation kills the whole tree; the pipe reads below then drain and
+        // complete, and the token check after the wait turns it into OCE.
+        using var killRegistration = ct.Register(() =>
+        {
+            try { process.Kill(entireProcessTree: true); } catch { }
+        });
+
         Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
-        Task<string> stderrTask = process.StandardError.ReadToEndAsync();
+        Task<string> stderrTask = onStderrLine is null
+            ? process.StandardError.ReadToEndAsync()
+            : ReadLinesAsync(process.StandardError, onStderrLine);
         Task waitTask = process.WaitForExitAsync();
         if (timeout is not null && await Task.WhenAny(waitTask, Task.Delay(timeout.Value)) != waitTask)
         {
@@ -352,6 +364,7 @@ public static class LLMFormatter
         }
 
         await waitTask;
+        ct.ThrowIfCancellationRequested();
 
         string stdout = await stdoutTask;
         string stderr = await stderrTask;
@@ -359,13 +372,35 @@ public static class LLMFormatter
         allowedExitCodes ??= [0];
         if (!allowedExitCodes.Contains(process.ExitCode))
         {
-            throw new InvalidOperationException($"Process failed with code {process.ExitCode}.\n{combined}");
+            throw new EngineProcessException(process.ExitCode, combined);
         }
 
         return new ProcessResult(process.ExitCode, combined, stdout, stderr);
     }
+
+    private static async Task<string> ReadLinesAsync(StreamReader reader, Action<string> onLine)
+    {
+        StringBuilder all = new();
+        string? line;
+        while ((line = await reader.ReadLineAsync()) is not null)
+        {
+            all.AppendLine(line);
+            try { onLine(line); } catch { }
+        }
+
+        return all.ToString();
+    }
 }
 
 public sealed record ProcessResult(int ExitCode, string Output, string Stdout, string Stderr);
+
+// An engine exe ran but exited with a failure code. Typed (rather than a bare
+// InvalidOperationException) so EngineHealth.FriendlyMessage can recognize
+// specific codes, e.g. STATUS_DLL_NOT_FOUND from a missing VC++ runtime.
+public sealed class EngineProcessException(int exitCode, string output)
+    : Exception($"Process failed with code {exitCode}.\n{output}")
+{
+    public int ExitCode { get; } = exitCode;
+}
 
 public sealed record ActionableEntity(string Quote, string Name, string Type);
