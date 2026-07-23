@@ -27,6 +27,7 @@ export function CoachMark({
   const v = useSharedValue(0);
   useEffect(() => {
     v.value = withTiming(visible ? 1 : 0, { duration: 240, easing: Easing.out(Easing.back(1.6)) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- v is a stable animated value
   }, [visible]);
 
   const aStyle = useAnimatedStyle(() => ({

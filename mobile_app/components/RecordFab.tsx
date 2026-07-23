@@ -49,6 +49,7 @@ export function RecordFab() {
     } else {
       pulse.value = withTiming(1, { duration: 200 });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pulse is a stable shared value
   }, [isRecording]);
   const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
@@ -103,6 +104,7 @@ function RecordingTimer({ visible }: { visible: boolean }) {
     setElapsed(0);
     const iv = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 500);
     return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- anim is a stable shared value
   }, [visible]);
 
   // Fades in and rises the last 10px, so it reads as emerging from under the mic.

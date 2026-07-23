@@ -95,6 +95,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
       }
     }, 90);
     return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- level is a stable shared value and recorder a stable instance
   }, [isRecording]);
 
   useEffect(() => {

@@ -97,6 +97,7 @@ export function DownloadBanner() {
     prevIds.current = now;
     if (isNew) setBannerExpanded(true);
     if (ids.length === 0) setBannerExpanded(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- agg is a stable animated value
   }, [downloads]);
   // The system notification is driven by the foreground service
   // (utils/downloadForegroundService.ts), not from here - it runs live and in
@@ -115,6 +116,7 @@ export function DownloadBanner() {
   const open = useSharedValue(0);
   useEffect(() => {
     open.value = withTiming(expanded ? 1 : 0, { duration: 240 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open is a stable shared value
   }, [expanded]);
 
   const animStyle = useAnimatedStyle(() => ({

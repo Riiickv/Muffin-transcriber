@@ -3,6 +3,9 @@ import type { WhisperContext } from 'whisper.rn';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { loadSettings } from './settingsStore';
 import { loadMemories } from './memoryStore';
+import { createSegmentAccumulator } from './segmentAccumulator';
+
+export { createSegmentAccumulator };
 
 // ggml synchronizes all threads per graph node, so one little core stalls the
 // big ones - on 2-big-core phones 4 threads is ~60% SLOWER than 2. Count the
@@ -143,9 +146,6 @@ export type TranscribeCallbacks = {
    */
   onPartialText?: (text: string) => void;
 };
-
-import { createSegmentAccumulator } from './segmentAccumulator';
-export { createSegmentAccumulator };
 
 export async function transcribeFile(
   audioPath: string,

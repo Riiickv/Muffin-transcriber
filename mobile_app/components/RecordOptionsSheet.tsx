@@ -51,6 +51,7 @@ export function RecordOptionsSheet() {
   const openV = useSharedValue(0);
   useEffect(() => {
     openV.value = withTiming(isOpen ? 1 : 0, { duration: 240 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- openV is a stable shared value
   }, [isOpen]);
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: openV.value * 0.5 }));

@@ -113,6 +113,7 @@ function RootLayoutNav() {
       }
       resetShareIntent();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- router is a stable singleton from expo-router
   }, [hasShareIntent, shareIntent, resetShareIntent]);
 
   return (
