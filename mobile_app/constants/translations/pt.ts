@@ -1,5 +1,11 @@
 /** PORTUGUÊS - tradução de constants/strings.ts. Se faltar uma chave, a app mostra o inglês. */
 export const PT = {
+  tester: {
+    welcomeTitle: "És um tester!",
+    welcomeBody: "O Muffin ainda está em desenvolvimento e tu és um tester! Se te for útil, diz-me o que achas, sobretudo o que mudarias, acrescentarias ou corrigirias. Obrigado!",
+    welcomeOk: "Entendido",
+  },
+
   tabs: { transcribe: "Muffin!", record: "Gravar", history: "Histórico", chat: "Chat", settings: "Definições" },
 
   common: {
@@ -235,6 +241,13 @@ export const PT = {
     appearance: "Aspeto",
     themeMode: "Tema",
     accentColor: "Cor principal",
+    uiScale: "Tamanho da interface",
+    uiScaleCompact: "Compacto",
+    uiScaleNormal: "Normal",
+    uiScaleComfy: "Confortável",
+    uiScaleTitle: "Mudar o tamanho?",
+    uiScaleMessage: "A app recarrega por um momento para aplicar o novo tamanho.",
+    uiScaleApply: "Aplicar",
 
     customPrompts: "Prompts personalizados",
     customPromptsFooter: "Deixa vazio para usar as predefinições do Muffin. Aplicam-se a todas as transcrições.",
