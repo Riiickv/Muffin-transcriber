@@ -1,5 +1,5 @@
 import { StyleSheet, TextInput, View, ScrollView } from 'react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Clipboard from 'expo-clipboard';
@@ -9,15 +9,12 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
 import { Card } from '@/components/Card';
-import { SegmentedControl } from '@/components/SegmentedControl';
 import { IconButton } from '@/components/IconButton';
 import type { IconName } from '@/components/Icon';
 import { Button } from '@/components/Button';
-import { WaitingCard } from '@/components/WaitingCard';
-import { StreamingText } from '@/components/StreamingText';
-import { ProgressBar } from '@/components/ProgressBar';
 import { WaveformSeekBar } from '@/components/WaveformSeekBar';
 import { TranscriptFullscreen } from '@/components/TranscriptFullscreen';
+import { TranscriptPanel, type TranscriptTab } from '@/components/TranscriptPanel';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory } from '@/utils/historyStore';
@@ -45,17 +42,6 @@ import { AiBusyDialog } from '@/components/AiBusyDialog';
 import { usePacedReveal } from '@/hooks/usePacedReveal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type TranscriptTab = 'raw' | 'formatted' | 'summary';
-
-// A function, not a const: built at module scope these labels would be
-// evaluated once at import and keep the language the app started in, so
-// switching language left Raw/Formatted/Summary in the old one.
-const getTranscriptTabs = (): readonly { key: TranscriptTab; label: string }[] => [
-  { key: 'raw', label: t('transcribe.rawTab') || 'Raw' },
-  { key: 'formatted', label: t('transcribe.formattedTab') || 'Formatted' },
-  { key: 'summary', label: t('transcribe.summaryTab') || 'Summary' },
-];
-
 export default function HistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
@@ -78,9 +64,6 @@ export default function HistoryDetailScreen() {
   const localProgress = myJob?.progress ?? null;
   const localPartial = myJob?.partial ?? '';
   const [fullscreen, setFullscreen] = useState(false);
-  const streamScrollRef = useRef<ScrollView>(null);
-  /** False once the user scrolls up, so auto-follow doesn't fight them. */
-  const stickToBottom = useRef(true);
   const processingLabel = (myJob?.kind ?? null) as null | 'retranscribe' | 'format' | 'summarize';
   /** Pending confirmation when a second AI action is tapped mid-run. */
   const [busyPrompt, setBusyPrompt] = useState<{ next: string; current: string; run: () => void } | null>(null);
@@ -616,88 +599,44 @@ export default function HistoryDetailScreen() {
           page exactly one screen tall. minHeight is the floor for a short
           screen: below it the page scrolls rather than crushing this to nothing. */}
       <Card index={2} style={{ flex: 1, minHeight: 200 }}>
-        {/* No heading: the segmented control already names the card. */}
-        <View style={styles.tabRow}>
-          <SegmentedControl
-            style={{ flex: 1, marginRight: SPACING.md }}
-            segments={getTranscriptTabs()}
-            value={transcriptTab}
-            onChange={setTranscriptTab}
-          />
-          <IconButton icon="copy" variant="ghost-tint" size="sm" onPress={handleCopy} disabled={!transcript} />
-          <IconButton
-            icon="open-in-full"
-            variant="ghost-tint"
-            size="sm"
-            style={{ marginLeft: SPACING.xs }}
-            onPress={() => {
-              haptics.tap();
-              setFullscreen(true);
-            }}
-            disabled={!transcript && !streamingText}
-          />
-        </View>
-
-        {/* Height from flex within the card (floored by minHeight); the CONTENT
-            lives in an absolute layer so it can never grow the card - see the
-            ScrollView note above. */}
-        <View style={styles.transcriptArea}>
-        <View style={StyleSheet.absoluteFill}>
-        <View style={[styles.transcriptBox, { borderColor: theme.divider, flex: 1 }]}>
-          {/* Once whisper starts handing back words, showing them beats any
-              waiting card: a long recording is long no matter what we do, so
-              the least we can do is give them something to read meanwhile. */}
-          {showStreaming ? (
-            <>
-              <ScrollView
-                ref={streamScrollRef}
-                nestedScrollEnabled
-                style={{ flex: 1 }}
-                onScroll={(e) => {
-                  const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-                  stickToBottom.current =
-                    layoutMeasurement.height + contentOffset.y >= contentSize.height - 40;
-                }}
-                scrollEventThrottle={100}
-                onContentSizeChange={() => {
-                  if (stickToBottom.current) streamScrollRef.current?.scrollToEnd({ animated: true });
-                }}
-              >
-                <StreamingText text={revealed} style={[styles.transcriptText, { color: theme.text }]} />
-              </ScrollView>
-              {isStreamingWhisper && (
-                <ProgressBar
-                  percent={(isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0}
-                  style={{ marginTop: SPACING.sm }}
-                />
-              )}
-            </>
-          ) : isProcessing || isTranscribingThis ? (
-            <WaitingCard
-              status={
-                isTranscribingThis
-                  ? describeProgress(t('record.transcribing') || 'Transcribing...', transcribeProgress)
-                  : processingLabel === 'retranscribe'
-                  ? describeProgress(t('historyDetail.retranscribing') || 'Re-transcribing...', localProgress)
-                  : processingLabel === 'format'
-                  ? t('historyDetail.formatting') || 'Formatting...'
-                  : t('historyDetail.summarizing') || 'Summarizing...'
-              }
-            />
-          ) : (
-            /* flex:1 is what bounds it. Without it the scroller sizes to its
-               content, grows past the card and drags the page - which is
-               exactly what still scrolled after the panel was made flexible,
-               because only the streaming branch had been given it.
-               nestedScrollEnabled: on Android a nested same-axis scroller
+        {/* No heading: the segmented control already names the card. The panel
+            is the SHARED transcript body (also used by the Muffin! tab) -
+            layout quirks get fixed there, once. */}
+        <TranscriptPanel
+          tab={transcriptTab}
+          onTabChange={setTranscriptTab}
+          streaming={showStreaming}
+          revealed={revealed}
+          progressPercent={
+            isStreamingWhisper ? ((isTranscribingThis ? transcribeProgress : localProgress)?.percent ?? 0) : null
+          }
+          waiting={isProcessing || isTranscribingThis}
+          waitingStatus={
+            isTranscribingThis
+              ? describeProgress(t('record.transcribing') || 'Transcribing...', transcribeProgress)
+              : processingLabel === 'retranscribe'
+              ? describeProgress(t('historyDetail.retranscribing') || 'Re-transcribing...', localProgress)
+              : processingLabel === 'format'
+              ? t('historyDetail.formatting') || 'Formatting...'
+              : t('historyDetail.summarizing') || 'Summarizing...'
+          }
+          renderStatic={() => (
+            /* nestedScrollEnabled: on Android a nested same-axis scroller
                doesn't receive drags without it. */
-            <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
-              {renderHighlightedText()}
-            </ScrollView>
+            <View style={[styles.transcriptBox, { borderColor: theme.divider }]}>
+              <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
+                {renderHighlightedText()}
+              </ScrollView>
+            </View>
           )}
-        </View>
-        </View>
-        </View>
+          onCopy={handleCopy}
+          copyDisabled={!transcript}
+          onFullscreen={() => {
+            haptics.tap();
+            setFullscreen(true);
+          }}
+          fullscreenDisabled={!transcript && !streamingText}
+        />
       </Card>
       </ScrollView>
 
@@ -837,19 +776,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: SPACING.md,
-  },
-  tabRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  /** The transcript's bounded home: flex height inside the card, with a floor so
-   *  it stays usable when a short screen forces the page to scroll. Its only
-   *  child is absolute, so nothing inside can inflate it. */
-  transcriptArea: {
-    flex: 1,
-    minHeight: 180,
   },
   transcriptBox: {
     flex: 1,
