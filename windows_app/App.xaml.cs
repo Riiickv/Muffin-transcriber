@@ -16,6 +16,30 @@ public partial class App : Application
     {
         InitializeComponent();
         Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().Activated += App_Activated;
+
+        // Crash net: log everything; keep the app alive for UI-thread faults.
+        // Before this, any unhandled exception killed the window with no trace.
+        UnhandledException += (s, e) =>
+        {
+            CrashLog.Write("UnhandledException (XAML)", e.Exception);
+            e.Handled = true;
+            if (MainWindow is MainWindow main)
+            {
+                main.ShowCrashNotice();
+            }
+        };
+        System.AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+        {
+            if (e.ExceptionObject is System.Exception ex)
+            {
+                CrashLog.Write("UnhandledException (AppDomain)", ex);
+            }
+        };
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (s, e) =>
+        {
+            CrashLog.Write("UnobservedTaskException", e.Exception);
+            e.SetObserved();
+        };
     }
 
     public static void SetMainWindow(Window window)

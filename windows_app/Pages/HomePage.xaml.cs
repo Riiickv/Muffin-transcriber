@@ -17,6 +17,9 @@ public sealed partial class HomePage : Page
     private string _currentFormattedTranscript = string.Empty;
     private string _currentSummary = string.Empty;
 
+    // Non-null while a run is active; the Transcribe button becomes Cancel.
+    private CancellationTokenSource? _transcribeCts;
+
     private readonly StatusBarController _status;
 
     public HomePage()
@@ -258,6 +261,13 @@ public sealed partial class HomePage : Page
 
     private async void TranscribeButton_Click(object sender, RoutedEventArgs e)
     {
+        // While running, this button is the cancel button.
+        if (_transcribeCts is not null)
+        {
+            _transcribeCts.Cancel();
+            return;
+        }
+
         if (_queuedFiles.Count == 0 || _selectedWhisperModel is null)
         {
             return;
@@ -267,10 +277,15 @@ public sealed partial class HomePage : Page
         int total = filesToProcess.Count;
         int current = 0;
 
-        TranscribeButton.IsEnabled = false;
+        _transcribeCts = new CancellationTokenSource();
+        CancellationToken ct = _transcribeCts.Token;
+        TranscribeButton.Content = AppStrings.Home_CancelButton;
         FileButton.IsEnabled = false;
         BusyRing.IsActive = true;
-        
+
+        var whisperProgress = new Progress<int>(pct =>
+            ShowStatus(string.Format(AppStrings.Home_Status_TranscribingPercentFormat, pct), InfoBarSeverity.Informational));
+
         try
         {
             foreach (string file in filesToProcess)
@@ -339,7 +354,7 @@ public sealed partial class HomePage : Page
 
                     if (total == 1) ShowStatus(AppStrings.Home_Status_TranscribingWhisper, InfoBarSeverity.Informational);
                     string lang = SelectedComboText(LanguageBox);
-                    TranscriptionResult tr = await TranscriptionService.TranscribeAsync(cachedPath, _selectedWhisperModel, lang, _settings.NormalizeAudio);
+                    TranscriptionResult tr = await TranscriptionService.TranscribeAsync(cachedPath, _selectedWhisperModel, lang, _settings.NormalizeAudio, whisperProgress, ct);
 
                     string rawTranscript = tr.RawTranscript;
                     if (string.IsNullOrWhiteSpace(rawTranscript))
@@ -365,7 +380,7 @@ public sealed partial class HomePage : Page
                     if (FormatSwitch.IsOn)
                     {
                         if (total == 1) ShowStatus(AppStrings.Home_Status_FormattingLLM, InfoBarSeverity.Informational);
-                        formatted = await LLMFormatter.FormatTranscriptAsync(rawTranscript, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox));
+                        formatted = await LLMFormatter.FormatTranscriptAsync(rawTranscript, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct);
                         if (!string.IsNullOrWhiteSpace(formatted))
                         {
                             _currentFormattedTranscript = formatted;
@@ -378,7 +393,7 @@ public sealed partial class HomePage : Page
                     {
                         if (total == 1) ShowStatus(AppStrings.Home_Status_SummarizingLLM, InfoBarSeverity.Informational);
                         string inputForSummary = !string.IsNullOrWhiteSpace(formatted) ? formatted : rawTranscript;
-                        summary = await LLMFormatter.SummarizeTranscriptAsync(inputForSummary, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox));
+                        summary = await LLMFormatter.SummarizeTranscriptAsync(inputForSummary, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct);
                         if (!string.IsNullOrWhiteSpace(summary))
                         {
                             _currentSummary = summary;
@@ -402,10 +417,19 @@ public sealed partial class HomePage : Page
 
                     _ = LLMFormatter.ExtractContextAsync(rawTranscript, SelectedComboText(FormatterModelBox));
                 }
+                catch (OperationCanceledException)
+                {
+                    ShowStatus(AppStrings.Home_Status_Cancelled, InfoBarSeverity.Informational);
+                    break;
+                }
                 catch (Exception ex)
                 {
-                    ShowStatus(ex.Message, InfoBarSeverity.Error);
-                    TranscriptBox.Text = ex.ToString();
+                    // A missing engine or runtime has a story the user can act
+                    // on; everything else keeps the raw details, plus a log.
+                    CrashLog.Write("HomePage transcription", ex);
+                    string? friendly = EngineHealth.FriendlyMessage(ex);
+                    ShowStatus(friendly ?? ex.Message, InfoBarSeverity.Error);
+                    TranscriptBox.Text = friendly ?? ex.ToString();
                     continue;
                 }
             }
@@ -432,6 +456,9 @@ public sealed partial class HomePage : Page
         }
         finally
         {
+            _transcribeCts.Dispose();
+            _transcribeCts = null;
+            TranscribeButton.Content = AppStrings.Home_TranscribeButton;
             BusyRing.IsActive = false;
             FileButton.IsEnabled = true;
             UpdateTranscribeState();

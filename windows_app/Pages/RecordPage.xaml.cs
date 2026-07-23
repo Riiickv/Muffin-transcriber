@@ -22,7 +22,11 @@ public sealed partial class RecordPage : Page
     private string _currentRawTranscript = string.Empty;
     private string _currentFormattedTranscript = string.Empty;
     private string _currentSummary = string.Empty;
-    
+
+    // Non-null while a finished recording is being processed; the record button
+    // acts as Cancel during that window.
+    private CancellationTokenSource? _processCts;
+
     private readonly StatusBarController _status;
 
     public RecordPage()
@@ -126,6 +130,13 @@ public sealed partial class RecordPage : Page
 
     private void RecordButton_Click(object sender, RoutedEventArgs e)
     {
+        // Third state: processing a finished recording. The button cancels it.
+        if (_processCts is not null)
+        {
+            _processCts.Cancel();
+            return;
+        }
+
         if (NAudio.Wave.WaveInEvent.DeviceCount == 0)
         {
             ShowStatus("No microphones detected! Please plug in a microphone.", InfoBarSeverity.Error);
@@ -227,15 +238,20 @@ public sealed partial class RecordPage : Page
     private async void ProcessRecording(string filePath)
     {
         if (_selectedWhisperModel is null) return;
-        
-        RecordButton.IsEnabled = false;
+
+        _processCts = new CancellationTokenSource();
+        CancellationToken ct = _processCts.Token;
+        RecordStatusText.Text = AppStrings.Home_CancelButton;
         BusyRing.IsActive = true;
-        
+
+        var whisperProgress = new Progress<int>(pct =>
+            ShowStatus(string.Format(AppStrings.Home_Status_TranscribingPercentFormat, pct), InfoBarSeverity.Informational));
+
         try
         {
             ShowStatus(AppStrings.Home_Status_TranscribingWhisper, InfoBarSeverity.Informational);
             string lang = SelectedComboText(LanguageBox);
-            TranscriptionResult tr = await TranscriptionService.TranscribeAsync(filePath, _selectedWhisperModel, lang, _settings.NormalizeAudio);
+            TranscriptionResult tr = await TranscriptionService.TranscribeAsync(filePath, _selectedWhisperModel, lang, _settings.NormalizeAudio, whisperProgress, ct);
 
             string rawTranscript = tr.RawTranscript;
             if (string.IsNullOrWhiteSpace(rawTranscript))
@@ -265,7 +281,7 @@ public sealed partial class RecordPage : Page
                     _settings.Save();
                 }
 
-                formatted = await LLMFormatter.FormatTranscriptAsync(rawTranscript, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox));
+                formatted = await LLMFormatter.FormatTranscriptAsync(rawTranscript, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct);
                 if (!string.IsNullOrWhiteSpace(formatted))
                 {
                     _currentFormattedTranscript = formatted;
@@ -278,7 +294,7 @@ public sealed partial class RecordPage : Page
             {
                 ShowStatus(AppStrings.Home_Status_SummarizingLLM, InfoBarSeverity.Informational);
                 string inputForSummary = !string.IsNullOrWhiteSpace(formatted) ? formatted : rawTranscript;
-                summary = await LLMFormatter.SummarizeTranscriptAsync(inputForSummary, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox));
+                summary = await LLMFormatter.SummarizeTranscriptAsync(inputForSummary, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct);
                 if (!string.IsNullOrWhiteSpace(summary))
                 {
                     _currentSummary = summary;
@@ -313,16 +329,24 @@ public sealed partial class RecordPage : Page
                 ShowStatus(AppStrings.Home_Status_TranscriptionComplete, InfoBarSeverity.Success);
             }
         }
+        catch (OperationCanceledException)
+        {
+            ShowStatus(AppStrings.Home_Status_Cancelled, InfoBarSeverity.Informational);
+        }
         catch (Exception ex)
         {
-            ShowStatus(ex.Message, InfoBarSeverity.Error);
-            TranscriptBox.Text = ex.ToString();
+            CrashLog.Write("RecordPage transcription", ex);
+            string? friendly = EngineHealth.FriendlyMessage(ex);
+            ShowStatus(friendly ?? ex.Message, InfoBarSeverity.Error);
+            TranscriptBox.Text = friendly ?? ex.ToString();
         }
         finally
         {
+            _processCts?.Dispose();
+            _processCts = null;
             BusyRing.IsActive = false;
             RecordButton.IsEnabled = true;
-            RecordStatusText.Text = "Ready to Record";
+            RecordStatusText.Text = AppStrings.Record_StartButton;
             RecordTimerText.Text = "00:00:00";
         }
     }
