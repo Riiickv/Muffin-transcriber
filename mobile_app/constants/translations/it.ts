@@ -266,6 +266,13 @@ export const IT = {
     appearance: "Aspetto",
     themeMode: "Tema",
     accentColor: "Colore principale",
+    uiScale: "Dimensione interfaccia",
+    uiScaleCompact: "Compatta",
+    uiScaleNormal: "Normale",
+    uiScaleComfy: "Comoda",
+    uiScaleTitle: "Cambiare dimensione?",
+    uiScaleMessage: "L'app si ricarica un attimo per applicare la nuova dimensione.",
+    uiScaleApply: "Applica",
 
     customPrompts: "Prompt personalizzati",
     customPromptsFooter: "Lascia vuoto per usare i valori predefiniti di Muffin. Valgono per ogni trascrizione.",
