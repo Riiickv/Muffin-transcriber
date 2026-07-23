@@ -270,6 +270,9 @@ public static class AppStrings
     public static string Settings_VideoCacheTitle => LocalizationManager.GetString("Settings_VideoCacheTitle", "Video cache");
     public static string Settings_VideoCacheDesc => LocalizationManager.GetString("Settings_VideoCacheDesc", "Clear original video files saved for re-transcription.");
 
+    public static string Settings_ManageModelsTitle => LocalizationManager.GetString("Settings_ManageModelsTitle", "AI models");
+    public static string Settings_ManageModelsDesc => LocalizationManager.GetString("Settings_ManageModelsDesc", "Download or remove the models Muffin uses to transcribe and format.");
+    public static string Settings_BtnManageModels => LocalizationManager.GetString("Settings_BtnManageModels", "Manage models");
     public static string Settings_ModelsFolderTitle => LocalizationManager.GetString("Settings_ModelsFolderTitle", "Models folder");
     public static string Settings_ModelsFolderDesc => LocalizationManager.GetString("Settings_ModelsFolderDesc", "Open the folder where Whisper and formatter models are stored.");
     public static string Settings_BtnOpen => LocalizationManager.GetString("Settings_BtnOpen", "Open");

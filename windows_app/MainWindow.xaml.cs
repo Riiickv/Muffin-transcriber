@@ -50,6 +50,7 @@ public sealed partial class MainWindow : Window
         }
 
         Closed += MainWindow_Closed;
+        RecordingController.RecordingFinished += OnRecordingFinished;
 
         NavView.OpenPaneLength = Math.Clamp(_settings.SidebarWidth, MinPaneLength, MaxPaneLength);
         RootGrid.Loaded += (_, _) => UpdatePaneResizeGrip();
@@ -79,6 +80,38 @@ public sealed partial class MainWindow : Window
         NavFrame.Navigate(typeof(Pages.HomePage));
     }
 
+    // Wherever you were when you stopped recording, the audio lands on the
+    // transcribe screen and starts processing itself.
+    private void OnRecordingFinished(object? sender, string wavPath)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            foreach (NavigationViewItem item in NavView.MenuItems.OfType<NavigationViewItem>())
+            {
+                if ((item.Tag as string) == "home")
+                {
+                    NavView.SelectedItem = item;
+                    break;
+                }
+            }
+
+            if (NavFrame.CurrentSourcePageType != typeof(Pages.HomePage))
+            {
+                NavFrame.Navigate(typeof(Pages.HomePage));
+            }
+
+            if (NavFrame.Content is Pages.HomePage home)
+            {
+                home.TranscribeRecording(wavPath);
+            }
+        });
+    }
+
+    private void MicFab_Failed(object? sender, string message)
+    {
+        ShowAlert(InfoBarSeverity.Error, AppStrings.Record_Title, message, null, null);
+    }
+
     public void HandleShareOperation(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation shareOperation)
     {
         NavFrame.Navigate(typeof(Pages.HomePage));
@@ -90,6 +123,10 @@ public sealed partial class MainWindow : Window
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
+        // Never leave the mic open behind a closed window.
+        RecordingController.RecordingFinished -= OnRecordingFinished;
+        if (RecordingController.IsRecording) RecordingController.Stop();
+
         // Reload before saving: this window's cached copy predates anything the
         // pages (or the setup wizard) wrote, and saving it as-is would silently
         // roll those changes back.
@@ -126,10 +163,6 @@ public sealed partial class MainWindow : Window
                     if (NavFrame.CurrentSourcePageType != typeof(Pages.HomePage))
                         NavFrame.Navigate(typeof(Pages.HomePage));
                     break;
-                case "record":
-                    if (NavFrame.CurrentSourcePageType != typeof(Pages.RecordPage))
-                        NavFrame.Navigate(typeof(Pages.RecordPage));
-                    break;
                 case "history":
                     if (NavFrame.CurrentSourcePageType != typeof(Pages.HistoryPage))
                         NavFrame.Navigate(typeof(Pages.HistoryPage));
@@ -137,10 +170,6 @@ public sealed partial class MainWindow : Window
                 case "chat":
                     if (NavFrame.CurrentSourcePageType != typeof(Pages.ChatPage))
                         NavFrame.Navigate(typeof(Pages.ChatPage));
-                    break;
-                case "models":
-                    if (NavFrame.CurrentSourcePageType != typeof(Pages.ModelsPage))
-                        NavFrame.Navigate(typeof(Pages.ModelsPage));
                     break;
                 default:
                     throw new InvalidOperationException($"Unknown navigation item tag: {item.Tag}");
@@ -156,6 +185,16 @@ public sealed partial class MainWindow : Window
             if (tag == "settings")
             {
                 NavView.SelectedItem = NavView.SettingsItem;
+                return;
+            }
+
+            // Models is no longer a top-level destination (it reads as jargon to
+            // a newcomer), but the assistant and Settings can still open it.
+            if (tag == "models")
+            {
+                NavView.SelectedItem = null;
+                if (NavFrame.CurrentSourcePageType != typeof(Pages.ModelsPage))
+                    NavFrame.Navigate(typeof(Pages.ModelsPage));
                 return;
             }
 

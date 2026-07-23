@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:MuffinTranscriber"
+    xmlns:controls="using:MuffinTranscriber.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="{x:Bind local:AppStrings.App_Title}"
     mc:Ignorable="d">
@@ -63,13 +64,6 @@
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem
-                    Content="{x:Bind local:AppStrings.Nav_Record}"
-                    Tag="record">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE720;" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
                     Content="{x:Bind local:AppStrings.Nav_History}"
                     Tag="history">
                     <NavigationViewItem.Icon>
@@ -81,11 +75,6 @@
                     Tag="chat">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE8BD;" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem Content="{x:Bind local:AppStrings.Nav_Models}" Tag="models">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE8D7;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
@@ -105,6 +94,9 @@
             PointerMoved="PaneResizeGrip_PointerMoved"
             PointerReleased="PaneResizeGrip_PointerReleased"
             PointerCanceled="PaneResizeGrip_PointerReleased" />
+
+        <!--  Always reachable, on every screen, like the mobile mic button.  -->
+        <controls:RecordFab x:Name="MicFab" Grid.Row="1" Failed="MicFab_Failed" />
 
         <StackPanel
             Grid.RowSpan="2"

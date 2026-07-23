@@ -180,6 +180,11 @@ public sealed partial class SettingsPage : Page
         ShowStatus(AppStrings.Settings_Status_Saved, InfoBarSeverity.Success);
     }
 
+    private void ManageModels_Click(object sender, RoutedEventArgs e)
+    {
+        (App.MainWindow as MainWindow)?.NavigateTo("models");
+    }
+
     private void OpenModelsFolder_Click(object sender, RoutedEventArgs e)
     {
         Directory.CreateDirectory(AppModel.ModelsDir);
