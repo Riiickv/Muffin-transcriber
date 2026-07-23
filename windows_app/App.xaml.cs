@@ -85,6 +85,10 @@ public partial class App : Application
         LocalizationManager.CreateDefaultLanguageFile();
         LocalizationManager.LoadLanguage(settings.AppLanguage);
 
+        // Same reason as the language above: controls resolve their accent
+        // brushes when they load, so ours have to be in place first.
+        MuffinTheme.Install(settings.AccentColor);
+
         Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation = null;
         var activatedArgs = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs();
 

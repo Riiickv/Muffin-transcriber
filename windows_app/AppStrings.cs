@@ -210,6 +210,13 @@ public static class AppStrings
     public static string Settings_ThemeTitle => LocalizationManager.GetString("Settings_ThemeTitle", "Theme");
     public static string Settings_ThemeDesc => LocalizationManager.GetString("Settings_ThemeDesc", "Choose light, dark, or pure-black (AMOLED).");
 
+    public static string Settings_AccentTitle => LocalizationManager.GetString("Settings_AccentTitle", "Accent colour");
+    public static string Settings_AccentDesc => LocalizationManager.GetString("Settings_AccentDesc", "The highlight colour used across the app.");
+    public static string Settings_AccentMuffin => LocalizationManager.GetString("Settings_AccentMuffin", "Muffin");
+    public static string Settings_AccentGreen => LocalizationManager.GetString("Settings_AccentGreen", "Green");
+    public static string Settings_AccentPurple => LocalizationManager.GetString("Settings_AccentPurple", "Purple");
+    public static string Settings_AccentRed => LocalizationManager.GetString("Settings_AccentRed", "Red");
+
     public static string Settings_TypewriterTitle => LocalizationManager.GetString("Settings_TypewriterTitle", "Typewriter effect");
     public static string Settings_TypewriterDesc => LocalizationManager.GetString("Settings_TypewriterDesc", "Type transcripts out as they arrive instead of showing them all at once.");
     public static string Settings_TypewriterSpeedTitle => LocalizationManager.GetString("Settings_TypewriterSpeedTitle", "Typing speed");

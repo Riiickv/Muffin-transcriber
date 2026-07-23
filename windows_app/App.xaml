@@ -8,9 +8,38 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-                <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
-            <!-- Other app resources here -->
+
+            <!--
+                Muffin surfaces. The accent brushes are installed from code
+                (MuffinTheme) because they have to be mutable for the live accent
+                picker; only the theme-dependent surfaces live here.
+
+                Deliberately NOT overriding ApplicationPageBackgroundThemeBrush:
+                the windows use a Mica backdrop, and an opaque page background
+                would paint straight over it.
+            -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <!-- Cards float above Mica with a faint warm (plum) cast. -->
+                    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#17FFF0F5" />
+                    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#0FFFF0F5" />
+                    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#1FFFFFFF" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#FFFDFAFB" />
+                    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FFF8F3F5" />
+                    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#14000000" />
+                </ResourceDictionary>
+
+                <!-- Left empty on purpose: high contrast must keep system colours. -->
+                <ResourceDictionary x:Key="HighContrast" />
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Softer geometry, closer to the mobile app's rounded cards. -->
+            <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+            <CornerRadius x:Key="OverlayCornerRadius">12</CornerRadius>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

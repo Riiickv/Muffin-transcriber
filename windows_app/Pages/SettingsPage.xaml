@@ -37,6 +37,35 @@
                 <ComboBox x:Name="ThemeBox" SelectionChanged="SaveOnSelectionChanged" Width="220" />
             </toolkit:SettingsCard>
 
+            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AccentTitle}" Description="{x:Bind local:AppStrings.Settings_AccentDesc}">
+                <ComboBox x:Name="AccentBox" SelectionChanged="AccentBox_SelectionChanged" Width="180">
+                    <ComboBoxItem Tag="Muffin">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Width="16" Height="16" Fill="#FF9EBB" />
+                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentMuffin}" />
+                        </StackPanel>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag="Green">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Width="16" Height="16" Fill="#65D28A" />
+                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentGreen}" />
+                        </StackPanel>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag="Purple">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Width="16" Height="16" Fill="#A975C2" />
+                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentPurple}" />
+                        </StackPanel>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag="Red">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse Width="16" Height="16" Fill="#ED6F62" />
+                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentRed}" />
+                        </StackPanel>
+                    </ComboBoxItem>
+                </ComboBox>
+            </toolkit:SettingsCard>
+
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_TypewriterTitle}" Description="{x:Bind local:AppStrings.Settings_TypewriterDesc}">
                 <ToggleSwitch x:Name="TypewriterSwitch" Toggled="SaveOnToggled" />
             </toolkit:SettingsCard>

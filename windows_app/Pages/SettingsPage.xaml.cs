@@ -59,6 +59,15 @@ public sealed partial class SettingsPage : Page
                 break;
             }
         }
+        foreach (var item in AccentBox.Items)
+        {
+            if (item is ComboBoxItem accentItem && accentItem.Tag?.ToString() == _settings.AccentColor)
+            {
+                AccentBox.SelectedItem = item;
+                break;
+            }
+        }
+
         TypewriterSwitch.IsOn = _settings.TypewriterEffect;
         foreach (var item in TypewriterSpeedBox.Items)
         {
@@ -83,6 +92,18 @@ public sealed partial class SettingsPage : Page
 
     private void SaveOnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        SaveSettings();
+    }
+
+    // Repaints every accented control immediately (MuffinTheme mutates the live
+    // brushes), so unlike the app language this needs no restart.
+    private void AccentBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (AccentBox.SelectedItem is ComboBoxItem item && item.Tag is not null)
+        {
+            MuffinTheme.Apply(item.Tag.ToString()!);
+        }
+
         SaveSettings();
     }
 
@@ -128,6 +149,10 @@ public sealed partial class SettingsPage : Page
         _settings.EnableAutoUpdateCheck = AutoUpdateCheckSwitch.IsOn;
         _settings.ThemeMode = SelectedComboText(ThemeBox);
         _settings.TypewriterEffect = TypewriterSwitch.IsOn;
+        if (AccentBox.SelectedItem is Microsoft.UI.Xaml.Controls.ComboBoxItem accentItem && accentItem.Tag != null)
+        {
+            _settings.AccentColor = accentItem.Tag.ToString()!;
+        }
         if (TypewriterSpeedBox.SelectedItem is Microsoft.UI.Xaml.Controls.ComboBoxItem speedItem && speedItem.Tag != null)
         {
             _settings.TypewriterSpeed = speedItem.Tag.ToString()!;
