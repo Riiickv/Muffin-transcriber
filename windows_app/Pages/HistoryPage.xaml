@@ -57,10 +57,10 @@
                                     <TextBlock Text="{x:Bind SourceFileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Text="{x:Bind TimestampString}" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Padding="8" Margin="4,0" ToolTipService.ToolTip="Rename" Click="RenameButton_Click" Tag="{x:Bind Id}">
+                                <Button Grid.Column="1" Padding="8" Margin="4,0" ToolTipService.ToolTip="{x:Bind local:AppStrings.History_Tooltip_Rename}" Click="RenameButton_Click" Tag="{x:Bind Id}">
                                     <FontIcon Glyph="&#xE8AC;" FontSize="14" />
                                 </Button>
-                                <Button Grid.Column="2" Padding="8" ToolTipService.ToolTip="Delete" Click="DeleteButton_Click" Tag="{x:Bind Id}">
+                                <Button Grid.Column="2" Padding="8" ToolTipService.ToolTip="{x:Bind local:AppStrings.History_Tooltip_Delete}" Click="DeleteButton_Click" Tag="{x:Bind Id}">
                                     <FontIcon Glyph="&#xE74D;" FontSize="14" Foreground="IndianRed" />
                                 </Button>
                             </Grid>
@@ -147,7 +147,7 @@
                                 HorizontalAlignment="Stretch"
                                 Style="{ThemeResource AccentButtonStyle}"
                                 Click="ReformatButton_Click"
-                                ToolTipService.ToolTip="Format Transcript">
+                                ToolTipService.ToolTip="{x:Bind local:AppStrings.History_Tooltip_Format}">
                                 <FontIcon Glyph="&#xE70F;" FontSize="14" />
                             </Button>
                             <Button
@@ -157,7 +157,7 @@
                                 HorizontalAlignment="Stretch"
                                 Style="{ThemeResource AccentButtonStyle}"
                                 Click="SummarizeButton_Click"
-                                ToolTipService.ToolTip="Summarize Transcript">
+                                ToolTipService.ToolTip="{x:Bind local:AppStrings.History_Tooltip_Summarize}">
                                 <FontIcon Glyph="&#xE8F1;" FontSize="14" />
                             </Button>
                         </Grid>

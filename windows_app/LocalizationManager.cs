@@ -14,28 +14,37 @@ public static class LocalizationManager
 
     public static void LoadLanguage(string languageCode)
     {
-        string filePath = Path.Combine(AppModel.AppDataDir, "Strings", $"{languageCode}.json");
-        if (File.Exists(filePath))
+        // A user copy in AppData\Strings wins (they can hand-edit it); otherwise
+        // fall back to the translation shipped alongside the app. English always
+        // uses the code defaults, so it never needs a file.
+        if (languageCode != "en")
         {
-            try
-            {
-                var json = File.ReadAllText(filePath);
-                var loaded = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-                if (loaded != null)
-                {
-                    _strings = loaded;
-                    _fallbackMode = false;
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error loading localization {languageCode}: {ex.Message}");
-            }
+            if (TryLoad(Path.Combine(AppModel.AppDataDir, "Strings", $"{languageCode}.json"))) return;
+            if (TryLoad(Path.Combine(AppModel.AppInstallDir, "Strings", $"{languageCode}.json"))) return;
         }
-        
+
         _strings = new Dictionary<string, string>();
         _fallbackMode = true;
+    }
+
+    private static bool TryLoad(string filePath)
+    {
+        if (!File.Exists(filePath)) return false;
+        try
+        {
+            var loaded = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(filePath));
+            if (loaded != null)
+            {
+                _strings = loaded;
+                _fallbackMode = false;
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"Error loading localization {filePath}: {ex.Message}");
+        }
+        return false;
     }
 
     public static void CreateDefaultLanguageFile()

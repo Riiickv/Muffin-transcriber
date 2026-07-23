@@ -30,7 +30,7 @@ public sealed partial class SettingsPage : Page
         ThemeBox.ItemsSource = ThemeHelper.Modes;
 
         PreferredWhisperBox.Items.Clear();
-        PreferredWhisperBox.Items.Add("Auto-select best installed model");
+        PreferredWhisperBox.Items.Add(AppStrings.Settings_AutoSelectModel);
         foreach (ModelInfo model in AppModel.WhisperModels)
         {
             PreferredWhisperBox.Items.Add(AppModel.CompactName(model));
@@ -43,7 +43,7 @@ public sealed partial class SettingsPage : Page
         else
         {
             ModelInfo? model = AppModel.WhisperModels.FirstOrDefault(item => item.File == _settings.PreferredWhisperModel);
-            PreferredWhisperBox.SelectedItem = model is null ? "Auto-select best installed model" : AppModel.CompactName(model);
+            PreferredWhisperBox.SelectedItem = model is null ? AppStrings.Settings_AutoSelectModel : AppModel.CompactName(model);
         }
 
         SelectComboItem(DefaultLanguageBox, _settings.DefaultLanguage);
@@ -59,6 +59,16 @@ public sealed partial class SettingsPage : Page
                 break;
             }
         }
+        TypewriterSwitch.IsOn = _settings.TypewriterEffect;
+        foreach (var item in TypewriterSpeedBox.Items)
+        {
+            if (item is ComboBoxItem combo && combo.Tag?.ToString() == _settings.TypewriterSpeed)
+            {
+                TypewriterSpeedBox.SelectedItem = item;
+                break;
+            }
+        }
+
         FormatByDefaultSwitch.IsOn = _settings.FormatByDefault;
         NormalizeAudioSwitch.IsOn = _settings.NormalizeAudio;
         AutoCopySwitch.IsOn = _settings.AutoCopyTranscript;
@@ -117,6 +127,11 @@ public sealed partial class SettingsPage : Page
         _settings.EnableContextLearning = ContextLearningSwitch.IsOn;
         _settings.EnableAutoUpdateCheck = AutoUpdateCheckSwitch.IsOn;
         _settings.ThemeMode = SelectedComboText(ThemeBox);
+        _settings.TypewriterEffect = TypewriterSwitch.IsOn;
+        if (TypewriterSpeedBox.SelectedItem is Microsoft.UI.Xaml.Controls.ComboBoxItem speedItem && speedItem.Tag != null)
+        {
+            _settings.TypewriterSpeed = speedItem.Tag.ToString()!;
+        }
         if (AppLanguageBox.SelectedItem is Microsoft.UI.Xaml.Controls.ComboBoxItem combo && combo.Tag != null)
         {
             _settings.AppLanguage = combo.Tag.ToString()!;
@@ -137,7 +152,7 @@ public sealed partial class SettingsPage : Page
 
         _settings.Save();
         ThemeHelper.Apply(App.MainWindow, _settings.ThemeMode);
-        ShowStatus("Settings saved.", InfoBarSeverity.Success);
+        ShowStatus(AppStrings.Settings_Status_Saved, InfoBarSeverity.Success);
     }
 
     private void OpenModelsFolder_Click(object sender, RoutedEventArgs e)

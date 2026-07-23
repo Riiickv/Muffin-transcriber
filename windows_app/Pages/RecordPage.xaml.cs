@@ -19,10 +19,6 @@ public sealed partial class RecordPage : Page
     private string _currentWavPath = string.Empty;
     private Microsoft.UI.Xaml.Shapes.Rectangle[] _visualizerBars = new Microsoft.UI.Xaml.Shapes.Rectangle[20];
 
-    private string _currentRawTranscript = string.Empty;
-    private string _currentFormattedTranscript = string.Empty;
-    private string _currentSummary = string.Empty;
-
     // Non-null while a finished recording is being processed; the record button
     // acts as Cancel during that window.
     private CancellationTokenSource? _processCts;
@@ -33,12 +29,13 @@ public sealed partial class RecordPage : Page
     {
         InitializeComponent();
         _settings = UserSettings.Load();
-        
+
         SetupVisualizer();
-        
+
         _status = new StatusBarController(StatusBar);
 
         LoadModels();
+        Output.Copied += (_, _) => ShowStatus(AppStrings.Home_Status_CopiedToClipboard, InfoBarSeverity.Success);
     }
 
     private void SetupVisualizer()
@@ -87,7 +84,7 @@ public sealed partial class RecordPage : Page
         }
         else
         {
-            WhisperModelBox.PlaceholderText = "No model installed";
+            WhisperModelBox.PlaceholderText = AppStrings.Common_NoModelInstalled;
             RecordButton.IsEnabled = false;
         }
 
@@ -139,7 +136,7 @@ public sealed partial class RecordPage : Page
 
         if (NAudio.Wave.WaveInEvent.DeviceCount == 0)
         {
-            ShowStatus("No microphones detected! Please plug in a microphone.", InfoBarSeverity.Error);
+            ShowStatus(AppStrings.Record_Status_NoMic, InfoBarSeverity.Error);
             return;
         }
 
@@ -147,8 +144,8 @@ public sealed partial class RecordPage : Page
         {
             RecordButton.Background = (SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"];
             RecordIcon.Glyph = "\uE720";
-            RecordStatusText.Text = "Processing...";
-            RecordTimerText.Text = "Wait...";
+            RecordStatusText.Text = AppStrings.Record_Status_Processing;
+            RecordTimerText.Text = AppStrings.Record_Status_Wait;
             
             for (int i = 0; i < 20; i++)
             {
@@ -165,9 +162,9 @@ public sealed partial class RecordPage : Page
         {
             RecordButton.Background = new SolidColorBrush(Microsoft.UI.Colors.Firebrick);
             RecordIcon.Glyph = "\uE71A"; // Stop
-            RecordStatusText.Text = "Stop Recording";
+            RecordStatusText.Text = AppStrings.Record_StopButton;
             RecordTimerText.Text = "00:00:00";
-            TranscriptBox.Text = string.Empty;
+            Output.Reset();
             _smoothedPeak = 0;
             
             _currentWavPath = Path.Combine(AppModel.AudioCacheDir, "record_" + Guid.NewGuid().ToString() + ".wav");
@@ -204,10 +201,10 @@ public sealed partial class RecordPage : Page
             }
             catch (Exception ex)
             {
-                ShowStatus("Failed to access microphone. " + ex.Message, InfoBarSeverity.Error);
+                ShowStatus(string.Format(AppStrings.Record_Status_MicFailedFormat, ex.Message), InfoBarSeverity.Error);
                 RecordButton.Background = (SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"];
                 RecordIcon.Glyph = "\uE720";
-                RecordStatusText.Text = "Start Recording";
+                RecordStatusText.Text = AppStrings.Record_StartButton;
                 _recorder.Dispose();
                 _recorder = null;
             }
@@ -226,7 +223,7 @@ public sealed partial class RecordPage : Page
 
             RecordButton.Background = (SolidColorBrush)Application.Current.Resources["AccentFillColorDefaultBrush"];
             RecordIcon.Glyph = "";
-            RecordStatusText.Text = "Start Recording";
+            RecordStatusText.Text = AppStrings.Record_StartButton;
             RecordTimerText.Text = "00:00:00";
             for (int i = 0; i < 20; i++)
             {
@@ -263,13 +260,8 @@ public sealed partial class RecordPage : Page
 
             string? formatted = null;
             string? summary = null;
-            
-            _currentRawTranscript = rawTranscript;
-            _currentFormattedTranscript = string.Empty;
-            _currentSummary = string.Empty;
-            
-            SelectTab(TabRawButton);
-            TranscriptBox.Text = _currentRawTranscript;
+
+            Output.ShowRaw(rawTranscript, animate: true);
 
             if (FormatSwitch.IsOn)
             {
@@ -281,15 +273,13 @@ public sealed partial class RecordPage : Page
                     _settings.Save();
                 }
 
-                formatted = await LLMFormatter.FormatTranscriptAsync(rawTranscript, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct);
+                formatted = await LLMFormatter.FormatTranscriptAsync(rawTranscript, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct, onPartial: p => Output.ShowFormatted(p));
                 if (!string.IsNullOrWhiteSpace(formatted))
                 {
-                    _currentFormattedTranscript = formatted;
-                    SelectTab(TabFormattedButton);
-                    TranscriptBox.Text = _currentFormattedTranscript;
+                    Output.ShowFormatted(formatted);
                 }
             }
-            
+
             if (SummarizeSwitch.IsOn)
             {
                 ShowStatus(AppStrings.Home_Status_SummarizingLLM, InfoBarSeverity.Informational);
@@ -297,9 +287,7 @@ public sealed partial class RecordPage : Page
                 summary = await LLMFormatter.SummarizeTranscriptAsync(inputForSummary, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct);
                 if (!string.IsNullOrWhiteSpace(summary))
                 {
-                    _currentSummary = summary;
-                    SelectTab(TabSummaryButton);
-                    TranscriptBox.Text = _currentSummary;
+                    Output.ShowSummary(summary);
                 }
             }
 
@@ -307,7 +295,7 @@ public sealed partial class RecordPage : Page
             TranscriptionHistory.AddOrUpdate(new TranscriptionHistoryItem(
                 Guid.NewGuid().ToString(),
                 DateTime.Now,
-                "Voice Memo",
+                AppStrings.Record_VoiceMemoName,
                 lang,
                 rawTranscript,
                 formatted,
@@ -338,7 +326,7 @@ public sealed partial class RecordPage : Page
             CrashLog.Write("RecordPage transcription", ex);
             string? friendly = EngineHealth.FriendlyMessage(ex);
             ShowStatus(friendly ?? ex.Message, InfoBarSeverity.Error);
-            TranscriptBox.Text = friendly ?? ex.ToString();
+            Output.ShowRaw(friendly ?? ex.ToString(), animate: false);
         }
         finally
         {
@@ -351,39 +339,7 @@ public sealed partial class RecordPage : Page
         }
     }
     
-    private void CopyButton_Click(object sender, RoutedEventArgs e)
-    {
-        CopyTranscriptToClipboard();
-        ShowStatus(AppStrings.Home_Status_CopiedToClipboard, InfoBarSeverity.Success);
-    }
-
-    private void CopyTranscriptToClipboard() => UiHelpers.CopyToClipboard(TranscriptBox.Text);
-
-    private void TabRawButton_Click(object sender, RoutedEventArgs e)
-    {
-        SelectTab(TabRawButton);
-        TranscriptBox.Text = _currentRawTranscript;
-    }
-
-    private void TabFormattedButton_Click(object sender, RoutedEventArgs e)
-    {
-        SelectTab(TabFormattedButton);
-        TranscriptBox.Text = _currentFormattedTranscript;
-    }
-
-    private void TabSummaryButton_Click(object sender, RoutedEventArgs e)
-    {
-        SelectTab(TabSummaryButton);
-        TranscriptBox.Text = _currentSummary;
-    }
-
-    private void SelectTab(Button selectedButton)
-    {
-        TabRawButton.Style = (Style)Application.Current.Resources["DefaultButtonStyle"];
-        TabFormattedButton.Style = (Style)Application.Current.Resources["DefaultButtonStyle"];
-        TabSummaryButton.Style = (Style)Application.Current.Resources["DefaultButtonStyle"];
-        selectedButton.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
-    }
+    private void CopyTranscriptToClipboard() => UiHelpers.CopyToClipboard(Output.FullText);
 
     private void ShowStatus(string message, InfoBarSeverity severity) => _status.Show(message, severity);
 

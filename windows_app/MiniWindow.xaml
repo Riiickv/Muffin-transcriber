@@ -21,7 +21,7 @@
 
         <Grid Grid.Row="0">
             <TextBlock x:Name="StatusText" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
-            <Button x:Name="OpenMainButton" Click="OpenMainButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTipService.ToolTip="Open Full App">
+            <Button x:Name="OpenMainButton" Click="OpenMainButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind local:AppStrings.Mini_Tooltip_OpenApp}">
                 <FontIcon Glyph="&#xE8A7;" FontSize="16" />
             </Button>
         </Grid>

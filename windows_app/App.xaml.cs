@@ -77,7 +77,14 @@ public partial class App : Application
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         _ = TranscriptionHistory.RunMigrationAsync();
-        
+
+        // Load the UI language BEFORE building any window: the pages bind their
+        // text with x:Bind (OneTime), which evaluates during InitializeComponent,
+        // so the strings must already be loaded or the first render is English.
+        var settings = UserSettings.Load();
+        LocalizationManager.CreateDefaultLanguageFile();
+        LocalizationManager.LoadLanguage(settings.AppLanguage);
+
         Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation = null;
         var activatedArgs = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs();
 
@@ -98,10 +105,6 @@ public partial class App : Application
             _window = new MainWindow();
             MainWindow = _window;
         }
-
-        var settings = UserSettings.Load();
-        LocalizationManager.CreateDefaultLanguageFile();
-        LocalizationManager.LoadLanguage(settings.AppLanguage);
 
         _window.Activate();
     }

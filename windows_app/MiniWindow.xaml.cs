@@ -82,7 +82,7 @@ public sealed partial class MiniWindow : Window
         try
         {
             if (success) _shareOperation?.ReportCompleted();
-            else _shareOperation?.ReportError(error ?? "Transcription failed.");
+            else _shareOperation?.ReportError(error ?? AppStrings.Mini_Error_Generic);
         }
         catch { }
     }
@@ -147,16 +147,16 @@ public sealed partial class MiniWindow : Window
         try
         {
             _shareOperation.ReportStarted();
-            StatusText.Text = "Loading file...";
+            StatusText.Text = AppStrings.Mini_Status_Loading;
 
             var items = await _shareOperation.Data.GetStorageItemsAsync();
             if (items.Count == 0 || items[0] is not StorageFile file)
             {
-                error = "No file was shared.";
+                error = AppStrings.Mini_Status_NoFile;
                 return;
             }
 
-            StatusText.Text = "Checking for duplicate...";
+            StatusText.Text = AppStrings.Home_Status_CheckingDuplicate;
             string fileHash = await AppModel.ComputeFileHashAsync(file.Path);
 
             var settings = UserSettings.Load();
@@ -171,7 +171,7 @@ public sealed partial class MiniWindow : Window
                     _historyItemId = duplicate.Id;
                     _rawTranscript = duplicate.RawTranscript;
                     TranscriptBox.Text = _rawTranscript;
-                    StatusText.Text = "Loaded from history";
+                    StatusText.Text = AppStrings.Home_Status_LoadedFromHistory;
 
                     CopyButton.IsEnabled = true;
                     FormatButton.IsEnabled = true;
@@ -275,7 +275,7 @@ public sealed partial class MiniWindow : Window
         catch (Exception ex)
         {
             error = ex.Message;
-            if (!_isClosed) StatusText.Text = "Error: " + ex.Message;
+            if (!_isClosed) StatusText.Text = AppStrings.Mini_Status_Error + ex.Message;
         }
         finally
         {
@@ -296,14 +296,14 @@ public sealed partial class MiniWindow : Window
     private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
         CopyTranscriptToClipboard();
-        StatusText.Text = "Copied!";
+        StatusText.Text = AppStrings.Mini_Status_Copied;
     }
 
     private async void FormatButton_Click(object sender, RoutedEventArgs e)
     {
         _isProcessing = true;
         FormatButton.IsEnabled = false;
-        StatusText.Text = "Formatting...";
+        StatusText.Text = AppStrings.Mini_Status_Formatting;
         var settings = UserSettings.Load();
 
         try
@@ -314,7 +314,7 @@ public sealed partial class MiniWindow : Window
             if (!string.IsNullOrWhiteSpace(formatted))
             {
                 TranscriptBox.Text = formatted;
-                StatusText.Text = "Formatted";
+                StatusText.Text = AppStrings.Mini_Status_Formatted;
                 if (settings.AutoCopyTranscript)
                 {
                     CopyTranscriptToClipboard();
@@ -332,7 +332,7 @@ public sealed partial class MiniWindow : Window
             }
             else
             {
-                StatusText.Text = "Format Failed";
+                StatusText.Text = AppStrings.Mini_Status_FormatFailed;
             }
         }
         finally
