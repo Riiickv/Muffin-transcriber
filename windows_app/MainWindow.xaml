@@ -38,6 +38,21 @@
             IsPaneOpen="True"
             OpenPaneLength="320"
             SelectionChanged="NavView_SelectionChanged">
+            <NavigationView.PaneHeader>
+                <StackPanel
+                    Margin="4,4,0,12"
+                    Orientation="Horizontal"
+                    Spacing="12">
+                    <Image
+                        Width="28"
+                        Height="28"
+                        Source="ms-appx:///Assets/Square150x150Logo.scale-200.png" />
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource SubtitleTextBlockStyle}"
+                        Text="{x:Bind local:AppStrings.Nav_Home}" />
+                </StackPanel>
+            </NavigationView.PaneHeader>
             <NavigationView.MenuItems>
                 <NavigationViewItem
                     Content="{x:Bind local:AppStrings.Nav_Home}"

@@ -28,6 +28,7 @@ public sealed class UserSettings
     public bool SetupCompleted { get; set; }
     public bool TypewriterEffect { get; set; } = true;
     public string TypewriterSpeed { get; set; } = "Balanced"; // Slow, Balanced, Fast
+    public string AccentColor { get; set; } = MuffinTheme.DefaultAccent; // Muffin, Green, Purple, Red
 
     public static string SettingsPath => Path.Combine(AppModel.AppDataDir, "winui_settings.json");
 
