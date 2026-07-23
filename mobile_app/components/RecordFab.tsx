@@ -13,6 +13,7 @@ import { useTheme } from './ThemeProvider';
 import { Icon } from './Icon';
 import { AnimatedPressable } from './AnimatedPressable';
 import { useRecording } from './RecordingProvider';
+import { useResponsive } from '@/hooks/useResponsive';
 import { FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
 import { setRecordSheetOpen } from '@/utils/recordSheet';
 import { markCoachDone } from '@/utils/coachMarks';
@@ -36,6 +37,10 @@ const MID = (BAR_COUNT - 1) / 2;
 export function RecordFab() {
   const { theme } = useTheme();
   const { isRecording, toggle, level } = useRecording();
+  // Compact preset on short windows - matches the slimmed tab-bar pill beside
+  // it. 46dp still clears the 44dp tap-target minimum for the primary action.
+  const { isShort } = useResponsive();
+  const size = isShort ? 46 : SIZE;
 
   const pulse = useSharedValue(1);
   useEffect(() => {
@@ -68,6 +73,7 @@ export function RecordFab() {
           accessibilityState={{ selected: isRecording }}
           style={[
             styles.fab,
+            { width: size, height: size, borderRadius: size / 2 },
             isRecording
               ? { backgroundColor: RECORDING_RED, borderColor: RECORDING_RED }
               : idleChrome,

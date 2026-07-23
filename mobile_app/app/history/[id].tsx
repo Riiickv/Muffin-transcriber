@@ -45,7 +45,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function HistoryDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
-  const { contentWidth } = useResponsive();
+  // isShort: compact spacing preset on short/display-zoomed windows.
+  const { contentWidth, isShort } = useResponsive();
   const { items, addOrUpdate } = useHistory();
   const item = items.find((h) => h.id === id);
   const { settings, setSetting } = useSettings();
@@ -512,7 +513,7 @@ export default function HistoryDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-      <Card index={0} style={{ marginBottom: SPACING.lg }}>
+      <Card index={0} style={{ marginBottom: isShort ? SPACING.md : SPACING.lg }}>
         <Text style={styles.title}>{item?.sourceFileName?.replace(/\.[^/.]+$/, "") || `${t('transcribe.noTitle') || 'Voice Memo'} ${id}`}</Text>
         <Text style={[styles.subtitle, { color: theme.textMuted }]}>{dateStr}</Text>
 
@@ -540,7 +541,7 @@ export default function HistoryDetailScreen() {
         </View>
       </Card>
 
-      <Card index={1} style={{ marginBottom: SPACING.lg }}>
+      <Card index={1} style={{ marginBottom: isShort ? SPACING.md : SPACING.lg }}>
         <View style={styles.actionsRow}>
           <View style={styles.flex1}>
             {actionButton('retranscribe', 'mic', t('historyDetail.retranscribe') || 'Re-Transcribe', handleReTranscribe, !!item?.sourceFilePath)}
@@ -555,7 +556,7 @@ export default function HistoryDetailScreen() {
           </View>
         </View>
 
-        <View style={[styles.hr, { backgroundColor: theme.divider }]} />
+        <View style={[styles.hr, isShort && { marginVertical: SPACING.md }, { backgroundColor: theme.divider }]} />
 
         <View style={styles.row}>
           <View style={styles.flex1}>
@@ -579,12 +580,12 @@ export default function HistoryDetailScreen() {
           </View>
         </View>
 
-        <View style={[styles.hr, { backgroundColor: theme.divider }]} />
+        <View style={[styles.hr, isShort && { marginVertical: SPACING.md }, { backgroundColor: theme.divider }]} />
 
         <View>
           <Text style={styles.label}>{t('settings.customPrompt') || 'Custom Prompt'}</Text>
           <TextInput
-            style={[styles.customPromptInput, { color: theme.text, borderColor: theme.divider }]}
+            style={[styles.customPromptInput, isShort && { height: 64 }, { color: theme.text, borderColor: theme.divider }]}
             value={customPrompt}
             onChangeText={setCustomPrompt}
             placeholder={t('historyDetail.customPromptPlaceholder') || 'Enter a prompt for AI formatting or summarization...'}
