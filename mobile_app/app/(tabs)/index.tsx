@@ -23,6 +23,7 @@ import { runEnrichment } from '@/utils/transcriptionPipeline';
 import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
 import { useWhisperPreload } from '@/hooks/useWhisperPreload';
+import { useResponsive } from '@/hooks/useResponsive';
 import { errorToMessage } from '@/utils/errors';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
@@ -65,6 +66,8 @@ export default function HomeScreen() {
   // The welcome hides BOTH the header and the tab bar, so this screen is on its
   // own for the notch and the gesture bar - normally the navigator handles them.
   const insets = useSafeAreaInsets();
+  // Compact spacing preset on short/display-zoomed windows - see useResponsive.
+  const { isShort } = useResponsive();
   // Once a file is picked, transcription is imminent - warm the model.
   useWhisperPreload(!!selectedFileUri);
 
@@ -448,8 +451,8 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
       {/* Formatting card first - configure once, then hit Transcribe. */}
-      <Card index={0} style={{ marginBottom: SPACING.lg }}>
-        <View style={styles.switchRow}>
+      <Card index={0} style={{ marginBottom: isShort ? SPACING.md : SPACING.lg }}>
+        <View style={[styles.switchRow, isShort && { marginBottom: SPACING.sm }]}>
           <Text style={styles.label}>{t('transcribe.formatToggle') || 'Format'}</Text>
           <ExpressiveSwitch
             value={settings.formatByDefault}
@@ -458,7 +461,7 @@ export default function HomeScreen() {
             thumbActiveColor="#000000"
           />
         </View>
-        <View style={styles.switchRow}>
+        <View style={[styles.switchRow, isShort && { marginBottom: SPACING.sm }]}>
           <Text style={styles.label}>{t('transcribe.summarizeToggle') || 'Summarize'}</Text>
           <ExpressiveSwitch
             value={settings.summarizeByDefault}
@@ -492,10 +495,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={{ marginTop: SPACING.lg }}>
+        <View style={{ marginTop: isShort ? SPACING.md : SPACING.lg }}>
           <Text style={styles.label}>{t('settings.customPrompt') || 'Custom Prompt'}</Text>
           <TextInput
-            style={[styles.input, { color: theme.text, borderColor: theme.divider }]}
+            style={[styles.input, isShort && { minHeight: 44, maxHeight: 56 }, { color: theme.text, borderColor: theme.divider }]}
             value={customPrompt}
             onChangeText={setCustomPrompt}
             placeholder="e.g. Translate to Spanish, use bullet points..."
@@ -505,7 +508,7 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      <Card index={1} style={{ marginBottom: SPACING.lg }}>
+      <Card index={1} style={{ marginBottom: isShort ? SPACING.md : SPACING.lg }}>
         <View style={styles.row}>
           <View style={styles.flex1}>
             <Text style={styles.label}>{t('transcribe.languageLabel') || 'Language'}</Text>
@@ -530,7 +533,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={[styles.row, { marginTop: SPACING.lg }]}>
+        <View style={[styles.row, { marginTop: isShort ? SPACING.md : SPACING.lg }]}>
           <View style={styles.flex1}>
             <Button variant="secondary" size="lg" onPress={handlePickFile}>
               {selectedFileName ? selectedFileName : (t('transcribe.selectFileButton') || 'Pick Audio File')}

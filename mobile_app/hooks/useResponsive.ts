@@ -31,8 +31,20 @@ export const MAX_CONTENT_WIDTH = 560;
 /** Below this a phone is genuinely cramped - the tab bar sheds its label. */
 export const COMPACT_WIDTH = 340;
 
+/**
+ * Below this the designed vertical stack (two settings cards + a usable
+ * transcript) cannot fit, so screens switch to the COMPACT spacing preset:
+ * tighter card padding, shorter controls, a slimmer tab bar. This is Android's
+ * "Display size" zoom and low-resolution budget phones: they shrink the dp
+ * canvas, so the same design is physically taller than the screen (seen on a
+ * 144Hz Honor where everything looked huge and the page had to scroll).
+ * Discrete threshold, not a proportional scale, for the reasons above - and
+ * every compact value keeps tap targets at 44dp or better.
+ */
+export const SHORT_HEIGHT = 760;
+
 export function useResponsive() {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   return {
     /** Cap for a screen's content. A no-op on phones (all narrower than the cap). */
@@ -41,6 +53,9 @@ export function useResponsive() {
     isWide: width > MAX_CONTENT_WIDTH,
     /** Small/older phone: five tab items + a label won't fit honestly. */
     isCompact: width < COMPACT_WIDTH,
+    /** Short window (display-zoomed or low-res): use the compact spacing preset. */
+    isShort: height < SHORT_HEIGHT,
     width,
+    height,
   };
 }

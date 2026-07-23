@@ -3,6 +3,7 @@ import { Animated, StyleProp, ViewStyle } from 'react-native';
 import { AnimatedPressable } from './AnimatedPressable';
 import { useTheme } from './ThemeProvider';
 import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
+import { useResponsive } from '@/hooks/useResponsive';
 
 interface CardProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ const STAGGER_MS = 60;
 // shows straight through it. `theme.surface` gives it a floor to sit on.
 export const Card = ({ children, style, padded = true, onPress, index }: CardProps) => {
   const { theme } = useTheme();
+  const { isShort } = useResponsive();
   const anim = useRef(new Animated.Value(index === undefined ? 1 : 0)).current;
 
   useEffect(() => {
@@ -56,7 +58,9 @@ export const Card = ({ children, style, padded = true, onPress, index }: CardPro
     // only needs to catch the edge.
     borderColor: theme.isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
     backgroundColor: theme.surface,
-    padding: padded ? SPACING.lg : 0,
+    // Compact preset on short windows: every card sheds 4dp per side, which
+    // across a three-card screen buys back ~24dp of height for the transcript.
+    padding: padded ? (isShort ? SPACING.md : SPACING.lg) : 0,
   };
 
   // Entrance applied to the card's own view rather than a wrapper, so callers'

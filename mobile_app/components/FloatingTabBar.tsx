@@ -43,7 +43,7 @@ const DURATION = 260;
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
-  const { contentWidth, isCompact } = useResponsive();
+  const { contentWidth, isCompact, isShort } = useResponsive();
   const isFirstRun = useIsFirstRun();
   const { settings } = useSettings();
 
@@ -89,7 +89,12 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
 
   return (
     <View
-      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, SPACING.md), paddingHorizontal: SPACING.lg }]}
+      style={[
+        styles.wrap,
+        // Compact preset on short windows: the bar hugs the bottom tighter and
+        // the pill slims down, buying the content ~10dp of height.
+        { paddingBottom: Math.max(insets.bottom, isShort ? SPACING.sm : SPACING.md), paddingHorizontal: SPACING.lg },
+      ]}
       pointerEvents="box-none"
     >
       {/* Capped and centred: on a tablet a full-width row would stretch the
@@ -98,7 +103,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
           mic is a separate circle to the RIGHT of the pill - it's the primary
           action, not a peer of the nav tabs. */}
       <View style={[styles.row, { maxWidth: contentWidth - SPACING.lg * 2, width: '100%', alignSelf: 'center' }]}>
-        <View style={[styles.pill, { flex: 1, ...floatingChromeColors(theme.isDark) }]}>
+        <View style={[styles.pill, isShort && { padding: SPACING.xs }, { flex: 1, ...floatingChromeColors(theme.isDark) }]}>
         {state.routes
           .filter((route) => route.name !== 'record' && (route.name !== 'chat' || hasChatModel))
           .map((route) => {
@@ -125,6 +130,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
               label={label}
               focused={focused}
               compact={isCompact}
+              short={isShort}
               onPress={() => {
                 haptics.tap();
                 const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
@@ -146,6 +152,7 @@ const TabItem = ({
   focused,
   onPress,
   compact,
+  short,
 }: {
   icon: IconName;
   label: string;
@@ -153,6 +160,8 @@ const TabItem = ({
   onPress: () => void;
   /** Small screen: drop the label rather than squeeze five items into 320dp. */
   compact?: boolean;
+  /** Short window: slimmer rows (the pressable row still clears 44dp with padding). */
+  short?: boolean;
 }) => {
   const { theme } = useTheme();
   const p = useSharedValue(focused ? 1 : 0);
@@ -188,7 +197,7 @@ const TabItem = ({
         accessibilityLabel={label}
         style={{ flex: 1 }}
       >
-        <View style={styles.item}>
+        <View style={[styles.item, short && { height: 36 }]}>
           <Animated.View
             style={[
               StyleSheet.absoluteFill,
