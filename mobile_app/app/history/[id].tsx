@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Clipboard from 'expo-clipboard';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
-import * as IntentLauncher from 'expo-intent-launcher';
 
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
@@ -32,7 +31,8 @@ import { toLanguageCode } from '@/utils/languages';
 import { errorToMessage } from '@/utils/errors';
 import { formatDuration, formatHistoryDate } from '@/utils/format';
 import { haptics } from '@/utils/haptics';
-import { useDialog, DialogCard } from '@/components/Dialog';
+import { useDialog } from '@/components/Dialog';
+import { EntityActionDialog } from '@/components/EntityActionDialog';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t } from '@/utils/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -73,7 +73,6 @@ export default function HistoryDetailScreen() {
   const aiActivity = job?.label ?? null;
 
   const [activeEntity, setActiveEntity] = useState<{ quote: string; name: string; type: 'date' | 'time' } | null>(null);
-  const [actionName, setActionName] = useState('');
 
   const { whisperOptions, formatterOptions } = useModelOptions();
   // Re-Transcribe is one tap away - warm the model while the user reads.
@@ -414,35 +413,6 @@ export default function HistoryDetailScreen() {
 
   const handleEntityPress = (entity: any) => {
     setActiveEntity(entity);
-    setActionName('');
-  };
-
-  const submitAction = async () => {
-    if (!activeEntity) return;
-    const finalName = actionName.trim() || activeEntity.name;
-    
-    try {
-      if (activeEntity.type === 'date') {
-        await IntentLauncher.startActivityAsync('android.intent.action.INSERT', {
-          data: 'content://com.android.calendar/events',
-          extra: {
-            title: finalName,
-            description: `Quote: "${activeEntity.quote}"`,
-          }
-        });
-      } else {
-        await IntentLauncher.startActivityAsync('android.intent.action.SET_ALARM', {
-          extra: {
-            'android.intent.extra.alarm.MESSAGE': finalName,
-            'android.intent.extra.alarm.SKIP_UI': false,
-          }
-        });
-      }
-    } catch (e) {
-      console.error(e);
-      dialog.show({ title: t('dialog.actionFailed.title') || 'Action failed', message: t('dialog.actionFailed.message') || 'Could not open the native app.', icon: 'warning', iconTone: 'danger' });
-    }
-    setActiveEntity(null);
   };
 
   const renderHighlightedText = () => {
@@ -669,27 +639,8 @@ export default function HistoryDetailScreen() {
         }}
       />
 
-      {/* Uses DialogCard directly, not dialog.show, because it needs a live TextInput. */}
-      <DialogCard
-        visible={activeEntity !== null}
-        onRequestClose={() => setActiveEntity(null)}
-        icon={activeEntity?.type === 'date' ? 'history' : 'warning'}
-        title={`${t('chat.addTo') || 'Add to'} ${activeEntity?.type === 'date' ? (t('chat.calendar') || 'Calendar') : (t('chat.alarms') || 'Alarms')}`}
-        message={activeEntity ? `"${activeEntity.quote}"` : undefined}
-        buttons={[
-          { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary', onPress: () => setActiveEntity(null) },
-          { label: t('chat.openNativeApp') || 'Open Native App', variant: 'primary', onPress: submitAction },
-        ]}
-      >
-        <Text style={[styles.label, { alignSelf: 'flex-start' }]}>{t('chat.eventName') || 'Event Name'}</Text>
-        <TextInput
-          style={[styles.dialogInput, { color: theme.text, borderColor: theme.divider }]}
-          value={actionName}
-          onChangeText={setActionName}
-          placeholder={activeEntity?.name}
-          placeholderTextColor={theme.textSubtle}
-        />
-      </DialogCard>
+      {/* Shared with the Chat screen - the calendar/alarm flow lives in one place. */}
+      <EntityActionDialog entity={activeEntity} onClose={() => setActiveEntity(null)} />
     </View>
     </KeyboardScreen>
   );
@@ -787,13 +738,5 @@ const styles = StyleSheet.create({
   transcriptText: {
     fontSize: 16,
     lineHeight: 24,
-  },
-  dialogInput: {
-    borderWidth: 1,
-    borderRadius: RADIUS.sm,
-    padding: SPACING.md,
-    fontSize: 16,
-    marginTop: SPACING.sm,
-    width: '100%',
   },
 });

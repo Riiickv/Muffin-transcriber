@@ -21,8 +21,8 @@ import { ChatDrawer } from '@/components/ChatDrawer';
 import { FadeInView } from '@/components/FadeInView';
 import { InlineSettingControl } from '@/components/InlineSettingControl';
 import { getSettingSpec } from '@/utils/appCapabilities';
-import * as IntentLauncher from 'expo-intent-launcher';
 import { useDialog, DialogCard } from '@/components/Dialog';
+import { EntityActionDialog } from '@/components/EntityActionDialog';
 import { errorToMessage } from '@/utils/errors';
 import { t } from '@/utils/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -143,7 +143,6 @@ export default function ChatScreen() {
   const [renameInput, setRenameInput] = useState('');
 
   const [activeEntity, setActiveEntity] = useState<any>(null);
-  const [actionName, setActionName] = useState('');
 
   // The list's FRAME never shrinks when the keyboard opens - the composer just
   // slides up over it - so the keyboard simply covers the bottom of the list.
@@ -584,36 +583,7 @@ export default function ChatScreen() {
   }, []);
   const onEntityPress = useCallback((entity: any) => {
     setActiveEntity(entity);
-    setActionName('');
   }, []);
-
-  const submitAction = async () => {
-    if (!activeEntity) return;
-    const finalName = actionName.trim() || activeEntity.name;
-    
-    try {
-      if (activeEntity.type === 'date') {
-        await IntentLauncher.startActivityAsync('android.intent.action.INSERT', {
-          data: 'content://com.android.calendar/events',
-          extra: {
-            title: finalName,
-            description: `Quote: "${activeEntity.quote}"`,
-          }
-        });
-      } else {
-        await IntentLauncher.startActivityAsync('android.intent.action.SET_ALARM', {
-          extra: {
-            'android.intent.extra.alarm.MESSAGE': finalName,
-            'android.intent.extra.alarm.SKIP_UI': false,
-          }
-        });
-      }
-    } catch (e) {
-      console.error(e);
-      dialog.show({ title: t('dialog.actionFailed.title') || 'Action failed', message: t('dialog.actionFailed.message') || 'Could not open the native app.', icon: 'warning', iconTone: 'danger' });
-    }
-    setActiveEntity(null);
-  };
 
   return (
     <>
@@ -846,33 +816,9 @@ export default function ChatScreen() {
         onDeleteChat={handleDeleteChat} 
       />
 
-      {activeEntity && (
-        <View style={styles.overlay}>
-          <View style={[styles.dialog, { backgroundColor: theme.surface, borderColor: theme.divider }]}>
-            <Text style={styles.dialogTitle}>
-              {t('chat.addTo') || 'Add to'} {activeEntity.type === 'date' ? (t('chat.calendar') || 'Calendar') : (t('chat.alarms') || 'Alarms')}
-            </Text>
-            <Text style={[styles.dialogQuote, { color: theme.textMuted }]}>
-              {`"${activeEntity.quote}"`}
-            </Text>
-            
-            <Text style={styles.label}>{t('chat.eventName') || 'Event Name'}</Text>
-            <TextInput
-              style={[styles.dialogInput, { color: theme.text, borderColor: theme.divider }]}
-              value={actionName}
-              onChangeText={setActionName}
-              placeholder={activeEntity.name}
-              placeholderTextColor={theme.textSubtle}
-            />
-            
-            <View style={styles.dialogActions}>
-              <Button variant="ghost" size="sm" onPress={() => setActiveEntity(null)}>{t('dialog.confirmDelete.cancel') || 'Cancel'}</Button>
-              <View style={{ width: SPACING.md }} />
-              <Button variant="primary" size="sm" onPress={submitAction}>{t('chat.openNativeApp') || 'Open Native App'}</Button>
-            </View>
-          </View>
-        </View>
-      )}
+      {/* Shared with the History detail - and finally the same look as the
+          app's other dialogs instead of a hand-rolled overlay. */}
+      <EntityActionDialog entity={activeEntity} onClose={() => setActiveEntity(null)} />
     </>
   );
 }
@@ -982,50 +928,6 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  dialog: {
-    width: '85%',
-    borderWidth: 1,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-  dialogTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: SPACING.xs,
-  },
-  dialogQuote: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginBottom: SPACING.md,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: SPACING.xs,
-  },
-  dialogInput: {
-    borderWidth: 1,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    fontSize: 16,
-    marginBottom: SPACING.lg,
-  },
-  dialogActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
   },
 });
 
