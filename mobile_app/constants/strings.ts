@@ -361,6 +361,13 @@ export const APP_STRINGS = {
     appearance: "Appearance",
     themeMode: "Theme",
     accentColor: "Accent color",
+    uiScale: "UI size",
+    uiScaleCompact: "Compact",
+    uiScaleNormal: "Normal",
+    uiScaleComfy: "Comfy",
+    uiScaleTitle: "Change UI size?",
+    uiScaleMessage: "The app reloads for a moment to apply the new size.",
+    uiScaleApply: "Apply",
     // -- The app's own language (this picker) --
     appLanguage: "App language",
     appLanguageDesc: "Automatic follows your phone's language.",
