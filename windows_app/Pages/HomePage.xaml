@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:MuffinTranscriber"
+    xmlns:controls="using:MuffinTranscriber.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     NavigationCacheMode="Required"
     mc:Ignorable="d">
@@ -104,7 +105,7 @@
                     <StackPanel Spacing="4" Margin="0,0,16,0">
                         <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Home_CustomPromptLabel}" />
                         <TextBox x:Name="HomeCustomFormatBox"
-                            PlaceholderText="Clean up punctuation and paragraphs with a local LLM."
+                            PlaceholderText="{x:Bind local:AppStrings.Home_CustomPromptPlaceholder}"
                             TextWrapping="Wrap"
                             AcceptsReturn="True"
                             Height="72"
@@ -138,47 +139,7 @@
                 </Grid>
             </Border>
 
-            <Border
-                Padding="20"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                BorderThickness="1"
-                CornerRadius="8">
-                <Grid RowSpacing="12">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0" Style="{StaticResource SubtitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Home_TranscriptTitle}" />
-                    
-                    <Grid Grid.Row="1">
-                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
-                            <Button x:Name="TabRawButton" Content="{x:Bind local:AppStrings.Home_TabRaw}" Click="TabRawButton_Click" Style="{StaticResource AccentButtonStyle}" />
-                            <Button x:Name="TabFormattedButton" Content="{x:Bind local:AppStrings.Home_TabFormatted}" Click="TabFormattedButton_Click" />
-                            <Button x:Name="TabSummaryButton" Content="{x:Bind local:AppStrings.Home_TabSummary}" Click="TabSummaryButton_Click" />
-                        </StackPanel>
-                        <Button
-                            HorizontalAlignment="Right"
-                            Click="CopyButton_Click">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon Glyph="&#xE8C8;" FontSize="14" />
-                                <TextBlock Text="{x:Bind local:AppStrings.Home_CopyButton}" />
-                            </StackPanel>
-                        </Button>
-                    </Grid>
-
-                    <TextBox
-                        x:Name="TranscriptBox"
-                        Grid.Row="2"
-                        AcceptsReturn="True"
-                        TextWrapping="Wrap"
-                        MinHeight="300"
-                        HorizontalAlignment="Stretch"
-                        PlaceholderText="Transcript will appear here." />
-                </Grid>
-            </Border>
+            <controls:TranscriptOutput x:Name="Output" />
             </StackPanel>
         </ScrollViewer>
         

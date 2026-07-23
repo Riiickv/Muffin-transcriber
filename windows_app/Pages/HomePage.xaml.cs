@@ -13,10 +13,6 @@ public sealed partial class HomePage : Page
     private ModelInfo? _selectedWhisperModel;
     private UserSettings _settings = new();
 
-    private string _currentRawTranscript = string.Empty;
-    private string _currentFormattedTranscript = string.Empty;
-    private string _currentSummary = string.Empty;
-
     // Non-null while a run is active; the Transcribe button becomes Cancel.
     private CancellationTokenSource? _transcribeCts;
 
@@ -33,6 +29,7 @@ public sealed partial class HomePage : Page
         FileButton.AllowDrop = true;
         FileButton.DragOver += FileButton_DragOver;
         FileButton.Drop += FileButton_Drop;
+        Output.Copied += (_, _) => ShowStatus(AppStrings.Home_Status_CopiedToClipboard, InfoBarSeverity.Success);
     }
 
     public async void ProcessShareOperation(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation shareOperation)
@@ -97,7 +94,7 @@ public sealed partial class HomePage : Page
         }
         else
         {
-            WhisperModelBox.PlaceholderText = "No model installed";
+            WhisperModelBox.PlaceholderText = AppStrings.Common_NoModelInstalled;
         }
 
         FormatterModelBox.Items.Clear();
@@ -197,7 +194,7 @@ public sealed partial class HomePage : Page
     private void FileButton_DragOver(object sender, DragEventArgs e)
     {
         e.AcceptedOperation = DataPackageOperation.Copy;
-        e.DragUIOverride.Caption = "Drop to transcribe";
+        e.DragUIOverride.Caption = AppStrings.Home_DropCaption;
         e.DragUIOverride.IsContentVisible = true;
     }
 
@@ -298,7 +295,7 @@ public sealed partial class HomePage : Page
                     ShowStatus(string.Format(AppStrings.Home_Status_BatchProgress, current, total, baseFileName), InfoBarSeverity.Informational);
                 }
                 
-                TranscriptBox.Text = string.Empty;
+                Output.Reset();
                 string cachedPath = file;
 
                 try
@@ -313,20 +310,8 @@ public sealed partial class HomePage : Page
                         
                         if (duplicate != null)
                         {
-                            _currentRawTranscript = duplicate.RawTranscript;
-                            _currentFormattedTranscript = duplicate.FormattedTranscript ?? string.Empty;
-                            _currentSummary = duplicate.Summary ?? string.Empty;
+                            Output.LoadAll(duplicate.RawTranscript, duplicate.FormattedTranscript, duplicate.Summary);
 
-                            SelectTab(TabRawButton);
-                            TranscriptBox.Text = _currentRawTranscript;
-                            
-                            if (!string.IsNullOrEmpty(_currentFormattedTranscript)) SelectTab(TabFormattedButton);
-                            if (!string.IsNullOrEmpty(_currentSummary)) SelectTab(TabSummaryButton);
-                            
-                            TranscriptBox.Text = string.IsNullOrEmpty(_currentSummary) 
-                                ? (string.IsNullOrEmpty(_currentFormattedTranscript) ? _currentRawTranscript : _currentFormattedTranscript) 
-                                : _currentSummary;
-                            
                             if (total == 1)
                             {
                                 if (_settings.AutoCopyTranscript)
@@ -369,26 +354,22 @@ public sealed partial class HomePage : Page
 
                     string? formatted = null;
                     string? summary = null;
-                    
-                    _currentRawTranscript = rawTranscript;
-                    _currentFormattedTranscript = string.Empty;
-                    _currentSummary = string.Empty;
-                    
-                    SelectTab(TabRawButton);
-                    TranscriptBox.Text = _currentRawTranscript;
+
+                    // Only the single-file case types out live; a batch would
+                    // fight the reveal, so it just sets the text.
+                    Output.ShowRaw(rawTranscript, animate: total == 1);
 
                     if (FormatSwitch.IsOn)
                     {
                         if (total == 1) ShowStatus(AppStrings.Home_Status_FormattingLLM, InfoBarSeverity.Informational);
-                        formatted = await LLMFormatter.FormatTranscriptAsync(rawTranscript, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct);
+                        Action<string>? onPartial = total == 1 ? p => Output.ShowFormatted(p) : null;
+                        formatted = await LLMFormatter.FormatTranscriptAsync(rawTranscript, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct, onPartial: onPartial);
                         if (!string.IsNullOrWhiteSpace(formatted))
                         {
-                            _currentFormattedTranscript = formatted;
-                            SelectTab(TabFormattedButton);
-                            TranscriptBox.Text = _currentFormattedTranscript;
+                            Output.ShowFormatted(formatted);
                         }
                     }
-                    
+
                     if (SummarizeSwitch.IsOn)
                     {
                         if (total == 1) ShowStatus(AppStrings.Home_Status_SummarizingLLM, InfoBarSeverity.Informational);
@@ -396,9 +377,7 @@ public sealed partial class HomePage : Page
                         summary = await LLMFormatter.SummarizeTranscriptAsync(inputForSummary, SelectedComboText(FormatterModelBox), SelectedComboText(FormatLanguageBox), ct: ct);
                         if (!string.IsNullOrWhiteSpace(summary))
                         {
-                            _currentSummary = summary;
-                            SelectTab(TabSummaryButton);
-                            TranscriptBox.Text = _currentSummary;
+                            Output.ShowSummary(summary);
                         }
                     }
 
@@ -429,7 +408,7 @@ public sealed partial class HomePage : Page
                     CrashLog.Write("HomePage transcription", ex);
                     string? friendly = EngineHealth.FriendlyMessage(ex);
                     ShowStatus(friendly ?? ex.Message, InfoBarSeverity.Error);
-                    TranscriptBox.Text = friendly ?? ex.ToString();
+                    Output.ShowRaw(friendly ?? ex.ToString(), animate: false);
                     continue;
                 }
             }
@@ -465,39 +444,9 @@ public sealed partial class HomePage : Page
         }
     }
 
-    private void CopyButton_Click(object sender, RoutedEventArgs e)
-    {
-        CopyTranscriptToClipboard();
-        ShowStatus(AppStrings.Home_Status_CopiedToClipboard, InfoBarSeverity.Success);
-    }
-
-    private void CopyTranscriptToClipboard() => UiHelpers.CopyToClipboard(TranscriptBox.Text);
-
-    private void TabRawButton_Click(object sender, RoutedEventArgs e)
-    {
-        SelectTab(TabRawButton);
-        TranscriptBox.Text = _currentRawTranscript;
-    }
-
-    private void TabFormattedButton_Click(object sender, RoutedEventArgs e)
-    {
-        SelectTab(TabFormattedButton);
-        TranscriptBox.Text = _currentFormattedTranscript;
-    }
-
-    private void TabSummaryButton_Click(object sender, RoutedEventArgs e)
-    {
-        SelectTab(TabSummaryButton);
-        TranscriptBox.Text = _currentSummary;
-    }
-
-    private void SelectTab(Button selectedButton)
-    {
-        TabRawButton.Style = (Style)Application.Current.Resources["DefaultButtonStyle"];
-        TabFormattedButton.Style = (Style)Application.Current.Resources["DefaultButtonStyle"];
-        TabSummaryButton.Style = (Style)Application.Current.Resources["DefaultButtonStyle"];
-        selectedButton.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
-    }
+    // Auto-copy uses the full active variant, not the box (which may be
+    // mid-typewriter).
+    private void CopyTranscriptToClipboard() => UiHelpers.CopyToClipboard(Output.FullText);
 
     private void ShowStatus(string message, InfoBarSeverity severity) => _status.Show(message, severity);
 

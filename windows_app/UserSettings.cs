@@ -26,6 +26,8 @@ public sealed class UserSettings
     public bool EnableAutoUpdateCheck { get; set; } = true;
     public string ThemeMode { get; set; } = "System"; // System, Light, Dark, AMOLED
     public bool SetupCompleted { get; set; }
+    public bool TypewriterEffect { get; set; } = true;
+    public string TypewriterSpeed { get; set; } = "Balanced"; // Slow, Balanced, Fast
 
     public static string SettingsPath => Path.Combine(AppModel.AppDataDir, "winui_settings.json");
 

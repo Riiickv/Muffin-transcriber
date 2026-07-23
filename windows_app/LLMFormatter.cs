@@ -10,7 +10,7 @@ namespace MuffinTranscriber;
 
 public static class LLMFormatter
 {
-    public static async Task<string?> FormatTranscriptAsync(string transcript, string? selectedFormatter, string formatLanguage = "Auto-Detect / Original", string? customPromptOverride = null, System.Threading.CancellationToken ct = default)
+    public static async Task<string?> FormatTranscriptAsync(string transcript, string? selectedFormatter, string formatLanguage = "Auto-Detect / Original", string? customPromptOverride = null, System.Threading.CancellationToken ct = default, Action<string>? onPartial = null)
     {
         if (string.IsNullOrWhiteSpace(AppModel.LlamaExe))
         {
@@ -50,8 +50,24 @@ public static class LLMFormatter
         {
             int maxTokens = Math.Max(512, Math.Min(2048, transcript.Length / 3 + 256));
             string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n {maxTokens} --temp 0.0 -ngl 33 -c 4096 --log-disable --no-display-prompt -st";
-            ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130], ct);
-            string formatted = ExtractFormatterOutput(result.Output);
+
+            string output;
+            if (onPartial is null)
+            {
+                ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130], ct);
+                output = result.Output;
+            }
+            else
+            {
+                // Stream: re-extract the clean visible text from everything seen
+                // so far on each chunk, so the caller can show it typing out
+                // live. ExtractFormatterOutput handles the [START_FORMAT] marker
+                // and end tokens, so partial junk before the marker stays hidden.
+                output = await RunStreamingProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130], ct,
+                    accumulated => onPartial(ExtractFormatterOutput(accumulated)));
+            }
+
+            string formatted = ExtractFormatterOutput(output);
             return LooksUnstableFormatOutput(formatted, transcript) ? null : formatted;
         }
         finally
@@ -389,6 +405,98 @@ public static class LLMFormatter
         }
 
         return all.ToString();
+    }
+
+    // Like RunProcessAsync but reports stdout as it arrives: onAccumulated is
+    // called with the full stdout-so-far after each chunk (cheap because
+    // transcripts are small and tokens arrive slowly). Returns stdout+stderr
+    // combined, so the same ExtractFormatterOutput can parse the final text.
+    private static async Task<string> RunStreamingProcessAsync(
+        string fileName,
+        string arguments,
+        TimeSpan? timeout,
+        IReadOnlyCollection<int>? allowedExitCodes,
+        System.Threading.CancellationToken ct,
+        Action<string> onAccumulated)
+    {
+        if (string.IsNullOrWhiteSpace(fileName) || !File.Exists(fileName))
+        {
+            throw new FileNotFoundException($"Required executable was not found: {fileName}");
+        }
+
+        ProcessStartInfo startInfo = new()
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+
+        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException($"Could not start {fileName}");
+        using var killRegistration = ct.Register(() =>
+        {
+            try { process.Kill(entireProcessTree: true); } catch { }
+        });
+
+        Task<string> stderrTask = process.StandardError.ReadToEndAsync();
+
+        var stdout = new StringBuilder();
+        var buffer = new char[256];
+        Task waitTask = process.WaitForExitAsync();
+
+        while (true)
+        {
+            Task<int> readTask = process.StandardOutput.ReadAsync(buffer, 0, buffer.Length);
+            if (timeout is not null && await Task.WhenAny(readTask, Task.Delay(timeout.Value, ct)) != readTask)
+            {
+                try { process.Kill(entireProcessTree: true); } catch { }
+                ct.ThrowIfCancellationRequested();
+                throw new TimeoutException($"{Path.GetFileName(fileName)} timed out.");
+            }
+
+            int read = await readTask;
+            if (read == 0) break;
+
+            stdout.Append(StripAnsi(new string(buffer, 0, read)));
+            try { onAccumulated(stdout.ToString()); } catch { }
+        }
+
+        await waitTask;
+        ct.ThrowIfCancellationRequested();
+
+        string stderr = await stderrTask;
+        string combined = $"{stdout}\n{stderr}".Trim();
+        allowedExitCodes ??= [0];
+        if (!allowedExitCodes.Contains(process.ExitCode))
+        {
+            throw new EngineProcessException(process.ExitCode, combined);
+        }
+
+        return combined;
+    }
+
+    // Strips ANSI colour escape sequences (ESC[...m) some engine builds emit.
+    private static string StripAnsi(string s)
+    {
+        if (s.IndexOf('\x1b') < 0) return s;
+        var sb = new StringBuilder(s.Length);
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (s[i] == '\x1b' && i + 1 < s.Length && s[i + 1] == '[')
+            {
+                i += 2;
+                while (i < s.Length && !char.IsLetter(s[i])) i++;
+            }
+            else
+            {
+                sb.Append(s[i]);
+            }
+        }
+        return sb.ToString();
     }
 }
 

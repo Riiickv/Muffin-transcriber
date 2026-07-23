@@ -11,6 +11,9 @@ public static class AppStrings
     public static string Nav_Settings => LocalizationManager.GetString("Nav_Settings", "Settings");
 
     public static string App_Title => LocalizationManager.GetString("App_Title", "Muffin Transcriber");
+
+    // COMMON
+    public static string Common_NoModelInstalled => LocalizationManager.GetString("Common_NoModelInstalled", "No model installed");
     public static string AppVersion => LocalizationManager.GetString("AppVersion", "v1.2.2");
     public static string Credits => LocalizationManager.GetString("Credits", "made by Rick in his free time");
     public static string Settings_BtnChangelog => LocalizationManager.GetString("Settings_BtnChangelog", "View Changelog");
@@ -29,6 +32,14 @@ public static class AppStrings
     public static string Mini_Status_NoWhisper => LocalizationManager.GetString("Mini_Status_NoWhisper", "No Whisper model installed!");
     public static string Mini_Status_NoFormatter => LocalizationManager.GetString("Mini_Status_NoFormatter", "No Formatter model installed!");
     public static string Mini_Status_NoSpeech => LocalizationManager.GetString("Mini_Status_NoSpeech", "No speech detected in this file.");
+    public static string Mini_Status_Loading => LocalizationManager.GetString("Mini_Status_Loading", "Loading file...");
+    public static string Mini_Status_NoFile => LocalizationManager.GetString("Mini_Status_NoFile", "No file was shared.");
+    public static string Mini_Status_Copied => LocalizationManager.GetString("Mini_Status_Copied", "Copied!");
+    public static string Mini_Status_Formatting => LocalizationManager.GetString("Mini_Status_Formatting", "Formatting...");
+    public static string Mini_Status_Formatted => LocalizationManager.GetString("Mini_Status_Formatted", "Formatted");
+    public static string Mini_Status_FormatFailed => LocalizationManager.GetString("Mini_Status_FormatFailed", "Format Failed");
+    public static string Mini_Error_Generic => LocalizationManager.GetString("Mini_Error_Generic", "Transcription failed.");
+    public static string Mini_Tooltip_OpenApp => LocalizationManager.GetString("Mini_Tooltip_OpenApp", "Open Full App");
 
     // HOME PAGE
     public static string Home_Title => LocalizationManager.GetString("Home_Title", "Muffin!");
@@ -36,6 +47,7 @@ public static class AppStrings
     // Drop Zone
     public static string Home_DropZoneText => LocalizationManager.GetString("Home_DropZoneText", "Drag & Drop any audio or video file");
     public static string Home_OrClickToBrowse => LocalizationManager.GetString("Home_OrClickToBrowse", "or click to browse");
+    public static string Home_DropCaption => LocalizationManager.GetString("Home_DropCaption", "Drop to transcribe");
 
     // Configuration
     public static string Home_ConfigurationTitle => LocalizationManager.GetString("Home_ConfigurationTitle", "Configuration");
@@ -59,6 +71,8 @@ public static class AppStrings
     public static string Home_TabFormatted => LocalizationManager.GetString("Home_TabFormatted", "Formatted");
     public static string Home_TabSummary => LocalizationManager.GetString("Home_TabSummary", "Summary");
     public static string Home_CopyButton => LocalizationManager.GetString("Home_CopyButton", "Copy");
+    public static string Home_TranscriptPlaceholder => LocalizationManager.GetString("Home_TranscriptPlaceholder", "Transcript will appear here.");
+    public static string Home_CustomPromptPlaceholder => LocalizationManager.GetString("Home_CustomPromptPlaceholder", "Clean up punctuation and paragraphs with a local LLM.");
 
     // Status Messages
     public static string Home_Status_NoFormatter => LocalizationManager.GetString("Home_Status_NoFormatter", "No formatter installed");
@@ -86,6 +100,11 @@ public static class AppStrings
     public static string Record_StopButton => LocalizationManager.GetString("Record_StopButton", "Stop Recording");
     public static string Record_Instructions => LocalizationManager.GetString("Record_Instructions", "");
     public static string Record_Status_NoAudioDetected => LocalizationManager.GetString("Record_Status_NoAudioDetected", "No speech detected. If your mic works elsewhere, check Windows Settings → Privacy → Microphone and enable 'Let desktop apps access your microphone'.");
+    public static string Record_Status_NoMic => LocalizationManager.GetString("Record_Status_NoMic", "No microphones detected! Please plug in a microphone.");
+    public static string Record_Status_Processing => LocalizationManager.GetString("Record_Status_Processing", "Processing...");
+    public static string Record_Status_Wait => LocalizationManager.GetString("Record_Status_Wait", "Wait...");
+    public static string Record_Status_MicFailedFormat => LocalizationManager.GetString("Record_Status_MicFailedFormat", "Failed to access microphone. {0}");
+    public static string Record_VoiceMemoName => LocalizationManager.GetString("Record_VoiceMemoName", "Voice Memo");
 
     // CHAT PAGE
     public static string Chat_Title => LocalizationManager.GetString("Chat_Title", "Chat");
@@ -115,6 +134,23 @@ public static class AppStrings
     public static string History_ExportVtt => LocalizationManager.GetString("History_ExportVtt", "Export as WebVTT (.vtt)");
 
     public static string History_EmptyDetailsText => LocalizationManager.GetString("History_EmptyDetailsText", "Select a transcription to view details.");
+
+    public static string History_Dialog_RenameTitle => LocalizationManager.GetString("History_Dialog_RenameTitle", "Rename File");
+    public static string History_NoLlmInstalled => LocalizationManager.GetString("History_NoLlmInstalled", "No LLM installed");
+    public static string History_NoWhisperInstalled => LocalizationManager.GetString("History_NoWhisperInstalled", "No Whisper installed");
+    public static string History_Tooltip_Rename => LocalizationManager.GetString("History_Tooltip_Rename", "Rename");
+    public static string History_Tooltip_Delete => LocalizationManager.GetString("History_Tooltip_Delete", "Delete");
+    public static string History_Tooltip_Format => LocalizationManager.GetString("History_Tooltip_Format", "Format Transcript");
+    public static string History_Tooltip_Summarize => LocalizationManager.GetString("History_Tooltip_Summarize", "Summarize Transcript");
+    public static string History_Status_SelectFormatter => LocalizationManager.GetString("History_Status_SelectFormatter", "Please select a formatter model.");
+    public static string History_Status_FormatComplete => LocalizationManager.GetString("History_Status_FormatComplete", "Formatting complete.");
+    public static string History_Status_FormatFailed => LocalizationManager.GetString("History_Status_FormatFailed", "Formatting returned empty or failed.");
+    public static string History_Status_NoSubtitles => LocalizationManager.GetString("History_Status_NoSubtitles", "No subtitle data available for this transcript. Please re-transcribe the file.");
+    public static string History_Status_SelectSummarizer => LocalizationManager.GetString("History_Status_SelectSummarizer", "Please select a summarization model.");
+    public static string History_Status_SummaryComplete => LocalizationManager.GetString("History_Status_SummaryComplete", "Summarization complete.");
+    public static string History_Status_SummaryFailed => LocalizationManager.GetString("History_Status_SummaryFailed", "Summarization returned empty or failed.");
+    public static string History_Status_SelectWhisper => LocalizationManager.GetString("History_Status_SelectWhisper", "Please select a Whisper model.");
+    public static string History_Status_RetranscribeComplete => LocalizationManager.GetString("History_Status_RetranscribeComplete", "Re-transcription complete.");
 
     public static string History_AddToCalendar => LocalizationManager.GetString("History_AddToCalendar", "Find dates & add to calendar");
     public static string History_FindingDates => LocalizationManager.GetString("History_FindingDates", "Looking for dates and events...");
@@ -174,9 +210,19 @@ public static class AppStrings
     public static string Settings_ThemeTitle => LocalizationManager.GetString("Settings_ThemeTitle", "Theme");
     public static string Settings_ThemeDesc => LocalizationManager.GetString("Settings_ThemeDesc", "Choose light, dark, or pure-black (AMOLED).");
 
+    public static string Settings_TypewriterTitle => LocalizationManager.GetString("Settings_TypewriterTitle", "Typewriter effect");
+    public static string Settings_TypewriterDesc => LocalizationManager.GetString("Settings_TypewriterDesc", "Type transcripts out as they arrive instead of showing them all at once.");
+    public static string Settings_TypewriterSpeedTitle => LocalizationManager.GetString("Settings_TypewriterSpeedTitle", "Typing speed");
+    public static string Settings_TypewriterSpeedDesc => LocalizationManager.GetString("Settings_TypewriterSpeedDesc", "How fast the typewriter reveals text.");
+    public static string Settings_SpeedSlow => LocalizationManager.GetString("Settings_SpeedSlow", "Slow");
+    public static string Settings_SpeedBalanced => LocalizationManager.GetString("Settings_SpeedBalanced", "Balanced");
+    public static string Settings_SpeedFast => LocalizationManager.GetString("Settings_SpeedFast", "Fast");
+
     public static string Settings_DefaultLanguageTitle => LocalizationManager.GetString("Settings_DefaultLanguageTitle", "Default language");
     public static string Settings_DefaultLanguageDesc => LocalizationManager.GetString("Settings_DefaultLanguageDesc", "Preselect this language when opening Transcription.");
 
+    public static string Settings_AutoSelectModel => LocalizationManager.GetString("Settings_AutoSelectModel", "Auto-select best installed model");
+    public static string Settings_Status_Saved => LocalizationManager.GetString("Settings_Status_Saved", "Settings saved.");
     public static string Settings_PrefWhisperTitle => LocalizationManager.GetString("Settings_PrefWhisperTitle", "Preferred Whisper model");
     public static string Settings_PrefWhisperDesc => LocalizationManager.GetString("Settings_PrefWhisperDesc", "Use this installed model first when available.");
 

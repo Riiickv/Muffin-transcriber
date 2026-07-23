@@ -80,7 +80,7 @@ public sealed partial class HistoryPage : Page
         }
         else
         {
-            LLMModelBox.PlaceholderText = "No LLM installed";
+            LLMModelBox.PlaceholderText = AppStrings.History_NoLlmInstalled;
             LLMModelBox.IsEnabled = false;
         }
 
@@ -90,7 +90,7 @@ public sealed partial class HistoryPage : Page
         }
         else
         {
-            HistoryWhisperModelBox.PlaceholderText = "No Whisper installed";
+            HistoryWhisperModelBox.PlaceholderText = AppStrings.History_NoWhisperInstalled;
             HistoryWhisperModelBox.IsEnabled = false;
         }
 
@@ -284,10 +284,10 @@ public sealed partial class HistoryPage : Page
                 TextBox inputTextBox = new TextBox { Text = item.SourceFileName, AcceptsReturn = false };
                 ContentDialog dialog = new ContentDialog
                 {
-                    Title = "Rename File",
+                    Title = AppStrings.History_Dialog_RenameTitle,
                     Content = inputTextBox,
-                    PrimaryButtonText = "Save",
-                    CloseButtonText = "Cancel",
+                    PrimaryButtonText = AppStrings.Settings_Dialog_Save,
+                    CloseButtonText = AppStrings.Settings_Dialog_Cancel,
                     DefaultButton = ContentDialogButton.Primary,
                     XamlRoot = this.XamlRoot
                 };
@@ -319,12 +319,12 @@ public sealed partial class HistoryPage : Page
 
         if (selectedFormatter == null)
         {
-            ShowStatus("Please select a formatter model.", InfoBarSeverity.Error);
+            ShowStatus(AppStrings.History_Status_SelectFormatter, InfoBarSeverity.Error);
             return;
         }
 
         ReformatButton.IsEnabled = false;
-        ShowStatus("Formatting transcript...", InfoBarSeverity.Informational);
+        ShowStatus(AppStrings.Home_Status_FormattingLLM, InfoBarSeverity.Informational);
 
         try
         {
@@ -341,11 +341,11 @@ public sealed partial class HistoryPage : Page
                 SelectTab(TabFormattedButton);
                 TranscriptBox.Text = formatted;
 
-                ShowStatus("Formatting complete.", InfoBarSeverity.Success);
+                ShowStatus(AppStrings.History_Status_FormatComplete, InfoBarSeverity.Success);
             }
             else
             {
-                ShowStatus("Formatting returned empty or failed.", InfoBarSeverity.Error);
+                ShowStatus(AppStrings.History_Status_FormatFailed, InfoBarSeverity.Error);
             }
         }
         catch (Exception ex)
@@ -365,7 +365,7 @@ public sealed partial class HistoryPage : Page
             DataPackage package = new();
             package.SetText(TranscriptBox.Text);
             Clipboard.SetContent(package);
-            ShowStatus("Copied to clipboard.", InfoBarSeverity.Success);
+            ShowStatus(AppStrings.Home_Status_CopiedToClipboard, InfoBarSeverity.Success);
         }
     }
 
@@ -379,7 +379,7 @@ public sealed partial class HistoryPage : Page
     {
         if (_selectedItem == null || string.IsNullOrWhiteSpace(_selectedItem.SrtTranscript))
         {
-            ShowStatus("No subtitle data available for this transcript. Please re-transcribe the file.", InfoBarSeverity.Error);
+            ShowStatus(AppStrings.History_Status_NoSubtitles, InfoBarSeverity.Error);
             return;
         }
         await SaveExportFileAsync(_selectedItem.SrtTranscript, ".srt", "SubRip Subtitle");
@@ -389,7 +389,7 @@ public sealed partial class HistoryPage : Page
     {
         if (_selectedItem == null || string.IsNullOrWhiteSpace(_selectedItem.SrtTranscript))
         {
-            ShowStatus("No subtitle data available for this transcript. Please re-transcribe the file.", InfoBarSeverity.Error);
+            ShowStatus(AppStrings.History_Status_NoSubtitles, InfoBarSeverity.Error);
             return;
         }
         string vtt = ConvertSrtToVtt(_selectedItem.SrtTranscript);
@@ -456,12 +456,12 @@ public sealed partial class HistoryPage : Page
 
         if (selectedFormatter == null)
         {
-            ShowStatus("Please select a summarization model.", InfoBarSeverity.Error);
+            ShowStatus(AppStrings.History_Status_SelectSummarizer, InfoBarSeverity.Error);
             return;
         }
 
         SummarizeButton.IsEnabled = false;
-        ShowStatus("Summarizing transcript...", InfoBarSeverity.Informational);
+        ShowStatus(AppStrings.Home_Status_SummarizingLLM, InfoBarSeverity.Informational);
 
         try
         {
@@ -480,11 +480,11 @@ public sealed partial class HistoryPage : Page
                 SelectTab(TabSummaryButton);
                 TranscriptBox.Text = summary;
 
-                ShowStatus("Summarization complete.", InfoBarSeverity.Success);
+                ShowStatus(AppStrings.History_Status_SummaryComplete, InfoBarSeverity.Success);
             }
             else
             {
-                ShowStatus("Summarization returned empty or failed.", InfoBarSeverity.Error);
+                ShowStatus(AppStrings.History_Status_SummaryFailed, InfoBarSeverity.Error);
             }
         }
         catch (Exception ex)
@@ -521,7 +521,7 @@ public sealed partial class HistoryPage : Page
         string? selectedWhisper = HistoryWhisperModelBox.SelectedItem?.ToString();
         if (string.IsNullOrEmpty(selectedWhisper))
         {
-            ShowStatus("Please select a Whisper model.", InfoBarSeverity.Error);
+            ShowStatus(AppStrings.History_Status_SelectWhisper, InfoBarSeverity.Error);
             return;
         }
 
@@ -529,7 +529,7 @@ public sealed partial class HistoryPage : Page
         if (whisperModel == null) return;
 
         ReTranscribeButton.IsEnabled = false;
-        ShowStatus("Transcribing with Whisper...", InfoBarSeverity.Informational);
+        ShowStatus(AppStrings.Home_Status_TranscribingWhisper, InfoBarSeverity.Informational);
         
         try
         {
@@ -552,7 +552,7 @@ public sealed partial class HistoryPage : Page
             SelectTab(TabRawButton);
             TranscriptBox.Text = rawTranscript;
             
-            ShowStatus("Re-transcription complete.", InfoBarSeverity.Success);
+            ShowStatus(AppStrings.History_Status_RetranscribeComplete, InfoBarSeverity.Success);
         }
         catch (Exception ex)
         {

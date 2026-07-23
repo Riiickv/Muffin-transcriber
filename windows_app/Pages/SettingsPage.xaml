@@ -24,6 +24,10 @@
                 <ComboBox x:Name="AppLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="220">
                     <ComboBoxItem Content="English" Tag="en" />
                     <ComboBoxItem Content="Italiano" Tag="it" />
+                    <ComboBoxItem Content="Español" Tag="es" />
+                    <ComboBoxItem Content="Français" Tag="fr" />
+                    <ComboBoxItem Content="Deutsch" Tag="de" />
+                    <ComboBoxItem Content="Português" Tag="pt" />
                 </ComboBox>
             </toolkit:SettingsCard>
 
@@ -31,6 +35,18 @@
 
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ThemeTitle}" Description="{x:Bind local:AppStrings.Settings_ThemeDesc}">
                 <ComboBox x:Name="ThemeBox" SelectionChanged="SaveOnSelectionChanged" Width="220" />
+            </toolkit:SettingsCard>
+
+            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_TypewriterTitle}" Description="{x:Bind local:AppStrings.Settings_TypewriterDesc}">
+                <ToggleSwitch x:Name="TypewriterSwitch" Toggled="SaveOnToggled" />
+            </toolkit:SettingsCard>
+
+            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_TypewriterSpeedTitle}" Description="{x:Bind local:AppStrings.Settings_TypewriterSpeedDesc}">
+                <ComboBox x:Name="TypewriterSpeedBox" SelectionChanged="SaveOnSelectionChanged" Width="150">
+                    <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_SpeedSlow}" Tag="Slow" />
+                    <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_SpeedBalanced}" Tag="Balanced" />
+                    <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_SpeedFast}" Tag="Fast" />
+                </ComboBox>
             </toolkit:SettingsCard>
 
             <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_DefaultsHeader}" />
