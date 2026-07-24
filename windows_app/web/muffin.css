@@ -43,6 +43,8 @@
   --r-md: 12px;
   --r-lg: 16px;
   --r-pill: 999px;
+  /* One rounding for every rectangular button, a touch rounder than the cards. */
+  --r-btn: 14px;
 
   /* The one brand constant. The accent itself is overridden at runtime by the
      accent picker; everything derived from it uses color-mix so it follows. */
@@ -189,7 +191,7 @@ textarea { resize: vertical; min-height: 72px; }
 /* ---- Buttons ---- */
 .btn {
   border: none;
-  border-radius: var(--r-sm);
+  border-radius: var(--r-btn);
   padding: var(--sp-md) var(--sp-lg);
   font: inherit;
   font-weight: 600;
@@ -274,7 +276,7 @@ textarea { resize: vertical; min-height: 72px; }
 .tabs-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-lg); margin-bottom: var(--sp-md); }
 .icon-btn {
   background: transparent; border: 1px solid var(--divider); color: var(--text-muted);
-  border-radius: var(--r-sm); padding: 7px 12px; cursor: pointer; font: inherit; font-size: 13px;
+  border-radius: var(--r-btn); padding: 7px 12px; cursor: pointer; font: inherit; font-size: 13px;
   display: inline-flex; align-items: center; gap: 6px;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--text-muted); }
@@ -349,7 +351,7 @@ textarea { resize: vertical; min-height: 72px; }
 /* Action buttons: icon ABOVE the label, three across (mobile actionButton). */
 .action-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
-  background: var(--surface-strong); border: none; border-radius: var(--r-md);
+  background: var(--surface-strong); border: none; border-radius: var(--r-btn);
   padding: var(--sp-md) var(--sp-sm); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .action-btn .msr { font-size: 24px; color: var(--accent); }
@@ -368,15 +370,22 @@ textarea { resize: vertical; min-height: 72px; }
   background: var(--accent); color: var(--on-accent); border: none; cursor: pointer;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.waveform { flex: 1; display: flex; align-items: center; gap: 2px; height: 34px; }
-.waveform span { flex: 1; min-width: 2px; background: var(--divider); border-radius: 2px; }
-.waveform span.played { background: var(--accent); }
+.waveform { position: relative; flex: 1; display: flex; align-items: center; gap: 2px; height: 36px; cursor: pointer; }
+.waveform .bar { flex: 1; min-width: 2px; min-height: 3px; background: var(--divider); border-radius: var(--r-pill); pointer-events: none; }
+.waveform .bar.played { background: var(--accent); }
+/* The seek handle: a raised dot, ringed in the page bg so it sits on top of
+   the bars. WaveformSeekBar.tsx. */
+.wave-handle {
+  position: absolute; top: 50%; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--accent); border: 2px solid var(--bg);
+  transform: translate(-50%, -50%); pointer-events: none;
+}
 .time { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
 .action-row { display: flex; gap: var(--sp-sm); margin-bottom: var(--sp-lg); }
 .btn-outline {
   background: transparent; border: 1px solid var(--accent); color: var(--accent);
-  border-radius: var(--r-sm); padding: var(--sp-md) var(--sp-lg); font: inherit; font-weight: 600;
+  border-radius: var(--r-btn); padding: var(--sp-md) var(--sp-lg); font: inherit; font-weight: 600;
   cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
 }
 .btn-outline:hover { background: var(--accent-fill); }
