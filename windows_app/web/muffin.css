@@ -142,15 +142,14 @@ html, body {
 .page {
   flex: 1;
   overflow-y: auto;
-  padding: var(--sp-xxl) var(--sp-xxl) 60px;
+  padding: var(--sp-lg) var(--sp-lg) 40px;
 }
-.page-inner { max-width: 860px; margin: 0 auto; }
+.page-inner { max-width: 720px; margin: 0 auto; }
 
 .title {
-  font-size: 30px;
+  font-size: 26px;
   font-weight: 700;
-  margin: 0 0 var(--sp-xl);
-  letter-spacing: -0.5px;
+  margin: var(--sp-xs) 0 var(--sp-lg);
 }
 
 /* ---- Card: constants/Card.tsx (surface fill + hairline, radius md) ---- */
@@ -162,17 +161,17 @@ html, body {
   margin-bottom: var(--sp-lg);
 }
 
-.section-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin: 0 0 var(--sp-sm);
-}
-.row { display: flex; gap: var(--sp-lg); }
+.row { display: flex; gap: var(--sp-md); }
 .col { flex: 1; min-width: 0; }
 
-/* ---- Fields ---- */
-.field-label { font-size: 13px; color: var(--text-muted); margin: 0 0 var(--sp-sm); }
+/* Field/switch label: styles.label in the mobile screen (14, bold, 0.8). */
+.lbl {
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.8;
+  margin: 0 0 6px;
+  display: block;
+}
 
 select, input[type="text"], textarea {
   width: 100%;
@@ -255,7 +254,9 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 /* ---- Toggle switch: ExpressiveSwitch ---- */
-.switch-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-md); }
+/* styles.switchRow: label left, switch right, marginBottom lg. */
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-md); margin-bottom: var(--sp-lg); }
+.switch-row .lbl { margin: 0; }
 .switch {
   width: 46px; height: 28px; border-radius: var(--r-pill);
   background: var(--surface-strong); border: none; cursor: pointer;
@@ -278,9 +279,10 @@ textarea { resize: vertical; min-height: 72px; }
 }
 .icon-btn:hover { color: var(--text); border-color: var(--text-muted); }
 .transcript {
-  width: 100%; min-height: 280px; background: var(--surface);
+  width: 100%; min-height: 180px; background: var(--surface);
   border: 1px solid var(--divider); border-radius: var(--r-sm);
   padding: var(--sp-md); color: var(--text); font: inherit; line-height: 1.6;
   white-space: pre-wrap;
 }
+.prompt { min-height: 60px; max-height: 96px; }
 .transcript.placeholder { color: var(--text-subtle); }
