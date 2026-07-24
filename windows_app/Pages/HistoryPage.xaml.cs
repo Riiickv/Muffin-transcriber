@@ -26,6 +26,7 @@ public sealed partial class HistoryPage : Page
         _status = new StatusBarController(StatusBar);
 
         LoadModels();
+        LiveStrings.Attach(this, () => Bindings.Update());
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)

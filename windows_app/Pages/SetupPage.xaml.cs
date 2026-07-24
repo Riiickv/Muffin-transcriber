@@ -25,6 +25,7 @@ public sealed partial class SetupPage : Page
     {
         InitializeComponent();
         RefreshState();
+        LiveStrings.Attach(this, () => { Bindings.Update(); RefreshState(); });
     }
 
     private void RefreshState()

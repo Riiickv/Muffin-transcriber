@@ -22,6 +22,7 @@ public sealed partial class ChatPage : Page
     public ChatPage()
     {
         InitializeComponent();
+        LiveStrings.Attach(this, () => Bindings.Update());
         _sessions = WinChatStore.Load();
         RefreshSessionList();
         if (_sessions.Count > 0)

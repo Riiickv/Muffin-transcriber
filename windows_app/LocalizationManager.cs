@@ -22,6 +22,20 @@ public static class LocalizationManager
     private static Dictionary<string, string> _english = new();
     private static bool _englishLoaded;
 
+    /// <summary>
+    /// Raised after the language changes at runtime. Windows and pages listen
+    /// and re-evaluate their x:Bind bindings (Bindings.Update()), which is what
+    /// makes a language change apply live instead of needing a restart.
+    /// </summary>
+    public static event Action? LanguageChanged;
+
+    /// <summary>Switches language at runtime and tells every listener to repaint.</summary>
+    public static void ChangeLanguage(string languageCode)
+    {
+        LoadLanguage(languageCode);
+        LanguageChanged?.Invoke();
+    }
+
     public static void LoadLanguage(string languageCode)
     {
         if (!_englishLoaded)
