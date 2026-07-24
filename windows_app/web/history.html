@@ -75,27 +75,59 @@
         </div>
       </aside>
 
+      <div class="splitter" id="splitter"></div>
+
       <section class="hist-detail">
-        <div class="detail-head">
-          <h2>Lezione 12 marzo</h2>
-          <div style="display:flex; gap:8px;">
-            <button class="icon-btn" title="Rename"><span class="msr" style="font-size:16px">&#xE3C9;</span></button>
-            <button class="icon-btn" title="Delete"><span class="msr" style="font-size:16px">&#xE872;</span></button>
+        <!-- Player card: title, date, player row. -->
+        <section class="card">
+          <div class="detail-head">
+            <div>
+              <h2>Lezione 12 marzo</h2>
+              <div class="subtitle">Thu, Jul 23, 2:04 PM</div>
+            </div>
+            <div style="display:flex; gap:2px;">
+              <button class="icon-btn" title="Rename" style="border:none;padding:6px;"><span class="msr" style="font-size:18px">&#xE3C9;</span></button>
+              <button class="icon-btn" title="Delete" style="border:none;padding:6px;"><span class="msr" style="font-size:18px">&#xE872;</span></button>
+            </div>
           </div>
-        </div>
+          <div class="player" style="margin-bottom:0; margin-top:var(--sp-md);">
+            <button class="play-btn"><span class="msr fill" style="font-size:20px">&#xE037;</span></button>
+            <span class="time">5:24</span>
+            <div class="waveform" id="wave"></div>
+            <span class="time">14:02</span>
+          </div>
+        </section>
 
-        <div class="player">
-          <button class="play-btn"><span class="msr fill" style="font-size:20px">&#xE037;</span></button>
-          <div class="waveform" id="wave"></div>
-          <span class="time">5:24 / 14:02</span>
-        </div>
+        <!-- Actions card: 3 stacked buttons, models, custom prompt. -->
+        <section class="card">
+          <div class="action-row">
+            <button class="action-btn"><span class="msr">&#xE029;</span>Re-Transcribe</button>
+            <button class="action-btn"><span class="msr">&#xE65F;</span>Format</button>
+            <button class="action-btn"><span class="msr">&#xE02F;</span>Summarize</button>
+          </div>
 
-        <div class="action-row">
-          <button class="btn"><span class="msr" style="font-size:16px">&#xE8B3;</span> Re-transcribe</button>
-          <button class="btn-outline"><span class="msr" style="font-size:16px">&#xE65F;</span> Format</button>
-          <button class="btn-outline"><span class="msr" style="font-size:16px">&#xE94D;</span> Summarize</button>
-        </div>
+          <hr class="hr" />
 
+          <div class="row">
+            <div class="col">
+              <span class="lbl">Transcription quality</span>
+              <select><option>Most accurate</option><option>Balanced</option></select>
+            </div>
+            <div class="col">
+              <span class="lbl">Format quality</span>
+              <select><option>Balanced</option><option>Best quality</option></select>
+            </div>
+          </div>
+
+          <hr class="hr" />
+
+          <div>
+            <span class="lbl">Custom prompt</span>
+            <textarea class="prompt" placeholder="Override format/summarize instructions for this transcript..."></textarea>
+          </div>
+        </section>
+
+        <!-- Transcript card. -->
         <section class="card">
           <div class="tabs-row">
             <div class="segmented tabs">
@@ -132,6 +164,19 @@
         });
       });
     });
+    (function () {
+      var splitter = document.getElementById('splitter');
+      var list = document.querySelector('.hist-list');
+      var dragging = false;
+      splitter.addEventListener('mousedown', function (e) { dragging = true; document.body.style.cursor = 'col-resize'; e.preventDefault(); });
+      window.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        var w = e.clientX - list.getBoundingClientRect().left;
+        list.style.width = Math.max(300, Math.min(720, w)) + 'px';
+      });
+      window.addEventListener('mouseup', function () { dragging = false; document.body.style.cursor = ''; });
+    })();
+
     document.querySelectorAll('.hist-card').forEach(function (it) {
       it.addEventListener('click', function () {
         document.querySelectorAll('.hist-card').forEach(function (x) { x.classList.remove('active'); });
