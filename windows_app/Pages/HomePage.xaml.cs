@@ -33,6 +33,7 @@ public sealed partial class HomePage : Page
         FileButton.DragOver += FileButton_DragOver;
         FileButton.Drop += FileButton_Drop;
         Output.Copied += (_, _) => ShowStatus(AppStrings.Home_Status_CopiedToClipboard, InfoBarSeverity.Success);
+        LiveStrings.Attach(this, () => Bindings.Update());
     }
 
     public async void ProcessShareOperation(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation shareOperation)

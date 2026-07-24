@@ -33,6 +33,7 @@ public sealed partial class TranscriptOutput : UserControl
     {
         InitializeComponent();
         _revealTimer.Tick += RevealTimer_Tick;
+        MuffinTranscriber.Pages.LiveStrings.Attach(this, () => Bindings.Update());
     }
 
     // The full text of the visible tab (not the partially-revealed box), for

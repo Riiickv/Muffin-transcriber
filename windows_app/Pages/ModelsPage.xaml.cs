@@ -31,6 +31,7 @@ public sealed partial class ModelsPage : Page
         };
 
         RefreshModelStates();
+        LiveStrings.Attach(this, () => { Bindings.Update(); RefreshModelStates(); });
     }
 
     private static IEnumerable<ModelInfo> AllModels =>

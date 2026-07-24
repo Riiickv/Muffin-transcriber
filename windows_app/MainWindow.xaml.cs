@@ -52,6 +52,9 @@ public sealed partial class MainWindow : Window
         Closed += MainWindow_Closed;
         RecordingController.RecordingFinished += OnRecordingFinished;
 
+        // Live language: nav items and banners re-evaluate their bindings.
+        LocalizationManager.LanguageChanged += OnLanguageChanged;
+
         NavView.OpenPaneLength = Math.Clamp(_settings.SidebarWidth, MinPaneLength, MaxPaneLength);
         RootGrid.Loaded += (_, _) => UpdatePaneResizeGrip();
         typeof(UIElement).GetProperty("ProtectedCursor", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)
@@ -107,6 +110,11 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    private void OnLanguageChanged()
+    {
+        DispatcherQueue.TryEnqueue(() => Bindings.Update());
+    }
+
     private void MicFab_Failed(object? sender, string message)
     {
         ShowAlert(InfoBarSeverity.Error, AppStrings.Record_Title, message, null, null);
@@ -124,6 +132,7 @@ public sealed partial class MainWindow : Window
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
         // Never leave the mic open behind a closed window.
+        LocalizationManager.LanguageChanged -= OnLanguageChanged;
         RecordingController.RecordingFinished -= OnRecordingFinished;
         if (RecordingController.IsRecording) RecordingController.Stop();
 

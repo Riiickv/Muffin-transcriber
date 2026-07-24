@@ -18,6 +18,7 @@ public sealed partial class SettingsPage : Page
 
         _settings = UserSettings.Load();
         LoadSettingsIntoControls();
+        LiveStrings.Attach(this, () => Bindings.Update());
     }
 
     private void LoadSettingsIntoControls()
@@ -161,7 +162,14 @@ public sealed partial class SettingsPage : Page
         }
         if (AppLanguageBox.SelectedItem is Microsoft.UI.Xaml.Controls.ComboBoxItem combo && combo.Tag != null)
         {
-            _settings.AppLanguage = combo.Tag.ToString()!;
+            string newLanguage = combo.Tag.ToString()!;
+            if (newLanguage != _settings.AppLanguage)
+            {
+                _settings.AppLanguage = newLanguage;
+                // Applies IMMEDIATELY, like on mobile: reload the catalog and
+                // every page re-evaluates its bindings.
+                LocalizationManager.ChangeLanguage(newLanguage);
+            }
         }
 
         _settings.Save();
