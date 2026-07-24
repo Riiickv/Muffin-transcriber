@@ -299,25 +299,6 @@ public static class AppStrings
     public static string Crash_BannerBody => T("pc.crash.body", "Muffin hit an unexpected error but kept running. If something looks stuck, restart the app. Technical details were saved to the log.");
     public static string Crash_BtnOpenLog => T("pc.crash.openLog", "Open log");
 
-    // LEGACY ALIASES - referenced by the current SettingsPage.xaml, which is
-    // about to be restructured to mirror the mobile Settings exactly. These
-    // die with that rewrite; do not use them in new code.
-    public static string Settings_PersonalizationTitle => Settings_AppearanceHeader;
-    public static string Settings_ThemeDesc => "";
-    public static string Settings_AccentDesc => "";
-    public static string Settings_TypewriterSpeedDesc => "";
-    public static string Settings_DefaultsHeader => Settings_TranscriptionHeader;
-    public static string Settings_DefaultLanguageDesc => "";
-    public static string Settings_PrefWhisperDesc => "";
-    public static string Settings_FormatLanguageDesc => "";
-    public static string Settings_BehaviorHeader => Settings_TranscriptionHeader;
-    public static string Settings_CustomFormatDesc => Settings_PromptsFooter;
-    public static string Settings_CustomSummaryDesc => Settings_PromptsFooter;
-    public static string Settings_BtnResetPrompt => Settings_BtnReset;
-    public static string Settings_BtnResetSummary => Settings_BtnReset;
-    public static string Settings_ManageMemoryDesc => Settings_MemoryFooter;
-    public static string Settings_AutoDeleteDesc => "";
-
     // AUTO UPDATER - PC-only.
     public static string Update_BannerTitle => T("pc.update.title", "Muffin update available!");
     public static string Update_BtnUpdate => T("pc.update.update", "Update!");
