@@ -19,8 +19,8 @@
             <TextBlock Grid.Row="0" Style="{StaticResource SubtitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Home_TranscriptTitle}" />
 
             <Grid Grid.Row="1">
-                <Border Style="{StaticResource MuffinSegmentStrip}" HorizontalAlignment="Left" MinWidth="360">
-                    <Grid ColumnSpacing="2">
+                <Border Style="{StaticResource MuffinSegmentStrip}" HorizontalAlignment="Left">
+                    <Grid Width="360" ColumnSpacing="2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="*" />
