@@ -524,3 +524,107 @@ textarea { resize: vertical; min-height: 72px; }
   cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
 }
 .btn-outline:hover { background: var(--accent-fill); }
+
+/* ============================================================
+   MOTION - constants/tokens.ts MOTION (timingQuick 180,
+   timingBase 250) and the entrance the mobile Card does:
+   fade + rise, staggered 60ms down a stack.
+   ============================================================ */
+@keyframes muffin-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes muffin-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes muffin-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.card, .group, .group-title, .hist-card {
+  animation: muffin-rise 250ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+.page-inner > *:nth-child(1) { animation-delay: 0ms; }
+.page-inner > *:nth-child(2) { animation-delay: 60ms; }
+.page-inner > *:nth-child(3) { animation-delay: 120ms; }
+.page-inner > *:nth-child(4) { animation-delay: 180ms; }
+.page-inner > *:nth-child(5) { animation-delay: 240ms; }
+.page-inner > *:nth-child(n+6) { animation-delay: 300ms; }
+.hist-list .hist-card:nth-child(2) { animation-delay: 40ms; }
+.hist-list .hist-card:nth-child(3) { animation-delay: 80ms; }
+.hist-list .hist-card:nth-child(n+4) { animation-delay: 120ms; }
+
+.bubble { animation: muffin-rise 200ms cubic-bezier(0.2, 0, 0, 1) both; }
+.dropdown.open .dropdown-menu { animation: muffin-pop 180ms cubic-bezier(0.2, 0, 0, 1) both; }
+
+/* Press feedback: the 0.98 scale of the mobile AnimatedPressable. */
+.btn, .icon-btn, .action-btn, .segment, .swatch, .rail-item, .mic-fab,
+.play-btn, .send-btn, .hist-card, .session, .srow.clickable, .dropdown-field {
+  transition: background-color 180ms ease, border-color 180ms ease,
+              color 180ms ease, transform 180ms cubic-bezier(0.2, 0, 0, 1),
+              opacity 180ms ease;
+}
+.btn:active, .icon-btn:active, .action-btn:active, .segment:active,
+.swatch:active, .play-btn:active, .send-btn:active, .mic-fab:active,
+.rail-item:active, .dropdown-field:active { transform: scale(0.98); }
+.hist-card:active, .session:active { transform: scale(0.995); }
+
+/* The accent swatch and segmented pill settle rather than snap. */
+.segment, .swatch { transition-duration: 240ms; }
+.switch, .switch::after { transition: all 240ms cubic-bezier(0.2, 0, 0, 1); }
+.waveform .bar { transition: background-color 120ms linear; }
+
+/* A screen fades in as a whole, like FadeInView. */
+.page, .two-pane, .chat-main { animation: muffin-fade 250ms ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; transition-duration: 1ms !important; }
+}
+
+/* ============================================================
+   RESPONSIVE - the desktop counterpart of the mobile isShort
+   compact preset: as the window narrows, padding and panes
+   tighten before anything is allowed to clip.
+   ============================================================ */
+@media (max-width: 1100px) {
+  .hist-list { width: 340px; }
+  .chat-sessions { width: 220px; }
+  .bubble { max-width: 88%; }
+}
+
+@media (max-width: 900px) {
+  .page { padding: var(--sp-md) var(--sp-md) 32px; }
+  .card { padding: var(--sp-md); margin-bottom: var(--sp-md); }
+  .title { font-size: 22px; margin-bottom: var(--sp-md); }
+  .hist-list { width: 300px; padding: var(--sp-md); }
+  .hist-card { padding: var(--sp-md); }
+  .hist-card .lead { width: 40px; height: 40px; }
+  .hist-detail { padding: var(--sp-md); }
+  .chat-sessions { width: 190px; }
+  .srow { padding: var(--sp-sm) var(--sp-md); gap: var(--sp-md); }
+  .srow .s-control .dropdown { width: 180px; }
+  .composer { margin: var(--sp-md); }
+}
+
+/* Narrow window: stack the paired fields and let the controls go full
+   width instead of squeezing them into an unreadable column. */
+@media (max-width: 720px) {
+  .row { flex-direction: column; gap: var(--sp-sm); }
+  .hist-list { width: 260px; }
+  .hist-card .h-snippet { -webkit-line-clamp: 1; line-clamp: 1; }
+  .srow { display: block; }
+  .srow .s-control { margin-top: var(--sp-sm); }
+  .srow .s-control .dropdown,
+  .srow .s-control .segmented { width: 100%; }
+  .srow.clickable { display: flex; }
+  .action-btn { font-size: 12px; }
+  .segmented.tabs { width: 100%; }
+  .tabs-row { flex-wrap: wrap; gap: var(--sp-sm); }
+}
+
+/* Very narrow: the sessions sidebar costs more than it gives. */
+@media (max-width: 560px) {
+  .chat-sessions, .chat-sessions + .splitter { display: none; }
+  .hist-list { width: 200px; }
+  .hist-card { grid-template-columns: 1fr auto; }
+  .hist-card .lead { display: none; }
+}
