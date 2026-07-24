@@ -69,6 +69,16 @@
 
 * { box-sizing: border-box; }
 
+/* Line icons inherit the button's colour (muted, or accent when active). */
+svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rail-item svg, .mic-fab svg { width: 21px; height: 21px; }
+
 html, body {
   margin: 0;
   padding: 0;
