@@ -16,9 +16,12 @@ namespace MuffinTranscriber;
 // apply live instead of demanding a restart.
 public static class MuffinTheme
 {
-    public const string DefaultAccent = "Muffin";
+    // Mobile defaults to the system accent (Material You) and falls back to
+    // Muffin where the system has none; Windows always has one, so System is
+    // simply the default here too.
+    public const string DefaultAccent = "System";
 
-    // Same four accents the mobile app offers.
+    // Same options as the mobile app: System + the four fixed accents.
     public static readonly (string Key, string Hex)[] Accents =
     [
         ("Muffin", "#FF9EBB"),
@@ -26,6 +29,11 @@ public static class MuffinTheme
         ("Purple", "#A975C2"),
         ("Red", "#ED6F62"),
     ];
+
+    // The user's Windows accent, captured ONCE before Apply() overwrites the
+    // SystemAccentColor resource - after that, the resource is ours.
+    public static Color WindowsAccent { get; } =
+        new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Accent);
 
     private static readonly SolidColorBrush FillDefault = new();
     private static readonly SolidColorBrush FillSecondary = new();
@@ -95,7 +103,9 @@ public static class MuffinTheme
     /// <summary>Repaints every accented control. Safe to call at any time.</summary>
     public static void Apply(string accentKey)
     {
-        Color accent = ParseHex(HexFor(accentKey));
+        Color accent = string.Equals(accentKey, "System", StringComparison.OrdinalIgnoreCase)
+            ? WindowsAccent
+            : ParseHex(HexFor(accentKey));
 
         FillDefault.Color = accent;
         // WinUI's own convention for the hover/pressed steps: same hue, less alpha.

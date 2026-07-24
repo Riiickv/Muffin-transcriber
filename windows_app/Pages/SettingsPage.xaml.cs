@@ -59,6 +59,8 @@ public sealed partial class SettingsPage : Page
                 break;
             }
         }
+        // The System swatch shows the user's actual Windows accent.
+        SystemAccentSwatch.Fill = new Microsoft.UI.Xaml.Media.SolidColorBrush(MuffinTheme.WindowsAccent);
         foreach (var item in AccentBox.Items)
         {
             if (item is ComboBoxItem accentItem && accentItem.Tag?.ToString() == _settings.AccentColor)
