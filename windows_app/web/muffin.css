@@ -232,7 +232,7 @@ textarea { resize: vertical; min-height: 72px; }
 }
 /* Tabs get a definite width so the columns are true equal thirds, not
    content-sized (the bug that made the selected segment an oval). */
-.segmented.tabs { width: 340px; }
+.segmented.tabs { width: 300px; }
 .segment {
   border: 1px solid transparent;
   background: transparent;
@@ -271,7 +271,7 @@ textarea { resize: vertical; min-height: 72px; }
 .switch.on::after { transform: translateX(18px); background: var(--on-accent); }
 
 /* ---- Transcript area ---- */
-.tabs-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-md); }
+.tabs-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-lg); margin-bottom: var(--sp-md); }
 .icon-btn {
   background: transparent; border: 1px solid var(--divider); color: var(--text-muted);
   border-radius: var(--r-sm); padding: 7px 12px; cursor: pointer; font: inherit; font-size: 13px;
@@ -337,9 +337,25 @@ textarea { resize: vertical; min-height: 72px; }
 }
 .hist-card .acts button:hover { background: var(--surface-strong); color: var(--text); }
 
-.hist-detail { flex: 1; overflow-y: auto; padding: var(--sp-xl); min-width: 0; }
-.detail-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-lg); }
-.detail-head h2 { font-size: 22px; font-weight: 700; margin: 0; }
+/* Draggable divider between the list and the detail. */
+.splitter { width: 6px; flex-shrink: 0; cursor: col-resize; }
+.splitter:hover { background: var(--accent-fill); }
+
+.hist-detail { flex: 1; overflow-y: auto; padding: var(--sp-lg); min-width: 0; }
+.detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-md); }
+.detail-head h2 { font-size: 20px; font-weight: 700; margin: 0; }
+.detail-head .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+/* Action buttons: icon ABOVE the label, three across (mobile actionButton). */
+.action-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: var(--surface-strong); border: none; border-radius: var(--r-md);
+  padding: var(--sp-md) var(--sp-sm); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.action-btn .msr { font-size: 24px; color: var(--accent); }
+.action-btn:hover { filter: brightness(1.2); }
+
+.hr { height: 1px; background: var(--divider); border: none; margin: var(--sp-lg) 0; }
 
 /* Audio player + synthetic waveform (WaveformSeekBar). */
 .player {
