@@ -65,12 +65,17 @@
 
                 <!--  Only meaningful while the typewriter is on, same as mobile.  -->
                 <toolkit:SettingsCard x:Name="TypingSpeedCard" Header="{x:Bind local:AppStrings.Settings_TypewriterSpeedTitle}">
-                    <Border Style="{StaticResource MuffinSegmentStrip}">
-                        <StackPanel Orientation="Horizontal">
-                            <Button x:Name="SpeedSlowButton" Click="SpeedButton_Click" Tag="Slow" Content="{x:Bind local:AppStrings.Settings_SpeedSlow}" Style="{StaticResource MuffinSegment}" />
-                            <Button x:Name="SpeedBalancedButton" Click="SpeedButton_Click" Tag="Balanced" Content="{x:Bind local:AppStrings.Settings_SpeedBalanced}" Style="{StaticResource MuffinSegment}" />
-                            <Button x:Name="SpeedFastButton" Click="SpeedButton_Click" Tag="Fast" Content="{x:Bind local:AppStrings.Settings_SpeedFast}" Style="{StaticResource MuffinSegment}" />
-                        </StackPanel>
+                    <Border Style="{StaticResource MuffinSegmentStrip}" MinWidth="300">
+                        <Grid ColumnSpacing="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" x:Name="SpeedSlowButton" Click="SpeedButton_Click" Tag="Slow" Content="{x:Bind local:AppStrings.Settings_SpeedSlow}" Style="{StaticResource MuffinSegment}" />
+                            <Button Grid.Column="1" x:Name="SpeedBalancedButton" Click="SpeedButton_Click" Tag="Balanced" Content="{x:Bind local:AppStrings.Settings_SpeedBalanced}" Style="{StaticResource MuffinSegment}" />
+                            <Button Grid.Column="2" x:Name="SpeedFastButton" Click="SpeedButton_Click" Tag="Fast" Content="{x:Bind local:AppStrings.Settings_SpeedFast}" Style="{StaticResource MuffinSegment}" />
+                        </Grid>
                     </Border>
                 </toolkit:SettingsCard>
 
@@ -138,13 +143,19 @@
                 </toolkit:SettingsCard>
 
                 <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ThemeTitle}">
-                    <Border Style="{StaticResource MuffinSegmentStrip}">
-                        <StackPanel Orientation="Horizontal">
-                            <Button x:Name="ThemeSystemButton" Click="ThemeButton_Click" Tag="System" Content="Auto" Style="{StaticResource MuffinSegment}" />
-                            <Button x:Name="ThemeLightButton" Click="ThemeButton_Click" Tag="Light" Content="Light" Style="{StaticResource MuffinSegment}" />
-                            <Button x:Name="ThemeDarkButton" Click="ThemeButton_Click" Tag="Dark" Content="Dark" Style="{StaticResource MuffinSegment}" />
-                            <Button x:Name="ThemeAmoledButton" Click="ThemeButton_Click" Tag="AMOLED" Content="AMOLED" Style="{StaticResource MuffinSegment}" />
-                        </StackPanel>
+                    <Border Style="{StaticResource MuffinSegmentStrip}" MinWidth="380">
+                        <Grid ColumnSpacing="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" x:Name="ThemeSystemButton" Click="ThemeButton_Click" Tag="System" Content="Auto" Style="{StaticResource MuffinSegment}" />
+                            <Button Grid.Column="1" x:Name="ThemeLightButton" Click="ThemeButton_Click" Tag="Light" Content="Light" Style="{StaticResource MuffinSegment}" />
+                            <Button Grid.Column="2" x:Name="ThemeDarkButton" Click="ThemeButton_Click" Tag="Dark" Content="Dark" Style="{StaticResource MuffinSegment}" />
+                            <Button Grid.Column="3" x:Name="ThemeAmoledButton" Click="ThemeButton_Click" Tag="AMOLED" Content="AMOLED" Style="{StaticResource MuffinSegment}" />
+                        </Grid>
                     </Border>
                 </toolkit:SettingsCard>
 

@@ -108,16 +108,23 @@
         <Setter Property="HorizontalAlignment" Value="Left" />
     </Style>
 
+    <!--
+        Each segment stretches to fill its column, so a strip of equal-width
+        columns makes the mobile look: three equal thirds, the selected one a
+        pill that fills its whole cell (not a floating oval). Put these in a
+        Grid with even * columns.
+    -->
     <Style x:Key="MuffinSegment" TargetType="Button">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
         <Setter Property="CornerRadius" Value="{StaticResource MuffinPillRadius}" />
-        <Setter Property="Padding" Value="14,7" />
-        <Setter Property="MinWidth" Value="88" />
+        <Setter Property="Padding" Value="8,7" />
+        <Setter Property="MinWidth" Value="0" />
         <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
     </Style>
 

@@ -19,12 +19,17 @@
             <TextBlock Grid.Row="0" Style="{StaticResource SubtitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Home_TranscriptTitle}" />
 
             <Grid Grid.Row="1">
-                <Border Style="{StaticResource MuffinSegmentStrip}">
-                    <StackPanel Orientation="Horizontal">
-                        <Button x:Name="TabRawButton" Content="{x:Bind local:AppStrings.Home_TabRaw}" Click="TabRawButton_Click" Style="{StaticResource MuffinSegmentSelected}" />
-                        <Button x:Name="TabFormattedButton" Content="{x:Bind local:AppStrings.Home_TabFormatted}" Click="TabFormattedButton_Click" Style="{StaticResource MuffinSegment}" />
-                        <Button x:Name="TabSummaryButton" Content="{x:Bind local:AppStrings.Home_TabSummary}" Click="TabSummaryButton_Click" Style="{StaticResource MuffinSegment}" />
-                    </StackPanel>
+                <Border Style="{StaticResource MuffinSegmentStrip}" HorizontalAlignment="Left" MinWidth="360">
+                    <Grid ColumnSpacing="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" x:Name="TabRawButton" Content="{x:Bind local:AppStrings.Home_TabRaw}" Click="TabRawButton_Click" Style="{StaticResource MuffinSegmentSelected}" />
+                        <Button Grid.Column="1" x:Name="TabFormattedButton" Content="{x:Bind local:AppStrings.Home_TabFormatted}" Click="TabFormattedButton_Click" Style="{StaticResource MuffinSegment}" />
+                        <Button Grid.Column="2" x:Name="TabSummaryButton" Content="{x:Bind local:AppStrings.Home_TabSummary}" Click="TabSummaryButton_Click" Style="{StaticResource MuffinSegment}" />
+                    </Grid>
                 </Border>
                 <Button HorizontalAlignment="Right" Click="CopyButton_Click">
                     <StackPanel Orientation="Horizontal" Spacing="8">
