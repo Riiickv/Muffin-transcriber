@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muffin</title>
+  <link rel="stylesheet" href="muffin.css" />
+</head>
+<body>
+  <div class="app">
+    <nav class="rail">
+      <button class="rail-item active" title="Muffin!">&#127837;</button>
+      <button class="rail-item" title="History">&#8635;</button>
+      <button class="rail-item" title="Chat">&#128172;</button>
+      <div class="rail-spacer"></div>
+      <button class="mic-fab" title="Start recording">&#127908;</button>
+      <button class="rail-item" title="Settings">&#9881;</button>
+    </nav>
+
+    <main class="page">
+      <div class="page-inner">
+        <h1 class="title">Muffin!</h1>
+
+        <section class="card">
+          <div class="row">
+            <div class="col">
+              <p class="field-label">Language</p>
+              <select>
+                <option>Auto-Detect</option>
+                <option>English</option>
+                <option>Italiano</option>
+              </select>
+            </div>
+            <div class="col">
+              <p class="field-label">Transcription quality</p>
+              <select>
+                <option>Most accurate</option>
+                <option>Balanced</option>
+                <option>Fastest</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" style="margin-top: var(--sp-lg); align-items: stretch;">
+            <div class="drop" id="drop">
+              <span>Drag &amp; drop any audio or video file</span>
+              <span class="hint">or click to browse</span>
+            </div>
+            <button class="btn btn-accent" style="min-width: 150px;">Go!</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="row">
+            <div class="col">
+              <p class="field-label">Be specific</p>
+              <textarea placeholder="Use bullet points, max 100 words, etc."></textarea>
+            </div>
+            <div class="col" style="max-width: 320px;">
+              <div class="switch-row" style="margin-bottom: var(--sp-md);">
+                <span>Format</span>
+                <button class="switch on" data-toggle aria-pressed="true"></button>
+              </div>
+              <div class="switch-row" style="margin-bottom: var(--sp-lg);">
+                <span>Summarize</span>
+                <button class="switch" data-toggle aria-pressed="false"></button>
+              </div>
+              <p class="field-label">Format quality</p>
+              <select><option>Balanced</option><option>Best quality</option></select>
+              <div style="height: var(--sp-md);"></div>
+              <p class="field-label">Format language</p>
+              <select><option>Auto-Detect / Original</option></select>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <p class="section-label" style="font-size: 18px; color: var(--text); font-weight: 700;">Transcript</p>
+          <div class="tabs-row">
+            <div class="segmented tabs">
+              <button class="segment active">Raw</button>
+              <button class="segment">Formatted</button>
+              <button class="segment">Summary</button>
+            </div>
+            <button class="icon-btn">&#128203; Copy</button>
+          </div>
+          <div class="transcript placeholder">Transcript will appear here.</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll('[data-toggle]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        el.classList.toggle('on');
+        el.setAttribute('aria-pressed', el.classList.contains('on'));
+      });
+    });
+    document.querySelectorAll('.segmented').forEach(function (grp) {
+      grp.querySelectorAll('.segment').forEach(function (seg) {
+        seg.addEventListener('click', function () {
+          grp.querySelectorAll('.segment').forEach(function (s) { s.classList.remove('active'); });
+          seg.classList.add('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>

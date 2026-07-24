@@ -1,0 +1,260 @@
+/*
+ * The Muffin design language, ported 1:1 from the mobile app's tokens
+ * (constants/Colors.ts, constants/tokens.ts). This is the single style source
+ * for the desktop UI, so PC and mobile read as the same product.
+ */
+
+:root {
+  /* SPACING - constants/tokens.ts */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 20px;
+  --sp-xxl: 24px;
+  --sp-xxxl: 32px;
+
+  /* RADIUS */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  /* The one brand constant. The accent itself is overridden at runtime by the
+     accent picker; everything derived from it uses color-mix so it follows. */
+  --accent: #FF9EBB;
+  --danger: #ED6F62;
+
+  /* Text/label on the accent: black on the light Muffin pink and green,
+     recomputed by JS when the accent changes to a dark one. */
+  --on-accent: #000000;
+
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+}
+
+/* Dark is the app default (Colors.ts dark). */
+:root, :root[data-theme="dark"] {
+  --text: #FFFFFF;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-subtle: rgba(255, 255, 255, 0.3);
+  --bg: #121212;
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-strong: rgba(255, 255, 255, 0.12);
+  --divider: rgba(255, 255, 255, 0.15);
+  --card-border: rgba(255, 255, 255, 0.09);
+  --accent-fill: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+:root[data-theme="light"] {
+  --text: #000000;
+  --text-muted: rgba(0, 0, 0, 0.6);
+  --text-subtle: rgba(0, 0, 0, 0.3);
+  --bg: #FFFFFF;
+  --surface: rgba(0, 0, 0, 0.05);
+  --surface-strong: rgba(0, 0, 0, 0.10);
+  --divider: rgba(0, 0, 0, 0.12);
+  --card-border: rgba(0, 0, 0, 0.07);
+  --accent-fill: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+:root[data-theme="amoled"] {
+  --text: #FFFFFF;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --bg: #000000;
+  --surface: rgba(255, 255, 255, 0.06);
+  --card-border: rgba(255, 255, 255, 0.09);
+  --accent-fill: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ---- Layout: nav rail + scrolling page, mirroring the desktop shell ---- */
+.app { display: flex; height: 100vh; }
+
+.rail {
+  width: 60px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-md) 0;
+  gap: var(--sp-xs);
+  border-right: 1px solid var(--divider);
+}
+.rail-item {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 20px;
+  border: none; background: transparent;
+}
+.rail-item:hover { background: var(--surface); color: var(--text); }
+.rail-item.active { color: var(--accent); background: var(--accent-fill); }
+.rail-spacer { flex: 1; }
+
+/* The mic FAB, accent-filled, in the rail like the mobile tab bar. */
+.mic-fab {
+  width: 44px; height: 44px; border-radius: var(--r-pill);
+  background: var(--accent); color: var(--on-accent);
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+
+.page {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-xxl) var(--sp-xxl) 60px;
+}
+.page-inner { max-width: 860px; margin: 0 auto; }
+
+.title {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0 0 var(--sp-xl);
+  letter-spacing: -0.5px;
+}
+
+/* ---- Card: constants/Card.tsx (surface fill + hairline, radius md) ---- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-md);
+  padding: var(--sp-lg);
+  margin-bottom: var(--sp-lg);
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 var(--sp-sm);
+}
+.row { display: flex; gap: var(--sp-lg); }
+.col { flex: 1; min-width: 0; }
+
+/* ---- Fields ---- */
+.field-label { font-size: 13px; color: var(--text-muted); margin: 0 0 var(--sp-sm); }
+
+select, input[type="text"], textarea {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--divider);
+  border-radius: var(--r-sm);
+  padding: var(--sp-md);
+  font: inherit;
+  outline: none;
+}
+select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 72px; }
+
+/* ---- Buttons ---- */
+.btn {
+  border: none;
+  border-radius: var(--r-sm);
+  padding: var(--sp-md) var(--sp-lg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  background: var(--surface-strong);
+}
+.btn:hover { filter: brightness(1.15); }
+.btn-accent { background: var(--accent); color: var(--on-accent); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---- Drop zone ---- */
+.drop {
+  flex: 1;
+  border: 1.5px dashed var(--divider);
+  border-radius: var(--r-md);
+  padding: var(--sp-xl);
+  text-align: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+}
+.drop:hover, .drop.over { border-color: var(--accent); color: var(--text); }
+.drop .hint { font-size: 12px; color: var(--text-subtle); }
+
+/* ---- Segmented control: SegmentedControl.tsx ----
+   Equal-width segments in one pill track; the selected one is a 15%-accent
+   pill with a 1px accent edge and accent bold text. */
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--r-pill);
+  padding: var(--sp-xs);
+  width: max-content;
+}
+/* Tabs get a definite width so the columns are true equal thirds, not
+   content-sized (the bug that made the selected segment an oval). */
+.segmented.tabs { width: 340px; }
+.segment {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--r-pill);
+  padding: 7px 16px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+}
+.segment.active {
+  background: var(--accent-fill);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ---- Toggle switch: ExpressiveSwitch ---- */
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-md); }
+.switch {
+  width: 46px; height: 28px; border-radius: var(--r-pill);
+  background: var(--surface-strong); border: none; cursor: pointer;
+  position: relative; flex-shrink: 0; transition: background 0.18s;
+}
+.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #FFF; transition: transform 0.18s;
+}
+.switch.on { background: var(--accent); }
+.switch.on::after { transform: translateX(18px); background: var(--on-accent); }
+
+/* ---- Transcript area ---- */
+.tabs-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-md); }
+.icon-btn {
+  background: transparent; border: 1px solid var(--divider); color: var(--text-muted);
+  border-radius: var(--r-sm); padding: 7px 12px; cursor: pointer; font: inherit; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--text-muted); }
+.transcript {
+  width: 100%; min-height: 280px; background: var(--surface);
+  border: 1px solid var(--divider); border-radius: var(--r-sm);
+  padding: var(--sp-md); color: var(--text); font: inherit; line-height: 1.6;
+  white-space: pre-wrap;
+}
+.transcript.placeholder { color: var(--text-subtle); }
