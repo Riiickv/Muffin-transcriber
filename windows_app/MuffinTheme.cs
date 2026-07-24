@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
@@ -6,22 +7,22 @@ using Windows.UI;
 
 namespace MuffinTranscriber;
 
-// The Muffin accent, shared with the mobile app so both feel like one product.
-//
-// WinUI resolves {ThemeResource AccentFillColorDefaultBrush} once, when a
-// control loads, and the control then holds a reference to whatever brush
-// object it found. So we install OUR brush instances into Application.Resources
-// before any window exists, and later only MUTATE their Color: every control
-// pointing at them repaints immediately, which is what makes the accent picker
-// apply live instead of demanding a restart.
+/// <summary>
+/// The Muffin accent, shared with the mobile app so both feel like one product.
+///
+/// The brushes themselves are declared statically in App.xaml's
+/// ThemeDictionaries (see the comment there - declaring them from code does NOT
+/// reach the {ThemeResource} lookups inside built-in control templates). This
+/// class finds those brush instances and only changes their Color, so every
+/// control already pointing at them repaints instantly and the accent picker
+/// needs no restart.
+/// </summary>
 public static class MuffinTheme
 {
-    // Mobile defaults to the system accent (Material You) and falls back to
-    // Muffin where the system has none; Windows always has one, so System is
-    // simply the default here too.
-    public const string DefaultAccent = "System";
+    public const string DefaultAccent = "Muffin";
 
-    // Same options as the mobile app: System + the four fixed accents.
+    // Same options as the mobile app, plus System (Android follows the OS
+    // accent through Material You; Windows has one too).
     public static readonly (string Key, string Hex)[] Accents =
     [
         ("Muffin", "#FF9EBB"),
@@ -30,74 +31,57 @@ public static class MuffinTheme
         ("Red", "#ED6F62"),
     ];
 
-    // The user's Windows accent, captured ONCE before Apply() overwrites the
-    // SystemAccentColor resource - after that, the resource is ours.
+    // The user's Windows accent, read once before anything overwrites it.
     public static Color WindowsAccent { get; } =
         new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Accent);
 
-    private static readonly SolidColorBrush FillDefault = new();
-    private static readonly SolidColorBrush FillSecondary = new();
-    private static readonly SolidColorBrush FillTertiary = new();
-    private static readonly SolidColorBrush TextOnAccentPrimary = new();
-    private static readonly SolidColorBrush TextOnAccentSecondary = new();
-    private static readonly SolidColorBrush AccentText = new();
+    // Every brush that carries the accent, collected from both theme
+    // dictionaries so light and dark stay in step.
+    private static readonly List<SolidColorBrush> Fills = [];
+    private static readonly List<SolidColorBrush> FillsSecondary = [];
+    private static readonly List<SolidColorBrush> FillsTertiary = [];
+    private static readonly List<SolidColorBrush> OnAccentPrimary = [];
+    private static readonly List<SolidColorBrush> OnAccentSecondary = [];
+    private static readonly List<SolidColorBrush> AccentTexts = [];
 
-    private static bool _installed;
+    private static bool _collected;
 
-    /// <summary>
-    /// Installs the accent brushes. Must run BEFORE the first window is built,
-    /// otherwise controls resolve the stock system accent and never see ours.
-    /// </summary>
+    /// <summary>Applies the saved accent. Call once, before the first window.</summary>
     public static void Install(string accentKey)
     {
-        if (!_installed)
+        if (!_collected)
         {
-            // These MUST go into the app's ThemeDictionaries, not into
-            // Application.Resources directly. A {ThemeResource} lookup consults
-            // the theme dictionaries first, so plain top-level entries lose to
-            // XamlControlsResources and the buttons keep painting themselves
-            // with the user's Windows accent instead of the Muffin pink.
             foreach (string theme in new[] { "Default", "Light" })
             {
                 if (Application.Current.Resources.ThemeDictionaries.TryGetValue(theme, out object? entry)
                     && entry is ResourceDictionary dictionary)
                 {
-                    InstallInto(dictionary);
+                    Collect(Fills, dictionary, "AccentFillColorDefaultBrush");
+                    Collect(Fills, dictionary, "AccentFillColorSelectedTextBackgroundBrush");
+                    Collect(Fills, dictionary, "SystemControlHighlightAccentBrush");
+                    Collect(FillsSecondary, dictionary, "AccentFillColorSecondaryBrush");
+                    Collect(FillsTertiary, dictionary, "AccentFillColorTertiaryBrush");
+                    Collect(OnAccentPrimary, dictionary, "TextOnAccentFillColorPrimaryBrush");
+                    Collect(OnAccentPrimary, dictionary, "TextOnAccentFillColorSelectedTextBrush");
+                    Collect(OnAccentSecondary, dictionary, "TextOnAccentFillColorSecondaryBrush");
+                    Collect(AccentTexts, dictionary, "AccentTextFillColorPrimaryBrush");
+                    Collect(AccentTexts, dictionary, "AccentTextFillColorSecondaryBrush");
+                    Collect(AccentTexts, dictionary, "AccentTextFillColorTertiaryBrush");
                 }
             }
 
-            // Belt and braces for any lookup that bypasses the theme dictionaries.
-            InstallInto(Application.Current.Resources);
-
-            _installed = true;
+            _collected = true;
         }
 
         Apply(accentKey);
     }
 
-    // The same brush instances go into every theme (the accent does not change
-    // with light/dark), which is also what keeps live switching working: one
-    // object to mutate, every control repaints.
-    private static void InstallInto(ResourceDictionary dictionary)
+    private static void Collect(List<SolidColorBrush> into, ResourceDictionary dictionary, string key)
     {
-        dictionary["AccentFillColorDefaultBrush"] = FillDefault;
-        dictionary["AccentFillColorSecondaryBrush"] = FillSecondary;
-        dictionary["AccentFillColorTertiaryBrush"] = FillTertiary;
-        dictionary["AccentFillColorSelectedTextBackgroundBrush"] = FillDefault;
-        dictionary["SystemControlHighlightAccentBrush"] = FillDefault;
-        dictionary["SystemAccentColorBrush"] = FillDefault;
-
-        // Text drawn ON the accent. The stock value is white, unreadable on the
-        // light Muffin pink, so this is not optional.
-        dictionary["TextOnAccentFillColorPrimaryBrush"] = TextOnAccentPrimary;
-        dictionary["TextOnAccentFillColorSecondaryBrush"] = TextOnAccentSecondary;
-        dictionary["TextOnAccentFillColorSelectedTextBrush"] = TextOnAccentPrimary;
-
-        // Accent-coloured TEXT (hyperlinks): darkened so it stays legible
-        // against a light page instead of glowing.
-        dictionary["AccentTextFillColorPrimaryBrush"] = AccentText;
-        dictionary["AccentTextFillColorSecondaryBrush"] = AccentText;
-        dictionary["AccentTextFillColorTertiaryBrush"] = AccentText;
+        if (dictionary.TryGetValue(key, out object? value) && value is SolidColorBrush brush)
+        {
+            into.Add(brush);
+        }
     }
 
     /// <summary>Repaints every accented control. Safe to call at any time.</summary>
@@ -107,19 +91,25 @@ public static class MuffinTheme
             ? WindowsAccent
             : ParseHex(HexFor(accentKey));
 
-        FillDefault.Color = accent;
-        // WinUI's own convention for the hover/pressed steps: same hue, less alpha.
-        FillSecondary.Color = WithAlpha(accent, 0.90);
-        FillTertiary.Color = WithAlpha(accent, 0.80);
+        foreach (SolidColorBrush brush in Fills) brush.Color = accent;
+        // WinUI's own convention for hover/pressed: same hue, less alpha.
+        foreach (SolidColorBrush brush in FillsSecondary) brush.Color = WithAlpha(accent, 0.90);
+        foreach (SolidColorBrush brush in FillsTertiary) brush.Color = WithAlpha(accent, 0.80);
 
         Color onAccent = Foreground(accent);
-        TextOnAccentPrimary.Color = onAccent;
-        TextOnAccentSecondary.Color = WithAlpha(onAccent, 0.75);
+        foreach (SolidColorBrush brush in OnAccentPrimary) brush.Color = onAccent;
+        foreach (SolidColorBrush brush in OnAccentSecondary) brush.Color = WithAlpha(onAccent, 0.75);
 
-        AccentText.Color = Darken(accent, 0.35);
+        // Accent-coloured TEXT (hyperlinks) needs to survive its background, so
+        // it is darkened on light themes and lightened on dark ones.
+        Color darkened = Darken(accent, 0.35);
+        Color lightened = Lighten(accent, 0.25);
+        for (int i = 0; i < AccentTexts.Count; i++)
+        {
+            // Collected dark-theme-first, three keys per dictionary.
+            AccentTexts[i].Color = i < 3 ? lightened : darkened;
+        }
 
-        // Not live-updatable (it is a Color, not a brush), but keeping it in
-        // sync means anything resolving it later gets the right hue.
         Application.Current.Resources["SystemAccentColor"] = accent;
     }
 
@@ -142,8 +132,9 @@ public static class MuffinTheme
     }
 
     // Black on light accents (Muffin pink, green), white on the darker ones
-    // (purple, red). Same relative-luminance rule the mobile app uses, so a
-    // given accent pairs identically on both platforms.
+    // (purple, red). The same relative-luminance rule the mobile app uses, so a
+    // given accent pairs identically on both platforms - and so a saturated
+    // Windows accent stays readable when "System" is picked.
     private static Color Foreground(Color c)
     {
         static double Channel(byte v)
@@ -163,5 +154,15 @@ public static class MuffinTheme
     {
         double keep = Math.Clamp(1 - amount, 0, 1);
         return Color.FromArgb(c.A, (byte)(c.R * keep), (byte)(c.G * keep), (byte)(c.B * keep));
+    }
+
+    private static Color Lighten(Color c, double amount)
+    {
+        double mix = Math.Clamp(amount, 0, 1);
+        return Color.FromArgb(
+            c.A,
+            (byte)(c.R + (255 - c.R) * mix),
+            (byte)(c.G + (255 - c.G) * mix),
+            (byte)(c.B + (255 - c.B) * mix));
     }
 }
