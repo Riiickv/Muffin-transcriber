@@ -84,21 +84,6 @@
     </main>
   </div>
 
-  <script>
-    document.querySelectorAll('[data-toggle]').forEach(function (el) {
-      el.addEventListener('click', function () {
-        el.classList.toggle('on');
-        el.setAttribute('aria-pressed', el.classList.contains('on'));
-      });
-    });
-    document.querySelectorAll('.segmented').forEach(function (grp) {
-      grp.querySelectorAll('.segment').forEach(function (seg) {
-        seg.addEventListener('click', function () {
-          grp.querySelectorAll('.segment').forEach(function (s) { s.classList.remove('active'); });
-          seg.classList.add('active');
-        });
-      });
-    });
-  </script>
+  <script src="muffin.js"></script>
 </body>
 </html>
