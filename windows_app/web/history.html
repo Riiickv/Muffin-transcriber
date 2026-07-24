@@ -92,8 +92,8 @@
           </div>
           <div class="player" style="margin-bottom:0; margin-top:var(--sp-md);">
             <button class="play-btn"><span class="msr fill" style="font-size:20px">&#xE037;</span></button>
-            <span class="time">5:24</span>
-            <div class="waveform" id="wave"></div>
+            <span class="time" id="cur">5:24</span>
+            <div class="waveform" id="wave"><div class="wave-handle" id="handle"></div></div>
             <span class="time">14:02</span>
           </div>
         </section>
@@ -147,15 +147,36 @@
   </div>
 
   <script>
+    // Synthetic waveform (44 thin bars) + a draggable seek handle, matching
+    // the mobile WaveformSeekBar.
+    var BAR_COUNT = 44;
     var wave = document.getElementById('wave');
-    var played = 24;
-    for (var i = 0; i < 64; i++) {
-      var bar = document.createElement('span');
-      var h = 20 + Math.round(Math.abs(Math.sin(i * 0.7) * 70 + Math.cos(i * 1.9) * 25));
+    var handle = document.getElementById('handle');
+    var bars = [];
+    for (var i = 0; i < BAR_COUNT; i++) {
+      var bar = document.createElement('div');
+      bar.className = 'bar';
+      var h = 25 + Math.round(Math.abs(Math.sin(i * 0.9) * 60 + Math.cos(i * 2.3) * 30));
       bar.style.height = Math.min(100, h) + '%';
-      if (i < played) bar.className = 'played';
-      wave.appendChild(bar);
+      wave.insertBefore(bar, handle);
+      bars.push(bar);
     }
+    var frac = 0.38;
+    function render() {
+      handle.style.left = (frac * 100) + '%';
+      for (var j = 0; j < BAR_COUNT; j++) {
+        bars[j].classList.toggle('played', (j + 0.5) / BAR_COUNT <= frac);
+      }
+    }
+    render();
+    var seeking = false;
+    function fracFromEvent(e) {
+      var r = wave.getBoundingClientRect();
+      return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    }
+    wave.addEventListener('mousedown', function (e) { seeking = true; frac = fracFromEvent(e); render(); e.preventDefault(); });
+    window.addEventListener('mousemove', function (e) { if (seeking) { frac = fracFromEvent(e); render(); } });
+    window.addEventListener('mouseup', function () { seeking = false; });
     document.querySelectorAll('.segmented').forEach(function (grp) {
       grp.querySelectorAll('.segment').forEach(function (seg) {
         seg.addEventListener('click', function () {
