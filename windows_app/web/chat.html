@@ -20,9 +20,36 @@
 
     <aside class="chat-sessions">
       <button class="btn btn-accent new-chat"><span class="msr" style="font-size:18px">&#xE145;</span> New chat</button>
-      <div class="session active"><span class="msr">&#xE0B7;</span><span class="s-title">About the lecture</span></div>
-      <div class="session"><span class="msr">&#xE0B7;</span><span class="s-title">Meeting summary</span></div>
-      <div class="session"><span class="msr">&#xE0B7;</span><span class="s-title">Romania trip notes</span></div>
+      <div class="session active">
+        <div class="s-main">
+          <div class="s-title">About the lecture</div>
+          <div class="s-time">2 minutes ago</div>
+        </div>
+        <div class="s-acts">
+          <button title="Rename chat" data-rename><span class="msr">&#xE3C9;</span></button>
+          <button title="Delete chat" data-delete><span class="msr">&#xE872;</span></button>
+        </div>
+      </div>
+      <div class="session">
+        <div class="s-main">
+          <div class="s-title">Meeting summary</div>
+          <div class="s-time">Yesterday</div>
+        </div>
+        <div class="s-acts">
+          <button title="Rename chat" data-rename><span class="msr">&#xE3C9;</span></button>
+          <button title="Delete chat" data-delete><span class="msr">&#xE872;</span></button>
+        </div>
+      </div>
+      <div class="session">
+        <div class="s-main">
+          <div class="s-title">Romania trip notes</div>
+          <div class="s-time">Monday</div>
+        </div>
+        <div class="s-acts">
+          <button title="Rename chat" data-rename><span class="msr">&#xE3C9;</span></button>
+          <button title="Delete chat" data-delete><span class="msr">&#xE872;</span></button>
+        </div>
+      </div>
     </aside>
 
     <div class="splitter" data-min="180" data-max="420"></div>
@@ -51,6 +78,39 @@
       s.addEventListener('click', function () {
         document.querySelectorAll('.session').forEach(function (x) { x.classList.remove('active'); });
         s.classList.add('active');
+      });
+
+      // Rename edits in place, like the mobile drawer: the title becomes a
+      // field, commits on Enter or blur, cancels on Escape.
+      s.querySelector('[data-rename]').addEventListener('click', function (e) {
+        e.stopPropagation();
+        var main = s.querySelector('.s-main');
+        var titleEl = main.querySelector('.s-title');
+        if (main.querySelector('.s-edit')) return;
+        var current = titleEl.textContent;
+
+        var input = document.createElement('input');
+        input.className = 's-edit';
+        input.value = current;
+        main.replaceChild(input, titleEl);
+        input.focus();
+        input.select();
+
+        var done = function (commit) {
+          titleEl.textContent = commit && input.value.trim() ? input.value.trim() : current;
+          if (input.parentNode === main) main.replaceChild(titleEl, input);
+        };
+        input.addEventListener('click', function (ev) { ev.stopPropagation(); });
+        input.addEventListener('blur', function () { done(true); });
+        input.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') { ev.preventDefault(); done(true); }
+          if (ev.key === 'Escape') { ev.preventDefault(); done(false); }
+        });
+      });
+
+      s.querySelector('[data-delete]').addEventListener('click', function (e) {
+        e.stopPropagation();
+        s.remove();
       });
     });
     var ta = document.querySelector('.composer textarea');
