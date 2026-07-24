@@ -58,35 +58,20 @@ public sealed partial class SettingsPage : Page
         FormatLanguageBox.ItemsSource = WhisperLanguages.FormatNames;
 
         PreferredWhisperBox.Items.Clear();
-        PreferredWhisperBox.Items.Add(AppStrings.Settings_AutoSelectModel);
+        // The auto-select row is tagged empty; every model row keeps its File.
+        PreferredWhisperBox.Items.Add(new ComboBoxItem { Content = AppStrings.Settings_AutoSelectModel, Tag = "" });
         foreach (ModelInfo model in AppModel.WhisperModels)
         {
-            PreferredWhisperBox.Items.Add(AppModel.CompactName(model));
+            UiHelpers.AddModel(PreferredWhisperBox, model, model.File);
         }
-
-        if (string.IsNullOrWhiteSpace(_settings.PreferredWhisperModel))
-        {
-            PreferredWhisperBox.SelectedIndex = 0;
-        }
-        else
-        {
-            ModelInfo? model = AppModel.WhisperModels.FirstOrDefault(item => item.File == _settings.PreferredWhisperModel);
-            PreferredWhisperBox.SelectedItem = model is null ? AppStrings.Settings_AutoSelectModel : AppModel.CompactName(model);
-        }
+        UiHelpers.SelectModelByTag(PreferredWhisperBox, _settings.PreferredWhisperModel ?? "");
 
         PreferredFormatterBox.Items.Clear();
         foreach (ModelInfo model in AppModel.FormatterModels)
         {
-            PreferredFormatterBox.Items.Add(model.Name);
+            UiHelpers.AddModel(PreferredFormatterBox, model, model.Name);
         }
-        if (PreferredFormatterBox.Items.Contains(_settings.PreferredFormatterModel))
-        {
-            PreferredFormatterBox.SelectedItem = _settings.PreferredFormatterModel;
-        }
-        else if (PreferredFormatterBox.Items.Count > 0)
-        {
-            PreferredFormatterBox.SelectedIndex = 0;
-        }
+        UiHelpers.SelectModelByTag(PreferredFormatterBox, _settings.PreferredFormatterModel);
 
         SelectComboItem(DefaultLanguageBox, _settings.DefaultLanguage);
         SelectComboItem(FormatLanguageBox, _settings.FormatLanguage);
@@ -216,20 +201,10 @@ public sealed partial class SettingsPage : Page
         _settings.CustomSummarySystemPrompt = CustomSummaryBox.Text;
         _settings.AutoDeleteCacheDuration = SelectedTag(AutoDeleteBox) ?? _settings.AutoDeleteCacheDuration;
 
-        if (PreferredWhisperBox.SelectedIndex <= 0)
-        {
-            _settings.PreferredWhisperModel = string.Empty;
-        }
-        else if (PreferredWhisperBox.SelectedItem is string preferredName)
-        {
-            _settings.PreferredWhisperModel = AppModel.WhisperModels
-                .FirstOrDefault(model => AppModel.CompactName(model) == preferredName)?.File ?? string.Empty;
-        }
+        _settings.PreferredWhisperModel = UiHelpers.SelectedModelTag(PreferredWhisperBox) ?? string.Empty;
 
-        if (PreferredFormatterBox.SelectedItem is string formatter)
-        {
-            _settings.PreferredFormatterModel = formatter;
-        }
+        string? formatter = UiHelpers.SelectedModelTag(PreferredFormatterBox);
+        if (formatter is not null) _settings.PreferredFormatterModel = formatter;
 
         string? language = SelectedTag(AppLanguageBox);
         bool languageChanged = language is not null && language != _settings.AppLanguage;

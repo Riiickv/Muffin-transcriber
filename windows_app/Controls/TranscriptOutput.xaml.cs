@@ -170,11 +170,11 @@ public sealed partial class TranscriptOutput : UserControl
     private void SelectTab(Tab tab)
     {
         _active = tab;
-        var accent = (Style)Application.Current.Resources["AccentButtonStyle"];
-        var normal = (Style)Application.Current.Resources["DefaultButtonStyle"];
-        TabRawButton.Style = tab == Tab.Raw ? accent : normal;
-        TabFormattedButton.Style = tab == Tab.Formatted ? accent : normal;
-        TabSummaryButton.Style = tab == Tab.Summary ? accent : normal;
+        var selected = (Style)Application.Current.Resources["MuffinSegmentSelected"];
+        var normal = (Style)Application.Current.Resources["MuffinSegment"];
+        TabRawButton.Style = tab == Tab.Raw ? selected : normal;
+        TabFormattedButton.Style = tab == Tab.Formatted ? selected : normal;
+        TabSummaryButton.Style = tab == Tab.Summary ? selected : normal;
     }
 
     private void CopyButton_Click(object sender, RoutedEventArgs e)

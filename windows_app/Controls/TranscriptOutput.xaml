@@ -8,12 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Border
-        Padding="20"
-        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-        BorderThickness="1"
-        CornerRadius="8">
+    <Border Style="{StaticResource MuffinCard}" Padding="20">
         <Grid RowSpacing="12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -24,11 +19,13 @@
             <TextBlock Grid.Row="0" Style="{StaticResource SubtitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Home_TranscriptTitle}" />
 
             <Grid Grid.Row="1">
-                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Left">
-                    <Button x:Name="TabRawButton" Content="{x:Bind local:AppStrings.Home_TabRaw}" Click="TabRawButton_Click" Style="{StaticResource AccentButtonStyle}" />
-                    <Button x:Name="TabFormattedButton" Content="{x:Bind local:AppStrings.Home_TabFormatted}" Click="TabFormattedButton_Click" />
-                    <Button x:Name="TabSummaryButton" Content="{x:Bind local:AppStrings.Home_TabSummary}" Click="TabSummaryButton_Click" />
-                </StackPanel>
+                <Border Style="{StaticResource MuffinSegmentStrip}">
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="TabRawButton" Content="{x:Bind local:AppStrings.Home_TabRaw}" Click="TabRawButton_Click" Style="{StaticResource MuffinSegmentSelected}" />
+                        <Button x:Name="TabFormattedButton" Content="{x:Bind local:AppStrings.Home_TabFormatted}" Click="TabFormattedButton_Click" Style="{StaticResource MuffinSegment}" />
+                        <Button x:Name="TabSummaryButton" Content="{x:Bind local:AppStrings.Home_TabSummary}" Click="TabSummaryButton_Click" Style="{StaticResource MuffinSegment}" />
+                    </StackPanel>
+                </Border>
                 <Button HorizontalAlignment="Right" Click="CopyButton_Click">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE8C8;" FontSize="14" />

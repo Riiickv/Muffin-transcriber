@@ -105,7 +105,7 @@ public sealed partial class HomePage : Page
         WhisperModelBox.Items.Clear();
         foreach (ModelInfo model in AppModel.WhisperModels.Where(model => AppModel.IsValidModelFile(AppModel.ModelPath(model.File))))
         {
-            WhisperModelBox.Items.Add(AppModel.CompactName(model));
+            UiHelpers.AddModel(WhisperModelBox, model, model.File);
         }
 
         _selectedWhisperModel = AppModel.WhisperModels.FirstOrDefault(model =>
@@ -114,7 +114,7 @@ public sealed partial class HomePage : Page
 
         if (_selectedWhisperModel is not null)
         {
-            WhisperModelBox.SelectedItem = AppModel.CompactName(_selectedWhisperModel);
+            UiHelpers.SelectModelByTag(WhisperModelBox, _selectedWhisperModel.File);
         }
         else
         {
@@ -124,19 +124,12 @@ public sealed partial class HomePage : Page
         FormatterModelBox.Items.Clear();
         foreach (ModelInfo model in AppModel.FormatterModels.Where(model => AppModel.IsValidModelFile(AppModel.ModelPath(model.File))))
         {
-            FormatterModelBox.Items.Add(model.Name);
+            UiHelpers.AddModel(FormatterModelBox, model, model.Name);
         }
 
         if (FormatterModelBox.Items.Count > 0)
         {
-            if (FormatterModelBox.Items.Contains(_settings.PreferredFormatterModel))
-            {
-                FormatterModelBox.SelectedItem = _settings.PreferredFormatterModel;
-            }
-            else
-            {
-                FormatterModelBox.SelectedIndex = 0;
-            }
+            UiHelpers.SelectModelByTag(FormatterModelBox, _settings.PreferredFormatterModel);
         }
         else
         {
@@ -172,7 +165,8 @@ public sealed partial class HomePage : Page
 
         FormatterModelBox.SelectionChanged += (s, e) =>
         {
-            if (FormatterModelBox.SelectedItem is string selection)
+            string? selection = UiHelpers.SelectedModelTag(FormatterModelBox);
+            if (selection is not null)
             {
                 _settings.PreferredFormatterModel = selection;
                 _settings.Save();
@@ -190,9 +184,10 @@ public sealed partial class HomePage : Page
 
     private void WhisperModelBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (WhisperModelBox.SelectedItem is string selected)
+        string? file = UiHelpers.SelectedModelTag(WhisperModelBox);
+        if (file is not null)
         {
-            _selectedWhisperModel = AppModel.WhisperModels.FirstOrDefault(model => AppModel.CompactName(model) == selected);
+            _selectedWhisperModel = AppModel.WhisperModels.FirstOrDefault(model => model.File == file);
         }
 
         UpdateTranscribeState();

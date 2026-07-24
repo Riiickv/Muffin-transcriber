@@ -8,6 +8,7 @@ namespace MuffinTranscriber.Pages;
 public sealed partial class ModelsPage : Page
 {
     private readonly Dictionary<string, (TextBlock Status, Button Button)> _controls;
+    private readonly Dictionary<string, CommunityToolkit.WinUI.Controls.SettingsCard> _cards;
     private readonly StatusBarController _status;
 
     private string? _downloadingFile;
@@ -30,6 +31,20 @@ public sealed partial class ModelsPage : Page
             ["all-MiniLM-L6-v2-q4_k_m.gguf"] = (EmbedStatus, EmbedButton),
         };
 
+        // Card header = the translated tier; description = the one-line blurb,
+        // the same thing the mobile Models list shows.
+        _cards = new()
+        {
+            ["ggml-tiny.bin"] = TinyCard,
+            ["ggml-base.bin"] = BaseCard,
+            ["ggml-small.bin"] = SmallCard,
+            ["ggml-large-v3.bin"] = HighCard,
+            ["Llama-3.2-3B-Instruct-Q4_K_M.gguf"] = LlamaCard,
+            ["qwen2.5-1.5b-instruct-q4_k_m.gguf"] = QwenCard,
+            ["Phi-3-mini-4k-instruct-q4.gguf"] = PhiCard,
+            ["all-MiniLM-L6-v2-q4_k_m.gguf"] = EmbedCard,
+        };
+
         RefreshModelStates();
         LiveStrings.Attach(this, () => { Bindings.Update(); RefreshModelStates(); });
     }
@@ -44,6 +59,12 @@ public sealed partial class ModelsPage : Page
         foreach (ModelInfo model in AllModels)
         {
             (TextBlock status, Button button) = _controls[model.File];
+
+            if (_cards.TryGetValue(model.File, out var card))
+            {
+                card.Header = AppModel.DisplayName(model);
+                card.Description = AppModel.DisplayDesc(model);
+            }
 
             // The active download drives its own status text; its button cancels.
             if (model.File == _downloadingFile)
