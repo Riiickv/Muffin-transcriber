@@ -76,7 +76,7 @@
         </div>
       </aside>
 
-      <div class="splitter" id="splitter"></div>
+      <div class="splitter" data-min="300" data-max="720"></div>
 
       <section class="hist-detail">
         <!-- Player card: title, date, player row. -->
@@ -178,18 +178,6 @@
     wave.addEventListener('mousedown', function (e) { seeking = true; frac = fracFromEvent(e); render(); e.preventDefault(); });
     window.addEventListener('mousemove', function (e) { if (seeking) { frac = fracFromEvent(e); render(); } });
     window.addEventListener('mouseup', function () { seeking = false; });
-    (function () {
-      var splitter = document.getElementById('splitter');
-      var list = document.querySelector('.hist-list');
-      var dragging = false;
-      splitter.addEventListener('mousedown', function (e) { dragging = true; document.body.style.cursor = 'col-resize'; e.preventDefault(); });
-      window.addEventListener('mousemove', function (e) {
-        if (!dragging) return;
-        var w = e.clientX - list.getBoundingClientRect().left;
-        list.style.width = Math.max(300, Math.min(720, w)) + 'px';
-      });
-      window.addEventListener('mouseup', function () { dragging = false; document.body.style.cursor = ''; });
-    })();
 
     document.querySelectorAll('.hist-card').forEach(function (it) {
       it.addEventListener('click', function () {
