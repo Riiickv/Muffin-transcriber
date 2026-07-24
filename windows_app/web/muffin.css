@@ -412,6 +412,51 @@ textarea { resize: vertical; min-height: 72px; }
 }
 .time { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
+/* ---- Chat: sessions sidebar + messages + floating composer ---- */
+.chat-sessions {
+  width: 260px; flex-shrink: 0; border-right: 1px solid var(--divider);
+  overflow-y: auto; padding: var(--sp-md);
+}
+.new-chat {
+  width: 100%; margin-bottom: var(--sp-md); justify-content: center;
+  display: flex; align-items: center; gap: 6px;
+}
+.session {
+  padding: var(--sp-md); border-radius: var(--r-md); cursor: pointer;
+  font-size: 14px; margin-bottom: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.session:hover { background: var(--surface); }
+.session.active { background: var(--accent-fill); color: var(--accent); font-weight: 700; }
+
+.chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.chat-head {
+  padding: var(--sp-lg); border-bottom: 1px solid var(--divider);
+  display: flex; align-items: center; gap: var(--sp-sm);
+}
+.chat-head h2 { font-size: 20px; font-weight: 700; margin: 0; }
+.beta-badge {
+  background: var(--accent-fill); color: var(--accent);
+  font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-pill);
+}
+.chat-scroll { flex: 1; overflow-y: auto; padding: var(--sp-lg); display: flex; flex-direction: column; gap: var(--sp-md); }
+.bubble { max-width: 78%; padding: var(--sp-md) var(--sp-lg); border-radius: var(--r-lg); line-height: 1.5; }
+.bubble.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
+.bubble.assistant { align-self: flex-start; background: var(--surface); border: 1px solid var(--card-border); border-bottom-left-radius: 4px; }
+.chat-empty { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); padding: var(--sp-xxl); font-size: 15px; line-height: 1.6; }
+.composer {
+  margin: var(--sp-lg); display: flex; align-items: flex-end; gap: var(--sp-sm);
+  background: var(--surface); border: 1px solid var(--divider); border-radius: var(--r-lg); padding: 6px;
+}
+.composer textarea {
+  flex: 1; background: transparent; border: none; resize: none;
+  min-height: 24px; max-height: 120px; padding: 8px 10px; color: var(--text); font: inherit; outline: none;
+}
+.send-btn {
+  width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--on-accent);
+  border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
 .action-row { display: flex; gap: var(--sp-sm); margin-bottom: var(--sp-lg); }
 .btn-outline {
   background: transparent; border: 1px solid var(--accent); color: var(--accent);

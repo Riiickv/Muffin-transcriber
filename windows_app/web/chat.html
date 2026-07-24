@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muffin - Chat</title>
+  <link rel="stylesheet" href="muffin.css" />
+  <script src="muffin.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <nav class="rail">
+      <button class="rail-item" title="Muffin!"><span class="msr">&#xE88A;</span></button>
+      <button class="rail-item" title="History"><span class="msr">&#xE8B3;</span></button>
+      <button class="rail-item active" title="Chat"><span class="msr">&#xE0B7;</span></button>
+      <div class="rail-spacer"></div>
+      <button class="mic-fab" title="Start recording"><span class="msr fill">&#xE029;</span></button>
+      <button class="rail-item" title="Settings"><span class="msr">&#xE8B8;</span></button>
+    </nav>
+
+    <aside class="chat-sessions">
+      <button class="btn btn-accent new-chat"><span class="msr" style="font-size:18px">&#xE145;</span> New chat</button>
+      <div class="session active">About the lecture</div>
+      <div class="session">Meeting summary</div>
+      <div class="session">Romania trip notes</div>
+    </aside>
+
+    <section class="chat-main">
+      <div class="chat-head">
+        <h2>Chat</h2>
+        <span class="beta-badge">Beta</span>
+      </div>
+
+      <div class="chat-scroll">
+        <div class="bubble assistant">You can ask me anything about your transcripts, just tell me what you need!</div>
+        <div class="bubble user">What did the lecture on the Renaissance say about Florence?</div>
+        <div class="bubble assistant">In "Lezione 12 marzo", Florence is described as the cradle of the Renaissance, where the Medici funded artists like Botticelli and later Michelangelo. Want me to open that transcript?</div>
+      </div>
+
+      <div class="composer">
+        <textarea rows="1" placeholder="Ask about your transcripts..."></textarea>
+        <button class="send-btn"><span class="msr fill" style="font-size:20px">&#xE5D8;</span></button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    document.querySelectorAll('.session').forEach(function (s) {
+      s.addEventListener('click', function () {
+        document.querySelectorAll('.session').forEach(function (x) { x.classList.remove('active'); });
+        s.classList.add('active');
+      });
+    });
+    var ta = document.querySelector('.composer textarea');
+    ta.addEventListener('input', function () {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(120, ta.scrollHeight) + 'px';
+    });
+  </script>
+</body>
+</html>
