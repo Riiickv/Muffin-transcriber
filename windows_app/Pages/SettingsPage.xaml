@@ -65,8 +65,8 @@
 
                 <!--  Only meaningful while the typewriter is on, same as mobile.  -->
                 <toolkit:SettingsCard x:Name="TypingSpeedCard" Header="{x:Bind local:AppStrings.Settings_TypewriterSpeedTitle}">
-                    <Border Style="{StaticResource MuffinSegmentStrip}" MinWidth="300">
-                        <Grid ColumnSpacing="2">
+                    <Border Style="{StaticResource MuffinSegmentStrip}">
+                        <Grid Width="300" ColumnSpacing="2">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
@@ -143,8 +143,8 @@
                 </toolkit:SettingsCard>
 
                 <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ThemeTitle}">
-                    <Border Style="{StaticResource MuffinSegmentStrip}" MinWidth="380">
-                        <Grid ColumnSpacing="2">
+                    <Border Style="{StaticResource MuffinSegmentStrip}">
+                        <Grid Width="400" ColumnSpacing="2">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
