@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muffin - Settings</title>
+  <link rel="stylesheet" href="muffin.css" />
+  <script src="muffin.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <nav class="rail">
+      <button class="rail-item" title="Muffin!"><span class="msr">&#xE88A;</span></button>
+      <button class="rail-item" title="History"><span class="msr">&#xE8B3;</span></button>
+      <button class="rail-item" title="Chat"><span class="msr">&#xE0B7;</span></button>
+      <div class="rail-spacer"></div>
+      <button class="mic-fab" title="Start recording"><span class="msr fill">&#xE029;</span></button>
+      <button class="rail-item active" title="Settings"><span class="msr">&#xE8B8;</span></button>
+    </nav>
+
+    <main class="page">
+      <div class="page-inner">
+        <h1 class="title">Settings</h1>
+
+        <!-- 0 - MODELS -->
+        <div class="group">
+          <div class="srow clickable">
+            <div class="s-label">
+              <div class="s-name">Models</div>
+              <div class="s-desc">10 installed</div>
+            </div>
+            <span class="msr chev">&#xE5CC;</span>
+          </div>
+        </div>
+
+        <!-- 1 - TRANSCRIPTION -->
+        <div class="group-title">Transcription</div>
+        <div class="group">
+          <div class="srow">
+            <div class="s-label"><div class="s-name">Default Language</div></div>
+            <div class="s-control"><select><option>Auto-Detect</option><option>English</option><option>Italiano</option></select></div>
+          </div>
+          <div class="srow">
+            <div class="s-label"><div class="s-name">Transcriber model</div></div>
+            <div class="s-control"><select><option>Most accurate</option><option>Balanced</option><option>Fastest</option></select></div>
+          </div>
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name">Normalize audio</div>
+              <div class="s-desc">Boosts low volume for a cleaner transcription.</div>
+            </div>
+            <div class="s-control"><button class="switch on" data-toggle aria-pressed="true"></button></div>
+          </div>
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name">Auto-copy transcript</div>
+              <div class="s-desc">Copies to clipboard when done</div>
+            </div>
+            <div class="s-control"><button class="switch" data-toggle aria-pressed="false"></button></div>
+          </div>
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name">Typewriter effect</div>
+              <div class="s-desc">Type transcriptions out as they arrive</div>
+            </div>
+            <div class="s-control"><button class="switch on" data-toggle aria-pressed="true"></button></div>
+          </div>
+          <div class="srow">
+            <div class="s-label"><div class="s-name">Typing speed</div></div>
+            <div class="s-control">
+              <div class="segmented" style="width:260px">
+                <button class="segment">Slow</button>
+                <button class="segment active">Balanced</button>
+                <button class="segment">Fast</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 - FORMAT & SUMMARIZE -->
+        <div class="group-title">Format &amp; Summarize</div>
+        <div class="group">
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name">Format by default</div>
+              <div class="s-desc">Formats transcript after transcription</div>
+            </div>
+            <div class="s-control"><button class="switch on" data-toggle aria-pressed="true"></button></div>
+          </div>
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name">Summarize by Default</div>
+              <div class="s-desc">Summarizes transcript after transcription</div>
+            </div>
+            <div class="s-control"><button class="switch" data-toggle aria-pressed="false"></button></div>
+          </div>
+          <div class="srow">
+            <div class="s-label"><div class="s-name">Formatter model</div></div>
+            <div class="s-control"><select><option>Balanced</option><option>Best quality</option><option>Fastest</option></select></div>
+          </div>
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name">Chat with Muffin <span class="beta-badge">Beta</span></div>
+            </div>
+            <div class="s-control"><button class="switch on" data-toggle aria-pressed="true"></button></div>
+          </div>
+          <div class="srow">
+            <div class="s-label"><div class="s-name">Chat model</div></div>
+            <div class="s-control"><select><option>Fast</option><option>Balanced</option></select></div>
+          </div>
+        </div>
+
+        <!-- 3 - MEMORY CONTEXT -->
+        <div class="group-title">Memory Context</div>
+        <div class="group">
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name">Memory</div>
+              <div class="s-desc">Memory helps with filling the blanks when the audio is unclear.</div>
+            </div>
+            <div class="s-control"><button class="switch on" data-toggle aria-pressed="true"></button></div>
+          </div>
+          <div class="srow clickable">
+            <div class="s-label"><div class="s-name">Manage memories</div></div>
+            <span class="msr chev">&#xE5CC;</span>
+          </div>
+          <div class="srow clickable">
+            <div class="s-label"><div class="s-name">Optimize memories</div></div>
+            <span class="msr chev">&#xE5CC;</span>
+          </div>
+        </div>
+        <div class="group-footer">Allow the transcription to use memories. Higher accuracy but slower.</div>
+
+        <!-- 4 - APPEARANCE -->
+        <div class="group-title">Appearance</div>
+        <div class="group">
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name">App language</div>
+              <div class="s-desc">Automatic follows your PC's language.</div>
+            </div>
+            <div class="s-control">
+              <select><option>Automatic</option><option>English</option><option>Italiano</option><option>Espa&ntilde;ol</option><option>Fran&ccedil;ais</option><option>Deutsch</option><option>Portugu&ecirc;s</option></select>
+            </div>
+          </div>
+          <div class="srow">
+            <div class="s-label"><div class="s-name">Theme</div></div>
+            <div class="s-control">
+              <div class="segmented" style="width:300px">
+                <button class="segment active">Auto</button>
+                <button class="segment">Light</button>
+                <button class="segment">Dark</button>
+                <button class="segment">AMOLED</button>
+              </div>
+            </div>
+          </div>
+          <div class="srow">
+            <div class="s-label"><div class="s-name">Accent color</div></div>
+            <div class="s-control">
+              <div class="swatches">
+                <button class="swatch" title="System"><i style="background:#4a9eff"></i></button>
+                <button class="swatch selected" title="Muffin"><i style="background:#FF9EBB"></i></button>
+                <button class="swatch" title="Green"><i style="background:#65D28A"></i></button>
+                <button class="swatch" title="Purple"><i style="background:#A975C2"></i></button>
+                <button class="swatch" title="Red"><i style="background:#ED6F62"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 - CUSTOM PROMPTS -->
+        <div class="group-title">Custom prompts</div>
+        <div class="group">
+          <div class="srow stacked">
+            <div class="s-label"><div class="s-name">Format default prompt</div></div>
+            <div class="s-control"><textarea class="prompt" placeholder="You are an expert editor..."></textarea></div>
+          </div>
+          <div class="srow stacked">
+            <div class="s-label"><div class="s-name">Summary default prompt</div></div>
+            <div class="s-control"><textarea class="prompt" placeholder="Summarize the following text..."></textarea></div>
+          </div>
+        </div>
+        <div class="group-footer">Leave empty to use Muffin's defaults. These apply to every transcript.</div>
+
+        <!-- 6 - STORAGE -->
+        <div class="group-title">Storage</div>
+        <div class="group">
+          <div class="srow">
+            <div class="s-label"><div class="s-name">Auto-Delete Audio Files</div></div>
+            <div class="s-control"><select><option>Never</option><option>1 Week</option><option>1 Month</option></select></div>
+          </div>
+          <div class="srow clickable">
+            <div class="s-label"><div class="s-name">Clear chat history</div></div>
+            <span class="msr chev">&#xE5CC;</span>
+          </div>
+        </div>
+
+        <!-- 7 - ABOUT -->
+        <div class="group-title">About</div>
+        <div class="group">
+          <div class="srow clickable">
+            <div class="s-label"><div class="s-name">Privacy policy</div></div>
+            <span class="msr chev">&#xE5CC;</span>
+          </div>
+          <div class="srow clickable">
+            <div class="s-label">
+              <div class="s-name">Check for updates</div>
+              <div class="s-desc">Muffin v1.2.2</div>
+            </div>
+            <span class="msr chev">&#xE5CC;</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.querySelectorAll('.swatch').forEach(function (sw) {
+      sw.addEventListener('click', function () {
+        document.querySelectorAll('.swatch').forEach(function (x) { x.classList.remove('selected'); });
+        sw.classList.add('selected');
+        var color = sw.querySelector('i').style.background;
+        document.documentElement.style.setProperty('--accent', color);
+      });
+    });
+  </script>
+</body>
+</html>
