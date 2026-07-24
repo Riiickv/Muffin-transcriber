@@ -82,7 +82,6 @@ public partial class App : Application
         // text with x:Bind (OneTime), which evaluates during InitializeComponent,
         // so the strings must already be loaded or the first render is English.
         var settings = UserSettings.Load();
-        LocalizationManager.CreateDefaultLanguageFile();
         LocalizationManager.LoadLanguage(settings.AppLanguage);
 
         // Same reason as the language above: controls resolve their accent
