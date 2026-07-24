@@ -84,9 +84,29 @@ function wireSegments() {
   });
 }
 
+// A .splitter resizes its previous sibling's width on drag. data-min/data-max
+// clamp it. Used between the History list/detail and the Chat sessions/main.
+function wireSplitters() {
+  document.querySelectorAll(".splitter").forEach(function (sp) {
+    var target = sp.previousElementSibling;
+    if (!target) return;
+    var min = parseInt(sp.dataset.min || "200", 10);
+    var max = parseInt(sp.dataset.max || "640", 10);
+    var dragging = false;
+    sp.addEventListener("mousedown", function (e) { dragging = true; document.body.style.cursor = "col-resize"; e.preventDefault(); });
+    window.addEventListener("mousemove", function (e) {
+      if (!dragging) return;
+      var w = e.clientX - target.getBoundingClientRect().left;
+      target.style.width = Math.max(min, Math.min(max, w)) + "px";
+    });
+    window.addEventListener("mouseup", function () { dragging = false; document.body.style.cursor = ""; });
+  });
+}
+
 document.addEventListener("click", closeAllDropdowns);
 document.addEventListener("DOMContentLoaded", function () {
   enhanceSelects();
   wireToggles();
   wireSegments();
+  wireSplitters();
 });
