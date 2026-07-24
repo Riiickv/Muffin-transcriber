@@ -290,31 +290,52 @@ textarea { resize: vertical; min-height: 72px; }
 /* ---- History: two-pane (list + detail), the desktop arrangement ---- */
 .two-pane { display: flex; flex: 1; min-width: 0; }
 .hist-list {
-  width: 300px; flex-shrink: 0;
+  width: 420px; flex-shrink: 0;
   border-right: 1px solid var(--divider);
   overflow-y: auto; padding: var(--sp-lg);
 }
-.hist-list h2 { font-size: 22px; font-weight: 700; margin: 0 0 var(--sp-md); }
+.hist-list h2 { font-size: 26px; font-weight: 700; margin: 0 0 var(--sp-lg); }
 .search {
   display: flex; align-items: center; gap: var(--sp-sm);
   background: var(--surface); border: 1px solid var(--divider);
   border-radius: var(--r-sm); padding: 8px var(--sp-md);
-  color: var(--text-muted); font-size: 13px; margin-bottom: var(--sp-md);
+  color: var(--text-muted); font-size: 13px; margin-bottom: var(--sp-lg);
 }
-.hist-item {
-  display: flex; align-items: center; gap: var(--sp-md);
-  padding: var(--sp-md); border-radius: var(--r-md); cursor: pointer; margin-bottom: 2px;
+
+/* List item = a card, like the mobile History list: pink waveform square,
+   title, date, a 2-line preview snippet, and edit/delete at top-right. */
+.hist-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--sp-md);
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-lg);
+  margin-bottom: var(--sp-md);
+  cursor: pointer;
 }
-.hist-item:hover { background: var(--surface); }
-.hist-item.active { background: var(--accent-fill); }
-.lead-icon {
-  width: 36px; height: 36px; border-radius: var(--r-sm);
+.hist-card:hover { border-color: var(--text-subtle); }
+.hist-card.active { background: var(--accent-fill); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.hist-card .lead {
+  width: 48px; height: 48px; border-radius: var(--r-md);
   background: var(--accent-fill); color: var(--accent);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
 }
-.hist-item .meta { flex: 1; min-width: 0; }
-.hist-item .h-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hist-item .h-date { font-size: 12px; color: var(--text-muted); }
+.hist-card .body { min-width: 0; }
+.hist-card .h-title { font-size: 16px; font-weight: 700; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist-card .h-date { font-size: 13px; color: var(--text-muted); margin-bottom: var(--sp-sm); }
+.hist-card .h-snippet {
+  font-size: 14px; color: var(--text-muted); line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hist-card .acts { display: flex; gap: 2px; }
+.hist-card .acts button {
+  background: transparent; border: none; color: var(--text-muted);
+  padding: 6px; border-radius: var(--r-sm); cursor: pointer; display: flex;
+}
+.hist-card .acts button:hover { background: var(--surface-strong); color: var(--text); }
 
 .hist-detail { flex: 1; overflow-y: auto; padding: var(--sp-xl); min-width: 0; }
 .detail-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-lg); }
