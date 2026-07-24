@@ -34,6 +34,30 @@ public static class UiHelpers
         package.SetText(text ?? string.Empty);
         Clipboard.SetContent(package);
     }
+
+    // Model pickers show the translated TIER (Balanced, Most accurate...) but
+    // keep the real key (File or Name) on the item's Tag, so the stored setting
+    // and the engine lookups are untouched by the display change.
+    public static void AddModel(ComboBox box, ModelInfo model, string key)
+    {
+        box.Items.Add(new ComboBoxItem { Content = AppModel.DisplayName(model), Tag = key });
+    }
+
+    public static void SelectModelByTag(ComboBox box, string? key)
+    {
+        foreach (object item in box.Items)
+        {
+            if (item is ComboBoxItem combo && (combo.Tag as string) == key)
+            {
+                box.SelectedItem = item;
+                return;
+            }
+        }
+        if (box.Items.Count > 0) box.SelectedIndex = 0;
+    }
+
+    public static string? SelectedModelTag(ComboBox box) =>
+        (box.SelectedItem as ComboBoxItem)?.Tag as string;
 }
 
 // Wraps an InfoBar with the 3-second auto-dismiss timer every page reimplemented.

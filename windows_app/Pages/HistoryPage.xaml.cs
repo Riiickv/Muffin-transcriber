@@ -57,27 +57,20 @@ public sealed partial class HistoryPage : Page
         LLMModelBox.Items.Clear();
         foreach (ModelInfo model in AppModel.FormatterModels.Where(model => AppModel.IsValidModelFile(AppModel.ModelPath(model.File))))
         {
-            LLMModelBox.Items.Add(model.Name);
+            UiHelpers.AddModel(LLMModelBox, model, model.Name);
         }
 
         HistoryWhisperModelBox.Items.Clear();
         foreach (ModelInfo model in AppModel.WhisperModels.Where(model => AppModel.IsValidModelFile(AppModel.ModelPath(model.File))))
         {
-            HistoryWhisperModelBox.Items.Add(model.Name);
+            UiHelpers.AddModel(HistoryWhisperModelBox, model, model.Name);
         }
 
         var settings = UserSettings.Load();
 
         if (LLMModelBox.Items.Count > 0)
         {
-            if (LLMModelBox.Items.Contains(settings.PreferredFormatterModel))
-            {
-                LLMModelBox.SelectedItem = settings.PreferredFormatterModel;
-            }
-            else
-            {
-                LLMModelBox.SelectedIndex = 0;
-            }
+            UiHelpers.SelectModelByTag(LLMModelBox, settings.PreferredFormatterModel);
         }
         else
         {
@@ -106,7 +99,8 @@ public sealed partial class HistoryPage : Page
 
         LLMModelBox.SelectionChanged += (sender, e) =>
         {
-            if (LLMModelBox.SelectedItem is string selection)
+            string? selection = UiHelpers.SelectedModelTag(LLMModelBox);
+            if (selection is not null)
             {
                 var userSettings = UserSettings.Load();
                 userSettings.PreferredFormatterModel = selection;
@@ -185,7 +179,7 @@ public sealed partial class HistoryPage : Page
         ShowStatus(AppStrings.History_FindingDates, InfoBarSeverity.Informational);
         try
         {
-            List<ActionableEntity> entities = await LLMFormatter.ExtractActionableEntitiesAsync(_selectedItem.RawTranscript, LLMModelBox.SelectedItem as string);
+            List<ActionableEntity> entities = await LLMFormatter.ExtractActionableEntitiesAsync(_selectedItem.RawTranscript, UiHelpers.SelectedModelTag(LLMModelBox));
             StatusBar.IsOpen = false;
 
             if (entities.Count == 0)
@@ -314,7 +308,7 @@ public sealed partial class HistoryPage : Page
             return;
 
         TranscriptionHistoryItem item = _selectedItem;
-        string? selectedFormatter = LLMModelBox.SelectedItem?.ToString();
+        string? selectedFormatter = UiHelpers.SelectedModelTag(LLMModelBox);
         string formatLanguage = UiHelpers.SelectedComboText(FormatLanguageBox);
         if (string.IsNullOrEmpty(formatLanguage)) formatLanguage = "Auto-Detect / Original";
 
@@ -451,7 +445,7 @@ public sealed partial class HistoryPage : Page
             return;
 
         TranscriptionHistoryItem item = _selectedItem;
-        string? selectedFormatter = LLMModelBox.SelectedItem?.ToString();
+        string? selectedFormatter = UiHelpers.SelectedModelTag(LLMModelBox);
         string formatLanguage = UiHelpers.SelectedComboText(FormatLanguageBox);
         if (string.IsNullOrEmpty(formatLanguage)) formatLanguage = "Auto-Detect / Original";
 
@@ -519,7 +513,7 @@ public sealed partial class HistoryPage : Page
             audioPath = file.Path;
         }
         
-        string? selectedWhisper = HistoryWhisperModelBox.SelectedItem?.ToString();
+        string? selectedWhisper = UiHelpers.SelectedModelTag(HistoryWhisperModelBox);
         if (string.IsNullOrEmpty(selectedWhisper))
         {
             ShowStatus(AppStrings.History_Status_SelectWhisper, InfoBarSeverity.Error);

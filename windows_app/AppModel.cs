@@ -5,30 +5,35 @@ using System.Threading.Tasks;
 
 namespace MuffinTranscriber;
 
-public sealed record ModelInfo(string File, string Name, string Url, string Size);
+// NameKey/DescKey are shared i18n keys (models.*), the SAME ones the mobile app
+// shows. Users pick a speed/quality TIER, not a model - "Qwen 2.5 1.5B" means
+// nothing to them, "Balanced" does. Render through DisplayName/DisplayDesc, not
+// the raw Name, or the pickers stay English while the rest is translated.
+public sealed record ModelInfo(string File, string Name, string Url, string Size, string NameKey = "", string DescKey = "");
 
 public static class AppModel
 {
     public const long MinModelBytes = 1024 * 1024;
 
+    // Ordered fastest -> best, so the list itself is the quality ladder, as on mobile.
     public static readonly ModelInfo[] WhisperModels =
     [
-        new("ggml-tiny.bin", "Whisper [tiny] - ~1GB VRAM", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin", "74 MB"),
-        new("ggml-base.bin", "Whisper [base] - ~1.5GB VRAM", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin", "142 MB"),
-        new("ggml-small.bin", "Whisper [small] - ~2.5GB VRAM", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin", "466 MB"),
-        new("ggml-large-v3.bin", "Whisper [high] - ~5GB VRAM", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin", "2.9 GB"),
+        new("ggml-tiny.bin", "Whisper [tiny]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin", "74 MB", "models.tierFastest", "models.descWhisperFastest"),
+        new("ggml-base.bin", "Whisper [base]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin", "142 MB", "models.tierFast", ""),
+        new("ggml-small.bin", "Whisper [small]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin", "466 MB", "models.tierBalanced", "models.descWhisperBalanced"),
+        new("ggml-large-v3.bin", "Whisper [high]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin", "2.9 GB", "models.tierAccurate", "models.descWhisperAccurate"),
     ];
 
     public static readonly ModelInfo[] FormatterModels =
     [
-        new("Llama-3.2-3B-Instruct-Q4_K_M.gguf", "Llama 3.2 [3B] - ~3.2GB VRAM", "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf", "2.0 GB"),
-        new("qwen2.5-1.5b-instruct-q4_k_m.gguf", "Qwen 2.5 [1.5B] - ~1.2GB VRAM", "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf", "1.1 GB"),
-        new("Phi-3-mini-4k-instruct-q4.gguf", "Phi-3 Mini [3.8B] - ~2.4GB VRAM", "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf", "2.4 GB"),
+        new("qwen2.5-1.5b-instruct-q4_k_m.gguf", "Qwen 2.5 [1.5B]", "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf", "1.1 GB", "models.tierFast", "models.descFmtFast"),
+        new("Phi-3-mini-4k-instruct-q4.gguf", "Phi-3 Mini [3.8B]", "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf", "2.4 GB", "models.tierBalanced", "models.descFmtBalanced"),
+        new("Llama-3.2-3B-Instruct-Q4_K_M.gguf", "Llama 3.2 [3B]", "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf", "2.0 GB", "models.tierBest", "models.descFmtBest"),
     ];
 
     public static readonly ModelInfo[] EmbeddingModels =
     [
-        new("all-MiniLM-L6-v2-q4_k_m.gguf", "MiniLM-L6-v2 (Semantic search)", "https://huggingface.co/Mungert/all-MiniLM-L6-v2-GGUF/resolve/main/all-MiniLM-L6-v2-q4_k_m.gguf", "14 MB"),
+        new("all-MiniLM-L6-v2-q4_k_m.gguf", "MiniLM-L6-v2", "https://huggingface.co/Mungert/all-MiniLM-L6-v2-GGUF/resolve/main/all-MiniLM-L6-v2-q4_k_m.gguf", "14 MB", "models.tierSmartSearch", "models.descEmbed"),
     ];
 
     public static readonly HashSet<string> MediaExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -138,6 +143,14 @@ public static class AppModel
     {
         return info.Name.Split(" - ")[0];
     }
+
+    /// <summary>The translated tier label shown to the user (mobile's modelName).</summary>
+    public static string DisplayName(ModelInfo info) =>
+        string.IsNullOrEmpty(info.NameKey) ? CompactName(info) : LocalizationManager.GetString(info.NameKey, CompactName(info));
+
+    /// <summary>The translated one-line blurb (mobile's modelDesc); size if none.</summary>
+    public static string DisplayDesc(ModelInfo info) =>
+        string.IsNullOrEmpty(info.DescKey) ? info.Size : LocalizationManager.GetString(info.DescKey, info.Size);
 
     public static ModelInfo? ActiveWhisperModel()
     {
