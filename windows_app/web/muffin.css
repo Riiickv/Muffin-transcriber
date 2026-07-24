@@ -421,16 +421,33 @@ textarea { resize: vertical; min-height: 72px; }
   width: 100%; margin-bottom: var(--sp-md); justify-content: center;
   display: flex; align-items: center; gap: 6px;
 }
+/* Session row: title + relative time, with rename/delete on the right and
+   inline renaming, like the mobile ChatDrawer row. */
 .session {
   display: flex; align-items: center; gap: var(--sp-sm);
-  padding: 10px var(--sp-md); border-radius: var(--r-md); cursor: pointer;
-  font-size: 14px; margin-bottom: 2px; color: var(--text);
+  padding: 8px var(--sp-md); border-radius: var(--r-md); cursor: pointer;
+  margin-bottom: 2px; color: var(--text);
 }
-.session .msr { font-size: 18px; color: var(--text-muted); flex-shrink: 0; }
-.session .s-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session .s-main { flex: 1; min-width: 0; }
+.session .s-title { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session .s-time { font-size: 12px; color: var(--text-subtle); }
 .session:hover { background: var(--surface); }
-.session.active { background: var(--accent-fill); color: var(--accent); font-weight: 700; }
-.session.active .msr { color: var(--accent); }
+.session.active { background: var(--accent-fill); }
+.session.active .s-title { color: var(--accent); font-weight: 700; }
+
+.session .s-acts { display: flex; gap: 2px; opacity: 0; }
+.session:hover .s-acts, .session.active .s-acts { opacity: 1; }
+.session .s-acts button {
+  background: transparent; border: none; color: var(--text-muted);
+  padding: 5px; border-radius: var(--r-sm); cursor: pointer; display: flex;
+}
+.session .s-acts button:hover { background: var(--surface-strong); color: var(--text); }
+.session .s-acts .msr { font-size: 17px; }
+.session .s-edit {
+  width: 100%; background: var(--surface); color: var(--text);
+  border: 1px solid var(--accent); border-radius: var(--r-sm);
+  padding: 6px 8px; font: inherit; font-size: 14px; outline: none;
+}
 
 .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .chat-head {
