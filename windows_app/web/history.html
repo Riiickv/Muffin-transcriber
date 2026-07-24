@@ -22,21 +22,56 @@
         <h2>History</h2>
         <div class="search"><span class="msr" style="font-size:16px">&#xE8B6;</span> Search transcripts</div>
 
-        <div class="hist-item active">
-          <div class="lead-icon"><span class="msr" style="font-size:18px">&#xE1B8;</span></div>
-          <div class="meta"><div class="h-title">Lezione 12 marzo</div><div class="h-date">Today &middot; 14 min</div></div>
+        <div class="hist-card active">
+          <div class="lead"><span class="msr" style="font-size:22px">&#xE1B8;</span></div>
+          <div class="body">
+            <div class="h-title">Lezione 12 marzo</div>
+            <div class="h-date">Thu, Jul 23, 2:04 PM &middot; 14:02</div>
+            <div class="h-snippet">Buongiorno a tutti, oggi parliamo del Rinascimento italiano e delle sue figure principali. Cominciamo da Firenze, culla del movimento...</div>
+          </div>
+          <div class="acts">
+            <button title="Rename"><span class="msr" style="font-size:18px">&#xE3C9;</span></button>
+            <button title="Delete"><span class="msr" style="font-size:18px">&#xE872;</span></button>
+          </div>
         </div>
-        <div class="hist-item">
-          <div class="lead-icon"><span class="msr" style="font-size:18px">&#xE1B8;</span></div>
-          <div class="meta"><div class="h-title">Voice memo</div><div class="h-date">Yesterday &middot; 2 min</div></div>
+
+        <div class="hist-card">
+          <div class="lead"><span class="msr" style="font-size:22px">&#xE1B8;</span></div>
+          <div class="body">
+            <div class="h-title">Ho mandato l'installer</div>
+            <div class="h-date">Wed, Jul 22, 3:28 PM &middot; 01:28</div>
+            <div class="h-snippet">Ho mandato l'installer con il link nuovo. Ho provato un browser diverso se non funziona, prova su altri...</div>
+          </div>
+          <div class="acts">
+            <button title="Rename"><span class="msr" style="font-size:18px">&#xE3C9;</span></button>
+            <button title="Delete"><span class="msr" style="font-size:18px">&#xE872;</span></button>
+          </div>
         </div>
-        <div class="hist-item">
-          <div class="lead-icon"><span class="msr" style="font-size:18px">&#xE1B8;</span></div>
-          <div class="meta"><div class="h-title">Riunione team</div><div class="h-date">Monday &middot; 41 min</div></div>
+
+        <div class="hist-card">
+          <div class="lead"><span class="msr" style="font-size:22px">&#xE1B8;</span></div>
+          <div class="body">
+            <div class="h-title">Riunione team</div>
+            <div class="h-date">Mon, Jul 20, 9:15 AM &middot; 41:07</div>
+            <div class="h-snippet">Allora ragazzi, ricapitoliamo gli obiettivi della settimana e vediamo a che punto siamo con la release...</div>
+          </div>
+          <div class="acts">
+            <button title="Rename"><span class="msr" style="font-size:18px">&#xE3C9;</span></button>
+            <button title="Delete"><span class="msr" style="font-size:18px">&#xE872;</span></button>
+          </div>
         </div>
-        <div class="hist-item">
-          <div class="lead-icon"><span class="msr" style="font-size:18px">&#xE1B8;</span></div>
-          <div class="meta"><div class="h-title">Intervista</div><div class="h-date">Jul 18 &middot; 23 min</div></div>
+
+        <div class="hist-card">
+          <div class="lead"><span class="msr" style="font-size:22px">&#xE1B8;</span></div>
+          <div class="body">
+            <div class="h-title">Voice Memo</div>
+            <div class="h-date">Tue, Jul 21, 9:25 PM &middot; 00:06</div>
+            <div class="h-snippet">Domani sera vado a fare un salto a Roma, devo passare a prendere le chiavi dell'appartamento nuovo...</div>
+          </div>
+          <div class="acts">
+            <button title="Rename"><span class="msr" style="font-size:18px">&#xE3C9;</span></button>
+            <button title="Delete"><span class="msr" style="font-size:18px">&#xE872;</span></button>
+          </div>
         </div>
       </aside>
 
@@ -97,9 +132,9 @@
         });
       });
     });
-    document.querySelectorAll('.hist-item').forEach(function (it) {
+    document.querySelectorAll('.hist-card').forEach(function (it) {
       it.addEventListener('click', function () {
-        document.querySelectorAll('.hist-item').forEach(function (x) { x.classList.remove('active'); });
+        document.querySelectorAll('.hist-card').forEach(function (x) { x.classList.remove('active'); });
         it.classList.add('active');
       });
     });
