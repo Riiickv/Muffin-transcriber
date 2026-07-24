@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!--
+    Mirrors the mobile Settings screen: same groups, same order, same wording.
+    Mobile order (app/(tabs)/settings.tsx):
+      0 Models  1 Transcription  2 Format & Summarize  3 Memory Context
+      4 Appearance  5 Custom prompts  6 Storage  7 About
+    Windows-only rows are blended into the group they belong to.
+-->
 <Page
     x:Class="MuffinTranscriber.Pages.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -13,207 +20,243 @@
     <Grid>
         <ScrollViewer HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
             <StackPanel
-            Padding="28,20,28,28"
-            Spacing="18"
-            HorizontalAlignment="Stretch">
-            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_Title}" />
+                MaxWidth="820"
+                Margin="28,20,28,120"
+                HorizontalAlignment="Stretch">
 
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_PersonalizationTitle}" />
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_Title}" />
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_LanguageTitle}" Description="{x:Bind local:AppStrings.Settings_LanguageDesc}">
-                <ComboBox x:Name="AppLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="220">
-                    <ComboBoxItem Content="English" Tag="en" />
-                    <ComboBoxItem Content="Italiano" Tag="it" />
-                    <ComboBoxItem Content="Español" Tag="es" />
-                    <ComboBoxItem Content="Français" Tag="fr" />
-                    <ComboBoxItem Content="Deutsch" Tag="de" />
-                    <ComboBoxItem Content="Português" Tag="pt" />
-                </ComboBox>
-            </toolkit:SettingsCard>
+                <!--  0 - MODELS  -->
+                <toolkit:SettingsCard
+                    Margin="0,20,0,0"
+                    Click="ManageModels_Click"
+                    Header="{x:Bind local:AppStrings.Settings_ManageModelsTitle}"
+                    Description="{x:Bind ModelsInstalledText}"
+                    IsClickEnabled="True" />
 
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_AppearanceHeader}" />
+                <!--  1 - TRANSCRIPTION  -->
+                <TextBlock Style="{StaticResource MuffinSectionHeader}" Text="{x:Bind local:AppStrings.Settings_TranscriptionHeader}" />
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ThemeTitle}" Description="{x:Bind local:AppStrings.Settings_ThemeDesc}">
-                <ComboBox x:Name="ThemeBox" SelectionChanged="SaveOnSelectionChanged" Width="220" />
-            </toolkit:SettingsCard>
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_DefaultLanguageTitle}">
+                    <ComboBox x:Name="DefaultLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="240" />
+                </toolkit:SettingsCard>
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AccentTitle}" Description="{x:Bind local:AppStrings.Settings_AccentDesc}">
-                <ComboBox x:Name="AccentBox" SelectionChanged="AccentBox_SelectionChanged" Width="180">
-                    <ComboBoxItem Tag="System">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Ellipse x:Name="SystemAccentSwatch" Width="16" Height="16" />
-                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentSystem}" />
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_PrefWhisperTitle}">
+                    <ComboBox x:Name="PreferredWhisperBox" SelectionChanged="SaveOnSelectionChanged" Width="240" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_AudioNormTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_AudioNormDesc}">
+                    <ToggleSwitch x:Name="NormalizeAudioSwitch" Toggled="SaveOnToggled" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_AutoCopyTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_AutoCopyDesc}">
+                    <ToggleSwitch x:Name="AutoCopySwitch" Toggled="SaveOnToggled" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_TypewriterTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_TypewriterDesc}">
+                    <ToggleSwitch x:Name="TypewriterSwitch" Toggled="TypewriterSwitch_Toggled" />
+                </toolkit:SettingsCard>
+
+                <!--  Only meaningful while the typewriter is on, same as mobile.  -->
+                <toolkit:SettingsCard x:Name="TypingSpeedCard" Header="{x:Bind local:AppStrings.Settings_TypewriterSpeedTitle}">
+                    <Border Style="{StaticResource MuffinSegmentStrip}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="SpeedSlowButton" Click="SpeedButton_Click" Tag="Slow" Content="{x:Bind local:AppStrings.Settings_SpeedSlow}" Style="{StaticResource MuffinSegment}" />
+                            <Button x:Name="SpeedBalancedButton" Click="SpeedButton_Click" Tag="Balanced" Content="{x:Bind local:AppStrings.Settings_SpeedBalanced}" Style="{StaticResource MuffinSegment}" />
+                            <Button x:Name="SpeedFastButton" Click="SpeedButton_Click" Tag="Fast" Content="{x:Bind local:AppStrings.Settings_SpeedFast}" Style="{StaticResource MuffinSegment}" />
                         </StackPanel>
-                    </ComboBoxItem>
-                    <ComboBoxItem Tag="Muffin">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Ellipse Width="16" Height="16" Fill="#FF9EBB" />
-                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentMuffin}" />
+                    </Border>
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_MicTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_MicDesc}">
+                    <Button Content="{x:Bind local:AppStrings.Settings_BtnOpenMic}" Click="OpenMicSettings_Click" />
+                </toolkit:SettingsCard>
+
+                <!--  2 - FORMAT & SUMMARIZE  -->
+                <TextBlock Style="{StaticResource MuffinSectionHeader}" Text="{x:Bind local:AppStrings.Settings_FormattingHeader}" />
+
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_FormatByDefaultTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_FormatByDefaultDesc}">
+                    <ToggleSwitch x:Name="FormatByDefaultSwitch" Toggled="SaveOnToggled" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_SummarizeByDefaultTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_SummarizeByDefaultDesc}">
+                    <ToggleSwitch x:Name="SummarizeByDefaultSwitch" Toggled="SaveOnToggled" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_PreferredFormatterTitle}">
+                    <ComboBox x:Name="PreferredFormatterBox" SelectionChanged="SaveOnSelectionChanged" Width="240" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_FormatLanguageTitle}">
+                    <ComboBox x:Name="FormatLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="240" />
+                </toolkit:SettingsCard>
+
+                <!--  3 - MEMORY CONTEXT  -->
+                <TextBlock Style="{StaticResource MuffinSectionHeader}" Text="{x:Bind local:AppStrings.Settings_MemoryHeader}" />
+
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_ContextLearnTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_ContextLearnDesc}">
+                    <ToggleSwitch x:Name="ContextLearningSwitch" Toggled="SaveOnToggled" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ManageMemoryTitle}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Content="{x:Bind local:AppStrings.Settings_BtnEditMemory}" Click="EditMemory_Click" />
+                        <Button Content="{x:Bind local:AppStrings.Settings_BtnClear}" Click="ClearMemory_Click" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
+
+                <TextBlock Style="{StaticResource MuffinSectionFooter}" Text="{x:Bind local:AppStrings.Settings_MemoryFooter}" />
+
+                <!--  4 - APPEARANCE  -->
+                <TextBlock Style="{StaticResource MuffinSectionHeader}" Text="{x:Bind local:AppStrings.Settings_AppearanceHeader}" />
+
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_LanguageTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_LanguageDesc}">
+                    <ComboBox x:Name="AppLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="240">
+                        <ComboBoxItem Content="English" Tag="en" />
+                        <ComboBoxItem Content="Italiano" Tag="it" />
+                        <ComboBoxItem Content="Español" Tag="es" />
+                        <ComboBoxItem Content="Français" Tag="fr" />
+                        <ComboBoxItem Content="Deutsch" Tag="de" />
+                        <ComboBoxItem Content="Português" Tag="pt" />
+                    </ComboBox>
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ThemeTitle}">
+                    <Border Style="{StaticResource MuffinSegmentStrip}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="ThemeSystemButton" Click="ThemeButton_Click" Tag="System" Content="Auto" Style="{StaticResource MuffinSegment}" />
+                            <Button x:Name="ThemeLightButton" Click="ThemeButton_Click" Tag="Light" Content="Light" Style="{StaticResource MuffinSegment}" />
+                            <Button x:Name="ThemeDarkButton" Click="ThemeButton_Click" Tag="Dark" Content="Dark" Style="{StaticResource MuffinSegment}" />
+                            <Button x:Name="ThemeAmoledButton" Click="ThemeButton_Click" Tag="AMOLED" Content="AMOLED" Style="{StaticResource MuffinSegment}" />
                         </StackPanel>
-                    </ComboBoxItem>
-                    <ComboBoxItem Tag="Green">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Ellipse Width="16" Height="16" Fill="#65D28A" />
-                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentGreen}" />
-                        </StackPanel>
-                    </ComboBoxItem>
-                    <ComboBoxItem Tag="Purple">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Ellipse Width="16" Height="16" Fill="#A975C2" />
-                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentPurple}" />
-                        </StackPanel>
-                    </ComboBoxItem>
-                    <ComboBoxItem Tag="Red">
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Ellipse Width="16" Height="16" Fill="#ED6F62" />
-                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentRed}" />
-                        </StackPanel>
-                    </ComboBoxItem>
-                </ComboBox>
-            </toolkit:SettingsCard>
+                    </Border>
+                </toolkit:SettingsCard>
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_TypewriterTitle}" Description="{x:Bind local:AppStrings.Settings_TypewriterDesc}">
-                <ToggleSwitch x:Name="TypewriterSwitch" Toggled="SaveOnToggled" />
-            </toolkit:SettingsCard>
+                <!--  Circular swatches, like mobile's SwatchRow.  -->
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AccentTitle}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="AccentSystemSwatch" Click="AccentSwatch_Click" Tag="System" Style="{StaticResource MuffinSwatch}" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentSystem}" />
+                        <Button x:Name="AccentMuffinSwatch" Click="AccentSwatch_Click" Tag="Muffin" Style="{StaticResource MuffinSwatch}" Background="#FF9EBB" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentMuffin}" />
+                        <Button x:Name="AccentGreenSwatch" Click="AccentSwatch_Click" Tag="Green" Style="{StaticResource MuffinSwatch}" Background="#65D28A" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentGreen}" />
+                        <Button x:Name="AccentPurpleSwatch" Click="AccentSwatch_Click" Tag="Purple" Style="{StaticResource MuffinSwatch}" Background="#A975C2" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentPurple}" />
+                        <Button x:Name="AccentRedSwatch" Click="AccentSwatch_Click" Tag="Red" Style="{StaticResource MuffinSwatch}" Background="#ED6F62" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentRed}" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_TypewriterSpeedTitle}" Description="{x:Bind local:AppStrings.Settings_TypewriterSpeedDesc}">
-                <ComboBox x:Name="TypewriterSpeedBox" SelectionChanged="SaveOnSelectionChanged" Width="150">
-                    <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_SpeedSlow}" Tag="Slow" />
-                    <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_SpeedBalanced}" Tag="Balanced" />
-                    <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_SpeedFast}" Tag="Fast" />
-                </ComboBox>
-            </toolkit:SettingsCard>
+                <!--  5 - CUSTOM PROMPTS  -->
+                <TextBlock Style="{StaticResource MuffinSectionHeader}" Text="{x:Bind local:AppStrings.Settings_PromptsHeader}" />
 
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_DefaultsHeader}" />
+                <Border Style="{StaticResource MuffinCard}" Padding="16">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{x:Bind local:AppStrings.Settings_CustomFormatTitle}" />
+                        <TextBox
+                            x:Name="CustomFormatBox"
+                            AcceptsReturn="True"
+                            MinHeight="80"
+                            PlaceholderText="{x:Bind local:AppStrings.Settings_CustomFormatPlaceholder}"
+                            TextChanged="CustomPromptBox_TextChanged"
+                            TextWrapping="Wrap" />
+                        <TextBlock Margin="0,8,0,0" Text="{x:Bind local:AppStrings.Settings_CustomSummaryTitle}" />
+                        <TextBox
+                            x:Name="CustomSummaryBox"
+                            AcceptsReturn="True"
+                            MinHeight="80"
+                            PlaceholderText="{x:Bind local:AppStrings.Settings_CustomSummaryPlaceholder}"
+                            TextChanged="CustomPromptBox_TextChanged"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_DefaultLanguageTitle}" Description="{x:Bind local:AppStrings.Settings_DefaultLanguageDesc}">
-                <ComboBox x:Name="DefaultLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="220" />
-            </toolkit:SettingsCard>
+                <TextBlock Style="{StaticResource MuffinSectionFooter}" Text="{x:Bind local:AppStrings.Settings_PromptsFooter}" />
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_PrefWhisperTitle}" Description="{x:Bind local:AppStrings.Settings_PrefWhisperDesc}">
-                <ComboBox x:Name="PreferredWhisperBox" SelectionChanged="SaveOnSelectionChanged" Width="260" />
-            </toolkit:SettingsCard>
+                <!--  6 - STORAGE  -->
+                <TextBlock Style="{StaticResource MuffinSectionHeader}" Text="{x:Bind local:AppStrings.Settings_StorageHeader}" />
 
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_FormattingHeader}" />
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AutoDeleteTitle}">
+                    <ComboBox x:Name="AutoDeleteBox" SelectionChanged="SaveOnSelectionChanged" Width="180">
+                        <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_AutoDeleteNever}" Tag="Never" />
+                        <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_AutoDelete1Week}" Tag="1 Week" />
+                        <ComboBoxItem Content="{x:Bind local:AppStrings.Settings_AutoDelete1Month}" Tag="1 Month" />
+                    </ComboBox>
+                </toolkit:SettingsCard>
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_FormatByDefaultTitle}" Description="{x:Bind local:AppStrings.Settings_FormatByDefaultDesc}">
-                <ToggleSwitch x:Name="FormatByDefaultSwitch" Toggled="SaveOnToggled" />
-            </toolkit:SettingsCard>
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_AudioCacheTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_AudioCacheDesc}">
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <TextBlock x:Name="AudioCacheSizeText" VerticalAlignment="Center" Opacity="0.6" Text="0 MB" />
+                        <Button Content="{x:Bind local:AppStrings.Settings_BtnClear}" Click="ClearAudioCache_Click" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_FormatLanguageTitle}" Description="{x:Bind local:AppStrings.Settings_FormatLanguageDesc}">
-                <ComboBox x:Name="FormatLanguageBox" SelectionChanged="SaveOnSelectionChanged" Width="220" />
-            </toolkit:SettingsCard>
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_VideoCacheTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_VideoCacheDesc}">
+                    <StackPanel Orientation="Horizontal" Spacing="16">
+                        <TextBlock x:Name="VideoCacheSizeText" VerticalAlignment="Center" Opacity="0.6" Text="0 MB" />
+                        <Button Content="{x:Bind local:AppStrings.Settings_BtnClear}" Click="ClearVideoCache_Click" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
 
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_BehaviorHeader}" />
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_ModelsFolderTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_ModelsFolderDesc}">
+                    <Button Content="{x:Bind local:AppStrings.Settings_BtnOpen}" Click="OpenModelsFolder_Click" />
+                </toolkit:SettingsCard>
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AudioNormTitle}" Description="{x:Bind local:AppStrings.Settings_AudioNormDesc}">
-                <ToggleSwitch x:Name="NormalizeAudioSwitch" Toggled="SaveOnToggled" />
-            </toolkit:SettingsCard>
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_ResetTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_ResetDesc}">
+                    <Button Content="{x:Bind local:AppStrings.Settings_BtnReset}" Click="ResetSettings_Click" />
+                </toolkit:SettingsCard>
 
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AutoCopyTitle}" Description="{x:Bind local:AppStrings.Settings_AutoCopyDesc}">
-                <ToggleSwitch x:Name="AutoCopySwitch" Toggled="SaveOnToggled" />
-            </toolkit:SettingsCard>
+                <!--  7 - ABOUT  -->
+                <TextBlock Style="{StaticResource MuffinSectionHeader}" Text="{x:Bind local:AppStrings.Settings_AboutHeader}" />
 
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_PromptsHeader}" />
+                <toolkit:SettingsCard
+                    Header="{x:Bind local:AppStrings.Settings_AutoUpdateTitle}"
+                    Description="{x:Bind local:AppStrings.Settings_AutoUpdateDesc}">
+                    <ToggleSwitch x:Name="AutoUpdateCheckSwitch" Toggled="SaveOnToggled" />
+                </toolkit:SettingsCard>
 
-            <StackPanel Spacing="8" Margin="0,0,0,16">
-                <TextBlock Text="{x:Bind local:AppStrings.Settings_CustomFormatTitle}" Style="{StaticResource BodyTextBlockStyle}" />
-                <TextBlock Text="{x:Bind local:AppStrings.Settings_CustomFormatDesc}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
-                <TextBox x:Name="CustomFormatBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" TextChanged="CustomPromptBox_TextChanged" />
-                <Button Content="{x:Bind local:AppStrings.Settings_BtnResetPrompt}" Click="ResetFormatPrompt_Click" HorizontalAlignment="Right" />
+                <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_PrivacyPolicy}" IsClickEnabled="True" Click="PrivacyPolicy_Click" />
+
+                <toolkit:SettingsCard Header="{x:Bind VersionText}" Description="{x:Bind local:AppStrings.Credits}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <HyperlinkButton Content="{x:Bind local:AppStrings.Settings_BtnChangelog}" NavigateUri="https://github.com/Riiickv/Muffin-transcriber/releases" />
+                        <Button x:Name="CheckUpdatesButton" Content="{x:Bind local:AppStrings.Settings_BtnCheckUpdates}" Click="CheckUpdates_Click" Style="{StaticResource AccentButtonStyle}" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
             </StackPanel>
+        </ScrollViewer>
 
-            <StackPanel Spacing="8" Margin="0,0,0,16">
-                <TextBlock Text="{x:Bind local:AppStrings.Settings_CustomSummaryTitle}" Style="{StaticResource BodyTextBlockStyle}" />
-                <TextBlock Text="{x:Bind local:AppStrings.Settings_CustomSummaryDesc}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Style="{StaticResource CaptionTextBlockStyle}" />
-                <TextBox x:Name="CustomSummaryBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="100" TextChanged="CustomPromptBox_TextChanged" />
-                <Button Content="{x:Bind local:AppStrings.Settings_BtnResetSummary}" Click="ResetSummaryPrompt_Click" HorizontalAlignment="Right" />
-            </StackPanel>
-
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_MemoryHeader}" />
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ContextLearnTitle}" Description="{x:Bind local:AppStrings.Settings_ContextLearnDesc}">
-                <ToggleSwitch x:Name="ContextLearningSwitch" Toggled="SaveOnToggled" />
-            </toolkit:SettingsCard>
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ManageMemoryTitle}" Description="{x:Bind local:AppStrings.Settings_ManageMemoryDesc}">
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                    <Button Content="{x:Bind local:AppStrings.Settings_BtnEditMemory}" Click="EditMemory_Click" />
-                    <Button Content="{x:Bind local:AppStrings.Settings_BtnClear}" Click="ClearMemory_Click" />
-                </StackPanel>
-            </toolkit:SettingsCard>
-
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_MicHeader}" />
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_MicTitle}" Description="{x:Bind local:AppStrings.Settings_MicDesc}">
-                <Button Content="{x:Bind local:AppStrings.Settings_BtnOpenMic}" Click="OpenMicSettings_Click" />
-            </toolkit:SettingsCard>
-
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_StorageHeader}" />
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AutoDeleteTitle}" Description="{x:Bind local:AppStrings.Settings_AutoDeleteDesc}">
-                <ComboBox x:Name="AutoDeleteBox" SelectionChanged="SaveOnSelectionChanged" Width="150">
-                    <ComboBoxItem Content="Never" />
-                    <ComboBoxItem Content="1 Week" />
-                    <ComboBoxItem Content="1 Month" />
-                </ComboBox>
-            </toolkit:SettingsCard>
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AudioCacheTitle}" Description="{x:Bind local:AppStrings.Settings_AudioCacheDesc}">
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                    <TextBlock x:Name="AudioCacheSizeText" VerticalAlignment="Center" Text="0 MB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <Button Content="{x:Bind local:AppStrings.Settings_BtnClear}" Click="ClearAudioCache_Click" />
-                </StackPanel>
-            </toolkit:SettingsCard>
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_VideoCacheTitle}" Description="{x:Bind local:AppStrings.Settings_VideoCacheDesc}">
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                    <TextBlock x:Name="VideoCacheSizeText" VerticalAlignment="Center" Text="0 MB" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <Button Content="{x:Bind local:AppStrings.Settings_BtnClear}" Click="ClearVideoCache_Click" />
-                </StackPanel>
-            </toolkit:SettingsCard>
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ManageModelsTitle}" Description="{x:Bind local:AppStrings.Settings_ManageModelsDesc}">
-                <Button Content="{x:Bind local:AppStrings.Settings_BtnManageModels}" Click="ManageModels_Click" Style="{StaticResource AccentButtonStyle}" />
-            </toolkit:SettingsCard>
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ModelsFolderTitle}" Description="{x:Bind local:AppStrings.Settings_ModelsFolderDesc}">
-                <Button Content="{x:Bind local:AppStrings.Settings_BtnOpen}" Click="OpenModelsFolder_Click" />
-            </toolkit:SettingsCard>
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_ResetTitle}" Description="{x:Bind local:AppStrings.Settings_ResetDesc}">
-                <Button Content="{x:Bind local:AppStrings.Settings_BtnReset}" Click="ResetSettings_Click" />
-            </toolkit:SettingsCard>
-
-            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind local:AppStrings.Settings_AboutHeader}" />
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AutoUpdateTitle}" Description="{x:Bind local:AppStrings.Settings_AutoUpdateDesc}">
-                <ToggleSwitch x:Name="AutoUpdateCheckSwitch" Toggled="SaveOnToggled" />
-            </toolkit:SettingsCard>
-
-            <toolkit:SettingsCard Header="{x:Bind local:AppStrings.App_Title}" Description="{x:Bind local:AppStrings.Credits}">
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                    <TextBlock Text="{x:Bind local:AppStrings.AppVersion}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <HyperlinkButton Content="{x:Bind local:AppStrings.Settings_BtnChangelog}" NavigateUri="https://github.com/Riiickv/Muffin-transcriber/releases" VerticalAlignment="Center" />
-                    <Button x:Name="CheckUpdatesButton" Content="{x:Bind local:AppStrings.Settings_BtnCheckUpdates}" Click="CheckUpdates_Click" Style="{StaticResource AccentButtonStyle}" />
-                </StackPanel>
-            </toolkit:SettingsCard>
-
-        </StackPanel>
-    </ScrollViewer>
-
-    <!-- Floating Notification -->
-    <InfoBar
-        x:Name="StatusBar"
-        IsOpen="False"
-        IsClosable="True"
-        Severity="Informational"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Bottom"
-        Margin="0,0,0,32">
-        <InfoBar.Shadow>
-            <ThemeShadow />
-        </InfoBar.Shadow>
-    </InfoBar>
-</Grid>
+        <InfoBar
+            x:Name="StatusBar"
+            Margin="0,0,0,32"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            IsClosable="True"
+            IsOpen="False"
+            Severity="Informational">
+            <InfoBar.Shadow>
+                <ThemeShadow />
+            </InfoBar.Shadow>
+        </InfoBar>
+    </Grid>
 </Page>
