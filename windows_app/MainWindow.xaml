@@ -54,6 +54,10 @@
                         Text="{x:Bind local:AppStrings.Nav_Home}" />
                 </StackPanel>
             </NavigationView.PaneHeader>
+            <!--  Always reachable, on every screen, like the mobile mic button.  -->
+            <NavigationView.PaneFooter>
+                <controls:RecordFab x:Name="MicFab" Failed="MicFab_Failed" />
+            </NavigationView.PaneFooter>
             <NavigationView.MenuItems>
                 <NavigationViewItem
                     Content="{x:Bind local:AppStrings.Nav_Home}"
@@ -94,9 +98,6 @@
             PointerMoved="PaneResizeGrip_PointerMoved"
             PointerReleased="PaneResizeGrip_PointerReleased"
             PointerCanceled="PaneResizeGrip_PointerReleased" />
-
-        <!--  Always reachable, on every screen, like the mobile mic button.  -->
-        <controls:RecordFab x:Name="MicFab" Grid.Row="1" Failed="MicFab_Failed" />
 
         <StackPanel
             Grid.RowSpan="2"
