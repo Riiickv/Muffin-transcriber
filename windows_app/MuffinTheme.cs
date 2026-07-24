@@ -44,29 +44,52 @@ public static class MuffinTheme
     {
         if (!_installed)
         {
-            var resources = Application.Current.Resources;
+            // These MUST go into the app's ThemeDictionaries, not into
+            // Application.Resources directly. A {ThemeResource} lookup consults
+            // the theme dictionaries first, so plain top-level entries lose to
+            // XamlControlsResources and the buttons keep painting themselves
+            // with the user's Windows accent instead of the Muffin pink.
+            foreach (string theme in new[] { "Default", "Light" })
+            {
+                if (Application.Current.Resources.ThemeDictionaries.TryGetValue(theme, out object? entry)
+                    && entry is ResourceDictionary dictionary)
+                {
+                    InstallInto(dictionary);
+                }
+            }
 
-            // Button/toggle/progress/selection fills.
-            resources["AccentFillColorDefaultBrush"] = FillDefault;
-            resources["AccentFillColorSecondaryBrush"] = FillSecondary;
-            resources["AccentFillColorTertiaryBrush"] = FillTertiary;
-            resources["AccentFillColorSelectedTextBackgroundBrush"] = FillDefault;
-
-            // Text drawn ON the accent. The stock value is white, which is
-            // unreadable on the light Muffin pink, so this is not optional.
-            resources["TextOnAccentFillColorPrimaryBrush"] = TextOnAccentPrimary;
-            resources["TextOnAccentFillColorSecondaryBrush"] = TextOnAccentSecondary;
-
-            // Accent-coloured TEXT (hyperlinks). Uses a darkened accent so it
-            // stays legible against a light page instead of glowing.
-            resources["AccentTextFillColorPrimaryBrush"] = AccentText;
-            resources["AccentTextFillColorSecondaryBrush"] = AccentText;
-            resources["AccentTextFillColorTertiaryBrush"] = AccentText;
+            // Belt and braces for any lookup that bypasses the theme dictionaries.
+            InstallInto(Application.Current.Resources);
 
             _installed = true;
         }
 
         Apply(accentKey);
+    }
+
+    // The same brush instances go into every theme (the accent does not change
+    // with light/dark), which is also what keeps live switching working: one
+    // object to mutate, every control repaints.
+    private static void InstallInto(ResourceDictionary dictionary)
+    {
+        dictionary["AccentFillColorDefaultBrush"] = FillDefault;
+        dictionary["AccentFillColorSecondaryBrush"] = FillSecondary;
+        dictionary["AccentFillColorTertiaryBrush"] = FillTertiary;
+        dictionary["AccentFillColorSelectedTextBackgroundBrush"] = FillDefault;
+        dictionary["SystemControlHighlightAccentBrush"] = FillDefault;
+        dictionary["SystemAccentColorBrush"] = FillDefault;
+
+        // Text drawn ON the accent. The stock value is white, unreadable on the
+        // light Muffin pink, so this is not optional.
+        dictionary["TextOnAccentFillColorPrimaryBrush"] = TextOnAccentPrimary;
+        dictionary["TextOnAccentFillColorSecondaryBrush"] = TextOnAccentSecondary;
+        dictionary["TextOnAccentFillColorSelectedTextBrush"] = TextOnAccentPrimary;
+
+        // Accent-coloured TEXT (hyperlinks): darkened so it stays legible
+        // against a light page instead of glowing.
+        dictionary["AccentTextFillColorPrimaryBrush"] = AccentText;
+        dictionary["AccentTextFillColorSecondaryBrush"] = AccentText;
+        dictionary["AccentTextFillColorTertiaryBrush"] = AccentText;
     }
 
     /// <summary>Repaints every accented control. Safe to call at any time.</summary>

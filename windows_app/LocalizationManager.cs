@@ -3,89 +3,67 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Diagnostics;
-using System.Reflection;
 
 namespace MuffinTranscriber;
 
+/// <summary>
+/// String lookup with the SAME fallback model as the mobile app's i18n:
+/// selected language -> English -> the literal in code, PER KEY. A missing
+/// translation shows English for that one string instead of blanking out or
+/// dragging the whole app back to English.
+///
+/// Two files per language, both in the install dir's Strings folder:
+///   {lang}.json     GENERATED from the mobile app's strings (shared catalog)
+///   pc.{lang}.json  hand-maintained PC-only strings (updater, engines, ...)
+/// </summary>
 public static class LocalizationManager
 {
     private static Dictionary<string, string> _strings = new();
-    private static bool _fallbackMode = true;
+    private static Dictionary<string, string> _english = new();
+    private static bool _englishLoaded;
 
     public static void LoadLanguage(string languageCode)
     {
-        // A user copy in AppData\Strings wins (they can hand-edit it); otherwise
-        // fall back to the translation shipped alongside the app. English always
-        // uses the code defaults, so it never needs a file.
-        if (languageCode != "en")
+        if (!_englishLoaded)
         {
-            if (TryLoad(Path.Combine(AppModel.AppDataDir, "Strings", $"{languageCode}.json"))) return;
-            if (TryLoad(Path.Combine(AppModel.AppInstallDir, "Strings", $"{languageCode}.json"))) return;
+            _english = LoadPair("en");
+            _englishLoaded = true;
         }
 
-        _strings = new Dictionary<string, string>();
-        _fallbackMode = true;
+        _strings = languageCode == "en" ? _english : LoadPair(languageCode);
     }
 
-    private static bool TryLoad(string filePath)
+    private static Dictionary<string, string> LoadPair(string languageCode)
     {
-        if (!File.Exists(filePath)) return false;
+        var merged = new Dictionary<string, string>();
+        string dir = Path.Combine(AppModel.AppInstallDir, "Strings");
+        MergeFile(merged, Path.Combine(dir, $"{languageCode}.json"));
+        MergeFile(merged, Path.Combine(dir, $"pc.{languageCode}.json"));
+        return merged;
+    }
+
+    private static void MergeFile(Dictionary<string, string> into, string filePath)
+    {
+        if (!File.Exists(filePath)) return;
         try
         {
             var loaded = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(filePath));
-            if (loaded != null)
+            if (loaded is null) return;
+            foreach ((string key, string value) in loaded)
             {
-                _strings = loaded;
-                _fallbackMode = false;
-                return true;
+                into[key] = value;
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"Error loading localization {filePath}: {ex.Message}");
         }
-        return false;
-    }
-
-    public static void CreateDefaultLanguageFile()
-    {
-        try
-        {
-            string stringsDir = Path.Combine(AppModel.AppDataDir, "Strings");
-            Directory.CreateDirectory(stringsDir);
-            string filePath = Path.Combine(stringsDir, "en.json");
-
-            // Always regenerate en.json from the code. English is the source
-            // language, so it must mirror the current AppStrings defaults — an
-            // older cached copy would otherwise mask code changes (e.g. a
-            // renamed title). Collect defaults with fallback mode forced on.
-            _fallbackMode = true;
-            var defaults = new Dictionary<string, string>();
-            foreach (var prop in typeof(AppStrings).GetProperties(BindingFlags.Public | BindingFlags.Static))
-            {
-                if (prop.PropertyType == typeof(string))
-                {
-                    string? value = prop.GetValue(null) as string;
-                    if (value != null) defaults[prop.Name] = value;
-                }
-            }
-
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            File.WriteAllText(filePath, JsonSerializer.Serialize(defaults, options));
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error creating default en.json: {ex.Message}");
-        }
     }
 
     public static string GetString(string key, string fallback)
     {
-        if (!_fallbackMode && _strings.TryGetValue(key, out string? value) && value is not null)
-        {
-            return value;
-        }
-
+        if (_strings.TryGetValue(key, out string? value) && !string.IsNullOrEmpty(value)) return value;
+        if (_english.TryGetValue(key, out string? english) && !string.IsNullOrEmpty(english)) return english;
         return fallback;
     }
 }
