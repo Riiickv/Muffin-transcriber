@@ -267,7 +267,8 @@ public static class AppStrings
     public static string Settings_Dialog_Save => T("common.save", "Save");
     public static string Settings_Dialog_Cancel => T("common.cancel", "Cancel");
 
-    // Accent options - same palette as mobile.
+    // Accent options - same palette as mobile, System first like on Android.
+    public static string Settings_AccentSystem => T("pc.accent.system", "System");
     public static string Settings_AccentMuffin => T("pc.accent.muffin", "Muffin");
     public static string Settings_AccentGreen => T("pc.accent.green", "Green");
     public static string Settings_AccentPurple => T("pc.accent.purple", "Purple");

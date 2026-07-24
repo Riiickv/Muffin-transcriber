@@ -39,6 +39,12 @@
 
             <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AccentTitle}" Description="{x:Bind local:AppStrings.Settings_AccentDesc}">
                 <ComboBox x:Name="AccentBox" SelectionChanged="AccentBox_SelectionChanged" Width="180">
+                    <ComboBoxItem Tag="System">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Ellipse x:Name="SystemAccentSwatch" Width="16" Height="16" />
+                            <TextBlock Text="{x:Bind local:AppStrings.Settings_AccentSystem}" />
+                        </StackPanel>
+                    </ComboBoxItem>
                     <ComboBoxItem Tag="Muffin">
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <Ellipse Width="16" Height="16" Fill="#FF9EBB" />
