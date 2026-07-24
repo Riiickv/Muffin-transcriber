@@ -125,7 +125,7 @@ public sealed partial class SettingsPage : Page
         ThemeDarkButton.Style = _settings.ThemeMode == "Dark" ? selected : normal;
         ThemeAmoledButton.Style = _settings.ThemeMode == "AMOLED" ? selected : normal;
 
-        AccentSystemSwatch.Background = new SolidColorBrush(MuffinTheme.WindowsAccent);
+        SystemSwatchFill.Fill = new SolidColorBrush(MuffinTheme.WindowsAccent);
         var ring = (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
         foreach ((Button swatch, string key) in new[]
         {

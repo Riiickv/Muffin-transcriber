@@ -150,12 +150,28 @@
 
                 <!--  Circular swatches, like mobile's SwatchRow.  -->
                 <toolkit:SettingsCard Header="{x:Bind local:AppStrings.Settings_AccentTitle}">
+                    <!--
+                        The colour is an Ellipse INSIDE the button, not the
+                        button's Background: WinUI's hover and pressed visual
+                        states repaint Background, which turned the swatch grey
+                        the moment the pointer touched it.
+                    -->
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button x:Name="AccentSystemSwatch" Click="AccentSwatch_Click" Tag="System" Style="{StaticResource MuffinSwatch}" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentSystem}" />
-                        <Button x:Name="AccentMuffinSwatch" Click="AccentSwatch_Click" Tag="Muffin" Style="{StaticResource MuffinSwatch}" Background="#FF9EBB" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentMuffin}" />
-                        <Button x:Name="AccentGreenSwatch" Click="AccentSwatch_Click" Tag="Green" Style="{StaticResource MuffinSwatch}" Background="#65D28A" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentGreen}" />
-                        <Button x:Name="AccentPurpleSwatch" Click="AccentSwatch_Click" Tag="Purple" Style="{StaticResource MuffinSwatch}" Background="#A975C2" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentPurple}" />
-                        <Button x:Name="AccentRedSwatch" Click="AccentSwatch_Click" Tag="Red" Style="{StaticResource MuffinSwatch}" Background="#ED6F62" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentRed}" />
+                        <Button x:Name="AccentSystemSwatch" Click="AccentSwatch_Click" Tag="System" Style="{StaticResource MuffinSwatch}" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentSystem}">
+                            <Ellipse x:Name="SystemSwatchFill" Width="22" Height="22" />
+                        </Button>
+                        <Button x:Name="AccentMuffinSwatch" Click="AccentSwatch_Click" Tag="Muffin" Style="{StaticResource MuffinSwatch}" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentMuffin}">
+                            <Ellipse Width="22" Height="22" Fill="#FF9EBB" />
+                        </Button>
+                        <Button x:Name="AccentGreenSwatch" Click="AccentSwatch_Click" Tag="Green" Style="{StaticResource MuffinSwatch}" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentGreen}">
+                            <Ellipse Width="22" Height="22" Fill="#65D28A" />
+                        </Button>
+                        <Button x:Name="AccentPurpleSwatch" Click="AccentSwatch_Click" Tag="Purple" Style="{StaticResource MuffinSwatch}" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentPurple}">
+                            <Ellipse Width="22" Height="22" Fill="#A975C2" />
+                        </Button>
+                        <Button x:Name="AccentRedSwatch" Click="AccentSwatch_Click" Tag="Red" Style="{StaticResource MuffinSwatch}" ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_AccentRed}">
+                            <Ellipse Width="22" Height="22" Fill="#ED6F62" />
+                        </Button>
                     </StackPanel>
                 </toolkit:SettingsCard>
 

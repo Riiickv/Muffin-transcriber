@@ -8,65 +8,13 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <!--
+                    Muffin.xaml carries the accent and surface overrides and MUST
+                    stay after XamlControlsResources: merged dictionaries are
+                    searched last-first, so this is what lets our brushes win.
+                -->
                 <ResourceDictionary Source="ms-appx:///Styles/Muffin.xaml" />
             </ResourceDictionary.MergedDictionaries>
-
-            <!--
-                The accent brushes MUST be declared here, statically, not
-                inserted from code at startup: WinUI flattens the theme
-                dictionaries before the first window exists, so a brush added
-                later is found by a code lookup but NOT by the {ThemeResource}
-                references inside the built-in control templates. That mismatch
-                is exactly what made chat bubbles follow the Muffin accent while
-                every button kept painting itself with the user's Windows one.
-
-                MuffinTheme looks these instances up at startup and only mutates
-                their Color, which is what lets the accent picker apply live.
-
-                ApplicationPageBackgroundThemeBrush is deliberately NOT
-                overridden: the windows use a Mica backdrop and an opaque page
-                background would paint straight over it.
-            -->
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Default">
-                    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#FF9EBB" />
-                    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#E6FF9EBB" />
-                    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#CCFF9EBB" />
-                    <SolidColorBrush x:Key="AccentFillColorSelectedTextBackgroundBrush" Color="#FF9EBB" />
-                    <SolidColorBrush x:Key="SystemControlHighlightAccentBrush" Color="#FF9EBB" />
-                    <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#000000" />
-                    <SolidColorBrush x:Key="TextOnAccentFillColorSecondaryBrush" Color="#BF000000" />
-                    <SolidColorBrush x:Key="TextOnAccentFillColorSelectedTextBrush" Color="#000000" />
-                    <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#FFB9CE" />
-                    <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#FFB9CE" />
-                    <SolidColorBrush x:Key="AccentTextFillColorTertiaryBrush" Color="#FFB9CE" />
-
-                    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#17FFF0F5" />
-                    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#0FFFF0F5" />
-                    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#1FFFFFFF" />
-                </ResourceDictionary>
-
-                <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#FF9EBB" />
-                    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#E6FF9EBB" />
-                    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#CCFF9EBB" />
-                    <SolidColorBrush x:Key="AccentFillColorSelectedTextBackgroundBrush" Color="#FF9EBB" />
-                    <SolidColorBrush x:Key="SystemControlHighlightAccentBrush" Color="#FF9EBB" />
-                    <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#000000" />
-                    <SolidColorBrush x:Key="TextOnAccentFillColorSecondaryBrush" Color="#BF000000" />
-                    <SolidColorBrush x:Key="TextOnAccentFillColorSelectedTextBrush" Color="#000000" />
-                    <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#A65C77" />
-                    <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#A65C77" />
-                    <SolidColorBrush x:Key="AccentTextFillColorTertiaryBrush" Color="#A65C77" />
-
-                    <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#FFFDFAFB" />
-                    <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FFF8F3F5" />
-                    <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="#14000000" />
-                </ResourceDictionary>
-
-                <!-- Left empty on purpose: high contrast must keep system colours. -->
-                <ResourceDictionary x:Key="HighContrast" />
-            </ResourceDictionary.ThemeDictionaries>
 
             <!-- Softer geometry, closer to the mobile app's rounded cards. -->
             <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>

@@ -68,7 +68,7 @@ public sealed partial class RecordFab : UserControl
         bool recording = RecordingController.IsRecording;
 
         FabIcon.Glyph = recording ? "" : ""; // stop : mic
-        TimerPill.Visibility = recording ? Visibility.Visible : Visibility.Collapsed;
+        TimerText.Visibility = recording ? Visibility.Visible : Visibility.Collapsed;
         TimerText.Text = "0:00";
 
         if (recording)
