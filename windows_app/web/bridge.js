@@ -1,0 +1,210 @@
+// The bridge between the web UI and the C# backend.
+//
+// Everything the screens need from the app goes through Muffin.invoke(), which
+// posts a message to the WebView2 host and resolves when C# answers. The host
+// pushes state back the other way through Muffin.on().
+//
+// Opened in a plain browser (no WebView2 host) every call resolves to null and
+// the page keeps whatever static content is in the HTML. That is deliberate:
+// the screens have to stay previewable outside the app.
+
+(function () {
+  var host = (window.chrome && window.chrome.webview) || null;
+  var pending = {};
+  var nextId = 1;
+  var listeners = {};
+  var strings = {};
+  var settings = {};
+
+  function invoke(method, args) {
+    if (!host) return Promise.resolve(null);
+    var id = nextId++;
+    return new Promise(function (resolve, reject) {
+      pending[id] = { resolve: resolve, reject: reject };
+      host.postMessage(JSON.stringify({ id: id, method: method, args: args === undefined ? null : args }));
+    });
+  }
+
+  function on(event, handler) {
+    (listeners[event] || (listeners[event] = [])).push(handler);
+  }
+
+  function emit(event, payload) {
+    (listeners[event] || []).forEach(function (h) {
+      try { h(payload); } catch (e) { console.error(event, e); }
+    });
+  }
+
+  if (host) {
+    host.addEventListener("message", function (e) {
+      var msg = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+      if (msg.id) {
+        var p = pending[msg.id];
+        delete pending[msg.id];
+        if (!p) return;
+        if (msg.ok) p.resolve(msg.result);
+        else p.reject(new Error(msg.error || "bridge call failed"));
+        return;
+      }
+      if (msg.event) emit(msg.event, msg.payload);
+    });
+  }
+
+  // ---- translation -------------------------------------------------------
+  // The English text sits in the HTML and doubles as the fallback, so the pages
+  // read correctly in a browser and never blank out on a missing key.
+
+  function t(key, fallback) {
+    var v = strings[key];
+    return v === undefined || v === "" ? (fallback || key) : v;
+  }
+
+  function applyStrings(root) {
+    (root || document).querySelectorAll("[data-i18n]").forEach(function (el) {
+      if (el.dataset.i18nFallback === undefined) el.dataset.i18nFallback = el.textContent;
+      el.textContent = t(el.dataset.i18n, el.dataset.i18nFallback);
+    });
+    // data-i18n-attr="placeholder:transcribe.customPromptPlaceholder, title:common.copy"
+    (root || document).querySelectorAll("[data-i18n-attr]").forEach(function (el) {
+      el.dataset.i18nAttr.split(",").forEach(function (pair) {
+        var bits = pair.split(":");
+        if (bits.length !== 2) return;
+        var attr = bits[0].trim();
+        var key = bits[1].trim();
+        var store = "i18nFb" + attr;
+        if (el.dataset[store] === undefined) el.dataset[store] = el.getAttribute(attr) || "";
+        el.setAttribute(attr, t(key, el.dataset[store]));
+      });
+    });
+  }
+
+  // ---- theme -------------------------------------------------------------
+
+  function applyTheme(theme) {
+    if (!theme) return;
+    var root = document.documentElement;
+    if (theme.accent) root.style.setProperty("--accent", theme.accent);
+    if (theme.onAccent) root.style.setProperty("--on-accent", theme.onAccent);
+    if (theme.mode) root.setAttribute("data-theme", theme.mode);
+  }
+
+  // ---- settings ----------------------------------------------------------
+  // A control tagged data-setting is bound both ways with no per-screen code:
+  // it renders the stored value and writes back on change.
+
+  function readSettings(next) {
+    settings = next || {};
+    document.querySelectorAll("[data-setting]").forEach(function (el) {
+      var value = settings[el.dataset.setting];
+      if (value === undefined) return;
+
+      if (el.classList.contains("switch")) {
+        el.classList.toggle("on", !!value);
+        el.setAttribute("aria-pressed", !!value);
+      } else if (el.classList.contains("segmented")) {
+        el.querySelectorAll(".segment").forEach(function (seg) {
+          seg.classList.toggle("active", seg.dataset.value === String(value));
+        });
+      } else if (el.classList.contains("swatches")) {
+        el.querySelectorAll(".swatch").forEach(function (sw) {
+          sw.classList.toggle("selected", sw.dataset.value === String(value));
+        });
+      } else if (el.tagName === "SELECT") {
+        el.value = String(value);
+        if (window.syncDropdown) window.syncDropdown(el);
+      } else if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+        if (document.activeElement !== el) el.value = value == null ? "" : String(value);
+      }
+    });
+  }
+
+  function set(key, value) {
+    settings[key] = value;
+    return invoke("settings.set", { key: key, value: value });
+  }
+
+  function get(key) {
+    return settings[key];
+  }
+
+  // Wires every data-setting control on the page. Called after bootstrap.
+  function bindSettings() {
+    document.querySelectorAll("[data-setting]").forEach(function (el) {
+      if (el.dataset.settingBound) return;
+      el.dataset.settingBound = "1";
+      var key = el.dataset.setting;
+
+      if (el.classList.contains("switch")) {
+        el.addEventListener("click", function () { set(key, el.classList.contains("on")); });
+      } else if (el.classList.contains("segmented")) {
+        el.querySelectorAll(".segment").forEach(function (seg) {
+          seg.addEventListener("click", function () { set(key, seg.dataset.value); });
+        });
+      } else if (el.classList.contains("swatches")) {
+        el.querySelectorAll(".swatch").forEach(function (sw) {
+          sw.addEventListener("click", function () { set(key, sw.dataset.value); });
+        });
+      } else if (el.tagName === "SELECT") {
+        el.addEventListener("change", function () { set(key, el.value); });
+      } else if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+        var timer = null;
+        el.addEventListener("input", function () {
+          clearTimeout(timer);
+          timer = setTimeout(function () { set(key, el.value); }, 400);
+        });
+        el.addEventListener("blur", function () { clearTimeout(timer); set(key, el.value); });
+      }
+    });
+  }
+
+  // ---- startup -----------------------------------------------------------
+  // One round trip hands the page its language, theme and settings before it is
+  // shown, so nothing flashes English or blue on the way in.
+
+  var readyHandlers = [];
+  var isReady = false;
+
+  function ready(fn) {
+    if (isReady) fn();
+    else readyHandlers.push(fn);
+  }
+
+  function boot() {
+    return invoke("app.bootstrap").then(function (data) {
+      if (data) {
+        strings = data.strings || {};
+        applyStrings();
+        applyTheme(data.theme);
+        readSettings(data.settings);
+      }
+      bindSettings();
+      isReady = true;
+      readyHandlers.forEach(function (fn) { try { fn(); } catch (e) { console.error(e); } });
+      readyHandlers = [];
+      document.body.classList.add("booted");
+      return data;
+    });
+  }
+
+  on("strings.changed", function (payload) {
+    strings = (payload && payload.strings) || {};
+    applyStrings();
+    emit("retranslate");
+  });
+  on("theme.changed", applyTheme);
+  on("settings.changed", function (payload) { readSettings(payload); });
+
+  window.Muffin = {
+    invoke: invoke,
+    on: on,
+    t: t,
+    applyStrings: applyStrings,
+    settings: function () { return settings; },
+    get: get,
+    set: set,
+    ready: ready,
+    isHosted: !!host,
+  };
+
+  document.addEventListener("DOMContentLoaded", boot);
+})();

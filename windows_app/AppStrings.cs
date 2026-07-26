@@ -142,6 +142,7 @@ public static class AppStrings
     public static string History_Tooltip_Delete => T("history.deleteAction", "Delete transcript");
     public static string History_Tooltip_Format => T("historyDetail.format", "Format");
     public static string History_Tooltip_Summarize => T("historyDetail.summarize", "Summarize");
+    public static string History_Status_SourceMissing => T("historyDetail.audioMissing", "Audio file not found");
     public static string History_Status_SelectFormatter => T("dialog.noFormatterModel.message", "Choose a formatter model first.");
     public static string History_Status_FormatComplete => T("pc.status.formatComplete", "Formatting complete.");
     public static string History_Status_FormatFailed => T("dialog.formattingFailed.title", "Formatting failed");

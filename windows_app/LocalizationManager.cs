@@ -80,4 +80,19 @@ public static class LocalizationManager
         if (_english.TryGetValue(key, out string? english) && !string.IsNullOrEmpty(english)) return english;
         return fallback;
     }
+
+    /// <summary>
+    /// The whole catalog with the fallback already resolved per key, handed to
+    /// the web UI in one go. The screens carry their English text in the markup
+    /// and swap it for these, which is the same fallback model as GetString.
+    /// </summary>
+    public static Dictionary<string, string> Snapshot()
+    {
+        var merged = new Dictionary<string, string>(_english);
+        foreach ((string key, string value) in _strings)
+        {
+            if (!string.IsNullOrEmpty(value)) merged[key] = value;
+        }
+        return merged;
+    }
 }
