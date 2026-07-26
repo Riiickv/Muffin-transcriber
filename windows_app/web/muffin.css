@@ -782,3 +782,29 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); background-clip: content-box; }
 ::-webkit-scrollbar-corner { background: transparent; }
+
+/* ---- Library: real search field and the empty states ---- */
+.search { width: 100%; font: inherit; font-size: 13px; outline: none; }
+.search::placeholder { color: var(--text-subtle); }
+.search:focus { border-color: var(--accent); }
+
+.empty { text-align: center; color: var(--text-muted); padding: var(--sp-xxl) var(--sp-md); line-height: 1.6; }
+.empty[hidden] { display: none; }
+.empty-sub { font-size: 13px; color: var(--text-subtle); margin-top: var(--sp-xs); }
+.empty-detail { display: flex; align-items: center; justify-content: center; }
+.empty-detail[hidden] { display: none; }
+
+.hist-detail[hidden], .player[hidden], .action-row[hidden] { display: none; }
+.action-btn:disabled { opacity: 0.45; cursor: default; }
+.segment:disabled { opacity: 0.4; cursor: default; }
+.icon-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---- A way back from a screen that is not on the rail (Models) ---- */
+.back-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: transparent; border: none; color: var(--text-muted);
+  font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  padding: 4px 0; margin-bottom: var(--sp-sm);
+}
+.back-link:hover { color: var(--accent); }
+.m-row .m-state[hidden], .m-row .action[hidden], .m-row .del[hidden] { display: none; }
