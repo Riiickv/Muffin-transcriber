@@ -82,6 +82,18 @@ public sealed partial class WebBridge
             };
         });
 
+        // Leaving the wizard is one call, not a write followed by a navigation:
+        // the page used to save the flag and immediately navigate away, and a
+        // navigation can drop a message still in flight. Then the wizard came
+        // back on the next launch and there was no way out of it.
+        Register("setup.finish", args =>
+        {
+            _settings.SetupCompleted = true;
+            _settings.Save();
+            Navigate("home");
+            return (object?)null;
+        });
+
         // ---- memory (mobile's Memory Context group) ------------------------
 
         Register("memory.get", _ => (object?)new Dictionary<string, object?>
