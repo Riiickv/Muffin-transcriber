@@ -100,11 +100,10 @@ public sealed partial class WebBridge
 
                 await ExecuteToolCalls(reply);
 
-                string visible = StripToolCalls(reply);
                 return new Dictionary<string, object?>
                 {
                     ["id"] = target.Id,
-                    ["text"] = string.IsNullOrWhiteSpace(visible) ? AppStrings.Chat_Done : visible,
+                    ["text"] = Visible(reply),
                     ["sessions"] = _sessions.Select(SessionMap).ToList(),
                 };
             }
@@ -138,14 +137,22 @@ public sealed partial class WebBridge
     {
         ["id"] = session.Id,
         ["title"] = session.Title,
+        // A reply that was nothing but a tool call has no words to show. It did
+        // something, so say so rather than leaving an empty bubble.
         ["messages"] = session.Messages.Select(m => new Dictionary<string, object?>
         {
             ["role"] = m.Role,
-            ["content"] = m.Role == "assistant" ? StripToolCalls(m.Content) : m.Content,
+            ["content"] = m.Role == "assistant" ? Visible(m.Content) : m.Content,
         }).ToList(),
     };
 
     // ---- tool calls --------------------------------------------------------
+
+    private static string Visible(string reply)
+    {
+        string stripped = StripToolCalls(reply);
+        return string.IsNullOrWhiteSpace(stripped) ? AppStrings.Chat_Done : stripped;
+    }
 
     private static string StripToolCalls(string text)
     {

@@ -5,50 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Muffin - Chat</title>
   <link rel="stylesheet" href="muffin.css" />
+  <script src="bridge.js"></script>
   <script src="muffin.js" defer></script>
 </head>
 <body>
   <div class="app">
     <nav class="rail">
-      <button class="rail-item" title="Muffin!"><span class="msr">&#xE88A;</span></button>
-      <button class="rail-item" title="History"><span class="msr">&#xE8B3;</span></button>
-      <button class="rail-item active" title="Chat"><span class="msr">&#xE0B7;</span></button>
+      <button class="rail-item" data-nav="index.html" data-i18n-attr="title:tabs.transcribe" title="Muffin!"><span class="msr">&#xE88A;</span></button>
+      <button class="rail-item" data-nav="history.html" data-i18n-attr="title:tabs.history" title="History"><span class="msr">&#xE8B3;</span></button>
+      <button class="rail-item active" data-nav="chat.html" data-i18n-attr="title:tabs.chat" title="Chat"><span class="msr">&#xE0B7;</span></button>
       <div class="rail-spacer"></div>
-      <button class="mic-fab" title="Start recording"><span class="msr fill">&#xE029;</span></button>
-      <button class="rail-item" title="Settings"><span class="msr">&#xE8B8;</span></button>
+      <button class="mic-fab" id="mic" data-i18n-attr="title:record.startRecording" title="Start recording"><span class="msr fill">&#xE029;</span></button>
+      <div class="mic-timer" id="mic-timer" hidden>0:00</div>
+      <button class="rail-item" data-nav="settings.html" data-i18n-attr="title:tabs.settings" title="Settings"><span class="msr">&#xE8B8;</span></button>
     </nav>
 
-    <aside class="chat-sessions">
-      <button class="btn btn-accent new-chat"><span class="msr" style="font-size:18px">&#xE145;</span> New chat</button>
-      <div class="session active">
-        <div class="s-main">
-          <div class="s-title">About the lecture</div>
-          <div class="s-time">2 minutes ago</div>
-        </div>
-        <div class="s-acts">
-          <button title="Rename chat" data-rename><span class="msr">&#xE3C9;</span></button>
-          <button title="Delete chat" data-delete><span class="msr">&#xE872;</span></button>
-        </div>
-      </div>
-      <div class="session">
-        <div class="s-main">
-          <div class="s-title">Meeting summary</div>
-          <div class="s-time">Yesterday</div>
-        </div>
-        <div class="s-acts">
-          <button title="Rename chat" data-rename><span class="msr">&#xE3C9;</span></button>
-          <button title="Delete chat" data-delete><span class="msr">&#xE872;</span></button>
-        </div>
-      </div>
-      <div class="session">
-        <div class="s-main">
-          <div class="s-title">Romania trip notes</div>
-          <div class="s-time">Monday</div>
-        </div>
-        <div class="s-acts">
-          <button title="Rename chat" data-rename><span class="msr">&#xE3C9;</span></button>
-          <button title="Delete chat" data-delete><span class="msr">&#xE872;</span></button>
-        </div>
+    <aside class="chat-sessions" id="sessions-pane">
+      <button class="btn btn-accent new-chat" id="new-chat">
+        <span class="msr" style="font-size:18px">&#xE145;</span> <span data-i18n="chat.newChat">New Chat</span>
+      </button>
+      <div id="sessions"></div>
+      <div class="empty" id="no-chats" hidden>
+        <div data-i18n="chat.noChats">No chats yet.</div>
       </div>
     </aside>
 
@@ -56,67 +34,274 @@
 
     <section class="chat-main">
       <div class="chat-head">
-        <h2>Chat</h2>
-        <span class="beta-badge">Beta</span>
+        <h2 data-i18n="chat.header">Chat</h2>
+        <span class="beta-badge" data-i18n="chat.beta">Beta</span>
       </div>
 
-      <div class="chat-scroll">
-        <div class="bubble assistant">You can ask me anything about your transcripts, just tell me what you need!</div>
-        <div class="bubble user">What did the lecture on the Renaissance say about Florence?</div>
-        <div class="bubble assistant">In "Lezione 12 marzo", Florence is described as the cradle of the Renaissance, where the Medici funded artists like Botticelli and later Michelangelo. Want me to open that transcript?</div>
+      <div class="chat-scroll" id="scroll">
+        <div class="chat-empty" id="chat-empty" data-i18n="chat.emptyState">You can ask me anything about your transcripts, just tell me what you need!</div>
       </div>
 
       <div class="composer">
-        <textarea rows="1" placeholder="Ask about your transcripts..."></textarea>
-        <button class="send-btn"><span class="msr fill" style="font-size:20px">&#xE5D8;</span></button>
+        <textarea id="input" rows="1"
+          data-i18n-attr="placeholder:chat.inputPlaceholder"
+          placeholder="Ask about your transcripts..."></textarea>
+        <button class="send-btn" id="send" data-i18n-attr="title:chat.sendButton" title="Send"><span class="msr fill" style="font-size:20px">&#xE5D8;</span></button>
       </div>
     </section>
   </div>
 
+  <div class="modal-backdrop" id="confirm" hidden>
+    <div class="modal">
+      <h2 id="confirm-title" data-i18n="chat.deleteChat">Delete chat</h2>
+      <p id="confirm-body"></p>
+      <div class="modal-actions">
+        <div class="modal-spacer"></div>
+        <button class="btn btn-ghost" id="confirm-no" data-i18n="common.cancel">Cancel</button>
+        <button class="btn btn-ghost danger" id="confirm-yes" data-i18n="common.delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="shell.js" defer></script>
   <script>
-    document.querySelectorAll('.session').forEach(function (s) {
-      s.addEventListener('click', function () {
-        document.querySelectorAll('.session').forEach(function (x) { x.classList.remove('active'); });
-        s.classList.add('active');
+    var sessions = [];
+    var activeId = null;
+    var busy = false;
+    var streamBubble = null;
+    var firstToken = true;
+
+    Muffin.ready(function () { loadSessions(true); });
+
+    function loadSessions(openFirst) {
+      Muffin.invoke("chat.sessions").then(function (list) {
+        sessions = list || [];
+        renderSessions();
+        if (openFirst) {
+          if (sessions.length) openSession(sessions[0].id);
+          else renderMessages([]);
+        }
       });
+    }
 
-      // Rename edits in place, like the mobile drawer: the title becomes a
-      // field, commits on Enter or blur, cancels on Escape.
-      s.querySelector('[data-rename]').addEventListener('click', function (e) {
-        e.stopPropagation();
-        var main = s.querySelector('.s-main');
-        var titleEl = main.querySelector('.s-title');
-        if (main.querySelector('.s-edit')) return;
-        var current = titleEl.textContent;
+    function renderSessions() {
+      var host = document.getElementById("sessions");
+      host.textContent = "";
+      document.getElementById("no-chats").hidden = sessions.length > 0;
 
-        var input = document.createElement('input');
-        input.className = 's-edit';
-        input.value = current;
-        main.replaceChild(input, titleEl);
-        input.focus();
-        input.select();
+      sessions.forEach(function (session) {
+        var row = document.createElement("div");
+        row.className = "session" + (session.id === activeId ? " active" : "");
+        row.innerHTML =
+          '<div class="s-main"><div class="s-title"></div><div class="s-time"></div></div>' +
+          '<div class="s-acts">' +
+            '<button data-rename><span class="msr">&#xE3C9;</span></button>' +
+            '<button data-delete><span class="msr">&#xE872;</span></button>' +
+          '</div>';
 
-        var done = function (commit) {
-          titleEl.textContent = commit && input.value.trim() ? input.value.trim() : current;
-          if (input.parentNode === main) main.replaceChild(titleEl, input);
-        };
-        input.addEventListener('click', function (ev) { ev.stopPropagation(); });
-        input.addEventListener('blur', function () { done(true); });
-        input.addEventListener('keydown', function (ev) {
-          if (ev.key === 'Enter') { ev.preventDefault(); done(true); }
-          if (ev.key === 'Escape') { ev.preventDefault(); done(false); }
+        row.querySelector(".s-title").textContent = session.title;
+        row.querySelector(".s-time").textContent = formatRelativeTime(session.updatedAt);
+        row.querySelector("[data-rename]").title = Muffin.t("chat.renameChat", "Rename chat");
+        row.querySelector("[data-delete]").title = Muffin.t("chat.deleteChat", "Delete chat");
+
+        row.addEventListener("click", function () { openSession(session.id); });
+        row.querySelector("[data-rename]").addEventListener("click", function (e) {
+          e.stopPropagation();
+          renameInline(row, session);
         });
-      });
+        row.querySelector("[data-delete]").addEventListener("click", function (e) {
+          e.stopPropagation();
+          askDelete(session);
+        });
 
-      s.querySelector('[data-delete]').addEventListener('click', function (e) {
-        e.stopPropagation();
-        s.remove();
+        host.appendChild(row);
+      });
+    }
+
+    function renameInline(row, session) {
+      var main = row.querySelector(".s-main");
+      var titleEl = main.querySelector(".s-title");
+      if (main.querySelector(".s-edit")) return;
+
+      var input = document.createElement("input");
+      input.className = "s-edit";
+      input.value = session.title;
+      main.replaceChild(input, titleEl);
+      input.focus();
+      input.select();
+
+      var done = function (commit) {
+        if (input.parentNode === main) main.replaceChild(titleEl, input);
+        var next = input.value.trim();
+        if (!commit || !next || next === session.title) return;
+        Muffin.invoke("chat.rename", { id: session.id, title: next }).then(function (list) {
+          sessions = list || sessions;
+          renderSessions();
+        });
+      };
+
+      input.addEventListener("click", function (e) { e.stopPropagation(); });
+      input.addEventListener("blur", function () { done(true); });
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); done(true); }
+        if (e.key === "Escape") { e.preventDefault(); done(false); }
+      });
+    }
+
+    function openSession(id) {
+      Muffin.invoke("chat.open", { id: id }).then(function (session) {
+        if (!session) return;
+        activeId = session.id;
+        renderSessions();
+        renderMessages(session.messages);
+      });
+    }
+
+    document.getElementById("new-chat").addEventListener("click", function () {
+      Muffin.invoke("chat.new").then(function (session) {
+        if (!session) return;
+        activeId = session.id;
+        loadSessions(false);
+        renderMessages(session.messages);
+        document.getElementById("input").focus();
       });
     });
-    var ta = document.querySelector('.composer textarea');
-    ta.addEventListener('input', function () {
-      ta.style.height = 'auto';
-      ta.style.height = Math.min(120, ta.scrollHeight) + 'px';
+
+    // ---- messages ----------------------------------------------------------
+
+    function renderMessages(messages) {
+      var scroll = document.getElementById("scroll");
+      scroll.textContent = "";
+      if (!messages || !messages.length) {
+        var empty = document.createElement("div");
+        empty.className = "chat-empty";
+        empty.textContent = Muffin.t("chat.emptyState", "You can ask me anything about your transcripts, just tell me what you need!");
+        scroll.appendChild(empty);
+        return;
+      }
+      messages.forEach(function (m) { addBubble(m.role, m.content); });
+      toBottom();
+    }
+
+    function addBubble(role, text) {
+      var scroll = document.getElementById("scroll");
+      var empty = scroll.querySelector(".chat-empty");
+      if (empty) empty.remove();
+
+      var bubble = document.createElement("div");
+      bubble.className = "bubble " + (role === "user" ? "user" : "assistant");
+      bubble.textContent = text;
+      scroll.appendChild(bubble);
+      toBottom();
+      return bubble;
+    }
+
+    function toBottom() {
+      var scroll = document.getElementById("scroll");
+      scroll.scrollTop = scroll.scrollHeight;
+    }
+
+    function send() {
+      if (busy) return;
+      var input = document.getElementById("input");
+      var text = input.value.trim();
+      if (!text) return;
+
+      input.value = "";
+      input.style.height = "auto";
+      addBubble("user", text);
+      streamBubble = addBubble("assistant", Muffin.t("chat.thinking", "Thinking..."));
+      firstToken = true;
+
+      Muffin.invoke("chat.send", { id: activeId, text: text }).then(function (result) {
+        if (!result) { streamBubble = null; return; }
+        activeId = result.id;
+        if (result.error) {
+          streamBubble.textContent = result.error;
+        } else {
+          streamBubble.textContent = result.text;
+          sessions = result.sessions || sessions;
+          renderSessions();
+        }
+        streamBubble = null;
+        toBottom();
+      });
+    }
+
+    // One listener for the whole page: registering it per send stacked a new
+    // handler on every message and echoed the reply once per send.
+    Muffin.on("chat.token", function (t) {
+      if (!streamBubble) return;
+      if (firstToken) { streamBubble.textContent = ""; firstToken = false; }
+      streamBubble.textContent += t.text;
+      toBottom();
+    });
+
+    Muffin.on("chat.busy", function (e) {
+      busy = e.busy;
+      document.getElementById("send").disabled = busy;
+    });
+
+    // The assistant can ask for a transcript to be deleted; the app asks first.
+    Muffin.on("chat.confirmDelete", function (e) {
+      pending = { kind: "transcript", id: e.id, name: e.name };
+      document.getElementById("confirm-title").textContent = Muffin.t("chat.deleteTitle", "Delete transcript?");
+      document.getElementById("confirm-body").textContent =
+        Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", e.name);
+      document.getElementById("confirm").hidden = false;
+    });
+
+    document.getElementById("send").addEventListener("click", send);
+    document.getElementById("input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    });
+
+    var textarea = document.getElementById("input");
+    textarea.addEventListener("input", function () {
+      textarea.style.height = "auto";
+      textarea.style.height = Math.min(120, textarea.scrollHeight) + "px";
+    });
+
+    // ---- delete confirmation -----------------------------------------------
+
+    var pending = null;
+    var confirmModal = document.getElementById("confirm");
+
+    function askDelete(session) {
+      pending = { kind: "chat", id: session.id, name: session.title };
+      document.getElementById("confirm-title").textContent = Muffin.t("chat.deleteChat", "Delete chat");
+      document.getElementById("confirm-body").textContent =
+        Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", session.title);
+      confirmModal.hidden = false;
+    }
+
+    document.getElementById("confirm-no").addEventListener("click", function () { confirmModal.hidden = true; });
+    confirmModal.addEventListener("click", function (e) { if (e.target === confirmModal) confirmModal.hidden = true; });
+
+    document.getElementById("confirm-yes").addEventListener("click", function () {
+      if (!pending) return;
+      confirmModal.hidden = true;
+
+      if (pending.kind === "transcript") {
+        Muffin.invoke("history.delete", { id: pending.id });
+        showToast(Muffin.t("chat.actionExecuted", "Done"));
+        pending = null;
+        return;
+      }
+
+      var removed = pending.id;
+      pending = null;
+      Muffin.invoke("chat.delete", { id: removed }).then(function (list) {
+        sessions = list || [];
+        if (activeId === removed) {
+          activeId = sessions.length ? sessions[0].id : null;
+          if (activeId) openSession(activeId);
+          else renderMessages([]);
+        }
+        renderSessions();
+      });
     });
   </script>
 </body>

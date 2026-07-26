@@ -1,42 +1,150 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="utf-8" /><title>Muffin - Welcome</title>
-<link rel="stylesheet" href="muffin.css" /><script src="muffin.js" defer></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muffin - Welcome</title>
+  <link rel="stylesheet" href="muffin.css" />
+  <script src="bridge.js"></script>
+  <script src="muffin.js" defer></script>
 </head>
 <body>
-<div class="app">
-  <main class="page">
-    <div class="setup-wrap">
-      <div class="setup-logo"><span class="msr fill">&#xE1B8;</span></div>
-      <h1>Welcome to Muffin!</h1>
-      <p class="setup-sub">Free, private, 100% offline transcription. Muffin runs the AI on your own PC, so nothing ever leaves it. Grab the recommended models below and you're set.</p>
+  <div class="app">
+    <main class="page">
+      <div class="setup-wrap">
+        <div class="setup-logo"><span class="msr fill">&#xE1B8;</span></div>
+        <h1 data-i18n="transcribe.welcomeTitle">Welcome to Muffin!</h1>
+        <p class="setup-sub" data-i18n="transcribe.welcomeBody">Muffin is a transcriber that uses AI to improve the text output. It can even learn from you and help you when the audio is unclear!</p>
 
-      <div class="group setup-card">
-        <div class="m-row">
-          <div class="m-info">
-            <div class="m-name">Transcription model<span class="m-size">466 MB</span></div>
-            <div class="m-desc">Balanced: the sweet spot of speed and accuracy. Required.</div>
-            <div class="progress"><i style="width:41%"></i></div>
+        <div class="group setup-card">
+          <div class="m-row" id="row-whisper">
+            <div class="m-info">
+              <div class="m-name"><span data-i18n="setup.transcriberTitle">Transcriber!</span><span class="m-size" id="whisper-size"></span></div>
+              <div class="m-desc" data-i18n="pc.setup.whisperDesc">Whisper [small]: the best balance of speed and accuracy. 466 MB.</div>
+              <div class="progress" hidden><i style="width:0%"></i></div>
+            </div>
+            <span class="m-state installed" hidden data-i18n="pc.setup.installed">Installed</span>
+            <button class="btn btn-accent action" data-i18n="settings.downloadButton">Download</button>
           </div>
-          <button class="btn">Cancel</button>
-        </div>
-        <div class="m-row">
-          <div class="m-info">
-            <div class="m-name">Formatting model<span class="m-size">1.1 GB</span></div>
-            <div class="m-desc">Adds punctuation, cleanup and summaries. Optional.</div>
+          <div class="m-row" id="row-formatter">
+            <div class="m-info">
+              <div class="m-name"><span data-i18n="setup.formatterTitle">Formatter and Summarizer!</span><span class="m-size" id="formatter-size"></span></div>
+              <div class="m-desc" data-i18n="pc.setup.llmDesc">Qwen 2.5 [1.5B]: adds punctuation, cleanup and summaries. 1.1 GB.</div>
+              <div class="progress" hidden><i style="width:0%"></i></div>
+            </div>
+            <span class="m-state installed" hidden data-i18n="pc.setup.installed">Installed</span>
+            <button class="btn action" data-i18n="settings.downloadButton">Download</button>
           </div>
-          <button class="btn btn-accent">Download</button>
         </div>
-      </div>
 
-      <div class="setup-actions">
-        <button class="btn">Skip for now</button>
-        <button class="btn btn-accent">Start using Muffin</button>
+        <div class="setup-actions">
+          <button class="btn" id="skip" data-i18n="pc.setup.skip">Skip for now</button>
+          <button class="btn btn-accent" id="finish" data-i18n="setup.finish">Start!</button>
+        </div>
+        <p class="group-footer" style="text-align:center;margin-top:var(--sp-lg)" data-i18n="pc.setup.moreModels">You can add or remove models at any time from Settings.</p>
       </div>
-      <p class="group-footer" style="text-align:center;margin-top:var(--sp-lg)">You can add or remove models at any time from Settings.</p>
-    </div>
-  </main>
-</div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="shell.js" defer></script>
+  <script>
+    // The wizard offers exactly two models: the balanced transcriber, which the
+    // app cannot work without, and the fast formatter, which is optional.
+    var WHISPER = "ggml-small.bin";
+    var FORMATTER = "qwen2.5-1.5b-instruct-q4_k_m.gguf";
+    var state = {};
+    var hasTranscriber = false;
+
+    Muffin.ready(load);
+
+    function load() {
+      Muffin.invoke("models.list").then(function (models) {
+        if (!models) return;
+        var all = models.whisper.concat(models.formatter);
+        state = {};
+        all.forEach(function (m) { state[m.file] = m; });
+        hasTranscriber = models.whisper.some(function (m) { return m.installed; });
+
+        wire("row-whisper", WHISPER, "whisper-size");
+        wire("row-formatter", FORMATTER, "formatter-size");
+      });
+    }
+
+    function wire(rowId, file, sizeId) {
+      var model = state[file];
+      if (!model) return;
+      var row = document.getElementById(rowId);
+      document.getElementById(sizeId).textContent = model.size;
+      row.dataset.file = file;
+      paint(rowId);
+
+      var action = row.querySelector(".action");
+      if (action.dataset.wired) return;
+      action.dataset.wired = "1";
+      action.addEventListener("click", function () {
+        if (row.dataset.downloading) {
+          Muffin.invoke("models.cancel", { file: file });
+          return;
+        }
+        row.dataset.downloading = "1";
+        paint(rowId);
+        Muffin.invoke("models.download", { file: file });
+      });
+    }
+
+    function paint(rowId) {
+      var row = document.getElementById(rowId);
+      var model = state[row.dataset.file];
+      if (!model) return;
+      var downloading = !!row.dataset.downloading;
+
+      row.querySelector(".m-state").hidden = !model.installed || downloading;
+      row.querySelector(".progress").hidden = !downloading;
+
+      var action = row.querySelector(".action");
+      action.hidden = model.installed && !downloading;
+      action.textContent = downloading
+        ? Muffin.t("downloads.cancel", "Cancel")
+        : Muffin.t("settings.downloadButton", "Download");
+
+      // Nothing works without a transcriber, so Start stays out of reach until
+      // there is one. ANY transcriber counts, not just the one offered here:
+      // someone who already has the large model is not stuck. Skipping is still
+      // allowed; it is the user's call.
+      document.getElementById("finish").disabled = !hasTranscriber;
+    }
+
+    Muffin.on("models.progress", function (p) {
+      var row = rowFor(p.file);
+      if (!row) return;
+      row.dataset.downloading = "1";
+      var bar = row.querySelector(".progress");
+      bar.hidden = false;
+      bar.firstElementChild.style.width = (p.percent || 0) + "%";
+    });
+
+    Muffin.on("models.done", function (e) {
+      var row = rowFor(e.file);
+      if (row) delete row.dataset.downloading;
+      if (e.error) showToast(Muffin.t("pc.setup.downloadFailed", "Download failed: {0}").replace("{0}", e.error));
+      load();
+    });
+
+    function rowFor(file) {
+      if (file === WHISPER) return document.getElementById("row-whisper");
+      if (file === FORMATTER) return document.getElementById("row-formatter");
+      return null;
+    }
+
+    document.getElementById("skip").addEventListener("click", finish);
+    document.getElementById("finish").addEventListener("click", finish);
+
+    function finish() {
+      Muffin.set("SetupCompleted", true);
+      location.href = "index.html";
+    }
+  </script>
 </body>
 </html>

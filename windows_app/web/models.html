@@ -1,70 +1,155 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="utf-8" /><title>Muffin - Models</title>
-<link rel="stylesheet" href="muffin.css" /><script src="muffin.js" defer></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muffin - Models</title>
+  <link rel="stylesheet" href="muffin.css" />
+  <script src="bridge.js"></script>
+  <script src="muffin.js" defer></script>
 </head>
 <body>
-<div class="app">
-  <nav class="rail">
-    <button class="rail-item" title="Muffin!"><span class="msr">&#xE88A;</span></button>
-    <button class="rail-item" title="History"><span class="msr">&#xE8B3;</span></button>
-    <button class="rail-item" title="Chat"><span class="msr">&#xE0B7;</span></button>
-    <div class="rail-spacer"></div>
-    <button class="mic-fab" title="Start recording"><span class="msr fill">&#xE029;</span></button>
-    <button class="rail-item active" title="Settings"><span class="msr">&#xE8B8;</span></button>
-  </nav>
-  <main class="page">
-    <div class="page-inner">
-      <h1 class="title">Models</h1>
-      <p class="group-footer" style="margin:0 0 var(--sp-lg)">Download at least one transcriber. A formatter is optional and adds punctuation, cleanup and summaries.</p>
+  <div class="app">
+    <nav class="rail">
+      <button class="rail-item" data-nav="index.html" data-i18n-attr="title:tabs.transcribe" title="Muffin!"><span class="msr">&#xE88A;</span></button>
+      <button class="rail-item" data-nav="history.html" data-i18n-attr="title:tabs.history" title="History"><span class="msr">&#xE8B3;</span></button>
+      <button class="rail-item" data-nav="chat.html" data-i18n-attr="title:tabs.chat" title="Chat"><span class="msr">&#xE0B7;</span></button>
+      <div class="rail-spacer"></div>
+      <button class="mic-fab" id="mic" data-i18n-attr="title:record.startRecording" title="Start recording"><span class="msr fill">&#xE029;</span></button>
+      <div class="mic-timer" id="mic-timer" hidden>0:00</div>
+      <button class="rail-item active" data-nav="settings.html" data-i18n-attr="title:tabs.settings" title="Settings"><span class="msr">&#xE8B8;</span></button>
+    </nav>
 
-      <div class="group-title">Transcription</div>
-      <div class="group">
-        <div class="m-row">
-          <div class="m-info"><div class="m-name">Fastest<span class="m-size">74 MB</span></div><div class="m-desc">Roughest wording. Fine for short, clear notes.</div></div>
-          <button class="btn">Download</button>
-        </div>
-        <div class="m-row">
-          <div class="m-info"><div class="m-name">Balanced<span class="m-size">466 MB</span></div><div class="m-desc">The sweet spot for most voice notes.</div>
-            <div class="progress"><i style="width:62%"></i></div>
-          </div>
-          <button class="btn">Cancel</button>
-        </div>
-        <div class="m-row">
-          <div class="m-info"><div class="m-name">Most accurate<span class="m-size">2.9 GB</span></div><div class="m-desc">Best with accents and background noise. Slowest.</div></div>
-          <span class="m-state installed">Installed</span>
-          <button class="icon-btn" title="Delete"><span class="msr" style="font-size:16px">&#xE872;</span></button>
-        </div>
-      </div>
+    <main class="page">
+      <div class="page-inner">
+        <button class="back-link" data-nav="settings.html">
+          <span class="msr" style="font-size:18px">&#xE5C4;</span> <span data-i18n="common.back">Back</span>
+        </button>
+        <h1 class="title" data-i18n="settings.modelManagement">Models</h1>
+        <p class="group-footer" style="margin:0 0 var(--sp-lg)" data-i18n="models.noneInstalledDesc">Models are what let the app work offline. Download one and it'll show up here.</p>
 
-      <div class="group-title">Formatting</div>
-      <div class="group">
-        <div class="m-row">
-          <div class="m-info"><div class="m-name">Fast<span class="m-size">1.1 GB</span></div><div class="m-desc">Quick cleanup on modest hardware.</div></div>
-          <button class="btn">Download</button>
-        </div>
-        <div class="m-row">
-          <div class="m-info"><div class="m-name">Balanced<span class="m-size">2.4 GB</span></div><div class="m-desc">Adds punctuation, cleanup and summaries.</div></div>
-          <span class="m-state installed">Installed</span>
-          <button class="icon-btn" title="Delete"><span class="msr" style="font-size:16px">&#xE872;</span></button>
-        </div>
-        <div class="m-row">
-          <div class="m-info"><div class="m-name">Best quality<span class="m-size">2.0 GB</span></div><div class="m-desc">Richest formatting. Needs a stronger PC.</div></div>
-          <button class="btn">Download</button>
-        </div>
-      </div>
+        <div class="group-title" data-i18n="settings.whisperModelsHeader">Transcriber models</div>
+        <div class="group" id="whisper"></div>
 
-      <div class="group-title">Smart search</div>
-      <div class="group">
-        <div class="m-row">
-          <div class="m-info"><div class="m-name">Smart search<span class="m-size">14 MB</span></div><div class="m-desc">Lets Chat find transcripts by meaning, not just keywords.</div></div>
-          <span class="m-state installed">Installed</span>
-          <button class="icon-btn" title="Delete"><span class="msr" style="font-size:16px">&#xE872;</span></button>
-        </div>
+        <div class="group-title" data-i18n="settings.formatterModelsHeader">Formatter models</div>
+        <div class="group" id="formatter"></div>
+
+        <div class="group-title" data-i18n="settings.embeddingModelsHeader">Helper models (mandatory for the chat to be helpful)</div>
+        <div class="group" id="embedding"></div>
       </div>
-    </div>
-  </main>
-</div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="shell.js" defer></script>
+  <script>
+    var rows = {};
+
+    Muffin.ready(load);
+
+    function load() {
+      Muffin.invoke("models.list").then(function (models) {
+        if (!models) return;
+        rows = {};
+        render("whisper", models.whisper);
+        render("formatter", models.formatter);
+        render("embedding", models.embedding);
+      });
+    }
+
+    function render(groupId, models) {
+      var host = document.getElementById(groupId);
+      host.textContent = "";
+      models.forEach(function (model) {
+        var row = document.createElement("div");
+        row.className = "m-row";
+        row.innerHTML =
+          '<div class="m-info">' +
+            '<div class="m-name"><span class="n"></span><span class="m-size"></span></div>' +
+            '<div class="m-desc"></div>' +
+            '<div class="progress" hidden><i style="width:0%"></i></div>' +
+          '</div>' +
+          '<span class="m-state installed" hidden></span>' +
+          '<button class="btn action"></button>' +
+          '<button class="icon-btn del" hidden><span class="msr" style="font-size:16px">&#xE872;</span></button>';
+
+        row.querySelector(".n").textContent = model.name;
+        row.querySelector(".m-size").textContent = model.size;
+        // A model with no blurb of its own falls back to its size, which is
+        // already printed next to the name; do not say it twice.
+        row.querySelector(".m-desc").textContent = model.desc === model.size ? "" : model.desc;
+        host.appendChild(row);
+
+        rows[model.file] = { el: row, model: model, downloading: false };
+        paint(model.file);
+
+        row.querySelector(".action").addEventListener("click", function () { onAction(model.file); });
+        row.querySelector(".del").addEventListener("click", function () { remove(model.file); });
+      });
+    }
+
+    function paint(file) {
+      var entry = rows[file];
+      if (!entry) return;
+      var row = entry.el;
+      var installed = entry.model.installed;
+
+      row.querySelector(".m-state").hidden = !installed || entry.downloading;
+      row.querySelector(".m-state").textContent = Muffin.t("pc.setup.installed", "Installed");
+      row.querySelector(".del").hidden = !installed || entry.downloading;
+      row.querySelector(".progress").hidden = !entry.downloading;
+
+      var action = row.querySelector(".action");
+      action.hidden = installed && !entry.downloading;
+      action.textContent = entry.downloading
+        ? Muffin.t("downloads.cancel", "Cancel")
+        : Muffin.t("settings.downloadButton", "Download");
+      action.classList.toggle("btn-accent", !entry.downloading);
+    }
+
+    function onAction(file) {
+      var entry = rows[file];
+      if (!entry) return;
+
+      if (entry.downloading) {
+        Muffin.invoke("models.cancel", { file: file });
+        return;
+      }
+
+      entry.downloading = true;
+      paint(file);
+      Muffin.invoke("models.download", { file: file });
+    }
+
+    function remove(file) {
+      Muffin.invoke("models.delete", { file: file }).then(function () {
+        showToast(Muffin.t("settings.deletedDesc", "Model deleted."));
+        load();
+      });
+    }
+
+    Muffin.on("models.progress", function (p) {
+      var entry = rows[p.file];
+      if (!entry) return;
+      entry.downloading = true;
+      var bar = entry.el.querySelector(".progress");
+      bar.hidden = false;
+      bar.firstElementChild.style.width = (p.percent || 0) + "%";
+      entry.el.querySelector(".m-desc").textContent =
+        (entry.model.desc === entry.model.size ? "" : entry.model.desc + "  -  ") + (p.percent || 0) + "%" + (p.speed ? "  " + p.speed + " MB/s" : "");
+    });
+
+    Muffin.on("models.done", function (e) {
+      var entry = rows[e.file];
+      if (entry) {
+        entry.downloading = false;
+        entry.el.querySelector(".m-desc").textContent = entry.model.desc === entry.model.size ? "" : entry.model.desc;
+      }
+      if (e.error) showToast(Muffin.t("pc.models.downloadFailed", "Download failed!"));
+      else if (e.cancelled) showToast(Muffin.t("pc.models.cancelled", "Download cancelled."));
+      load();
+    });
+  </script>
 </body>
 </html>
