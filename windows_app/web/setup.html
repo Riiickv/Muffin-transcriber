@@ -141,9 +141,12 @@
     document.getElementById("skip").addEventListener("click", finish);
     document.getElementById("finish").addEventListener("click", finish);
 
+    // The app records that the wizard is done and moves the UI itself, so the
+    // flag is on disk before anything navigates. Outside the app (a plain
+    // browser) there is nothing to record, so just go.
     function finish() {
-      Muffin.set("SetupCompleted", true);
-      location.href = "index.html";
+      if (!Muffin.isHosted) { location.href = "index.html"; return; }
+      Muffin.invoke("setup.finish");
     }
   </script>
 </body>
