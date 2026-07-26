@@ -123,9 +123,7 @@ public static class MuffinTheme
     /// <summary>Repaints every accented control. Safe to call at any time.</summary>
     public static void Apply(string accentKey)
     {
-        Color accent = string.Equals(accentKey, "System", StringComparison.OrdinalIgnoreCase)
-            ? WindowsAccent
-            : ParseHex(HexFor(accentKey));
+        Color accent = ColorFor(accentKey);
 
         foreach (SolidColorBrush brush in Fills) brush.Color = accent;
         // WinUI's own convention for hover/pressed: same hue, less alpha.
@@ -155,6 +153,12 @@ public static class MuffinTheme
         return Accents[0].Hex;
     }
 
+    /// <summary>The actual colour behind an accent key, System included.</summary>
+    public static Color ColorFor(string accentKey) =>
+        string.Equals(accentKey, "System", StringComparison.OrdinalIgnoreCase)
+            ? WindowsAccent
+            : ParseHex(HexFor(accentKey));
+
     public static Color ParseHex(string hex)
     {
         string clean = hex.TrimStart('#');
@@ -168,7 +172,7 @@ public static class MuffinTheme
     // (purple, red). The same relative-luminance rule the mobile app uses, so a
     // given accent pairs identically on both platforms - and so a saturated
     // Windows accent stays readable when "System" is picked.
-    private static Color Foreground(Color c)
+    public static Color Foreground(Color c)
     {
         static double Channel(byte v)
         {
