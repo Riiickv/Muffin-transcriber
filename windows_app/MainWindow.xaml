@@ -5,13 +5,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:MuffinTranscriber"
-    xmlns:controls="using:MuffinTranscriber.Controls"
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="{x:Bind local:AppStrings.App_Title}"
     mc:Ignorable="d">
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
 
     <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
@@ -22,82 +19,19 @@
         <TitleBar
             x:Name="AppTitleBar"
             Title="{x:Bind local:AppStrings.App_Title}"
-            BackRequested="TitleBar_BackRequested"
-            IsBackButtonVisible="{x:Bind NavFrame.CanGoBack, Mode=OneWay}"
-            IsPaneToggleButtonVisible="True"
-            PaneToggleRequested="TitleBar_PaneToggleRequested">
+            IsBackButtonVisible="False"
+            IsPaneToggleButtonVisible="False">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon.ico" />
             </TitleBar.IconSource>
         </TitleBar>
 
-        <NavigationView
-            x:Name="NavView"
-            Grid.Row="1"
-            IsBackButtonVisible="Collapsed"
-            IsPaneToggleButtonVisible="False"
-            IsPaneOpen="True"
-            OpenPaneLength="320"
-            SelectionChanged="NavView_SelectionChanged">
-            <NavigationView.PaneHeader>
-                <StackPanel
-                    Margin="4,4,0,12"
-                    Orientation="Horizontal"
-                    Spacing="12">
-                    <Image
-                        Width="28"
-                        Height="28"
-                        Source="ms-appx:///Assets/Square150x150Logo.scale-200.png" />
-                    <TextBlock
-                        VerticalAlignment="Center"
-                        Style="{StaticResource SubtitleTextBlockStyle}"
-                        Text="{x:Bind local:AppStrings.Nav_Home}" />
-                </StackPanel>
-            </NavigationView.PaneHeader>
-            <!--  Always reachable, on every screen, like the mobile mic button.  -->
-            <NavigationView.PaneFooter>
-                <controls:RecordFab x:Name="MicFab" Failed="MicFab_Failed" />
-            </NavigationView.PaneFooter>
-            <NavigationView.MenuItems>
-                <NavigationViewItem
-                    Content="{x:Bind local:AppStrings.Nav_Home}"
-                    IsSelected="True"
-                    Tag="home">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE80F;" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    Content="{x:Bind local:AppStrings.Nav_History}"
-                    Tag="history">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE81C;" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    Content="{x:Bind local:AppStrings.Nav_Chat}"
-                    Tag="chat">
-                    <NavigationViewItem.Icon>
-                        <FontIcon Glyph="&#xE8BD;" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.MenuItems>
-            <Frame x:Name="NavFrame" />
-        </NavigationView>
-
-        <Border
-            x:Name="PaneResizeGrip"
-            Grid.Row="1"
-            Width="8"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Stretch"
-            Background="Transparent"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1,0,0,0"
-            PointerPressed="PaneResizeGrip_PointerPressed"
-            PointerMoved="PaneResizeGrip_PointerMoved"
-            PointerReleased="PaneResizeGrip_PointerReleased"
-            PointerCanceled="PaneResizeGrip_PointerReleased" />
+        <!--
+            The whole UI. It is HTML/CSS built from the mobile app's own tokens,
+            fonts and icons, served from the install dir by WebView2 under a
+            virtual host name: local files, no network, nothing leaves the PC.
+        -->
+        <controls:WebView2 x:Name="WebHost" Grid.Row="1" />
 
         <StackPanel
             Grid.RowSpan="2"

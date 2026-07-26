@@ -206,5 +206,10 @@
     isHosted: !!host,
   };
 
-  document.addEventListener("DOMContentLoaded", boot);
+  document.addEventListener("DOMContentLoaded", function () {
+    // The page is hidden until it has its strings and theme. If the app never
+    // answers, show it anyway rather than leaving a blank window.
+    setTimeout(function () { document.body.classList.add("booted"); }, 1500);
+    boot();
+  });
 })();

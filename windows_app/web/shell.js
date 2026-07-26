@@ -1,0 +1,157 @@
+// Behaviour every screen shares: the mic button, navigation coming from the
+// app, and the small pieces of chrome that outlive a single page.
+
+(function () {
+  // The app can move the UI itself: the assistant's NAVIGATE_TO, a finished
+  // recording landing on the transcribe screen, the setup wizard finishing.
+  Muffin.on("navigate", function (payload) {
+    var page = payload && (payload.page || pageFor(payload.tab));
+    if (!page) return;
+    var here = location.pathname.split("/").pop() || "index.html";
+    if (page !== here) location.href = page;
+  });
+
+  function pageFor(tab) {
+    switch (tab) {
+      case "home": case "transcribe": return "index.html";
+      case "history": case "library": return "history.html";
+      case "chat": return "chat.html";
+      case "settings": return "settings.html";
+      case "models": return "models.html";
+      default: return null;
+    }
+  }
+
+  // ---- the mic button ----------------------------------------------------
+  // It sits on the rail of every screen, exactly like the mobile FAB: press it
+  // anywhere, and wherever you are when you stop, the audio lands on the
+  // transcribe screen and starts working.
+
+  var mic = document.getElementById("mic");
+
+  function paintMic(recording) {
+    if (!mic) return;
+    mic.classList.toggle("recording", !!recording);
+    mic.querySelector(".msr").textContent = recording ? "" : ""; // stop / mic
+    mic.title = Muffin.t(recording ? "record.stopRecording" : "record.startRecording", recording ? "Stop recording" : "Start recording");
+    setTimerVisible(!!recording);
+  }
+
+  if (mic) {
+    mic.addEventListener("click", function () {
+      Muffin.invoke("record.toggle").then(function (state) {
+        if (!state) return;
+        if (state.error) { showToast(state.error); return; }
+        paintMic(state.recording);
+      });
+    });
+
+    Muffin.on("record.changed", function (state) { paintMic(state && state.recording); });
+    Muffin.ready(function () {
+      Muffin.invoke("record.state").then(function (state) { paintMic(state && state.recording); });
+    });
+
+    // A timer under the mic while it runs, like the pill that slides out from
+    // under the mobile FAB.
+    Muffin.on("record.progress", function (p) {
+      var timer = document.getElementById("mic-timer");
+      if (!timer || !p) return;
+      var m = Math.floor(p.seconds / 60);
+      var s = String(p.seconds % 60);
+      timer.textContent = m + ":" + (s.length < 2 ? "0" + s : s);
+    });
+  }
+
+  function setTimerVisible(on) {
+    var timer = document.getElementById("mic-timer");
+    if (timer) timer.hidden = !on;
+  }
+
+  // ---- toast -------------------------------------------------------------
+
+  function showToast(message) {
+    var el = document.getElementById("toast");
+    if (!el) return;
+    el.textContent = message;
+    el.hidden = false;
+    clearTimeout(el._timer);
+    el._timer = setTimeout(function () { el.hidden = true; }, 2600);
+  }
+
+  window.showToast = showToast;
+
+  // ---- the stylised waveform ---------------------------------------------
+  // Copied from the mobile utils/waveform.ts: a deterministic pattern seeded by
+  // the recording's id, NOT real amplitude, so the same recording draws the same
+  // shape on the phone and on the PC.
+
+  window.waveformBars = function (seed, count) {
+    var h = 2166136261 >>> 0;
+    for (var i = 0; i < seed.length; i++) {
+      h ^= seed.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    var rand = function () {
+      h += 0x6d2b79f5;
+      var t = h;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+
+    var bars = [];
+    for (var n = 0; n < count; n++) {
+      var base = 0.25 + rand() * 0.55;
+      var peak = rand() > 0.85 ? 0.2 : 0;
+      bars.push(Math.max(0.2, Math.min(1, base + peak)));
+    }
+    return bars;
+  };
+
+  // ---- dates and durations, copied from the mobile utils/format.ts --------
+  // Same rules, same output, so a transcript reads identically in both apps.
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+
+  function localeDate(iso, options, fallback) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    try {
+      return d.toLocaleDateString(undefined, options);
+    } catch (e) {
+      return fallback(d);
+    }
+  }
+
+  // "Mon, Jan 5, 3:04 PM"
+  window.formatHistoryDate = function (iso) {
+    return localeDate(
+      iso,
+      { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" },
+      function (d) { return d.toDateString() + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
+    );
+  };
+
+  // "now", "5m", "3h", "2d", "Jul 6"
+  window.formatRelativeTime = function (iso) {
+    var then = new Date(iso).getTime();
+    if (!isFinite(then)) return "";
+    var diffMin = Math.floor((Date.now() - then) / 60000);
+    if (diffMin < 1) return "now";
+    if (diffMin < 60) return diffMin + "m";
+    var diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return diffH + "h";
+    var diffD = Math.floor(diffH / 24);
+    if (diffD < 7) return diffD + "d";
+    return localeDate(iso, { month: "short", day: "numeric" }, function (d) { return d.toDateString().slice(4, 10); });
+  };
+
+  // MM:SS, or H:MM:SS past an hour so a lecture reads "1:30:00".
+  window.formatDuration = function (totalSeconds) {
+    if (!isFinite(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+    var h = Math.floor(totalSeconds / 3600);
+    var m = Math.floor((totalSeconds % 3600) / 60);
+    var s = Math.floor(totalSeconds % 60);
+    return h > 0 ? h + ":" + pad2(m) + ":" + pad2(s) : pad2(m) + ":" + pad2(s);
+  };
+})();
