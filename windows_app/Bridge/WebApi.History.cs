@@ -104,7 +104,7 @@ public sealed partial class WebBridge
             {
                 string? formatted = await LLMFormatter.FormatTranscriptAsync(
                     item.RawTranscript,
-                    _settings.PreferredFormatterModel,
+                    FormatterKey(),
                     Str(args, "language", _settings.FormatLanguage),
                     Str(args, "prompt", _settings.CustomFormatSystemPrompt),
                     ct,
@@ -136,7 +136,7 @@ public sealed partial class WebBridge
 
                 string? summary = await LLMFormatter.SummarizeTranscriptAsync(
                     input,
-                    _settings.PreferredFormatterModel,
+                    FormatterKey(),
                     Str(args, "language", _settings.FormatLanguage),
                     Str(args, "prompt", _settings.CustomSummarySystemPrompt),
                     ct);

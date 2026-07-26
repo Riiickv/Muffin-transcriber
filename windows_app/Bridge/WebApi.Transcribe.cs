@@ -144,6 +144,10 @@ public sealed partial class WebBridge
         _percent = 0;
         EmitTranscribeState();
 
+        // A duplicate says its own thing ("Loaded from history"); the closing
+        // line must not paper over it with "Transcription complete".
+        bool fromHistory = false;
+
         var whisperProgress = new Progress<int>(pct =>
         {
             _percent = pct;
@@ -199,6 +203,7 @@ public sealed partial class WebBridge
                             }
 
                             TranscriptionHistory.AddOrUpdate(duplicate);
+                            fromHistory = true;
                             EmitTranscribeState();
                             continue;
                         }
@@ -232,7 +237,7 @@ public sealed partial class WebBridge
 
                     string? formatted = null;
                     string? summary = null;
-                    string formatterModel = _settings.PreferredFormatterModel;
+                    string formatterModel = FormatterKey();
 
                     if (_settings.FormatByDefault)
                     {
@@ -248,6 +253,13 @@ public sealed partial class WebBridge
                             _formatted = formatted;
                             Emit("transcribe.output", OutputMap(animate: false));
                         }
+                        else
+                        {
+                            // Silence here used to read as "it just finished".
+                            // If the formatter was asked for and produced
+                            // nothing, say so.
+                            SetStatus(AppStrings.History_Status_FormatFailed, "error");
+                        }
                     }
 
                     if (_settings.SummarizeByDefault)
@@ -261,6 +273,10 @@ public sealed partial class WebBridge
                         {
                             _summary = summary;
                             Emit("transcribe.output", OutputMap(animate: false));
+                        }
+                        else
+                        {
+                            SetStatus(AppStrings.History_Status_SummaryFailed, "error");
                         }
                     }
 
@@ -298,7 +314,7 @@ public sealed partial class WebBridge
 
             _queuedFiles.Clear();
 
-            if (total == 1)
+            if (total == 1 && !fromHistory && _statusKind != "error")
             {
                 if (_settings.AutoCopyTranscript && !string.IsNullOrEmpty(_raw))
                 {
@@ -310,7 +326,7 @@ public sealed partial class WebBridge
                     SetStatus(AppStrings.Home_Status_TranscriptionComplete, "success");
                 }
             }
-            else
+            else if (total > 1)
             {
                 SetStatus(string.Format(AppStrings.Home_Status_BatchComplete, total), "success");
             }
@@ -330,6 +346,20 @@ public sealed partial class WebBridge
             m.File == _settings.PreferredWhisperModel &&
             AppModel.IsValidModelFile(AppModel.ModelPath(m.File)))
         ?? AppModel.ActiveWhisperModel();
+
+    /// <summary>
+    /// Nobody has to pick a formatter for formatting to work: an unset or
+    /// uninstalled preference falls back to whatever IS installed, which is what
+    /// the old picker did implicitly by selecting its first row.
+    /// </summary>
+    private ModelInfo? SelectedFormatterModel()
+    {
+        ModelInfo? preferred = AppModel.Resolve(AppModel.FormatterModels, _settings.PreferredFormatterModel);
+        if (preferred is not null && AppModel.IsValidModelFile(AppModel.ModelPath(preferred.File))) return preferred;
+        return AppModel.FormatterModels.FirstOrDefault(m => AppModel.IsValidModelFile(AppModel.ModelPath(m.File)));
+    }
+
+    private string FormatterKey() => SelectedFormatterModel()?.File ?? string.Empty;
 
     private string ActiveText() =>
         !string.IsNullOrEmpty(_summary) ? _summary

@@ -41,6 +41,8 @@ public sealed partial class WebBridge
         _window = window;
         _dispatcher = window.DispatcherQueue;
 
+        NormalizeModelSettings();
+
         RegisterAppHandlers();
         RegisterModelHandlers();
         RegisterTranscribeHandlers();

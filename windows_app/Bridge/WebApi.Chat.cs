@@ -92,7 +92,7 @@ public sealed partial class WebBridge
 
             try
             {
-                string reply = await ChatEngine.ChatAsync(target.Messages, _settings.PreferredFormatterModel, chunk =>
+                string reply = await ChatEngine.ChatAsync(target.Messages, FormatterKey(), chunk =>
                     Emit("chat.token", new Dictionary<string, object?> { ["id"] = target.Id, ["text"] = chunk }));
 
                 target.Messages.Add(new ChatMessage("assistant", reply));

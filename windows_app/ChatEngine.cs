@@ -20,7 +20,7 @@ public static class ChatEngine
             throw new InvalidOperationException("The local LLM engine is missing. Try reinstalling the app.");
         }
 
-        ModelInfo? model = AppModel.FormatterModels.FirstOrDefault(m => m.Name == selectedFormatter)
+        ModelInfo? model = AppModel.Resolve(AppModel.FormatterModels, selectedFormatter)
                            ?? AppModel.FormatterModels.FirstOrDefault(m => AppModel.IsValidModelFile(AppModel.ModelPath(m.File)));
         if (model is null || !AppModel.IsValidModelFile(AppModel.ModelPath(model.File)))
         {
