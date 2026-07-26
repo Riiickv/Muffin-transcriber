@@ -294,6 +294,7 @@ public static class AppStrings
     public static string Health_RuntimeMissingBody => T("pc.health.runtimeMissing", "Windows is missing a component the transcription engines need (the Microsoft Visual C++ runtime). Install it, then restart Muffin.");
     public static string Health_EnginesMissingBody => T("pc.health.enginesMissing", "The engine files are missing from Muffin's folder. Reinstall Muffin with the full installer to restore them.");
     public static string Health_UnknownBodyFormat => T("pc.health.unknownFormat", "An engine failed to start ({0}). Transcription may not work. Reinstalling Muffin usually fixes this.");
+    public static string Health_WebViewMissingBody => T("pc.health.webviewMissing", "Windows is missing the WebView2 component Muffin draws its interface with. Install it, then restart Muffin.");
     public static string Health_BtnInstallRuntime => T("pc.health.installRuntime", "Install component");
     public static string Health_BtnGetInstaller => T("pc.health.getInstaller", "Get installer");
     public static string Crash_BannerTitle => T("pc.crash.title", "Something went wrong");

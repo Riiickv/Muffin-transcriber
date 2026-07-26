@@ -36,6 +36,21 @@ public static class LocalizationManager
         LanguageChanged?.Invoke();
     }
 
+    /// <summary>The six languages both apps ship.</summary>
+    public static readonly string[] Supported = ["en", "it", "es", "fr", "de", "pt"];
+
+    /// <summary>
+    /// "auto" follows Windows, the way the mobile app follows the phone. An
+    /// unsupported system language lands on English rather than on nothing.
+    /// </summary>
+    public static string Resolve(string languageCode)
+    {
+        if (!string.IsNullOrEmpty(languageCode) && languageCode != "auto") return languageCode;
+
+        string system = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+        return Array.IndexOf(Supported, system) >= 0 ? system : "en";
+    }
+
     public static void LoadLanguage(string languageCode)
     {
         if (!_englishLoaded)
@@ -44,7 +59,8 @@ public static class LocalizationManager
             _englishLoaded = true;
         }
 
-        _strings = languageCode == "en" ? _english : LoadPair(languageCode);
+        string resolved = Resolve(languageCode);
+        _strings = resolved == "en" ? _english : LoadPair(resolved);
     }
 
     private static Dictionary<string, string> LoadPair(string languageCode)

@@ -1,0 +1,225 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Text.Json;
+using System.Threading.Tasks;
+using Microsoft.UI.Xaml;
+using Windows.UI;
+
+namespace MuffinTranscriber.Web;
+
+/// <summary>
+/// App-wide handlers: the one bootstrap call every screen makes, live settings,
+/// language and accent, and the few shell actions the pages need.
+/// </summary>
+public sealed partial class WebBridge
+{
+    private const string PrivacyPolicyUrl = "https://github.com/Riiickv/Muffin-transcriber/blob/main/PRIVACY.md";
+
+    private void RegisterAppHandlers()
+    {
+        // One round trip per page load: language, theme and settings arrive
+        // together so nothing renders in English or in the wrong accent first.
+        Register("app.bootstrap", _ => (object?)new Dictionary<string, object?>
+        {
+            ["strings"] = LocalizationManager.Snapshot(),
+            ["settings"] = SettingsMap(),
+            ["theme"] = ThemeMap(),
+            ["version"] = AppStrings.AppVersion,
+            ["hasMicrophone"] = RecordingController.HasMicrophone,
+            ["isRecording"] = RecordingController.IsRecording,
+        });
+
+        Register("settings.set", args =>
+        {
+            string key = Str(args, "key");
+            if (key.Length == 0) return null;
+            ApplySetting(key, args.TryGetProperty("value", out JsonElement v) ? v : default);
+            return (object?)SettingsMap();
+        });
+
+        Register("app.openUrl", args =>
+        {
+            string url = Str(args, "url");
+            if (url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                url.StartsWith("ms-settings:", StringComparison.OrdinalIgnoreCase))
+            {
+                Launch(url);
+            }
+            return (object?)null;
+        });
+
+        Register("app.privacyPolicy", args =>
+        {
+            Launch(PrivacyPolicyUrl);
+            return (object?)null;
+        });
+
+        Register("app.openLogs", args =>
+        {
+            CrashLog.OpenLogFolder();
+            return (object?)null;
+        });
+
+        Register("app.copy", args =>
+        {
+            var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+            package.SetText(Str(args, "text"));
+            Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+            return (object?)null;
+        });
+
+        Register("app.checkUpdates", async _ =>
+        {
+            (bool available, string latest, string url) = await AutoUpdater.CheckForUpdatesAsync();
+            return new Dictionary<string, object?>
+            {
+                ["available"] = available,
+                ["latest"] = latest,
+                ["url"] = url,
+                ["current"] = AppStrings.AppVersion,
+            };
+        });
+
+        // ---- memory (mobile's Memory Context group) ------------------------
+
+        Register("memory.get", _ => (object?)new Dictionary<string, object?>
+        {
+            ["text"] = File.Exists(AppModel.UserMemoryFile) ? File.ReadAllText(AppModel.UserMemoryFile) : "",
+        });
+
+        Register("memory.set", args =>
+        {
+            File.WriteAllText(AppModel.UserMemoryFile, Str(args, "text"));
+            return (object?)null;
+        });
+
+        Register("memory.clear", _ =>
+        {
+            if (File.Exists(AppModel.UserMemoryFile)) File.Delete(AppModel.UserMemoryFile);
+            return (object?)null;
+        });
+
+        // ---- recording (the mic button lives on every screen) --------------
+
+        Register("record.state", _ => (object?)RecordStateMap());
+
+        Register("record.toggle", _ =>
+        {
+            if (RecordingController.IsRecording)
+            {
+                RecordingController.Stop();
+                return (object?)RecordStateMap();
+            }
+
+            if (!RecordingController.Start(out string error))
+            {
+                return new Dictionary<string, object?> { ["recording"] = false, ["error"] = error };
+            }
+            return (object?)RecordStateMap();
+        });
+    }
+
+    private static async void Launch(string url)
+    {
+        try { await Windows.System.Launcher.LaunchUriAsync(new Uri(url)); }
+        catch (Exception ex) { CrashLog.Write("Launch " + url, ex); }
+    }
+
+    private static Dictionary<string, object?> RecordStateMap() => new()
+    {
+        ["recording"] = RecordingController.IsRecording,
+        ["hasMicrophone"] = RecordingController.HasMicrophone,
+        ["error"] = null,
+    };
+
+    // ---- settings ----------------------------------------------------------
+
+    private Dictionary<string, object?> SettingsMap()
+    {
+        var map = new Dictionary<string, object?>();
+        foreach (PropertyInfo property in typeof(UserSettings).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (!property.CanRead || !property.CanWrite) continue;
+            map[property.Name] = property.GetValue(_settings);
+        }
+        return map;
+    }
+
+    /// <summary>
+    /// Writes one setting and makes it visible immediately. Language, theme and
+    /// accent are applied in place and broadcast, which is what the mobile app
+    /// does and what the desktop app has to match: no restart, ever.
+    /// </summary>
+    private void ApplySetting(string key, JsonElement value)
+    {
+        PropertyInfo? property = typeof(UserSettings).GetProperty(key, BindingFlags.Public | BindingFlags.Instance);
+        if (property is null || !property.CanWrite) return;
+
+        object? converted = Convert(property.PropertyType, value);
+        if (converted is null && property.PropertyType.IsValueType) return;
+
+        property.SetValue(_settings, converted);
+        _settings.Save();
+
+        switch (key)
+        {
+            case nameof(UserSettings.AppLanguage):
+                LocalizationManager.ChangeLanguage(_settings.AppLanguage);
+                Emit("strings.changed", new Dictionary<string, object?> { ["strings"] = LocalizationManager.Snapshot() });
+                break;
+
+            case nameof(UserSettings.ThemeMode):
+                ThemeHelper.Apply(_window, _settings.ThemeMode);
+                Emit("theme.changed", ThemeMap());
+                ThemeApplied?.Invoke(ResolveThemeMode());
+                break;
+
+            case nameof(UserSettings.AccentColor):
+                MuffinTheme.Apply(_settings.AccentColor);
+                Emit("theme.changed", ThemeMap());
+                break;
+        }
+
+        Emit("settings.changed", SettingsMap());
+    }
+
+    private static object? Convert(Type target, JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.Undefined || value.ValueKind == JsonValueKind.Null) return null;
+
+        if (target == typeof(bool)) return value.ValueKind == JsonValueKind.True;
+        if (target == typeof(string)) return value.ValueKind == JsonValueKind.String ? value.GetString() : value.ToString();
+        if (target == typeof(int)) return value.TryGetInt32(out int i) ? i : 0;
+        if (target == typeof(double)) return value.TryGetDouble(out double d) ? d : 0d;
+        return null;
+    }
+
+    // ---- theme -------------------------------------------------------------
+
+    private Dictionary<string, object?> ThemeMap()
+    {
+        Color accent = MuffinTheme.ColorFor(_settings.AccentColor);
+        return new Dictionary<string, object?>
+        {
+            ["mode"] = ResolveThemeMode(),
+            ["accent"] = Hex(accent),
+            ["onAccent"] = Hex(MuffinTheme.Foreground(accent)),
+            // The System swatch shows the real Windows accent, so picking it is
+            // not a guess. Mobile does the same with the Material You colour.
+            ["systemAccent"] = Hex(MuffinTheme.WindowsAccent),
+        };
+    }
+
+    private string ResolveThemeMode() => _settings.ThemeMode switch
+    {
+        "Light" => "light",
+        "Dark" => "dark",
+        "AMOLED" => "amoled",
+        // System follows Windows, the same way the mobile app follows Android.
+        _ => _window.Content is FrameworkElement root && root.ActualTheme == ElementTheme.Light ? "light" : "dark",
+    };
+
+    private static string Hex(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+}

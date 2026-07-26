@@ -42,8 +42,11 @@
     </Content>
 
     <!-- The UI itself. WebView2 serves these from the install dir under a
-         virtual host name, so they are local files, never a network fetch. -->
-    <Content Include="web\**\*">
+         virtual host name, so they are local files, never a network fetch.
+         Listed by extension on purpose: a bare web\**\* also matches source
+         files, and Windows paths are case-insensitive, so it shipped the
+         bridge's .cs alongside the pages. -->
+    <Content Include="web\**\*.html;web\**\*.css;web\**\*.js;web\**\*.ttf;web\**\*.png;web\**\*.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
