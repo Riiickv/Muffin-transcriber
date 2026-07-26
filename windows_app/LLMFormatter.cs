@@ -17,7 +17,7 @@ public static class LLMFormatter
             return null;
         }
 
-        ModelInfo? model = AppModel.FormatterModels.FirstOrDefault(item => item.Name == selectedFormatter);
+        ModelInfo? model = AppModel.Resolve(AppModel.FormatterModels, selectedFormatter);
         if (model is null)
         {
             return null;
@@ -92,7 +92,7 @@ public static class LLMFormatter
             return "Text is too short or lacks content to summarize.";
         }
 
-        ModelInfo? model = AppModel.FormatterModels.FirstOrDefault(item => item.Name == selectedFormatter);
+        ModelInfo? model = AppModel.Resolve(AppModel.FormatterModels, selectedFormatter);
         if (model is null)
         {
             return null;
@@ -155,7 +155,7 @@ public static class LLMFormatter
     {
         if (string.IsNullOrWhiteSpace(AppModel.LlamaExe)) return new();
 
-        ModelInfo? model = AppModel.FormatterModels.FirstOrDefault(item => item.Name == selectedFormatter)
+        ModelInfo? model = AppModel.Resolve(AppModel.FormatterModels, selectedFormatter)
                            ?? AppModel.FormatterModels.FirstOrDefault(item => AppModel.IsValidModelFile(AppModel.ModelPath(item.File)));
         if (model is null || !AppModel.IsValidModelFile(AppModel.ModelPath(model.File))) return new();
 
@@ -213,7 +213,7 @@ public static class LLMFormatter
             return;
         }
 
-        ModelInfo? model = AppModel.FormatterModels.FirstOrDefault(item => item.Name == selectedFormatter);
+        ModelInfo? model = AppModel.Resolve(AppModel.FormatterModels, selectedFormatter);
         if (model is null || !AppModel.IsValidModelFile(AppModel.ModelPath(model.File)))
         {
             return;

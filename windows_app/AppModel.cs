@@ -152,6 +152,20 @@ public static class AppModel
     public static string DisplayDesc(ModelInfo info) =>
         string.IsNullOrEmpty(info.DescKey) ? info.Size : LocalizationManager.GetString(info.DescKey, info.Size);
 
+    /// <summary>
+    /// Finds a model from whatever the setting happens to hold. The pickers used
+    /// to store a model's Name and now store its File, and both spellings are
+    /// still out there in saved settings, so match either rather than silently
+    /// resolving to nothing (which reads as "the formatter just did not run").
+    /// </summary>
+    public static ModelInfo? Resolve(ModelInfo[] models, string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return null;
+        return models.FirstOrDefault(m => m.File == key)
+            ?? models.FirstOrDefault(m => m.Name == key)
+            ?? models.FirstOrDefault(m => CompactName(m) == key);
+    }
+
     public static ModelInfo? ActiveWhisperModel()
     {
         string[] qualityOrder = ["ggml-large-v3.bin", "ggml-small.bin", "ggml-base.bin", "ggml-tiny.bin"];

@@ -121,6 +121,32 @@ public sealed partial class WebBridge
         });
     }
 
+    /// <summary>
+    /// The old pickers stored the formatter by its display Name; every model is
+    /// addressed by File now. Rewrite it once, so the picker shows the model the
+    /// engine is actually going to use.
+    /// </summary>
+    private void NormalizeModelSettings()
+    {
+        bool changed = false;
+
+        ModelInfo? formatter = SelectedFormatterModel();
+        if (formatter is not null && _settings.PreferredFormatterModel != formatter.File)
+        {
+            _settings.PreferredFormatterModel = formatter.File;
+            changed = true;
+        }
+
+        ModelInfo? whisper = SelectedWhisperModel();
+        if (whisper is not null && _settings.PreferredWhisperModel != whisper.File)
+        {
+            _settings.PreferredWhisperModel = whisper.File;
+            changed = true;
+        }
+
+        if (changed) _settings.Save();
+    }
+
     private static async void Launch(string url)
     {
         try { await Windows.System.Launcher.LaunchUriAsync(new Uri(url)); }
