@@ -212,6 +212,13 @@ public sealed partial class MainWindow : Window
     /// <summary>Called by the chat assistant's NAVIGATE_TO action.</summary>
     public void NavigateTo(string tag) => DispatcherQueue.TryEnqueue(() => _bridge?.Navigate(tag));
 
+    /// <summary>
+    /// The title bar's support button. The button is XAML because it lives in
+    /// the caption area, but the asking happens in the web layer so it is the
+    /// app's own dialog rather than a second, different-looking one.
+    /// </summary>
+    private void OnSupportClick(object sender, RoutedEventArgs e) => _bridge?.Emit("app.askSupport", null);
+
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
         // Never leave the mic open behind a closed window.

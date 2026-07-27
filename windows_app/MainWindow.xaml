@@ -21,9 +21,33 @@
             Title="{x:Bind local:AppStrings.App_Title}"
             IsBackButtonVisible="False"
             IsPaneToggleButtonVisible="False">
+            <!--
+                A PNG, not the .ico. XAML's image decoder will not reliably
+                read a multi-frame .ico, and the icon simply never appeared.
+                This is the 256px frame of that same file, extracted; the .ico
+                still supplies the exe icon through ApplicationIcon.
+            -->
             <TitleBar.IconSource>
-                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
+                <ImageIconSource ImageSource="ms-appx:///Assets/AppIcon.png" />
             </TitleBar.IconSource>
+
+            <TitleBar.RightHeader>
+                <!--
+                    Mobile puts "Support me!" in Settings; on a desktop window
+                    the title bar is the one piece of chrome that is always
+                    there, so it lives to the left of Minimize.
+                -->
+                <Button
+                    x:Name="SupportButton"
+                    Click="OnSupportClick"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="10,4"
+                    VerticalAlignment="Center"
+                    ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_SupportTitle}">
+                    <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEB51;" FontSize="14" />
+                </Button>
+            </TitleBar.RightHeader>
         </TitleBar>
 
         <!--
