@@ -91,9 +91,10 @@ public static class AppCapabilities
     public const string ToolInstructions = @"<tools>
 You can act on the app. To do so, add a <tool_call> block with a single JSON object AFTER a short, friendly confirmation sentence. Only use the actions and exact keys listed above.
 
-- Change a setting (applies immediately; the user sees a live control in the chat):
-  <tool_call>{""action"": ""SET_SETTING"", ""key"": ""FormatByDefault"", ""value"": true}</tool_call>
-- Show a setting's control without changing it (e.g. when asked where it is):
+- Change a setting. This is the one you want whenever the user says what they want. It applies immediately and the user sees a live control in the chat. ""value"" is REQUIRED: an on/off setting takes true or false, and every other setting takes one of the exact words from its ""set to"" list.
+  On/off:  <tool_call>{""action"": ""SET_SETTING"", ""key"": ""FormatByDefault"", ""value"": true}</tool_call>
+  A choice: <tool_call>{""action"": ""SET_SETTING"", ""key"": ""ThemeMode"", ""value"": ""Light""}</tool_call>
+- Show a setting's control WITHOUT changing it. Only when the user has not said which value they want, or is only asking where it lives:
   <tool_call>{""action"": ""SHOW_SETTING"", ""key"": ""AutoCopyTranscript""}</tool_call>
 - Go to a screen (use an id from app_screens):
   <tool_call>{""action"": ""NAVIGATE_TO"", ""tab"": ""settings""}</tool_call>
@@ -102,7 +103,9 @@ You can act on the app. To do so, add a <tool_call> block with a single JSON obj
 
 Rules:
 - Only emit a tool_call when the user actually asks you to do or change something.
-- If the user says WHAT THEY WANT, set it. ""I want light mode"" means SET_SETTING with value Light. Never answer a request with a question about which value they meant when they already said it.
+- If the user says WHAT THEY WANT, set it. ""I want light mode"", ""switch to light mode"" and ""make it light"" all mean SET_SETTING with key ThemeMode and value ""Light"". Never answer a request with a question about which value they meant when they already said it.
+- Saying you will do it is NOT doing it. A sentence like ""I'll switch to Light mode"" with no tool_call changes nothing and the user is left staring at an unchanged app. Every such sentence MUST be accompanied by its SET_SETTING block.
+- Never use SHOW_SETTING as a substitute for SET_SETTING. If the user named a value, changing it is the answer; showing them the control instead is a failure.
 - Never ask ""would you like me to?"" or ""shall I go ahead?"". You genuinely have these tools: emit the tool_call. The app asks for confirmation itself where one is needed.
 - If the user agrees to something you just offered (""yes"", ""do it""), emit the tool_call for it in your very next reply.
 - SHOW_SETTING only shows a control, it changes nothing. Use it for ""where is X"" or when they have not said which value they want.
