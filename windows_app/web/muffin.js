@@ -156,6 +156,29 @@ function wireSegments() {
   });
 }
 
+// A labelled section that folds away. The prompt is optional detail, so it
+// starts closed rather than taking up room on every screen.
+function openCollapsible(box) {
+  if (!box) return;
+  box.classList.add("open");
+  var head = box.querySelector(".collapsible-head");
+  if (head) head.setAttribute("aria-expanded", "true");
+}
+
+function wireCollapsibles() {
+  document.querySelectorAll(".collapsible").forEach(function (box) {
+    var head = box.querySelector(".collapsible-head");
+    if (!head || head.dataset.bound) return;
+    head.dataset.bound = "1";
+    head.addEventListener("click", function () {
+      var open = !box.classList.contains("open");
+      box.classList.toggle("open", open);
+      head.setAttribute("aria-expanded", open);
+    });
+  });
+}
+window.openCollapsible = openCollapsible;
+
 function wireSwatches() {
   document.querySelectorAll(".swatches").forEach(function (group) {
     group.querySelectorAll(".swatch").forEach(function (sw) {
@@ -218,6 +241,7 @@ document.addEventListener("DOMContentLoaded", function () {
   wireToggles();
   wireSegments();
   wireSwatches();
+  wireCollapsibles();
   wireSplitters();
   wireRail();
 });

@@ -87,11 +87,16 @@
 
           <hr class="hr" />
 
-          <div>
-            <span class="lbl" data-i18n="historyDetail.customPromptLabel">Be specific</span>
-            <textarea class="prompt" id="prompt"
-              data-i18n-attr="placeholder:historyDetail.customPromptPlaceholder"
-              placeholder="Use bullet points, max 100 words, etc..."></textarea>
+          <div class="collapsible">
+            <button class="collapsible-head" type="button" aria-expanded="false">
+              <span class="lbl" data-i18n="historyDetail.customPromptLabel">Be specific</span>
+              <span class="msr chev">&#xE5CF;</span>
+            </button>
+            <div class="collapsible-body">
+              <textarea class="prompt" id="prompt"
+                data-i18n-attr="placeholder:historyDetail.customPromptPlaceholder"
+                placeholder="Use bullet points, max 100 words, etc..."></textarea>
+            </div>
           </div>
 
           <div class="status" id="d-status" hidden></div>
@@ -385,52 +390,54 @@
     document.getElementById("a-format").addEventListener("click", function () { runAction("history.format"); });
     document.getElementById("a-summarize").addEventListener("click", function () { runAction("history.summarize"); });
 
-    Muffin.on("history.busy", function (e) {
-      busy = e.busy;
-      ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
-        document.getElementById(id).disabled = busy;
-      });
-      if (busy) {
-        startedAt = Date.now();
-        setStatus(Muffin.t("historyDetail.working", "Working..."), "info");
-        clearInterval(elapsedTimer);
-        // These runs take minutes on a big model. A word that never changes
-        // reads as a freeze, so the elapsed time keeps moving.
-        elapsedTimer = setInterval(tickElapsed, 1000);
-      } else {
-        finishBusy();
-      }
-    });
+    // The mobile detail screen names the job and appends the percentage when
+    // there is one (utils/transcribeProgress.ts describeProgress). No stopwatch.
+    var BUSY_LABEL = {
+      retranscribe: ["historyDetail.retranscribing", "Re-transcribing..."],
+      format: ["historyDetail.formatting", "Formatting..."],
+      summarize: ["historyDetail.summarizing", "Summarizing..."],
+    };
 
-    var startedAt = 0;
-    var elapsedTimer = null;
-    var lastPercent = null;
+    var busyAction = null;
+    var busyPercent = 0;
 
-    function tickElapsed() {
-      if (!busy) return;
-      var secs = Math.floor((Date.now() - startedAt) / 1000);
-      var label = Muffin.t("historyDetail.working", "Working...") + "  " + formatDuration(secs);
-      if (lastPercent !== null) label += "  ·  " + lastPercent + "%";
-      setStatus(label, "info");
+    function paintBusy() {
+      var label = BUSY_LABEL[busyAction] || ["historyDetail.working", "Working..."];
+      var text = Muffin.t(label[0], label[1]);
+      if (busyPercent > 0) text += " " + busyPercent + "%";
+      setStatus(text, "info");
     }
 
     function finishBusy() {
       busy = false;
-      clearInterval(elapsedTimer);
-      elapsedTimer = null;
-      lastPercent = null;
+      busyAction = null;
+      busyPercent = 0;
       ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
         document.getElementById(id).disabled = false;
       });
       document.getElementById("d-progress").hidden = true;
     }
 
+    Muffin.on("history.busy", function (e) {
+      busy = e.busy;
+      ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
+        document.getElementById(id).disabled = busy;
+      });
+      if (busy) {
+        busyAction = e.action;
+        busyPercent = 0;
+        paintBusy();
+      } else {
+        finishBusy();
+      }
+    });
+
     Muffin.on("history.progress", function (e) {
       var bar = document.getElementById("d-progress");
       bar.hidden = false;
-      lastPercent = e.percent || 0;
-      bar.firstElementChild.style.width = lastPercent + "%";
-      tickElapsed();
+      busyPercent = e.percent || 0;
+      bar.firstElementChild.style.width = busyPercent + "%";
+      paintBusy();
     });
 
     Muffin.on("history.partial", function (e) { if (panel) panel.stream(e.tab, e.text); });

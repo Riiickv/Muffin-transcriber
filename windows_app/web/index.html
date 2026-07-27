@@ -33,7 +33,7 @@
           </div>
           <div class="switch-row">
             <span class="lbl" data-i18n="transcribe.summarizeToggle">Summarize</span>
-            <button class="switch" data-setting="SummarizeByDefault" aria-pressed="false"></button>
+            <button class="switch" id="summarize-switch" data-setting="SummarizeByDefault" aria-pressed="false"></button>
           </div>
           <div class="row">
             <div class="col">
@@ -45,10 +45,16 @@
               <select id="format-language" data-setting="FormatLanguage"></select>
             </div>
           </div>
-          <div style="margin-top: var(--sp-lg);">
-            <span class="lbl" data-i18n="settings.customPrompt">Custom prompt</span>
-            <textarea class="prompt" data-setting="CustomFormatSystemPrompt"
-              placeholder="e.g. Translate to Spanish, use bullet points..."></textarea>
+          <div class="collapsible" id="prompt-collapse" style="margin-top: var(--sp-lg);">
+            <button class="collapsible-head" type="button" aria-expanded="false">
+              <span class="lbl" data-i18n="transcribe.customPromptLabel">Be specific</span>
+              <span class="msr chev">&#xE5CF;</span>
+            </button>
+            <div class="collapsible-body">
+              <textarea class="prompt" data-setting="CustomFormatSystemPrompt"
+                data-i18n-attr="placeholder:transcribe.customPromptPlaceholder"
+                placeholder="Use bullet points, max 100 words, etc."></textarea>
+            </div>
           </div>
         </section>
 
@@ -108,6 +114,12 @@
 
     Muffin.ready(function () {
       panel = createTranscript(document.getElementById("transcript-card"));
+
+      // Switching Summarize on is the moment you might want to say how, so the
+      // prompt opens itself here. In the library you open it yourself.
+      document.getElementById("summarize-switch").addEventListener("click", function () {
+        if (this.classList.contains("on")) openCollapsible(document.getElementById("prompt-collapse"));
+      });
 
       Muffin.invoke("transcribe.languages").then(function (langs) {
         if (!langs) return;

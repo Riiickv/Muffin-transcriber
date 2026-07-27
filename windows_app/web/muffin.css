@@ -952,3 +952,28 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
   cursor: pointer; padding: var(--sp-xs); border-radius: var(--r-sm); display: flex;
 }
 .app-banner .b-close:hover { background: var(--surface); color: var(--text); }
+
+/* ---- Collapsible section (the custom prompt) ---- */
+.collapsible-head {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: transparent; border: none; padding: 0; cursor: pointer;
+  color: var(--text); font: inherit; text-align: left;
+}
+.collapsible-head .lbl { margin: 0; }
+.collapsible-head .chev {
+  font-size: 20px; color: var(--text-muted);
+  transition: transform var(--t-quick) var(--ease-rn);
+}
+.collapsible.open .collapsible-head .chev { transform: rotate(180deg); }
+.collapsible-body { display: none; margin-top: var(--sp-sm); }
+.collapsible.open .collapsible-body { display: block; animation: collapse-in var(--t-base) var(--ease-rn) both; }
+@keyframes collapse-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* ---- Chrome is not a document: dragging across the UI should not select it.
+   The transcript, the chat and anything typed into stay selectable, because
+   copying those is the point. ---- */
+body { user-select: none; -webkit-user-select: none; }
+.transcript, .bubble, .prompt, .search, .s-edit,
+input, textarea, [contenteditable] {
+  user-select: text; -webkit-user-select: text;
+}
