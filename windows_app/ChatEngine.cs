@@ -333,8 +333,16 @@ Every transcript you have, newest first:
         if (!replyStarted && echo.Length > 0)
         {
             string leftover = echo.ToString();
-            int cut = leftover.LastIndexOf("globbing pattern", StringComparison.Ordinal);
-            if (cut >= 0) leftover = leftover[(cut + "globbing pattern".Length)..];
+
+            // Now that nothing more is coming, the weaker boundaries are safe:
+            // whatever follows the LAST of them is the reply.
+            int start = -1;
+            foreach (string boundary in new[] { "> ", "globbing pattern" })
+            {
+                int idx = leftover.LastIndexOf(boundary, StringComparison.Ordinal);
+                if (idx >= 0 && idx + boundary.Length > start) start = idx + boundary.Length;
+            }
+            if (start >= 0) leftover = leftover[start..];
 
             int stop = IndexOfEnd(leftover);
             if (stop >= 0) leftover = leftover[..stop];
@@ -348,6 +356,16 @@ Every transcript you have, newest first:
             || sb.ToString().Contains("Failed to load the model", StringComparison.OrdinalIgnoreCase);
 
         string output = sb.ToString();
+
+        // Last line of defence. If a turn marker is still in there, the echoed
+        // prompt leaked through and the real reply is whatever follows the last
+        // one; showing the user their own system prompt is never right.
+        foreach (string opener in new[] { "<|end_header_id|>", "<|assistant|>", "<|im_start|>assistant" })
+        {
+            int idx = output.LastIndexOf(opener, StringComparison.Ordinal);
+            if (idx >= 0) output = output[(idx + opener.Length)..];
+        }
+
         foreach (string marker in new[] { "<|im_end|>", "<|eot_id|>", "<|end|>", "<|endoftext|>", "[end of text]" })
         {
             int idx = output.IndexOf(marker, StringComparison.Ordinal);
@@ -365,14 +383,29 @@ Every transcript you have, newest first:
     /// </summary>
     private static int ReplyStart(string sofar, string assistantMarker)
     {
-        if (!string.IsNullOrEmpty(assistantMarker))
+        // ONLY the strong boundaries, and only the last of them.
+        //
+        // The banner prints a "> " turn indicator BEFORE the echoed prompt, so
+        // treating that as the start meant the whole system prompt streamed out
+        // as the answer. It is still useful once the output is complete, but it
+        // must never win the race against boundaries that come later.
+        //
+        // "(truncated)" is the one that matters for a real prompt: a long one is
+        // not echoed in full, it is cut short and ends with that word, taking
+        // the closing turn marker with it.
+        int best = -1;
+
+        void Consider(string needle)
         {
-            int marker = sofar.LastIndexOf(assistantMarker, StringComparison.Ordinal);
-            if (marker >= 0) return marker + assistantMarker.Length;
+            if (string.IsNullOrEmpty(needle)) return;
+            int idx = sofar.LastIndexOf(needle, StringComparison.Ordinal);
+            if (idx >= 0 && idx + needle.Length > best) best = idx + needle.Length;
         }
 
-        int turn = sofar.LastIndexOf("> ", StringComparison.Ordinal);
-        return turn >= 0 ? turn + 2 : -1;
+        Consider(assistantMarker);
+        Consider("(truncated)");
+
+        return best;
     }
 
     // Where the reply stops: the end-of-text token, or llama-cli's own trailing
