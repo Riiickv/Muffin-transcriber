@@ -131,9 +131,12 @@ function closeAllDropdowns() {
   });
 }
 
+// Only for switches that are NOT bound to a setting. A bound one is flipped and
+// saved together by the bridge, because doing those in two handlers made the
+// outcome depend on which one happened to be registered first.
 function wireToggles() {
   document.querySelectorAll("[data-toggle], .switch").forEach(function (el) {
-    if (el.dataset.toggleBound) return;
+    if (el.dataset.toggleBound || el.dataset.setting) return;
     el.dataset.toggleBound = "1";
     el.addEventListener("click", function () {
       el.classList.toggle("on");

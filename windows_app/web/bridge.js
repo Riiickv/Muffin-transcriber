@@ -135,7 +135,16 @@
       var key = el.dataset.setting;
 
       if (el.classList.contains("switch")) {
-        el.addEventListener("click", function () { set(key, el.classList.contains("on")); });
+        // This flips the switch AND saves it, in that order, in ONE handler.
+        // Splitting the two across muffin.js and here made the result depend on
+        // which listener was registered first: the app was handed the value from
+        // before the click, then echoed it back and the switch sprang shut.
+        el.addEventListener("click", function () {
+          var on = !el.classList.contains("on");
+          el.classList.toggle("on", on);
+          el.setAttribute("aria-pressed", on);
+          set(key, on);
+        });
       } else if (el.classList.contains("segmented")) {
         el.querySelectorAll(".segment").forEach(function (seg) {
           seg.addEventListener("click", function () { set(key, seg.dataset.value); });
