@@ -151,6 +151,7 @@ public static class AppStrings
     public static string History_Status_NoSubtitles => T("pc.history.noSubtitles", "No subtitle data available for this transcript. Please re-transcribe the file.");
     public static string History_Status_SelectSummarizer => T("dialog.noFormatterModel.message", "Choose a formatter model first.");
     public static string History_Status_SummaryComplete => T("pc.status.summaryComplete", "Summarization complete.");
+    public static string History_Status_SummaryTooShort => T("historyDetail.summaryTooShort", "Too short to summarize.");
     public static string History_Status_SummaryFailed => T("historyDetail.summaryFailed", "Couldn't summarize this one.");
     public static string History_Status_SelectWhisper => T("dialog.noWhisperModel.messagePickOne", "Choose a transcriber model first.");
     public static string History_Status_RetranscribeComplete => T("pc.status.retranscribeComplete", "Re-transcription complete.");

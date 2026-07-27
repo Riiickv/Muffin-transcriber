@@ -86,11 +86,10 @@ public static class LLMFormatter
             return null;
         }
 
+        // Too short is not a summary. Returning that sentence stored it AS the
+        // summary; the caller reports it instead.
         int wordCount = transcript.Split(new char[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries).Length;
-        if (wordCount < 15)
-        {
-            return "Text is too short or lacks content to summarize.";
-        }
+        if (wordCount < 15) return null;
 
         ModelInfo? model = AppModel.Resolve(AppModel.FormatterModels, selectedFormatter);
         if (model is null)
@@ -132,15 +131,24 @@ public static class LLMFormatter
             ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(15), [0, 130], ct);
             string formatted = ExtractFormatterOutput(result.Output);
 
-            try
+            string[]? bullets = null;
+            try { bullets = System.Text.Json.JsonSerializer.Deserialize<string[]>(formatted); }
+            catch { } // not JSON: fall through and treat it as plain text
+
+            if (bullets is not null)
             {
-                var bullets = System.Text.Json.JsonSerializer.Deserialize<string[]>(formatted);
-                if (bullets != null && bullets.Length > 0)
-                {
-                    formatted = string.Join("\n", bullets.Select(b => $"- {b}"));
-                }
+                // The schema forces a JSON array, and the model can return an
+                // EMPTY one. That used to fail the "any bullets?" check and fall
+                // through with the raw string untouched, so the Summary tab
+                // showed a literal "[ ]". Nothing to say means no summary.
+                List<string> lines = bullets
+                    .Where(b => !string.IsNullOrWhiteSpace(b))
+                    .Select(b => $"- {b.Trim()}")
+                    .ToList();
+
+                if (lines.Count == 0) return null;
+                formatted = string.Join("\n", lines);
             }
-            catch { } // fallback to raw string if JSON fails
 
             return string.IsNullOrWhiteSpace(formatted) ? null : formatted;
         }

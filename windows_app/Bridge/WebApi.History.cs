@@ -141,7 +141,15 @@ public sealed partial class WebBridge
                     Str(args, "prompt", _settings.CustomSummarySystemPrompt),
                     ct);
 
-                if (string.IsNullOrWhiteSpace(summary)) return Fail(AppStrings.History_Status_SummaryFailed);
+                if (string.IsNullOrWhiteSpace(summary))
+                {
+                    // A handful of words has nothing to summarize, which is a
+                    // different thing from the model failing.
+                    int words = input.Split([' ', '\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries).Length;
+                    return Fail(words < 15
+                        ? AppStrings.History_Status_SummaryTooShort
+                        : AppStrings.History_Status_SummaryFailed);
+                }
 
                 var updated = item with { Summary = summary };
                 TranscriptionHistory.AddOrUpdate(updated);
@@ -187,7 +195,7 @@ public sealed partial class WebBridge
 
     private static Dictionary<string, object?> SummaryMap(TranscriptionHistoryItem item)
     {
-        string body = !string.IsNullOrWhiteSpace(item.FormattedTranscript) ? item.FormattedTranscript! : item.RawTranscript;
+        string body = Meaningful(item.FormattedTranscript) is { Length: > 0 } formatted ? formatted : item.RawTranscript;
         return new Dictionary<string, object?>
         {
             ["id"] = item.Id,
@@ -199,6 +207,15 @@ public sealed partial class WebBridge
         };
     }
 
+    /// <summary>
+    /// Text with nothing in it is not text. A summary of "[ ]" got saved before
+    /// empty results were rejected, and it still occupies the Summary tab of
+    /// every old transcript; anything without a letter or a digit reads as
+    /// absent so those records heal themselves.
+    /// </summary>
+    private static string Meaningful(string? text) =>
+        !string.IsNullOrWhiteSpace(text) && text.Any(char.IsLetterOrDigit) ? text : "";
+
     private static Dictionary<string, object?> DetailMap(TranscriptionHistoryItem item) => new()
     {
         ["id"] = item.Id,
@@ -206,8 +223,8 @@ public sealed partial class WebBridge
         ["timestamp"] = item.Timestamp.ToString("o"),
         ["language"] = item.Language,
         ["raw"] = item.RawTranscript,
-        ["formatted"] = item.FormattedTranscript ?? "",
-        ["summary"] = item.Summary ?? "",
+        ["formatted"] = Meaningful(item.FormattedTranscript),
+        ["summary"] = Meaningful(item.Summary),
         ["srt"] = item.SrtTranscript ?? "",
         ["audioUrl"] = MediaUrl(item.SourceFilePath),
     };
