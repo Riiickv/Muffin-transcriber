@@ -356,7 +356,11 @@
           ? document.getElementById("language").value
           : document.getElementById("format-language").value,
       }).then(function (result) {
-        if (!result) return;
+        // Whatever happened, the screen stops saying "Working...". A job that
+        // finished while the UI still claimed to be busy is indistinguishable
+        // from one that hung.
+        finishBusy();
+        if (!result) { setStatus("", "info"); return; }
         if (result.error) { setStatus(result.error, "error"); return; }
         current = result;
         panel.set(result, { preferBest: true });
@@ -378,14 +382,47 @@
       ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
         document.getElementById(id).disabled = busy;
       });
-      if (busy) setStatus(Muffin.t("historyDetail.working", "Working..."), "info");
-      document.getElementById("d-progress").hidden = true;
+      if (busy) {
+        startedAt = Date.now();
+        setStatus(Muffin.t("historyDetail.working", "Working..."), "info");
+        clearInterval(elapsedTimer);
+        // These runs take minutes on a big model. A word that never changes
+        // reads as a freeze, so the elapsed time keeps moving.
+        elapsedTimer = setInterval(tickElapsed, 1000);
+      } else {
+        finishBusy();
+      }
     });
+
+    var startedAt = 0;
+    var elapsedTimer = null;
+    var lastPercent = null;
+
+    function tickElapsed() {
+      if (!busy) return;
+      var secs = Math.floor((Date.now() - startedAt) / 1000);
+      var label = Muffin.t("historyDetail.working", "Working...") + "  " + formatDuration(secs);
+      if (lastPercent !== null) label += "  ·  " + lastPercent + "%";
+      setStatus(label, "info");
+    }
+
+    function finishBusy() {
+      busy = false;
+      clearInterval(elapsedTimer);
+      elapsedTimer = null;
+      lastPercent = null;
+      ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
+        document.getElementById(id).disabled = false;
+      });
+      document.getElementById("d-progress").hidden = true;
+    }
 
     Muffin.on("history.progress", function (e) {
       var bar = document.getElementById("d-progress");
       bar.hidden = false;
-      bar.firstElementChild.style.width = (e.percent || 0) + "%";
+      lastPercent = e.percent || 0;
+      bar.firstElementChild.style.width = lastPercent + "%";
+      tickElapsed();
     });
 
     Muffin.on("history.partial", function (e) { if (panel) panel.stream(e.tab, e.text); });
