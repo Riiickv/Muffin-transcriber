@@ -18,7 +18,7 @@ public static class AppStrings
 
     // The updater compares this against the release tag; not user-visible text.
     // A property (not const) because x:Bind can't bind to constants.
-    public static string AppVersion => "v1.3.3";
+    public static string AppVersion => "v1.3.4";
 
     // NAVIGATION - the same five destinations as the mobile tab bar.
     public static string Nav_Home => T("tabs.transcribe", "Muffin!");
