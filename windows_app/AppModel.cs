@@ -134,9 +134,37 @@ public static class AppModel
 
     public static string ModelPath(string file) => Path.Combine(ModelsDir, file);
 
+    /// <summary>
+    /// A model counts as installed only if it is actually a model.
+    ///
+    /// Size alone is not enough: the downloader pre-allocates the whole file and
+    /// fills it in parallel, so an interrupted download leaves a full-size file
+    /// of zeros. That passed as installed, and every engine call then failed
+    /// with nothing the user could act on ("the chat just doesn't answer").
+    /// Checking the format magic makes a broken file read as missing, which is
+    /// what it is, and the UI offers to download it again.
+    /// </summary>
     public static bool IsValidModelFile(string path)
     {
-        return File.Exists(path) && new FileInfo(path).Length >= MinModelBytes;
+        if (!File.Exists(path) || new FileInfo(path).Length < MinModelBytes) return false;
+
+        try
+        {
+            using FileStream stream = File.OpenRead(path);
+            Span<byte> magic = stackalloc byte[4];
+            if (stream.Read(magic) != 4) return false;
+
+            // llama.cpp models are GGUF; whisper.cpp models are ggml, whose
+            // magic is the little-endian word 0x67676d6c.
+            bool gguf = magic[0] == 'G' && magic[1] == 'G' && magic[2] == 'U' && magic[3] == 'F';
+            bool ggml = magic[0] == 0x6C && magic[1] == 0x6D && magic[2] == 0x67 && magic[3] == 0x67;
+            return gguf || ggml;
+        }
+        catch
+        {
+            // Locked mid-download, or unreadable: not usable either way.
+            return false;
+        }
     }
 
     public static string CompactName(ModelInfo info)

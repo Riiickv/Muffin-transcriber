@@ -20,6 +20,30 @@ public static class ModelDownloader
         IProgress<(long downloaded, long total, double speed, TimeSpan? eta)> progress,
         CancellationToken ct)
     {
+        // Download beside the target and only move it into place once it is
+        // whole. The file is pre-allocated to its final size and filled by eight
+        // parallel writers, so an interrupted download used to leave a full-size
+        // file of zeros sitting exactly where a working model belongs; the app
+        // called that installed and every engine call failed cryptically.
+        string partial = destination + ".part";
+        try
+        {
+            await DownloadToAsync(model, partial, progress, ct);
+            File.Move(partial, destination, overwrite: true);
+        }
+        catch
+        {
+            try { if (File.Exists(partial)) File.Delete(partial); } catch { }
+            throw;
+        }
+    }
+
+    private static async Task DownloadToAsync(
+        ModelInfo model,
+        string destination,
+        IProgress<(long downloaded, long total, double speed, TimeSpan? eta)> progress,
+        CancellationToken ct)
+    {
         using HttpResponseMessage headResponse = await SharedHttpClient.GetAsync(model.Url, HttpCompletionOption.ResponseHeadersRead, ct);
         headResponse.EnsureSuccessStatusCode();
 
