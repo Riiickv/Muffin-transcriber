@@ -310,7 +310,15 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            var progress = new Progress<int>(p => _bridge?.UpdateBanner(AppStrings.Update_BtnDownloading, null, p));
+            // Second guard: a repeated percentage is not worth a message across
+            // the bridge, and this runs on the UI thread.
+            int shown = -1;
+            var progress = new Progress<int>(p =>
+            {
+                if (p == shown) return;
+                shown = p;
+                _bridge?.UpdateBanner(AppStrings.Update_BtnDownloading, null, p);
+            });
             _installerPath = await AutoUpdater.DownloadUpdateAsync(_updateDownloadUrl, progress);
 
             _updateDownloaded = true;

@@ -117,8 +117,11 @@ namespace MuffinTranscriber
             using var fileStream = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
 
             var totalRead = 0L;
-            var buffer = new byte[8192];
+            // 8 KB over 77 MB is ~10,000 iterations, and each one used to post a
+            // progress report to the UI thread. 64 KB cuts that eightfold.
+            var buffer = new byte[65536];
             var isMoreToRead = true;
+            var lastPercentage = -1;
 
             do
             {
@@ -134,8 +137,17 @@ namespace MuffinTranscriber
 
                     if (canReportProgress)
                     {
+                        // ONLY on a change. Reporting every buffer queued
+                        // thousands of messages onto the UI thread, and the
+                        // "download finished" one sat behind all of them: the
+                        // file was complete while the banner still said it was
+                        // downloading.
                         var percentage = (int)((totalRead * 100) / totalBytes);
-                        progress!.Report(percentage);
+                        if (percentage != lastPercentage)
+                        {
+                            lastPercentage = percentage;
+                            progress!.Report(percentage);
+                        }
                     }
                 }
             }
