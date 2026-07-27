@@ -15,7 +15,7 @@ public static class ChatEngine
 {
     public static async Task<string> ChatAsync(IReadOnlyList<ChatMessage> messages, string? selectedFormatter, Action<string> onToken)
     {
-        if (string.IsNullOrWhiteSpace(AppModel.LlamaCompletionExe))
+        if (string.IsNullOrWhiteSpace(AppModel.LlamaExe))
         {
             throw new InvalidOperationException("The local LLM engine is missing. Try reinstalling the app.");
         }
@@ -43,10 +43,35 @@ public static class ChatEngine
         try
         {
             string modelPath = AppModel.ModelPath(model.File);
-            // llama-completion (not llama-cli) does a clean one-shot completion with
-            // no interactive banner/prompt-echo; -no-cnv + --simple-io keep it plain.
-            string args = $"-m \"{modelPath}\" -f \"{promptPath}\" -n 768 --temp 0.3 -ngl 999 -c 4096 --log-disable --no-display-prompt -no-cnv --simple-io";
-            return await RunStreamingAsync(AppModel.LlamaCompletionExe, args, onToken);
+            // llama-cli, NOT llama-completion, and no --no-display-prompt.
+            //
+            // llama-completion writes nothing at all when its stdout is a
+            // redirected pipe under a windowless parent, which a GUI app always
+            // is: it exits 0 with empty stdout and empty stderr, so the chat
+            // silently never answered. llama-cli streams fine through the very
+            // same redirection, which is why formatting always worked.
+            //
+            // The cost is that llama-cli prints a banner, a command list and the
+            // prompt back; the reply begins after the prompt's last turn marker,
+            // and everything before it is skipped below.
+            string marker = AssistantMarker(model.File);
+
+            string Args(int layers) =>
+                $"-m \"{modelPath}\" -f \"{promptPath}\" -n 768 --temp 0.3 -ngl {layers} -c 4096 --log-disable --no-display-prompt -st";
+
+            // The GPU is shared with whatever else the user is running. When it
+            // is full the engine does not fall back, it refuses to load at all,
+            // so the answer never comes. Ask for the GPU, and if it will not
+            // load, run on the CPU: slower beats silent.
+            (string reply, bool loaded) = await RunStreamingAsync(AppModel.LlamaExe, Args(33), onToken, marker);
+            if (loaded) return reply;
+
+            CrashLog.Note("Chat: the GPU would not take the model, retrying on the CPU.");
+            (reply, loaded) = await RunStreamingAsync(AppModel.LlamaExe, Args(0), onToken, marker);
+            if (loaded) return reply;
+
+            throw new InvalidOperationException(
+                "The chat model could not be loaded. It may be too large for this PC, or another program is using the graphics card.");
         }
         finally
         {
@@ -219,7 +244,21 @@ Every transcript you have, newest first:
         return sb.ToString();
     }
 
-    private static async Task<string> RunStreamingAsync(string fileName, string arguments, Action<string> onToken)
+    /// <summary>
+    /// Where the reply starts in the echoed output: the last turn marker of the
+    /// prompt. Matched without its trailing newline, because the echo collapses
+    /// the prompt's line breaks into spaces.
+    /// </summary>
+    private static string AssistantMarker(string modelFile)
+    {
+        string lower = modelFile.ToLowerInvariant();
+        if (lower.Contains("llama-3")) return "<|start_header_id|>assistant<|end_header_id|>";
+        if (lower.Contains("phi-3")) return "<|assistant|>";
+        return "<|im_start|>assistant";
+    }
+
+    /// <summary>Returns the reply and whether the model actually loaded.</summary>
+    private static async Task<(string Reply, bool Loaded)> RunStreamingAsync(string fileName, string arguments, Action<string> onToken, string replyStartsAfter)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -242,11 +281,28 @@ Every transcript you have, newest first:
         bool ended = false;
         bool trimmedStart = false;
 
+        // The prompt is echoed before the reply, so nothing is shown until the
+        // marker that ends it has gone past. Held in a buffer rather than
+        // streamed, or the user would watch their own prompt being typed back.
+        var echo = new StringBuilder();
+        bool replyStarted = string.IsNullOrEmpty(replyStartsAfter);
+
         while (!ended && (read = await process.StandardOutput.ReadAsync(buffer, 0, buffer.Length)) > 0)
         {
             string chunk = StripAnsi(new string(buffer, 0, read));
 
-            int endIdx = chunk.IndexOf("[end of text]", StringComparison.Ordinal);
+            if (!replyStarted)
+            {
+                echo.Append(chunk);
+                int start = ReplyStart(echo.ToString(), replyStartsAfter);
+                if (start < 0) continue;
+
+                replyStarted = true;
+                chunk = echo.ToString()[start..];
+                echo.Clear();
+            }
+
+            int endIdx = IndexOfEnd(chunk);
             if (endIdx >= 0)
             {
                 chunk = chunk[..endIdx];
@@ -269,7 +325,27 @@ Every transcript you have, newest first:
 
         try { _ = process.StandardOutput.ReadToEnd(); } catch { } // drain so the process exits
         await process.WaitForExitAsync();
-        await stderrTask;
+        string stderrText = await stderrTask;
+
+        // The engine spoke but no boundary was recognised. Showing nothing at
+        // all is the worst possible answer, and is exactly how this failure hid
+        // for so long, so fall back to what came through.
+        if (!replyStarted && echo.Length > 0)
+        {
+            string leftover = echo.ToString();
+            int cut = leftover.LastIndexOf("globbing pattern", StringComparison.Ordinal);
+            if (cut >= 0) leftover = leftover[(cut + "globbing pattern".Length)..];
+
+            int stop = IndexOfEnd(leftover);
+            if (stop >= 0) leftover = leftover[..stop];
+
+            sb.Append(leftover.Trim());
+        }
+
+        // The engine prints this and exits non-zero when it cannot fit the
+        // model; the caller retries on the CPU rather than surfacing it.
+        bool loadFailed = process.ExitCode != 0
+            || sb.ToString().Contains("Failed to load the model", StringComparison.OrdinalIgnoreCase);
 
         string output = sb.ToString();
         foreach (string marker in new[] { "<|im_end|>", "<|eot_id|>", "<|end|>", "<|endoftext|>", "[end of text]" })
@@ -277,10 +353,42 @@ Every transcript you have, newest first:
             int idx = output.IndexOf(marker, StringComparison.Ordinal);
             if (idx >= 0) output = output[..idx];
         }
-        return output.Trim();
+        return (output.Trim(), !loadFailed);
     }
 
-    // Removes ANSI colour escape sequences (ESC[...m) that llama-completion emits.
+    /// <summary>
+    /// Where the reply begins in llama-cli's output, or -1 if not there yet.
+    ///
+    /// It prints a banner and a command list first, then a "> " turn indicator,
+    /// and echoes the prompt when it is not suppressed. Both boundaries are
+    /// accepted because either can be the last thing before the reply.
+    /// </summary>
+    private static int ReplyStart(string sofar, string assistantMarker)
+    {
+        if (!string.IsNullOrEmpty(assistantMarker))
+        {
+            int marker = sofar.LastIndexOf(assistantMarker, StringComparison.Ordinal);
+            if (marker >= 0) return marker + assistantMarker.Length;
+        }
+
+        int turn = sofar.LastIndexOf("> ", StringComparison.Ordinal);
+        return turn >= 0 ? turn + 2 : -1;
+    }
+
+    // Where the reply stops: the end-of-text token, or llama-cli's own trailing
+    // timing line and goodbye.
+    private static int IndexOfEnd(string chunk)
+    {
+        int best = -1;
+        foreach (string marker in new[] { "[end of text]", "[ Prompt:", "Exiting..." })
+        {
+            int idx = chunk.IndexOf(marker, StringComparison.Ordinal);
+            if (idx >= 0 && (best < 0 || idx < best)) best = idx;
+        }
+        return best;
+    }
+
+    // Removes ANSI colour escape sequences (ESC[...m) that the engine emits.
     private static string StripAnsi(string s)
     {
         if (s.IndexOf('\x1b') < 0) return s;
