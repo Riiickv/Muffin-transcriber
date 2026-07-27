@@ -119,6 +119,8 @@ public static class AppStrings
     public static string Chat_NoModel => T("chat.noModelSubtitle", "Please go to Settings and select a Chat Model to use the assistant.");
     public static string Chat_Thinking => T("chat.thinking", "Thinking...");
     public static string Chat_Done => T("chat.actionExecuted", "Done");
+    public static string Chat_ActionFailed => T("chat.actionFailed", "Couldn't do that");
+    public static string Chat_ErrorMessage => T("chat.errorMessage", "Sorry, something went wrong. Here is what the app said:");
     public static string Chat_DeleteTitle => T("chat.deleteTitle", "Delete transcript?");
     public static string Chat_DeleteConfirm => T("chat.deleteMessage", "Delete “{name}”? This can't be undone.");
     public static string Chat_Delete => T("common.delete", "Delete");

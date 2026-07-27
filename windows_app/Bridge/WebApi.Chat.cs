@@ -98,12 +98,13 @@ public sealed partial class WebBridge
                 target.Messages.Add(new ChatMessage("assistant", reply));
                 target.UpdatedAt = DateTime.Now;
 
-                await ExecuteToolCalls(reply);
+                List<Dictionary<string, object?>> actions = await ExecuteToolCalls(reply);
 
                 return new Dictionary<string, object?>
                 {
                     ["id"] = target.Id,
-                    ["text"] = Visible(reply),
+                    ["text"] = StripToolCalls(reply),
+                    ["actions"] = actions,
                     ["sessions"] = _sessions.Select(SessionMap).ToList(),
                 };
             }
@@ -112,7 +113,7 @@ public sealed partial class WebBridge
                 return new Dictionary<string, object?>
                 {
                     ["id"] = target.Id,
-                    ["error"] = EngineHealth.FriendlyMessage(ex) ?? ex.Message,
+                    ["error"] = AppStrings.Chat_ErrorMessage + "\n\n" + (EngineHealth.FriendlyMessage(ex) ?? ex.Message),
                 };
             }
             finally
@@ -137,22 +138,17 @@ public sealed partial class WebBridge
     {
         ["id"] = session.Id,
         ["title"] = session.Title,
-        // A reply that was nothing but a tool call has no words to show. It did
-        // something, so say so rather than leaving an empty bubble.
+        // Chips are derived from the stored reply, never re-executed: reopening
+        // a conversation must not change a setting again.
         ["messages"] = session.Messages.Select(m => new Dictionary<string, object?>
         {
             ["role"] = m.Role,
-            ["content"] = m.Role == "assistant" ? Visible(m.Content) : m.Content,
+            ["content"] = m.Role == "assistant" ? StripToolCalls(m.Content) : m.Content,
+            ["actions"] = m.Role == "assistant" ? NamedActions(m.Content) : null,
         }).ToList(),
     };
 
     // ---- tool calls --------------------------------------------------------
-
-    private static string Visible(string reply)
-    {
-        string stripped = StripToolCalls(reply);
-        return string.IsNullOrWhiteSpace(stripped) ? AppStrings.Chat_Done : stripped;
-    }
 
     private static string StripToolCalls(string text)
     {
@@ -161,7 +157,7 @@ public sealed partial class WebBridge
         return t.Trim();
     }
 
-    private async Task ExecuteToolCalls(string reply)
+    private static List<JsonElement> ParseToolCalls(string reply)
     {
         var calls = new List<JsonElement>();
         foreach (Match m in Regex.Matches(reply, @"<tool_call>([\s\S]*?)</tool_call>", RegexOptions.IgnoreCase))
@@ -173,15 +169,49 @@ public sealed partial class WebBridge
             Match fallback = Regex.Match(reply, @"\{[\s\S]*?""action""[\s\S]*?\}", RegexOptions.IgnoreCase);
             if (fallback.Success && TryParseJson(fallback.Value, out JsonElement el)) calls.Add(el);
         }
-
-        foreach (JsonElement call in calls) await Dispatch(call);
+        return calls;
     }
 
-    private Task Dispatch(JsonElement call)
-    {
-        if (!call.TryGetProperty("action", out JsonElement actionEl)) return Task.CompletedTask;
+    /// <summary>
+    /// What a stored reply asked for, for redrawing an old conversation. Parses
+    /// only: reopening a chat must never run its actions a second time.
+    /// </summary>
+    private static List<Dictionary<string, object?>> NamedActions(string reply) =>
+        ParseToolCalls(reply)
+            .Where(call => call.TryGetProperty("action", out _))
+            .Select(call => new Dictionary<string, object?>
+            {
+                ["action"] = call.GetProperty("action").GetString() ?? "",
+                ["ok"] = true,
+            })
+            .ToList();
 
-        switch ((actionEl.GetString() ?? "").ToUpperInvariant())
+    private async Task<List<Dictionary<string, object?>>> ExecuteToolCalls(string reply)
+    {
+        var results = new List<Dictionary<string, object?>>();
+        foreach (JsonElement call in ParseToolCalls(reply))
+        {
+            results.Add(await Dispatch(call));
+        }
+        return results;
+    }
+
+    // Returns what happened, so the screen can show a chip under the reply the
+    // way the mobile app does, instead of the action replacing the reply.
+    private Task<Dictionary<string, object?>> Dispatch(JsonElement call)
+    {
+        Dictionary<string, object?> Result(string action, bool ok) =>
+            new() { ["action"] = action, ["ok"] = ok };
+
+        if (!call.TryGetProperty("action", out JsonElement actionEl))
+        {
+            return Task.FromResult(Result("", false));
+        }
+
+        string name = (actionEl.GetString() ?? "").ToUpperInvariant();
+        bool handled = true;
+
+        switch (name)
         {
             case "SET_SETTING":
             {
@@ -192,6 +222,7 @@ public sealed partial class WebBridge
                     // assistant changes lights up on screen like any other.
                     ApplySetting(spec.Key, Coerce(spec, value));
                 }
+                else handled = false;
                 break;
             }
 
@@ -199,6 +230,7 @@ public sealed partial class WebBridge
             {
                 SettingSpec? spec = AppCapabilities.GetSpec(Str(call, "key"));
                 if (spec is not null) Emit("chat.showSetting", new Dictionary<string, object?> { ["key"] = spec.Key });
+                else handled = false;
                 break;
             }
 
@@ -218,11 +250,16 @@ public sealed partial class WebBridge
                         ["name"] = Path.GetFileNameWithoutExtension(target.SourceFileName),
                     });
                 }
+                else handled = false;
                 break;
             }
+
+            default:
+                handled = false;
+                break;
         }
 
-        return Task.CompletedTask;
+        return Task.FromResult(Result(name, handled));
     }
 
     // The model answers with strings even for switches; the spec says what the
