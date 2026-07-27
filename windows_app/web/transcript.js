@@ -6,10 +6,18 @@
 // per tick = max(base, ceil(length / 240)) with base 1 / 3 / 9 for
 // Slow / Balanced / Fast, so a long transcript still finishes in about 5s.
 
+// StreamingText.tsx: the newest characters carry an accent trail that fades
+// back to the text colour behind them, so you can see where the writing is.
+// Same two numbers as mobile.
+var TAIL_CHARS = 44;
+var TAIL_STEPS = 8;
+
 function createTranscript(root) {
   var box = root.querySelector(".transcript");
   var tabs = root.querySelectorAll(".segment[data-tab]");
   var copyBtn = root.querySelector("[data-copy]");
+  var settledNode = null;
+  var tailSpans = [];
 
   var content = { raw: "", formatted: "", summary: "" };
   var active = "raw";
@@ -23,12 +31,47 @@ function createTranscript(root) {
     return Math.max(base, Math.ceil(length / 240));
   }
 
+  // One text node for everything already settled and TAIL_STEPS spans for the
+  // trail. The settled text is updated through nodeValue, which costs nothing
+  // to grow, so a two-hour transcript is not re-parsed 50 times a second.
+  function trailNodes() {
+    if (settledNode && settledNode.parentNode === box) return;
+    box.textContent = "";
+    settledNode = document.createTextNode("");
+    box.appendChild(settledNode);
+    tailSpans = [];
+    for (var i = 0; i < TAIL_STEPS; i++) {
+      var span = document.createElement("span");
+      // color-mix against the variables rather than a colour worked out here,
+      // so the trail follows the accent picker and the theme with no redraw.
+      span.style.color = "color-mix(in srgb, var(--accent) " +
+        Math.round(((i + 1) / TAIL_STEPS) * 100) + "%, var(--text))";
+      box.appendChild(span);
+      tailSpans.push(span);
+    }
+  }
+
+  function paintTrail(shown) {
+    trailNodes();
+    var tailStart = Math.max(0, shown.length - TAIL_CHARS);
+    settledNode.nodeValue = shown.slice(0, tailStart);
+    var tail = shown.slice(tailStart);
+    for (var i = 0; i < TAIL_STEPS; i++) {
+      var from = Math.floor((i * tail.length) / TAIL_STEPS);
+      var to = Math.floor(((i + 1) * tail.length) / TAIL_STEPS);
+      tailSpans[i].textContent = tail.slice(from, to);
+    }
+  }
+
   function stopReveal() {
     if (!timer) return;
     clearInterval(timer);
     timer = null;
-    // Never leave the box truncated if a reveal was cut short.
-    if (target && index < target.length) box.textContent = target;
+    // Never leave the box truncated if a reveal was cut short, and drop the
+    // trail: nothing is arriving any more, so nothing should look like it is.
+    if (target) box.textContent = target;
+    settledNode = null;
+    tailSpans = [];
     target = "";
     index = 0;
   }
@@ -39,10 +82,11 @@ function createTranscript(root) {
     index = 0;
     perTick = speedPerTick(speed, text.length);
     box.textContent = "";
+    settledNode = null;
     box.classList.remove("placeholder");
     timer = setInterval(function () {
       index = Math.min(target.length, index + perTick);
-      box.textContent = target.slice(0, index);
+      paintTrail(target.slice(0, index));
       box.scrollTop = box.scrollHeight;
       if (index >= target.length) stopReveal();
     }, 20);
@@ -51,6 +95,9 @@ function createTranscript(root) {
   function paint() {
     var text = content[active] || "";
     stopReveal();
+    // A settled view is plain text; the trail belongs to text still arriving.
+    settledNode = null;
+    tailSpans = [];
     if (text) {
       box.textContent = text;
       box.classList.remove("placeholder");
@@ -115,9 +162,12 @@ function createTranscript(root) {
     // A tab growing as the model streams into it.
     stream: function (tab, text) {
       content[tab] = text;
-      active = tab;
-      stopReveal();
-      box.textContent = text;
+      // The model writing into a tab is text arriving too, so it gets the same
+      // trail. stopReveal() is not called here: it would rewrite the whole box
+      // and throw the trail nodes away on every chunk.
+      if (timer) { clearInterval(timer); timer = null; target = ""; index = 0; }
+      if (active !== tab) { active = tab; box.textContent = ""; settledNode = null; }
+      paintTrail(text);
       box.classList.remove("placeholder");
       box.scrollTop = box.scrollHeight;
       tabs.forEach(function (t) {
