@@ -35,7 +35,9 @@
     <section class="chat-main">
       <div class="chat-head">
         <h2 id="chat-title" data-i18n="chat.header">Chat</h2>
-        <span class="beta-badge" data-i18n="chat.beta">Beta</span>
+        <!-- Says up front that this part is still cooking, and says what it
+             means when you click it, the way the mobile header badge does. -->
+        <button class="beta-badge" id="beta" type="button" data-i18n="chat.beta">Beta</button>
       </div>
 
       <div class="chat-scroll" id="scroll">
@@ -51,18 +53,6 @@
     </section>
   </div>
 
-  <div class="modal-backdrop" id="confirm" hidden>
-    <div class="modal">
-      <h2 id="confirm-title" data-i18n="chat.deleteChat">Delete chat</h2>
-      <p id="confirm-body"></p>
-      <div class="modal-actions">
-        <div class="modal-spacer"></div>
-        <button class="btn btn-ghost" id="confirm-no" data-i18n="common.cancel">Cancel</button>
-        <button class="btn btn-ghost danger" id="confirm-yes" data-i18n="common.delete">Delete</button>
-      </div>
-    </div>
-  </div>
-
   <div class="toast" id="toast" hidden></div>
 
   <script src="shell.js" defer></script>
@@ -74,6 +64,14 @@
     var firstToken = true;
 
     Muffin.ready(function () { loadSessions(true); });
+
+    document.getElementById("beta").addEventListener("click", function () {
+      showDialog({
+        title: Muffin.t("chat.betaTitle", "Chat in beta"),
+        message: Muffin.t("chat.betaBody", ""),
+        buttons: [{ label: Muffin.t("chat.betaOk", "Ok!") }],
+      });
+    });
 
     function loadSessions(openFirst) {
       Muffin.invoke("chat.sessions").then(function (list) {
@@ -350,11 +348,10 @@
 
     // The assistant can ask for a transcript to be deleted; the app asks first.
     Muffin.on("chat.confirmDelete", function (e) {
-      pending = { kind: "transcript", id: e.id, name: e.name };
-      document.getElementById("confirm-title").textContent = Muffin.t("chat.deleteTitle", "Delete transcript?");
-      document.getElementById("confirm-body").textContent =
-        Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", e.name);
-      document.getElementById("confirm").hidden = false;
+      confirmDelete(Muffin.t("chat.deleteTitle", "Delete transcript?"), e.name, function () {
+        Muffin.invoke("history.delete", { id: e.id });
+        showToast(Muffin.t("chat.actionExecuted", "Done"));
+      });
     });
 
     document.getElementById("send").addEventListener("click", send);
@@ -370,43 +367,34 @@
 
     // ---- delete confirmation -----------------------------------------------
 
-    var pending = null;
-    var confirmModal = document.getElementById("confirm");
-
-    function askDelete(session) {
-      pending = { kind: "chat", id: session.id, name: session.title };
-      document.getElementById("confirm-title").textContent = Muffin.t("chat.deleteChat", "Delete chat");
-      document.getElementById("confirm-body").textContent =
-        Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", session.title);
-      confirmModal.hidden = false;
+    // One shape for both: the chat you are deleting and the transcript the
+    // assistant asked to delete ask the same question, in the same card.
+    function confirmDelete(title, name, onYes) {
+      showDialog({
+        title: title,
+        message: Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", name),
+        icon: "", // delete
+        iconTone: "danger",
+        buttons: [
+          { label: Muffin.t("common.cancel", "Cancel"), variant: "ghost" },
+          { label: Muffin.t("common.delete", "Delete"), variant: "danger", onPress: onYes },
+        ],
+      });
     }
 
-    document.getElementById("confirm-no").addEventListener("click", function () { confirmModal.hidden = true; });
-    confirmModal.addEventListener("click", function (e) { if (e.target === confirmModal) confirmModal.hidden = true; });
-
-    document.getElementById("confirm-yes").addEventListener("click", function () {
-      if (!pending) return;
-      confirmModal.hidden = true;
-
-      if (pending.kind === "transcript") {
-        Muffin.invoke("history.delete", { id: pending.id });
-        showToast(Muffin.t("chat.actionExecuted", "Done"));
-        pending = null;
-        return;
-      }
-
-      var removed = pending.id;
-      pending = null;
-      Muffin.invoke("chat.delete", { id: removed }).then(function (list) {
-        sessions = list || [];
-        if (activeId === removed) {
-          activeId = sessions.length ? sessions[0].id : null;
-          if (activeId) openSession(activeId);
-          else renderMessages([]);
-        }
-        renderSessions();
+    function askDelete(session) {
+      confirmDelete(Muffin.t("chat.deleteChat", "Delete chat"), session.title, function () {
+        Muffin.invoke("chat.delete", { id: session.id }).then(function (list) {
+          sessions = list || [];
+          if (activeId === session.id) {
+            activeId = sessions.length ? sessions[0].id : null;
+            if (activeId) openSession(activeId);
+            else renderMessages([]);
+          }
+          renderSessions();
+        });
       });
-    });
+    }
   </script>
 </body>
 </html>

@@ -182,6 +182,117 @@ function wireCollapsibles() {
 window.openCollapsible = openCollapsible;
 window.setCollapsible = setCollapsible;
 
+// ---- Dialogs ----------------------------------------------------------------
+// The mobile DialogCard: centred icon, title and message, buttons in a row
+// sharing the width. Every confirm, error and prompt in the app is one of
+// these, so it is built once here rather than written into each page.
+//
+//   Muffin.dialog({
+//     title, message,
+//     icon: "", iconTone: "danger",
+//     input: { value, placeholder, maxLength },   // optional text field
+//     buttons: [{ label, variant, onPress(value) }],
+//     onDismiss,
+//   })
+//
+// variant is accent | ghost | danger; the last button defaults to accent.
+function showDialog(opts) {
+  var backdrop = document.createElement("div");
+  backdrop.className = "dialog-backdrop";
+
+  var card = document.createElement("div");
+  card.className = "dialog-card";
+  card.setAttribute("role", "dialog");
+  card.setAttribute("aria-modal", "true");
+  backdrop.appendChild(card);
+
+  if (opts.icon) {
+    var icon = document.createElement("span");
+    icon.className = "msr fill dialog-icon" + (opts.iconTone === "danger" ? " danger" : "");
+    icon.textContent = opts.icon;
+    card.appendChild(icon);
+  }
+
+  var title = document.createElement("h2");
+  title.className = "dialog-title";
+  title.textContent = opts.title || "";
+  card.appendChild(title);
+
+  if (opts.message) {
+    var msg = document.createElement("p");
+    msg.className = "dialog-message";
+    msg.textContent = opts.message;
+    card.appendChild(msg);
+  }
+
+  var field = null;
+  if (opts.input) {
+    field = document.createElement("input");
+    field.className = "dialog-input";
+    field.type = "text";
+    field.value = opts.input.value || "";
+    if (opts.input.placeholder) field.placeholder = opts.input.placeholder;
+    if (opts.input.maxLength) field.maxLength = opts.input.maxLength;
+    card.appendChild(field);
+  }
+
+  var row = document.createElement("div");
+  row.className = "dialog-buttons";
+  card.appendChild(row);
+
+  var closed = false;
+  function close(dismissed) {
+    if (closed) return;
+    closed = true;
+    document.removeEventListener("keydown", onKey, true);
+    backdrop.classList.remove("open");
+    // Let it fade before it leaves, the way the card arrived.
+    setTimeout(function () { backdrop.remove(); }, 160);
+    if (dismissed && opts.onDismiss) opts.onDismiss();
+  }
+
+  var buttons = opts.buttons && opts.buttons.length
+    ? opts.buttons
+    : [{ label: (window.Muffin && Muffin.t("dialog.defaultOk", "OK")) || "OK" }];
+
+  buttons.forEach(function (spec, i) {
+    var btn = document.createElement("button");
+    var variant = spec.variant || (i === buttons.length - 1 ? "accent" : "ghost");
+    btn.className = "btn btn-" + variant;
+    btn.textContent = spec.label;
+    btn.addEventListener("click", function () {
+      var value = field ? field.value.trim() : undefined;
+      close(false);
+      if (spec.onPress) spec.onPress(value);
+    });
+    row.appendChild(btn);
+  });
+
+  // Clicking the scrim is the same exit as Escape, never a third outcome.
+  backdrop.addEventListener("mousedown", function (e) { if (e.target === backdrop) close(true); });
+  function onKey(e) {
+    if (e.key === "Escape") { e.preventDefault(); close(true); }
+    if (e.key === "Enter" && field && document.activeElement === field) {
+      e.preventDefault();
+      row.lastElementChild.click();
+    }
+  }
+  document.addEventListener("keydown", onKey, true);
+
+  document.body.appendChild(backdrop);
+  // Commit the closed state before opening, so the transition has something to
+  // start from. A forced reflow rather than requestAnimationFrame: rAF does not
+  // run while the window is in the background, and the dialog would sit there
+  // invisible until the user touched something.
+  void backdrop.offsetHeight;
+  backdrop.classList.add("open");
+  if (field) { field.focus(); field.select(); }
+  else if (row.lastElementChild) row.lastElementChild.focus();
+
+  return { close: function () { close(false); } };
+}
+window.showDialog = showDialog;
+
 // ---- Tooltips ---------------------------------------------------------------
 // Windows' own tooltip is a yellow-white box in the system font that appears
 // after a second and ignores the theme entirely. This replaces it without any

@@ -128,18 +128,6 @@
     </main>
   </div>
 
-  <div class="modal-backdrop" id="confirm" hidden>
-    <div class="modal">
-      <h2 id="confirm-title" data-i18n="chat.deleteTitle">Delete transcript?</h2>
-      <p id="confirm-body"></p>
-      <div class="modal-actions">
-        <div class="modal-spacer"></div>
-        <button class="btn btn-ghost" id="confirm-no" data-i18n="common.cancel">Cancel</button>
-        <button class="btn btn-ghost danger" id="confirm-yes" data-i18n="common.delete">Delete</button>
-      </div>
-    </div>
-  </div>
-
   <audio id="audio" preload="metadata"></audio>
   <div class="toast" id="toast" hidden></div>
 
@@ -334,22 +322,20 @@
 
     // ---- delete confirmation -----------------------------------------------
 
-    var pendingDelete = null;
-    var confirmModal = document.getElementById("confirm");
-
     function askDelete(item) {
-      pendingDelete = item;
-      document.getElementById("confirm-body").textContent =
-        Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", item.title);
-      confirmModal.hidden = false;
+      showDialog({
+        title: Muffin.t("chat.deleteTitle", "Delete transcript?"),
+        message: Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", item.title),
+        icon: "", // delete
+        iconTone: "danger",
+        buttons: [
+          { label: Muffin.t("common.cancel", "Cancel"), variant: "ghost" },
+          { label: Muffin.t("common.delete", "Delete"), variant: "danger", onPress: function () { doDelete(item.id); } },
+        ],
+      });
     }
 
-    document.getElementById("confirm-no").addEventListener("click", function () { confirmModal.hidden = true; });
-    confirmModal.addEventListener("click", function (e) { if (e.target === confirmModal) confirmModal.hidden = true; });
-    document.getElementById("confirm-yes").addEventListener("click", function () {
-      if (!pendingDelete) return;
-      var id = pendingDelete.id;
-      confirmModal.hidden = true;
+    function doDelete(id) {
       Muffin.invoke("history.delete", { id: id }).then(function (list) {
         items = list || [];
         if (current && current.id === id) { current = null; stopAudio(); }
@@ -357,7 +343,7 @@
         if (!current && items.length) open(items[0].id);
         else if (!items.length) showDetail(false);
       });
-    });
+    }
 
     // ---- the three actions -------------------------------------------------
 
