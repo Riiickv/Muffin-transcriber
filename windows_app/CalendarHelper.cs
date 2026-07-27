@@ -7,7 +7,7 @@ namespace MuffinTranscriber;
 
 // Writes an .ics file and opens it in the default calendar app, where the user
 // finalizes the date/time. An unpackaged app can't use AppointmentManager, and
-// the LLM only gives a loose quote — so the calendar app is the confirm step.
+// the LLM only gives a loose quote, so the calendar app is the confirm step.
 public static class CalendarHelper
 {
     public static void AddEvent(string title, string description, DateTime start, bool allDay)

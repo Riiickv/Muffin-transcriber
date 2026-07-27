@@ -83,7 +83,7 @@ public static class AppCapabilities
         string settingLines = string.Join("\n", Settings.Select(spec =>
             $"- {spec.Key} (\"{spec.Label}\") = {GetValue(settings, spec)} | {spec.Description} | set to: {spec.ValuesHint} | found in: {spec.Location}"));
 
-        string screenLines = string.Join("\n", Screens.Select(s => $"- {s.Id} — {s.Name}: {s.Description}"));
+        string screenLines = string.Join("\n", Screens.Select(s => $"- {s.Id} ({s.Name}): {s.Description}"));
 
         return $"<app_settings>\nThese are the app's settings and their current values. To change one, use SET_SETTING with the exact key and a value from \"set to\". Never invent keys or values.\n{settingLines}\n</app_settings>\n\n<app_screens>\n{screenLines}\n</app_screens>";
     }
