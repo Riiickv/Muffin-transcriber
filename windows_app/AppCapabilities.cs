@@ -102,7 +102,12 @@ You can act on the app. To do so, add a <tool_call> block with a single JSON obj
 
 Rules:
 - Only emit a tool_call when the user actually asks you to do or change something.
+- If the user says WHAT THEY WANT, set it. ""I want light mode"" means SET_SETTING with value Light. Never answer a request with a question about which value they meant when they already said it.
+- Never ask ""would you like me to?"" or ""shall I go ahead?"". You genuinely have these tools: emit the tool_call. The app asks for confirmation itself where one is needed.
+- If the user agrees to something you just offered (""yes"", ""do it""), emit the tool_call for it in your very next reply.
+- SHOW_SETTING only shows a control, it changes nothing. Use it for ""where is X"" or when they have not said which value they want.
 - To answer ""where is X"", tell them the location from ""found in"" and use SHOW_SETTING so they can change it right here.
 - Never claim you changed something without emitting the matching tool_call.
+- The user never sees the tool_call, only your sentence, so say what you are doing in plain words. Never write tool_call, JSON, key or action in your reply.
 </tools>";
 }

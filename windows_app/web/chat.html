@@ -217,8 +217,13 @@
     }
 
     function renderActions(group, actions) {
-      group.querySelectorAll(".act-chip").forEach(function (c) { c.remove(); });
+      group.querySelectorAll(".act-chip, .setting-card").forEach(function (c) { c.remove(); });
       (actions || []).forEach(function (a) {
+        // A setting action shows the setting itself, live, the way the mobile
+        // chat does. A chip saying "Done: SHOW_SETTING" told the user an action
+        // had happened while nothing appeared and nothing was changed.
+        if (a.setting) { group.appendChild(settingCard(a.setting)); return; }
+
         var chip = document.createElement("div");
         chip.className = "act-chip" + (a.ok ? "" : " failed");
         var icon = document.createElement("span");
@@ -276,6 +281,64 @@
       if (firstToken) { streamBubble.textContent = ""; firstToken = false; }
       streamBubble.textContent += t.text;
       toBottom();
+    });
+
+    // The same control as the Settings screen, writing the same setting, so a
+    // change here shows up everywhere at once.
+    function settingCard(spec) {
+      var card = document.createElement("div");
+      card.className = "setting-card";
+      card._key = spec.key;
+
+      var label = document.createElement("div");
+      label.className = "sc-text";
+      label.innerHTML = '<div class="sc-label"></div><div class="sc-location"></div>';
+      label.querySelector(".sc-label").textContent = spec.label;
+      label.querySelector(".sc-location").textContent = spec.location;
+      card.appendChild(label);
+
+      var control = document.createElement("div");
+      control.className = "sc-control";
+
+      if (spec.type === "boolean") {
+        var sw = document.createElement("button");
+        sw.className = "switch";
+        sw.classList.toggle("on", !!Muffin.get(spec.key));
+        sw.setAttribute("aria-pressed", !!Muffin.get(spec.key));
+        sw.addEventListener("click", function () {
+          var on = !sw.classList.contains("on");
+          sw.classList.toggle("on", on);
+          sw.setAttribute("aria-pressed", on);
+          Muffin.set(spec.key, on);
+        });
+        control.appendChild(sw);
+      } else {
+        var sel = document.createElement("select");
+        (spec.options || []).forEach(function (o) {
+          var opt = document.createElement("option");
+          opt.value = o;
+          opt.textContent = o;
+          sel.appendChild(opt);
+        });
+        sel.value = String(Muffin.get(spec.key) == null ? "" : Muffin.get(spec.key));
+        sel.addEventListener("change", function () { Muffin.set(spec.key, sel.value); });
+        control.appendChild(sel);
+        // Themed dropdown, same as everywhere else.
+        setTimeout(function () { enhanceSelects(control); }, 0);
+      }
+
+      card.appendChild(control);
+      return card;
+    }
+
+    // A setting changed anywhere keeps every control in the chat in step.
+    Muffin.on("settings.changed", function () {
+      document.querySelectorAll(".setting-card").forEach(function (card) {
+        var sw = card.querySelector(".switch");
+        var key = card._key;
+        if (!key) return;
+        if (sw) sw.classList.toggle("on", !!Muffin.get(key));
+      });
     });
 
     Muffin.on("chat.busy", function (e) {
