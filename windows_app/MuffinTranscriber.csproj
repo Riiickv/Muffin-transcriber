@@ -5,6 +5,10 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>MuffinTranscriber</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Embedded in the exe, which is what Explorer, the taskbar and the
+         shortcut the installer creates all read. AppWindow.SetIcon only
+         dresses the running window. -->
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x86;x64;ARM64</Platforms>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant())</RuntimeIdentifier>
     <PublishProfile Condition="Exists('Properties\PublishProfiles\win-$(Platform).pubxml')">win-$(Platform).pubxml</PublishProfile>
