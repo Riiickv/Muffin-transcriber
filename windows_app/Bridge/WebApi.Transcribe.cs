@@ -276,7 +276,10 @@ public sealed partial class WebBridge
                         }
                         else
                         {
-                            SetStatus(AppStrings.History_Status_SummaryFailed, "error");
+                            int words = inputForSummary.Split([' ', '\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries).Length;
+                            SetStatus(words < 15
+                                ? AppStrings.History_Status_SummaryTooShort
+                                : AppStrings.History_Status_SummaryFailed, "error");
                         }
                     }
 

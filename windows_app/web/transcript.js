@@ -92,8 +92,11 @@ function createTranscript(root) {
       var wasRaw = !content.raw && data.raw;
       content = { raw: data.raw || "", formatted: data.formatted || "", summary: data.summary || "" };
 
-      // Land on the most finished variant, the way the mobile screen does.
-      if (content.summary && options.preferBest) active = "summary";
+      // An action shows what IT produced. Re-transcribing used to land on the
+      // Summary tab because one happened to exist, so the fresh transcript was
+      // replaced a moment later by an older summary.
+      if (options.show && content[options.show]) active = options.show;
+      else if (content.summary && options.preferBest) active = "summary";
       else if (content.formatted && options.preferBest) active = "formatted";
       else if (!content[active]) active = "raw";
 

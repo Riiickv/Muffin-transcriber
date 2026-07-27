@@ -347,6 +347,14 @@
 
     // ---- the three actions -------------------------------------------------
 
+    // Which tab each action fills, so the result of the thing you just asked
+    // for is the thing you are shown.
+    var PRODUCES = {
+      "history.retranscribe": "raw",
+      "history.format": "formatted",
+      "history.summarize": "summary",
+    };
+
     function runAction(method) {
       if (!current || busy) return;
       Muffin.invoke(method, {
@@ -363,7 +371,7 @@
         if (!result) { setStatus("", "info"); return; }
         if (result.error) { setStatus(result.error, "error"); return; }
         current = result;
-        panel.set(result, { preferBest: true });
+        panel.set(result, { show: PRODUCES[method] });
         setStatus("", "info");
         refreshRow();
       });
