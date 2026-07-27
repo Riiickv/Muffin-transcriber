@@ -240,7 +240,26 @@ textarea { resize: vertical; min-height: 72px; }
 }
 .tooltip.below { transform: translateY(-3px); }
 .tooltip.beside { transform: translateX(-3px); }
+
 .tooltip.open { visibility: visible; opacity: 1; transform: none; }
+
+/* ---- Right-click menu: the app's, not Edge's. Same surface as the dropdown
+   menus, because it is the same kind of object. ---- */
+.ctx-menu {
+  position: fixed; z-index: 95; min-width: 160px;
+  background: var(--bg); border: 1px solid var(--divider);
+  border-radius: var(--r-md); padding: 4px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  animation: muffin-pop var(--t-quick) var(--ease-rn) both;
+}
+.ctx-item {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: none; color: var(--text);
+  font: inherit; font-size: 14px;
+  padding: 8px 12px; border-radius: var(--r-sm); cursor: pointer;
+}
+.ctx-item:hover:not(:disabled) { background: var(--surface); }
+.ctx-item:disabled { color: var(--text-subtle); cursor: default; }
 .dropdown-opt.selected { background: var(--accent-fill); color: var(--accent); font-weight: 700; }
 
 /* ---- Buttons ---- */

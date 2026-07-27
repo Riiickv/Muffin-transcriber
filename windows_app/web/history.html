@@ -243,7 +243,7 @@
         card.addEventListener("click", function () { open(item.id); });
         card.querySelector("[data-rename]").addEventListener("click", function (e) {
           e.stopPropagation();
-          renameInline(card, item);
+          askRename(item);
         });
         card.querySelector("[data-delete]").addEventListener("click", function (e) {
           e.stopPropagation();
@@ -256,34 +256,30 @@
 
     // Renaming happens where the title is, the way the mobile list does it:
     // commit on Enter or blur, cancel on Escape.
-    function renameInline(card, item) {
-      var body = card.querySelector(".h-main");
-      var titleEl = body.querySelector(".h-title");
-      if (body.querySelector(".s-edit")) return;
-
-      var input = document.createElement("input");
-      input.className = "s-edit";
-      input.value = item.title;
-      body.replaceChild(input, titleEl);
-      input.focus();
-      input.select();
-
-      var done = function (commit) {
-        if (input.parentNode === body) body.replaceChild(titleEl, input);
-        var next = input.value.trim();
-        if (!commit || !next || next === item.title) return;
-        Muffin.invoke("history.rename", { id: item.id, title: next }).then(function (list) {
-          items = list || items;
-          if (current && current.id === item.id) { current.title = next; document.getElementById("d-title").textContent = next; }
-          renderList();
-        });
-      };
-
-      input.addEventListener("click", function (e) { e.stopPropagation(); });
-      input.addEventListener("blur", function () { done(true); });
-      input.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") { e.preventDefault(); done(true); }
-        if (e.key === "Escape") { e.preventDefault(); done(false); }
+    // The library renames in a dialog, the way the mobile library does. It used
+    // to swap the title for a bare <input>, which inherited nothing and turned
+    // up as a white browser box in the middle of a dark card.
+    function askRename(item) {
+      showDialog({
+        title: Muffin.t("history.renameTranscript", "Rename Transcript"),
+        input: { value: item.title },
+        buttons: [
+          { label: Muffin.t("dialog.confirmDelete.cancel", "Cancel"), variant: "ghost" },
+          {
+            label: Muffin.t("history.saveRename", "Save"),
+            onPress: function (next) {
+              if (!next || next === item.title) return;
+              Muffin.invoke("history.rename", { id: item.id, title: next }).then(function (list) {
+                items = list || items;
+                if (current && current.id === item.id) {
+                  current.title = next;
+                  document.getElementById("d-title").textContent = next;
+                }
+                renderList();
+              });
+            },
+          },
+        ],
       });
     }
 
@@ -311,9 +307,10 @@
     }
 
     document.getElementById("d-rename").addEventListener("click", function () {
-      if (!current) return;
-      var card = document.querySelector(".hist-card.active");
-      if (card) renameInline(card, current);
+      // It used to need the card in the list, because the editing happened
+      // inside it. Search for something that hides the open transcript and the
+      // button did nothing at all.
+      if (current) askRename(current);
     });
 
     document.getElementById("d-delete").addEventListener("click", function () {
@@ -324,13 +321,14 @@
 
     function askDelete(item) {
       showDialog({
-        title: Muffin.t("chat.deleteTitle", "Delete transcript?"),
-        message: Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", item.title),
-        icon: "", // delete
+        title: Muffin.t("dialog.confirmDelete.title", "Delete transcript?"),
+        message: Muffin.t("dialog.confirmDelete.message", "Are you sure you want to delete this transcript?")
+          + ' "' + item.title + '"',
+        icon: "", // warning
         iconTone: "danger",
         buttons: [
-          { label: Muffin.t("common.cancel", "Cancel"), variant: "ghost" },
-          { label: Muffin.t("common.delete", "Delete"), variant: "danger", onPress: function () { doDelete(item.id); } },
+          { label: Muffin.t("dialog.confirmDelete.cancel", "Cancel"), variant: "ghost" },
+          { label: Muffin.t("dialog.confirmDelete.delete", "Delete"), variant: "danger", onPress: function () { doDelete(item.id); } },
         ],
       });
     }
