@@ -410,8 +410,8 @@ public sealed partial class WebBridge
             ["statusKind"] = _statusKind,
             ["files"] = _queuedFiles.Select(f => _recordedFiles.Contains(f) ? AppStrings.Record_VoiceMemoName : Path.GetFileName(f)).ToList(),
             ["canTranscribe"] = _queuedFiles.Count > 0 && whisper is not null,
-            ["whisperModels"] = AppModel.WhisperModels.Where(m => AppModel.IsValidModelFile(AppModel.ModelPath(m.File))).Select(ModelMap).ToList(),
-            ["formatterModels"] = AppModel.FormatterModels.Where(m => AppModel.IsValidModelFile(AppModel.ModelPath(m.File))).Select(ModelMap).ToList(),
+            ["whisperModels"] = AppModel.WhisperModels.Where(m => AppModel.IsValidModelFile(AppModel.ModelPath(m.File))).Select(m => ModelMap(m)).ToList(),
+            ["formatterModels"] = AppModel.FormatterModels.Where(m => AppModel.IsValidModelFile(AppModel.ModelPath(m.File))).Select(m => ModelMap(m)).ToList(),
             ["selectedWhisper"] = whisper?.File ?? "",
             ["output"] = OutputMap(animate: false),
         };

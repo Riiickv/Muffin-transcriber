@@ -21,9 +21,9 @@ public sealed partial class WebBridge
     {
         Register("models.list", _ => (object?)new Dictionary<string, object?>
         {
-            ["whisper"] = AppModel.WhisperModels.Select(ModelMap).ToList(),
-            ["formatter"] = AppModel.FormatterModels.Select(ModelMap).ToList(),
-            ["embedding"] = AppModel.EmbeddingModels.Select(ModelMap).ToList(),
+            ["whisper"] = Group(AppModel.WhisperModels, DeviceTier.Group.Whisper),
+            ["formatter"] = Group(AppModel.FormatterModels, DeviceTier.Group.Formatter),
+            ["embedding"] = Group(AppModel.EmbeddingModels, DeviceTier.Group.Embedding),
             ["installedCount"] = InstalledCount(),
         });
 
@@ -97,15 +97,29 @@ public sealed partial class WebBridge
         AppModel.WhisperModels.Concat(AppModel.FormatterModels).Concat(AppModel.EmbeddingModels)
             .Count(m => AppModel.IsValidModelFile(AppModel.ModelPath(m.File)));
 
+    // A group with the model suggested for this machine FIRST and marked, which
+    // is what the setup wizard glows around. The catalog's own order is
+    // speed-ascending and stays the source of truth everywhere else.
+    private static List<Dictionary<string, object?>> Group(ModelInfo[] models, DeviceTier.Group group)
+    {
+        string? recommended = DeviceTier.RecommendedFile(group);
+        IEnumerable<ModelInfo> ordered = recommended is null
+            ? models
+            : models.Where(m => m.File == recommended).Concat(models.Where(m => m.File != recommended));
+
+        return ordered.Select(m => ModelMap(m, m.File == recommended)).ToList();
+    }
+
     // Names come from the shared catalog, so the desktop picker reads exactly
     // like the mobile one: a tier, not a model number.
-    private static Dictionary<string, object?> ModelMap(ModelInfo model) => new()
+    private static Dictionary<string, object?> ModelMap(ModelInfo model, bool recommended = false) => new()
     {
         ["file"] = model.File,
         ["name"] = AppModel.DisplayName(model),
         ["desc"] = AppModel.DisplayDesc(model),
         ["size"] = model.Size,
         ["installed"] = AppModel.IsValidModelFile(AppModel.ModelPath(model.File)),
+        ["recommended"] = recommended,
     };
 
     private static void TryDelete(string path)

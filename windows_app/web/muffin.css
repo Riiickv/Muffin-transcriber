@@ -677,24 +677,6 @@ textarea { resize: vertical; min-height: 72px; }
   .hist-card .lead { display: none; }
 }
 
-/* ---- Models + Setup ---- */
-.m-row { display: flex; align-items: center; gap: var(--sp-lg); padding: var(--sp-md) var(--sp-lg); border-top: 1px solid var(--card-border); }
-.m-row:first-child { border-top: none; }
-.m-info { flex: 1; min-width: 0; }
-.m-name { font-size: 15px; font-weight: 700; }
-.m-desc { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
-.m-size { font-size: 12px; color: var(--text-subtle); margin-left: 6px; }
-.m-state { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: var(--r-pill); background: var(--surface-strong); color: var(--text-muted); }
-.m-state.installed { background: var(--accent-fill); color: var(--accent); }
-.progress { height: 4px; background: var(--surface-strong); border-radius: var(--r-pill); overflow: hidden; margin-top: var(--sp-sm); }
-.progress i { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); }
-.setup-wrap { max-width: 560px; margin: 0 auto; text-align: center; padding-top: var(--sp-xxxl); }
-.setup-logo { width: 84px; height: 84px; border-radius: var(--r-lg); background: var(--accent-fill); color: var(--accent); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--sp-lg); }
-.setup-logo .msr { font-size: 44px; }
-.setup-wrap h1 { font-size: 28px; font-weight: 700; margin: 0 0 var(--sp-sm); }
-.setup-sub { color: var(--text-muted); line-height: 1.6; margin: 0 0 var(--sp-xl); }
-.setup-card { text-align: left; }
-.setup-actions { display: flex; gap: var(--sp-md); justify-content: center; margin-top: var(--sp-xl); }
 
 /* ---- Recording state: the mobile RecordFab turns RECORDING_RED and shows a
    timer pill beneath it; same colour, same idea, on the rail. ---- */
@@ -807,4 +789,90 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
   padding: 4px 0; margin-bottom: var(--sp-sm);
 }
 .back-link:hover { color: var(--accent); }
-.m-row .m-state[hidden], .m-row .action[hidden], .m-row .del[hidden] { display: none; }
+
+/* ============================================================
+   MODEL LIST - the shared row (mobile ModelDownloadList), used
+   by the Models screen and the first-run setup alike.
+   ============================================================ */
+.m-item { border-top: 1px solid var(--card-border); position: relative; }
+.m-item:first-child { border-top: none; }
+
+.m-row {
+  display: flex; align-items: center;
+  padding: var(--sp-md) var(--sp-lg); min-height: 64px; gap: var(--sp-md);
+}
+.m-info { flex: 1; min-width: 0; }
+.m-name { font-size: 15px; font-weight: 600; }
+.m-sub { font-size: 12px; line-height: 16px; margin-top: 2px; color: var(--text-muted); }
+
+.m-actions { display: flex; align-items: center; flex-shrink: 0; }
+
+/* One control, three states, one box: sizing to the label made the list's
+   right edge zig-zag between Get, Delete and a percentage. */
+.m-get, .m-del {
+  width: 64px; height: 32px; border-radius: var(--r-pill); border: none;
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.m-get { background: var(--accent); color: var(--on-accent); }
+.m-del {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  border: 1px solid var(--danger); color: var(--danger);
+}
+.m-get[hidden], .m-del[hidden], .m-live[hidden], .m-track[hidden] { display: none; }
+
+.m-live { display: flex; align-items: center; gap: var(--sp-xs); }
+.m-pct { font-size: 13px; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.m-cancel {
+  background: transparent; border: none; color: var(--text-muted);
+  padding: var(--sp-xs); border-radius: var(--r-sm); cursor: pointer; display: flex;
+}
+.m-cancel:hover { background: var(--surface-strong); color: var(--text); }
+
+.m-track {
+  height: 3px; margin: 0 var(--sp-lg) var(--sp-md);
+  background: var(--surface); border-radius: 2px; overflow: hidden;
+}
+.m-track i { display: block; height: 100%; background: var(--accent); transition: width 200ms linear; }
+
+/* A soft pulse around the suggested model. It breathes rather than blinks: it
+   should read as "start here", not as a notification demanding a click.
+   Drawn INSIDE the row: the group clips its overflow to keep its rounded
+   corners, so a ring outside the bounds is simply invisible. */
+.m-item.suggested { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.m-item.suggested::before {
+  content: ""; position: absolute; inset: 2px; pointer-events: none;
+  border: 2px solid var(--accent); border-radius: var(--r-md);
+  animation: suggested-glow 2800ms ease-in-out infinite;
+}
+@keyframes suggested-glow {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
+
+/* ============================================================
+   SETUP - three pages and a pinned footer, like the mobile
+   wizard. No Skip: the models ARE the app.
+   ============================================================ */
+.setup-shell { display: flex; flex-direction: column; height: 100vh; }
+.setup-scroll { flex: 1; overflow-y: auto; }
+.setup-page {
+  max-width: 620px; margin: 0 auto;
+  padding: var(--sp-xxl) var(--sp-lg) var(--sp-xl);
+}
+.setup-page.stepped { animation: step-in var(--t-base) var(--ease-rn) both; }
+@keyframes step-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.setup-title { font-size: 28px; font-weight: 700; margin: 0 0 var(--sp-md); }
+.setup-body { font-size: 15px; line-height: 22px; color: var(--text-muted); margin: 0 0 var(--sp-lg); white-space: pre-line; }
+.setup-body.left { text-align: left; margin-bottom: var(--sp-sm); }
+.setup-section { font-size: 18px; font-weight: 700; margin: 0 0 var(--sp-sm); }
+.setup-section.spaced { margin-top: var(--sp-xl); }
+
+.setup-footer {
+  display: flex; gap: var(--sp-md); padding: var(--sp-lg);
+  border-top: 1px solid var(--divider);
+  max-width: 620px; margin: 0 auto; width: 100%;
+}
+.setup-btn { flex: 1; height: 48px; justify-content: center; }
+.setup-btn:disabled { opacity: 0.4; cursor: default; }
