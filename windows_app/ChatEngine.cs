@@ -56,8 +56,12 @@ public static class ChatEngine
             // and everything before it is skipped below.
             string marker = AssistantMarker(model.File);
 
+            // Low temperature on purpose. This assistant's job is mostly to
+            // follow instructions and emit the right tool call; at 0.3 a small
+            // model would sometimes narrate ("I'll switch to Light mode") and
+            // emit nothing, leaving the app unchanged.
             string Args(int layers) =>
-                $"-m \"{modelPath}\" -f \"{promptPath}\" -n 768 --temp 0.3 -ngl {layers} -c 4096 --log-disable --no-display-prompt -st";
+                $"-m \"{modelPath}\" -f \"{promptPath}\" -n 768 --temp 0.1 -ngl {layers} -c 4096 --log-disable --no-display-prompt -st";
 
             // The GPU is shared with whatever else the user is running. When it
             // is full the engine does not fall back, it refuses to load at all,
