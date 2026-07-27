@@ -27,6 +27,22 @@ public static class CrashLog
         }
     }
 
+    /// <summary>
+    /// A plain line in the same log. For things worth knowing that are not
+    /// failures, like a step that took far longer than it should have.
+    /// </summary>
+    public static void Note(string message)
+    {
+        try
+        {
+            Directory.CreateDirectory(LogDir);
+            File.AppendAllText(CurrentLogPath, $"[{DateTime.Now:HH:mm:ss.fff}] {message}\r\n");
+        }
+        catch
+        {
+        }
+    }
+
     public static void OpenLogFolder()
     {
         try

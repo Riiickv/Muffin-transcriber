@@ -125,9 +125,19 @@ public sealed partial class WebBridge
         // viewer: nothing navigates away from our own pages.
         core.NavigationStarting += (_, e) =>
         {
+            _navigationWatch.Restart();
             if (!e.Uri.StartsWith($"https://{VirtualHost}/", StringComparison.OrdinalIgnoreCase))
             {
                 e.Cancel = true;
+            }
+        };
+
+        core.NavigationCompleted += (_, _) =>
+        {
+            _navigationWatch.Stop();
+            if (_navigationWatch.ElapsedMilliseconds >= SlowCallMs)
+            {
+                CrashLog.Note($"slow navigation: {_navigationWatch.ElapsedMilliseconds} ms");
             }
         };
 
@@ -136,7 +146,13 @@ public sealed partial class WebBridge
         _view.Source = new Uri($"https://{VirtualHost}/{startPage}");
     }
 
-    public const string VirtualHost = "muffin.app";
+    public const string VirtualHost = "muffin.example";
+
+    // Anything on the path of a screen switch that takes this long is a bug,
+    // so it gets written down rather than merely felt.
+    private const int SlowCallMs = 250;
+
+    private readonly System.Diagnostics.Stopwatch _navigationWatch = new();
 
     /// <summary>
     /// WebView2 caches the UI files like any web page, keyed on their URL, and
@@ -217,7 +233,13 @@ public sealed partial class WebBridge
                 return;
             }
 
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             object? result = await handler(args);
+            watch.Stop();
+            if (watch.ElapsedMilliseconds >= SlowCallMs)
+            {
+                CrashLog.Note($"slow bridge call: {method} took {watch.ElapsedMilliseconds} ms");
+            }
             Reply(id, true, result, null);
         }
         catch (Exception ex)

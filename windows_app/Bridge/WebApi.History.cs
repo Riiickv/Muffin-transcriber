@@ -15,7 +15,7 @@ namespace MuffinTranscriber.Web;
 /// </summary>
 public sealed partial class WebBridge
 {
-    public const string MediaHost = "media.muffin.app";
+    public const string MediaHost = "media.muffin.example";
 
     private CancellationTokenSource? _historyCts;
 
