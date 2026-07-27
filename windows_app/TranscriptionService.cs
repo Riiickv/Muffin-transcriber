@@ -37,9 +37,10 @@ public static partial class TranscriptionService
 
             string languageArg = AppModel.LanguageCode(languageDisplay);
             string modelPath = AppModel.ModelPath(whisperModel.File);
-            string args = languageArg == "auto"
-                ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt -pp"
-                : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt -pp";
+            // "auto" has to be passed EXPLICITLY. whisper-cli's default language
+            // is "en", not detection, so leaving the flag off meant Auto-Detect
+            // silently meant English: Italian speech came back as English text.
+            string args = $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt -pp";
 
             Action<string>? onStderrLine = progress is null ? null : line =>
             {

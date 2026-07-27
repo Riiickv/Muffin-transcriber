@@ -67,6 +67,73 @@
     if (timer) timer.hidden = !on;
   }
 
+  // ---- banners -----------------------------------------------------------
+  // Updates and engine problems used to be a stock system InfoBar floating over
+  // a themed app. Drawn here, they carry the app's own accent, type and corners.
+
+  function bannerEl() {
+    var el = document.getElementById("app-banner");
+    if (el) return el;
+    el = document.createElement("div");
+    el.id = "app-banner";
+    el.className = "app-banner";
+    el.hidden = true;
+    el.innerHTML =
+      '<span class="msr b-icon"></span>' +
+      '<div class="b-text"><div class="b-title"></div><div class="b-message"></div>' +
+      '<div class="b-progress" hidden><i style="width:0%"></i></div></div>' +
+      '<button class="btn b-action" hidden></button>' +
+      '<button class="b-close" aria-label="Close"><span class="msr"></span></button>';
+    document.body.appendChild(el);
+
+    el.querySelector(".b-close").addEventListener("click", function () { el.hidden = true; });
+    el.querySelector(".b-action").addEventListener("click", function () {
+      Muffin.invoke("app.bannerAction");
+    });
+    return el;
+  }
+
+  function showBanner(b) {
+    if (!b) return;
+    var el = bannerEl();
+    el.className = "app-banner " + (b.kind || "info");
+    el.querySelector(".b-icon").textContent =
+      b.kind === "error" || b.kind === "warning" ? "" : ""; // warning / check_circle
+    el.querySelector(".b-title").textContent = b.title || "";
+    el.querySelector(".b-title").hidden = !b.title;
+    el.querySelector(".b-message").textContent = b.message || "";
+    setBannerAction(b.actionLabel);
+    setBannerProgress(b.percent);
+    el.hidden = false;
+  }
+
+  function setBannerAction(label) {
+    var action = bannerEl().querySelector(".b-action");
+    action.textContent = label || "";
+    action.hidden = !label;
+  }
+
+  function setBannerProgress(percent) {
+    var bar = bannerEl().querySelector(".b-progress");
+    bar.hidden = percent === undefined || percent === null;
+    if (!bar.hidden) bar.firstElementChild.style.width = percent + "%";
+  }
+
+  Muffin.on("app.banner", showBanner);
+  Muffin.on("app.bannerUpdate", function (b) {
+    if (!b) return;
+    bannerEl().querySelector(".b-message").textContent = b.message || "";
+    setBannerAction(b.actionLabel);
+    setBannerProgress(b.percent);
+    bannerEl().hidden = false;
+  });
+
+  // A banner raised before this screen existed is replayed on boot.
+  Muffin.ready(function () {
+    var data = Muffin.data();
+    if (data && data.banner) showBanner(data.banner);
+  });
+
   // ---- toast -------------------------------------------------------------
 
   function showToast(message) {

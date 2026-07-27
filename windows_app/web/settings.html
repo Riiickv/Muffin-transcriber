@@ -245,6 +245,18 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="confirm" hidden>
+    <div class="modal">
+      <h2 data-i18n="settings.clearChat">Clear chat history</h2>
+      <p data-i18n="pc.settings.clearChatConfirm">Every conversation will be deleted. This can't be undone.</p>
+      <div class="modal-actions">
+        <div class="modal-spacer"></div>
+        <button class="btn btn-ghost" id="confirm-no" data-i18n="common.cancel">Cancel</button>
+        <button class="btn btn-ghost danger" id="confirm-yes" data-i18n="common.delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" hidden></div>
 
   <script src="shell.js" defer></script>
@@ -308,7 +320,14 @@
       });
     });
 
+    var confirmModal = document.getElementById("confirm");
     document.getElementById("clear-chats").addEventListener("click", function () {
+      confirmModal.hidden = false;
+    });
+    document.getElementById("confirm-no").addEventListener("click", function () { confirmModal.hidden = true; });
+    confirmModal.addEventListener("click", function (e) { if (e.target === confirmModal) confirmModal.hidden = true; });
+    document.getElementById("confirm-yes").addEventListener("click", function () {
+      confirmModal.hidden = true;
       Muffin.invoke("chat.clearAll").then(function () {
         showToast(Muffin.t("settings.clearChat", "Clear chat history"));
       });

@@ -55,6 +55,7 @@
   "pc.settings.changelog": "Vedi changelog",
   "pc.settings.checkUpdates": "Controlla aggiornamenti",
   "pc.settings.checking": "Controllo...",
+  "pc.settings.clearChatConfirm": "Tutte le conversazioni verranno eliminate. Non si può annullare.",
   "pc.settings.memoryCleared": "Memoria cancellata.",
   "pc.settings.memoryUpdated": "Memoria aggiornata.",
   "pc.settings.micDesc": "Windows richiede di abilitare 'Consenti alle app desktop di accedere al microfono' per registrare.",

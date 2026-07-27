@@ -918,3 +918,37 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
 .setting-card .sc-location { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .setting-card .sc-control { flex-shrink: 0; }
 .setting-card .sc-control .dropdown { min-width: 150px; }
+
+/* ---- Banner: updates and engine problems, in the app's own clothes ----
+   This used to be a stock system InfoBar sitting on top of a themed app. */
+.app-banner {
+  position: fixed; top: var(--sp-md); left: 50%; transform: translateX(-50%);
+  z-index: 80; display: flex; align-items: center; gap: var(--sp-md);
+  max-width: min(680px, calc(100vw - 2 * var(--sp-xl)));
+  padding: var(--sp-md) var(--sp-lg);
+  background: var(--bg); border: 1px solid var(--card-border);
+  border-radius: var(--r-lg); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: banner-in var(--spring-settle-ms) var(--spring-settle) both;
+}
+.app-banner[hidden] { display: none; }
+@keyframes banner-in { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.app-banner .b-icon { font-size: 22px; flex-shrink: 0; color: var(--accent); }
+.app-banner.error .b-icon, .app-banner.warning .b-icon { color: var(--danger); }
+.app-banner .b-text { flex: 1; min-width: 0; }
+.app-banner .b-title { font-size: 15px; font-weight: 700; }
+.app-banner .b-title[hidden] { display: none; }
+.app-banner .b-message { font-size: 13px; color: var(--text-muted); line-height: 1.45; margin-top: 2px; }
+.app-banner .b-progress {
+  height: 4px; margin-top: var(--sp-sm); border-radius: var(--r-pill);
+  background: var(--surface-strong); overflow: hidden;
+}
+.app-banner .b-progress[hidden] { display: none; }
+.app-banner .b-progress i { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); }
+.app-banner .b-action { flex-shrink: 0; background: var(--accent); color: var(--on-accent); padding: 8px var(--sp-lg); }
+.app-banner .b-action[hidden] { display: none; }
+.app-banner .b-close {
+  flex-shrink: 0; background: transparent; border: none; color: var(--text-muted);
+  cursor: pointer; padding: var(--sp-xs); border-radius: var(--r-sm); display: flex;
+}
+.app-banner .b-close:hover { background: var(--surface); color: var(--text); }

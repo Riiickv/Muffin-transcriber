@@ -26,8 +26,6 @@ public sealed partial class MainWindow : Window
     private string _updateDownloadUrl = "";
     private string _installerPath = "";
 
-    private Action? _alertAction;
-
     public MainWindow(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation = null)
     {
         InitializeComponent();
@@ -254,65 +252,57 @@ public sealed partial class MainWindow : Window
             AppStrings.Crash_BtnOpenLog, CrashLog.OpenLogFolder);
     }
 
+    // Banners are drawn by the page now, so they carry the app's own accent,
+    // type and corners instead of the stock system look on top of a themed app.
     private void ShowAlert(InfoBarSeverity severity, string title, string message, string? actionLabel, Action? action)
     {
-        DispatcherQueue.TryEnqueue(() =>
+        string kind = severity switch
         {
-            _alertAction = action;
-            AlertBanner.Severity = severity;
-            AlertBanner.Title = title;
-            AlertBanner.Message = message;
-            AlertActionButton.Content = actionLabel;
-            AlertActionButton.Visibility = actionLabel is null ? Visibility.Collapsed : Visibility.Visible;
-            AlertBanner.IsOpen = true;
-        });
+            InfoBarSeverity.Error => "error",
+            InfoBarSeverity.Warning => "warning",
+            InfoBarSeverity.Success => "success",
+            _ => "info",
+        };
+        DispatcherQueue.TryEnqueue(() => _bridge?.ShowBanner(kind, title, message, actionLabel, action));
     }
-
-    private void AlertActionButton_Click(object sender, RoutedEventArgs e) => _alertAction?.Invoke();
 
     public void ShowUpdateBanner(string latestVersion, string url)
     {
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            _updateDownloadUrl = url;
-            UpdateBanner.Message = string.Format(AppStrings.Update_StatusAvailableFormat, latestVersion);
-            UpdateBanner.IsOpen = true;
-        });
+        _updateDownloadUrl = url;
+        DispatcherQueue.TryEnqueue(() => _bridge?.ShowBanner(
+            "success",
+            AppStrings.Update_BannerTitle,
+            string.Format(AppStrings.Update_StatusAvailableFormat, latestVersion),
+            AppStrings.Update_BtnUpdate,
+            StartUpdate));
     }
 
-    private async void UpdateActionButton_Click(object sender, RoutedEventArgs e)
+    private bool _updateDownloaded;
+
+    private async void StartUpdate()
     {
-        if (UpdateActionButton.Content.ToString() == AppStrings.Update_BtnRestart)
+        if (_updateDownloaded)
         {
             if (!AutoUpdater.InstallAndRestart(_installerPath))
             {
-                UpdateBanner.Severity = InfoBarSeverity.Warning;
-                UpdateBanner.Message = AppStrings.Update_StatusInstallCancelled;
+                _bridge?.UpdateBanner(AppStrings.Update_StatusInstallCancelled, AppStrings.Update_BtnRestart, null);
             }
             return;
         }
 
-        UpdateActionButton.IsEnabled = false;
-        UpdateActionButton.Content = AppStrings.Update_BtnDownloading;
-        UpdateProgressBar.Visibility = Visibility.Visible;
-        UpdateProgressBar.Value = 0;
+        _bridge?.UpdateBanner(AppStrings.Update_BtnDownloading, null, 0);
 
         try
         {
-            var progress = new Progress<int>(p => UpdateProgressBar.Value = p);
+            var progress = new Progress<int>(p => _bridge?.UpdateBanner(AppStrings.Update_BtnDownloading, null, p));
             _installerPath = await AutoUpdater.DownloadUpdateAsync(_updateDownloadUrl, progress);
 
-            UpdateActionButton.Content = AppStrings.Update_BtnRestart;
-            UpdateActionButton.IsEnabled = true;
-            UpdateBanner.Message = AppStrings.Update_StatusReady;
+            _updateDownloaded = true;
+            _bridge?.UpdateBanner(AppStrings.Update_StatusReady, AppStrings.Update_BtnRestart, null);
         }
         catch (Exception ex)
         {
-            UpdateBanner.Severity = InfoBarSeverity.Error;
-            UpdateBanner.Message = string.Format(AppStrings.Update_StatusFailedFormat, ex.Message);
-            UpdateProgressBar.Visibility = Visibility.Collapsed;
-            UpdateActionButton.Content = AppStrings.Update_BtnUpdate;
-            UpdateActionButton.IsEnabled = true;
+            _bridge?.UpdateBanner(string.Format(AppStrings.Update_StatusFailedFormat, ex.Message), AppStrings.Update_BtnUpdate, null);
         }
     }
 }

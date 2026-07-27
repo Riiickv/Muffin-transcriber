@@ -55,6 +55,7 @@
   "pc.settings.changelog": "Ver registro de cambios",
   "pc.settings.checkUpdates": "Buscar actualizaciones",
   "pc.settings.checking": "Comprobando...",
+  "pc.settings.clearChatConfirm": "Se eliminarán todas las conversaciones. No se puede deshacer.",
   "pc.settings.memoryCleared": "Memoria borrada.",
   "pc.settings.memoryUpdated": "Memoria actualizada.",
   "pc.settings.micDesc": "Windows requiere activar 'Permitir que las aplicaciones de escritorio accedan al micrófono' para grabar.",
