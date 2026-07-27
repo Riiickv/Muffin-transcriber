@@ -72,6 +72,7 @@ public sealed partial class MainWindow : Window
     {
         _bridge = new WebBridge(WebHost, this);
         _bridge.ThemeApplied += mode => DispatcherQueue.TryEnqueue(() => PaintShell(mode));
+        _bridge.UpdateAvailable += ShowUpdateBanner;
 
         try
         {
@@ -81,10 +82,14 @@ public sealed partial class MainWindow : Window
         {
             // No WebView2 runtime means no UI at all, so say so plainly rather
             // than showing an empty window.
+            // Every other banner is drawn by the page. This one cannot be:
+            // there IS no page, which is the whole problem. It has to be told
+            // natively or it is never seen at all.
             CrashLog.Write("WebView2 initialization", ex);
-            ShowAlert(InfoBarSeverity.Error, AppStrings.Health_BannerTitle, AppStrings.Health_WebViewMissingBody,
-                AppStrings.Health_BtnInstallRuntime,
-                () => _ = Windows.System.Launcher.LaunchUriAsync(new Uri(WebView2RuntimeUrl)));
+            if (ShowNativeError(AppStrings.Health_BannerTitle, AppStrings.Health_WebViewMissingBody))
+            {
+                await Windows.System.Launcher.LaunchUriAsync(new Uri(WebView2RuntimeUrl));
+            }
             return;
         }
 
@@ -94,6 +99,17 @@ public sealed partial class MainWindow : Window
         {
             await ProcessShareAsync(shareOperation);
         }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
+
+    /// <summary>OK/Cancel box. True when the user chose to fix it.</summary>
+    private static bool ShowNativeError(string title, string message)
+    {
+        const uint MB_OKCANCEL = 0x00000001;
+        const uint MB_ICONERROR = 0x00000010;
+        return MessageBoxW(IntPtr.Zero, message, title, MB_OKCANCEL | MB_ICONERROR) == 1;
     }
 
     private const string WebView2RuntimeUrl = "https://go.microsoft.com/fwlink/p/?LinkId=2124703";

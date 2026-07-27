@@ -86,7 +86,10 @@
       '<button class="b-close" aria-label="Close"><span class="msr"></span></button>';
     document.body.appendChild(el);
 
-    el.querySelector(".b-close").addEventListener("click", function () { el.hidden = true; });
+    el.querySelector(".b-close").addEventListener("click", function () {
+      el.hidden = true;
+      try { sessionStorage.setItem("muffin.bannerDismissed", el.dataset.signature || ""); } catch (e) { }
+    });
     el.querySelector(".b-action").addEventListener("click", function () {
       Muffin.invoke("app.bannerAction");
     });
@@ -95,7 +98,16 @@
 
   function showBanner(b) {
     if (!b) return;
+
+    // The banner is replayed on every screen, so one the user closed must not
+    // come back; a different one still must.
+    var signature = (b.kind || "") + "|" + (b.title || "") + "|" + (b.message || "");
+    try {
+      if (sessionStorage.getItem("muffin.bannerDismissed") === signature) return;
+    } catch (e) { }
+
     var el = bannerEl();
+    el.dataset.signature = signature;
     el.className = "app-banner " + (b.kind || "info");
     el.querySelector(".b-icon").textContent =
       b.kind === "error" || b.kind === "warning" ? "" : ""; // warning / check_circle
