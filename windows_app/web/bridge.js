@@ -183,6 +183,10 @@
   function apply(data) {
     if (!data) return;
     bootData = data;
+    // Announce it rather than leaving it for a one-shot ready handler: with the
+    // boot cache, ready fires on the cached payload and the fresh one that
+    // actually carries the banner would never be seen.
+    if (data.banner) emit("app.banner", data.banner);
     strings = data.strings || {};
     applyStrings();
     applyTheme(data.theme);
