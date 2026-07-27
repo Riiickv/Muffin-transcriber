@@ -278,16 +278,7 @@ public static class AppStrings
     // SETUP WIZARD - mobile setup.* where it maps, pc.setup.* for the rest.
     public static string Setup_Title => T("transcribe.welcomeTitle", "Welcome to Muffin!");
     public static string Setup_Subtitle => T("transcribe.welcomeBody", "Muffin is a transcriber that uses AI to improve the text output. It can even learn from you and help you when the audio is unclear!");
-    public static string Setup_WhisperCardTitle => T("setup.transcriberTitle", "Transcriber!");
-    public static string Setup_WhisperCardDesc => T("pc.setup.whisperDesc", "Whisper [small]: the best balance of speed and accuracy. 466 MB.");
-    public static string Setup_LlmCardTitle => T("setup.formatterTitle", "Formatter and Summarizer!");
-    public static string Setup_LlmCardDesc => T("pc.setup.llmDesc", "Qwen 2.5 [1.5B]: adds punctuation, cleanup and summaries. 1.1 GB.");
-    public static string Setup_BtnDownload => T("settings.downloadButton", "Download");
-    public static string Setup_BtnDownloaded => T("pc.setup.installed", "Installed");
-    public static string Setup_BtnSkip => T("pc.setup.skip", "Skip for now");
     public static string Setup_BtnFinish => T("setup.finish", "Start!");
-    public static string Setup_MoreModelsHint => T("pc.setup.moreModels", "You can add or remove models at any time from Settings.");
-    public static string Setup_Status_DownloadFailedFormat => T("pc.setup.downloadFailed", "Download failed: {0}");
 
     // ENGINE HEALTH / CRASH - PC-only by nature.
     public static string Health_BannerTitle => T("pc.health.title", "Muffin can't start its engines");

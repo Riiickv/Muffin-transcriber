@@ -26,7 +26,6 @@
           <span class="msr" style="font-size:18px">&#xE5C4;</span> <span data-i18n="common.back">Back</span>
         </button>
         <h1 class="title" data-i18n="settings.modelManagement">Models</h1>
-        <p class="group-footer" style="margin:0 0 var(--sp-lg)" data-i18n="models.noneInstalledDesc">Models are what let the app work offline. Download one and it'll show up here.</p>
 
         <div class="group-title" data-i18n="settings.whisperModelsHeader">Transcriber models</div>
         <div class="group" id="whisper"></div>
@@ -43,113 +42,27 @@
   <div class="toast" id="toast" hidden></div>
 
   <script src="shell.js" defer></script>
+  <script src="models.js" defer></script>
   <script>
-    var rows = {};
+    // The same list as the setup wizard, without the suggestion glow: here you
+    // are managing what you have, not being pointed at a starting choice.
+    var lists = {};
 
-    Muffin.ready(load);
+    Muffin.ready(function () {
+      ["whisper", "formatter", "embedding"].forEach(function (group) {
+        lists[group] = createModelList(document.getElementById(group), { onChanged: load });
+      });
+      load();
+    });
 
     function load() {
       Muffin.invoke("models.list").then(function (models) {
         if (!models) return;
-        rows = {};
-        render("whisper", models.whisper);
-        render("formatter", models.formatter);
-        render("embedding", models.embedding);
+        Object.keys(lists).forEach(function (group) { lists[group].render(models[group]); });
       });
     }
 
-    function render(groupId, models) {
-      var host = document.getElementById(groupId);
-      host.textContent = "";
-      models.forEach(function (model) {
-        var row = document.createElement("div");
-        row.className = "m-row";
-        row.innerHTML =
-          '<div class="m-info">' +
-            '<div class="m-name"><span class="n"></span><span class="m-size"></span></div>' +
-            '<div class="m-desc"></div>' +
-            '<div class="progress" hidden><i style="width:0%"></i></div>' +
-          '</div>' +
-          '<span class="m-state installed" hidden></span>' +
-          '<button class="btn action"></button>' +
-          '<button class="icon-btn del" hidden><span class="msr" style="font-size:16px">&#xE872;</span></button>';
-
-        row.querySelector(".n").textContent = model.name;
-        row.querySelector(".m-size").textContent = model.size;
-        // A model with no blurb of its own falls back to its size, which is
-        // already printed next to the name; do not say it twice.
-        row.querySelector(".m-desc").textContent = model.desc === model.size ? "" : model.desc;
-        host.appendChild(row);
-
-        rows[model.file] = { el: row, model: model, downloading: false };
-        paint(model.file);
-
-        row.querySelector(".action").addEventListener("click", function () { onAction(model.file); });
-        row.querySelector(".del").addEventListener("click", function () { remove(model.file); });
-      });
-    }
-
-    function paint(file) {
-      var entry = rows[file];
-      if (!entry) return;
-      var row = entry.el;
-      var installed = entry.model.installed;
-
-      row.querySelector(".m-state").hidden = !installed || entry.downloading;
-      row.querySelector(".m-state").textContent = Muffin.t("pc.setup.installed", "Installed");
-      row.querySelector(".del").hidden = !installed || entry.downloading;
-      row.querySelector(".progress").hidden = !entry.downloading;
-
-      var action = row.querySelector(".action");
-      action.hidden = installed && !entry.downloading;
-      action.textContent = entry.downloading
-        ? Muffin.t("downloads.cancel", "Cancel")
-        : Muffin.t("settings.downloadButton", "Download");
-      action.classList.toggle("btn-accent", !entry.downloading);
-    }
-
-    function onAction(file) {
-      var entry = rows[file];
-      if (!entry) return;
-
-      if (entry.downloading) {
-        Muffin.invoke("models.cancel", { file: file });
-        return;
-      }
-
-      entry.downloading = true;
-      paint(file);
-      Muffin.invoke("models.download", { file: file });
-    }
-
-    function remove(file) {
-      Muffin.invoke("models.delete", { file: file }).then(function () {
-        showToast(Muffin.t("settings.deletedDesc", "Model deleted."));
-        load();
-      });
-    }
-
-    Muffin.on("models.progress", function (p) {
-      var entry = rows[p.file];
-      if (!entry) return;
-      entry.downloading = true;
-      var bar = entry.el.querySelector(".progress");
-      bar.hidden = false;
-      bar.firstElementChild.style.width = (p.percent || 0) + "%";
-      entry.el.querySelector(".m-desc").textContent =
-        (entry.model.desc === entry.model.size ? "" : entry.model.desc + "  -  ") + (p.percent || 0) + "%" + (p.speed ? "  " + p.speed + " MB/s" : "");
-    });
-
-    Muffin.on("models.done", function (e) {
-      var entry = rows[e.file];
-      if (entry) {
-        entry.downloading = false;
-        entry.el.querySelector(".m-desc").textContent = entry.model.desc === entry.model.size ? "" : entry.model.desc;
-      }
-      if (e.error) showToast(Muffin.t("pc.models.downloadFailed", "Download failed!"));
-      else if (e.cancelled) showToast(Muffin.t("pc.models.cancelled", "Download cancelled."));
-      load();
-    });
+    Muffin.on("retranslate", load);
   </script>
 </body>
 </html>

@@ -9,145 +9,146 @@
   <script src="muffin.js" defer></script>
 </head>
 <body>
-  <div class="app">
-    <main class="page">
-      <div class="setup-wrap">
-        <div class="setup-logo"><span class="msr fill">&#xE1B8;</span></div>
-        <h1 data-i18n="transcribe.welcomeTitle">Welcome to Muffin!</h1>
-        <p class="setup-sub" data-i18n="transcribe.welcomeBody">Muffin is a transcriber that uses AI to improve the text output. It can even learn from you and help you when the audio is unclear!</p>
+  <!--
+    First-run setup: pick the models that make the app work.
 
-        <div class="group setup-card">
-          <div class="m-row" id="row-whisper">
-            <div class="m-info">
-              <div class="m-name"><span data-i18n="setup.transcriberTitle">Transcriber!</span><span class="m-size" id="whisper-size"></span></div>
-              <div class="m-desc" data-i18n="pc.setup.whisperDesc">Whisper [small]: the best balance of speed and accuracy. 466 MB.</div>
-              <div class="progress" hidden><i style="width:0%"></i></div>
-            </div>
-            <span class="m-state installed" hidden data-i18n="pc.setup.installed">Installed</span>
-            <button class="btn btn-accent action" data-i18n="settings.downloadButton">Download</button>
-          </div>
-          <div class="m-row" id="row-formatter">
-            <div class="m-info">
-              <div class="m-name"><span data-i18n="setup.formatterTitle">Formatter and Summarizer!</span><span class="m-size" id="formatter-size"></span></div>
-              <div class="m-desc" data-i18n="pc.setup.llmDesc">Qwen 2.5 [1.5B]: adds punctuation, cleanup and summaries. 1.1 GB.</div>
-              <div class="progress" hidden><i style="width:0%"></i></div>
-            </div>
-            <span class="m-state installed" hidden data-i18n="pc.setup.installed">Installed</span>
-            <button class="btn action" data-i18n="settings.downloadButton">Download</button>
+    Three pages rather than one long list, because "download four AI models" is
+    the single most alien thing this app asks of anyone, and a wall of options
+    with sizes in gigabytes is where a normal person closes the app. One
+    question per page, each with a suggestion already picked out for this PC.
+
+    No Skip: the models ARE the app. Nothing here works without them, and a skip
+    button would only lead to a screen that cannot do anything.
+
+    Downloads keep running as you page through, because they are hundreds of
+    megabytes and a wizard that made you sit and watch each one would be slower
+    than no wizard at all.
+  -->
+  <div class="setup-shell">
+    <div class="setup-scroll" id="scroll">
+      <div class="setup-page" id="page">
+        <h1 class="setup-title" id="title"></h1>
+        <p class="setup-body" id="body"></p>
+
+        <div id="content">
+          <div class="group" id="list-main"></div>
+
+          <div id="optional" hidden>
+            <h2 class="setup-section" data-i18n="setup.chatSectionTitle">Chat model!</h2>
+            <p class="setup-body left" id="chat-note" data-i18n="pc.setup.chatUsesFormatter">On a PC the chat uses the formatter model you picked, so there is nothing extra to download here.</p>
+
+            <h2 class="setup-section spaced" data-i18n="setup.butlerSectionTitle">Butler!</h2>
+            <p class="setup-body left" data-i18n="setup.butlerBody">This will help you extract useful content from the transcriptions, like important dates. The text will be highlighted, so keep an eye out for it!</p>
+            <div class="group" id="list-embedding"></div>
           </div>
         </div>
-
-        <div class="setup-actions">
-          <button class="btn" id="skip" data-i18n="pc.setup.skip">Skip for now</button>
-          <button class="btn btn-accent" id="finish" data-i18n="setup.finish">Start!</button>
-        </div>
-        <p class="group-footer" style="text-align:center;margin-top:var(--sp-lg)" data-i18n="pc.setup.moreModels">You can add or remove models at any time from Settings.</p>
       </div>
-    </main>
+    </div>
+
+    <!-- Pinned: the model list scrolls for a while, and a Next button at the
+         bottom of it would be a hunt. -->
+    <div class="setup-footer">
+      <button class="btn setup-btn" id="back" data-i18n="setup.back">Back</button>
+      <button class="btn btn-accent setup-btn" id="next" data-i18n="setup.next">Next!</button>
+    </div>
   </div>
 
   <div class="toast" id="toast" hidden></div>
 
   <script src="shell.js" defer></script>
+  <script src="models.js" defer></script>
   <script>
-    // The wizard offers exactly two models: the balanced transcriber, which the
-    // app cannot work without, and the fast formatter, which is optional.
-    var WHISPER = "ggml-small.bin";
-    var FORMATTER = "qwen2.5-1.5b-instruct-q4_k_m.gguf";
-    var state = {};
-    var hasTranscriber = false;
+    // The English is the fallback, the same as the markup on every other
+    // screen, so the wizard still reads correctly if a string is missing.
+    var PAGES = [
+      {
+        group: "whisper",
+        title: ["setup.transcriberTitle", "Transcriber!"],
+        body: ["setup.transcriberBody", "This is your transcriber.\n\nThe highlighted one is suggested for your device, but you can download as many as you want."],
+      },
+      {
+        group: "formatter",
+        title: ["setup.formatterTitle", "Formatter and Summarizer!"],
+        body: ["setup.formatterBody", "This is the brain of your transcriptions. It fixes them for you! You can even tell it how you want them.\n\nThe highlighted one is suggested for your device, but you can download as many as you want."],
+      },
+      {
+        group: "embedding",
+        title: ["setup.optionalTitle", "Optional!"],
+        body: ["setup.optionalBody", "A few optional but useful tools you might need!"],
+      },
+    ];
 
-    Muffin.ready(load);
+    var page = 0;
+    var catalog = null;
+    var mainList = null;
+    var embeddingList = null;
 
-    function load() {
+    Muffin.ready(function () {
+      mainList = createModelList(document.getElementById("list-main"), {
+        highlightRecommended: true,
+        onChanged: reload,
+      });
+      embeddingList = createModelList(document.getElementById("list-embedding"), {
+        highlightRecommended: true,
+        onChanged: reload,
+      });
+      reload();
+    });
+
+    function reload() {
       Muffin.invoke("models.list").then(function (models) {
-        if (!models) return;
-        var all = models.whisper.concat(models.formatter);
-        state = {};
-        all.forEach(function (m) { state[m.file] = m; });
-        hasTranscriber = models.whisper.some(function (m) { return m.installed; });
-
-        wire("row-whisper", WHISPER, "whisper-size");
-        wire("row-formatter", FORMATTER, "formatter-size");
+        // Render the wizard even if the catalog never arrives. Bailing here
+        // left a blank window with a Next button and no explanation.
+        catalog = models || { whisper: [], formatter: [], embedding: [] };
+        render();
       });
     }
 
-    function wire(rowId, file, sizeId) {
-      var model = state[file];
-      if (!model) return;
-      var row = document.getElementById(rowId);
-      document.getElementById(sizeId).textContent = model.size;
-      row.dataset.file = file;
-      paint(rowId);
+    function render() {
+      var current = PAGES[page];
+      document.getElementById("title").textContent = Muffin.t(current.title[0], current.title[1]);
+      document.getElementById("body").textContent = Muffin.t(current.body[0], current.body[1]);
 
-      var action = row.querySelector(".action");
-      if (action.dataset.wired) return;
-      action.dataset.wired = "1";
-      action.addEventListener("click", function () {
-        if (row.dataset.downloading) {
-          Muffin.invoke("models.cancel", { file: file });
-          return;
-        }
-        row.dataset.downloading = "1";
-        paint(rowId);
-        Muffin.invoke("models.download", { file: file });
-      });
+      var isOptional = page === PAGES.length - 1;
+      document.getElementById("optional").hidden = !isOptional;
+      document.getElementById("list-main").hidden = isOptional;
+
+      if (isOptional) embeddingList.render(catalog.embedding);
+      else mainList.render(catalog[current.group]);
+
+      document.getElementById("back").disabled = page === 0;
+      document.getElementById("next").textContent = isOptional
+        ? Muffin.t("setup.finish", "Start!")
+        : Muffin.t("setup.next", "Next!");
+
+      // Each page fades in as its own step; without it only the text swaps and
+      // it reads as a glitch rather than as moving forward.
+      var el = document.getElementById("page");
+      el.classList.remove("stepped");
+      void el.offsetWidth;
+      el.classList.add("stepped");
+      document.getElementById("scroll").scrollTop = 0;
     }
 
-    function paint(rowId) {
-      var row = document.getElementById(rowId);
-      var model = state[row.dataset.file];
-      if (!model) return;
-      var downloading = !!row.dataset.downloading;
+    Muffin.on("retranslate", function () { if (catalog) render(); });
 
-      row.querySelector(".m-state").hidden = !model.installed || downloading;
-      row.querySelector(".progress").hidden = !downloading;
-
-      var action = row.querySelector(".action");
-      action.hidden = model.installed && !downloading;
-      action.textContent = downloading
-        ? Muffin.t("downloads.cancel", "Cancel")
-        : Muffin.t("settings.downloadButton", "Download");
-
-      // Nothing works without a transcriber, so Start stays out of reach until
-      // there is one. ANY transcriber counts, not just the one offered here:
-      // someone who already has the large model is not stuck. Skipping is still
-      // allowed; it is the user's call.
-      document.getElementById("finish").disabled = !hasTranscriber;
-    }
-
-    Muffin.on("models.progress", function (p) {
-      var row = rowFor(p.file);
-      if (!row) return;
-      row.dataset.downloading = "1";
-      var bar = row.querySelector(".progress");
-      bar.hidden = false;
-      bar.firstElementChild.style.width = (p.percent || 0) + "%";
+    document.getElementById("back").addEventListener("click", function () {
+      if (page === 0) return;
+      page--;
+      render();
     });
 
-    Muffin.on("models.done", function (e) {
-      var row = rowFor(e.file);
-      if (row) delete row.dataset.downloading;
-      if (e.error) showToast(Muffin.t("pc.setup.downloadFailed", "Download failed: {0}").replace("{0}", e.error));
-      load();
-    });
-
-    function rowFor(file) {
-      if (file === WHISPER) return document.getElementById("row-whisper");
-      if (file === FORMATTER) return document.getElementById("row-formatter");
-      return null;
-    }
-
-    document.getElementById("skip").addEventListener("click", finish);
-    document.getElementById("finish").addEventListener("click", finish);
-
-    // The app records that the wizard is done and moves the UI itself, so the
-    // flag is on disk before anything navigates. Outside the app (a plain
-    // browser) there is nothing to record, so just go.
-    function finish() {
+    document.getElementById("next").addEventListener("click", function () {
+      if (page < PAGES.length - 1) {
+        page++;
+        render();
+        return;
+      }
+      // Done. The app records it and moves the UI itself, so the flag is on
+      // disk before anything navigates.
       if (!Muffin.isHosted) { location.href = "index.html"; return; }
       Muffin.invoke("setup.finish");
-    }
+    });
   </script>
 </body>
 </html>
