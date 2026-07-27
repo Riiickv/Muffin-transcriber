@@ -220,6 +220,27 @@ textarea { resize: vertical; min-height: 72px; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .dropdown-opt:hover { background: var(--surface); }
+
+/* ---- Tooltip: the app's own, because Windows' is a pale box in the system
+   font that ignores the theme. Same surface as the dropdown menu. ---- */
+.tooltip {
+  position: fixed; z-index: 90;
+  max-width: 260px;
+  padding: 6px var(--sp-sm);
+  background: var(--bg); border: 1px solid var(--divider);
+  border-radius: var(--r-sm);
+  color: var(--text); font-size: 12.5px; line-height: 1.35;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  /* It must never be the thing the pointer is over, or it would chase itself
+     off the button that opened it. */
+  pointer-events: none; user-select: none;
+  visibility: hidden; opacity: 0;
+  transform: translateY(3px);
+  transition: opacity var(--t-quick) var(--ease-rn), transform var(--t-quick) var(--ease-rn);
+}
+.tooltip.below { transform: translateY(-3px); }
+.tooltip.beside { transform: translateX(-3px); }
+.tooltip.open { visibility: visible; opacity: 1; transform: none; }
 .dropdown-opt.selected { background: var(--accent-fill); color: var(--accent); font-weight: 700; }
 
 /* ---- Buttons ---- */
