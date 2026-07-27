@@ -523,7 +523,11 @@ textarea { resize: vertical; min-height: 72px; }
 .beta-badge {
   background: var(--accent-fill); color: var(--accent);
   font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-pill);
+  /* Mobile puts it in headerRight, at the far end of the bar. */
+  margin-left: auto;
+  border: none; font-family: inherit; cursor: pointer;
 }
+.beta-badge:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
 .chat-scroll { flex: 1; overflow-y: auto; padding: var(--sp-lg); display: flex; flex-direction: column; gap: var(--sp-md); }
 .bubble { padding: var(--sp-md) var(--sp-lg); border-radius: var(--r-lg); line-height: 1.5; }
 .bubble.user {  background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
@@ -731,10 +735,55 @@ textarea { resize: vertical; min-height: 72px; }
 .modal-spacer { flex: 1; }
 @keyframes modal-in { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: none; } }
 
+/* The mobile DialogCard, to the pixel: centred icon, title and message, and
+   buttons sharing the width in one row. Built by showDialog(), so a confirm
+   looks the same on every screen instead of being written into each page. */
+.dialog-backdrop {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--sp-xl);
+  opacity: 0; transition: opacity 160ms var(--ease-rn);
+}
+.dialog-backdrop.open { opacity: 1; }
+.dialog-card {
+  width: 100%; max-width: 400px;
+  background: var(--bg); border: 1px solid var(--divider);
+  border-radius: var(--r-lg); padding: var(--sp-xxl);
+  display: flex; flex-direction: column; align-items: center;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+  transform: scale(0.92);
+  transition: transform var(--spring-settle-ms) var(--spring-settle);
+}
+.dialog-backdrop.open .dialog-card { transform: none; }
+.dialog-icon { font-size: 44px; color: var(--accent); margin-bottom: var(--sp-md); }
+.dialog-icon.danger { color: var(--danger); }
+.dialog-title { font-size: 20px; font-weight: 700; margin: 0 0 var(--sp-sm); text-align: center; }
+.dialog-message {
+  font-size: 15px; line-height: 22px; color: var(--text-muted);
+  margin: 0 0 var(--sp-xl); text-align: center;
+  /* The beta note and the support text are several paragraphs written with
+     real line breaks, which collapse to one line without this. */
+  white-space: pre-wrap;
+  max-height: 46vh; overflow-y: auto;
+}
+.dialog-input {
+  width: 100%; margin-bottom: var(--sp-xl);
+  background: var(--surface); border: 1px solid var(--divider);
+  border-radius: var(--r-sm); padding: var(--sp-md);
+  color: var(--text); font: inherit; font-size: 15px;
+}
+.dialog-input:focus { outline: none; border-color: var(--accent); }
+.dialog-buttons { display: flex; gap: var(--sp-md); width: 100%; }
+.dialog-buttons .btn { flex: 1; }
+
 .btn-ghost {
   background: transparent; border: 1px solid var(--divider); color: var(--text);
 }
 .btn-ghost:hover { background: var(--surface); }
+/* Button.tsx: danger is solid, on white text, in both themes. */
+.btn-danger { background: var(--danger); color: #FFFFFF; }
+.btn-danger:hover { background: color-mix(in srgb, var(--danger) 85%, #000); }
 .btn-ghost.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
 .btn-ghost.danger:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); }
 
