@@ -57,17 +57,50 @@ function enhanceSelects(root) {
     field.addEventListener("click", function (e) {
       e.stopPropagation();
       if (sel.disabled) return;
-      var wasOpen = wrap.classList.contains("open");
+      var wasOpen = menu.classList.contains("open");
       closeAllDropdowns();
-      if (!wasOpen) wrap.classList.add("open");
+      if (!wasOpen) openMenu(wrap, field, menu);
     });
 
     sel.style.display = "none";
     sel.parentNode.insertBefore(wrap, sel);
     wrap.appendChild(field);
-    wrap.appendChild(menu);
     wrap.appendChild(sel);
+    // The menu is a child of <body>, not of the field: inside its own card it
+    // was clipped by the card's overflow and cut off at the window's edge.
+    menu._owner = wrap;
+    document.body.appendChild(menu);
   });
+}
+
+// Places the menu in viewport coordinates: under the field when it fits, above
+// it when it does not, never taller than the space it has.
+function openMenu(wrap, field, menu) {
+  var rect = field.getBoundingClientRect();
+  var gap = 4;
+  var margin = 8;
+  var below = window.innerHeight - rect.bottom - gap - margin;
+  var above = rect.top - gap - margin;
+  var flip = below < 160 && above > below;
+  var room = Math.max(120, Math.min(320, flip ? above : below));
+
+  menu.style.left = Math.round(rect.left) + "px";
+  menu.style.width = Math.round(rect.width) + "px";
+  menu.style.maxHeight = Math.round(room) + "px";
+  if (flip) {
+    menu.style.top = "auto";
+    menu.style.bottom = Math.round(window.innerHeight - rect.top + gap) + "px";
+  } else {
+    menu.style.bottom = "auto";
+    menu.style.top = Math.round(rect.bottom + gap) + "px";
+  }
+
+  wrap.classList.add("open");
+  menu.classList.add("open");
+
+  // A hundred languages deep, the current one should be on screen already.
+  var selected = menu.querySelector(".dropdown-opt.selected");
+  if (selected) menu.scrollTop = Math.max(0, selected.offsetTop - menu.clientHeight / 2);
 }
 
 // Redraw a themed dropdown after its <select> was changed from code.
@@ -92,7 +125,10 @@ function setOptions(sel, options, selected) {
 }
 
 function closeAllDropdowns() {
-  document.querySelectorAll(".dropdown.open").forEach(function (d) { d.classList.remove("open"); });
+  document.querySelectorAll(".dropdown-menu.open").forEach(function (menu) {
+    menu.classList.remove("open");
+    if (menu._owner) menu._owner.classList.remove("open");
+  });
 }
 
 function wireToggles() {
@@ -157,16 +193,23 @@ function wireSplitters() {
 // The rail is the mobile tab bar. Each screen is its own document, so state
 // lives in C# and every page asks for it on load.
 function wireRail() {
+  var here = location.pathname.split("/").pop() || "index.html";
   document.querySelectorAll("[data-nav]").forEach(function (el) {
     el.addEventListener("click", function () {
       var target = el.dataset.nav;
-      if (!target || el.classList.contains("active")) return;
+      // Compare the destination, NOT the .active class: the Models screen marks
+      // Settings active to show where you are, and skipping on .active made
+      // that button dead with no way back through the rail.
+      if (!target || target === here) return;
       location.href = target;
     });
   });
 }
 
 document.addEventListener("click", closeAllDropdowns);
+// A menu pinned to the viewport would hang in mid-air once the page moved.
+window.addEventListener("resize", closeAllDropdowns);
+window.addEventListener("scroll", closeAllDropdowns, true);
 document.addEventListener("DOMContentLoaded", function () {
   enhanceSelects();
   wireToggles();

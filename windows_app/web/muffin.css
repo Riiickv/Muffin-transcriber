@@ -203,14 +203,18 @@ textarea { resize: vertical; min-height: 72px; }
 .dropdown.open .dropdown-field { border-color: var(--accent); }
 .dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dropdown .chevron { font-size: 20px; color: var(--text-muted); flex-shrink: 0; }
+/* The menu lives on <body> and is positioned in viewport coordinates. Inside
+   its own card it was clipped by the group's overflow (an Auto-Delete list
+   showing only "Never") and it ran off the bottom of the window on the long
+   language lists. */
 .dropdown-menu {
-  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30;
+  position: fixed; z-index: 70; display: none;
   background: var(--bg); border: 1px solid var(--divider);
   border-radius: var(--r-md); padding: 4px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
-  max-height: 280px; overflow-y: auto; display: none;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  overflow-y: auto; overscroll-behavior: contain;
 }
-.dropdown.open .dropdown-menu { display: block; }
+.dropdown-menu.open { display: block; }
 .dropdown-opt {
   padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; font-size: 14px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
