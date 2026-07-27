@@ -65,8 +65,19 @@
 
           <div class="row">
             <div class="col">
+              <span class="lbl" data-i18n="transcribe.languageLabel">Language</span>
+              <select id="language" data-setting="DefaultLanguage"></select>
+            </div>
+            <div class="col">
               <span class="lbl" data-i18n="historyDetail.whisperModelLabel">Transcription quality</span>
               <select id="whisper-model" data-setting="PreferredWhisperModel"></select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top: var(--sp-md);">
+            <div class="col">
+              <span class="lbl" data-i18n="transcribe.formatLanguageLabel">Format Language</span>
+              <select id="format-language" data-setting="FormatLanguage"></select>
             </div>
             <div class="col">
               <span class="lbl" data-i18n="historyDetail.formatterModelLabel">Format quality</span>
@@ -138,6 +149,7 @@
 
     Muffin.ready(function () {
       panel = createTranscript(document.getElementById("transcript-card"));
+      loadLanguages();
       loadModels();
       refresh(true);
       restoreListWidth();
@@ -146,6 +158,17 @@
     function restoreListWidth() {
       var width = Muffin.get("HistoryListWidth");
       if (width) document.getElementById("hist-list").style.width = Math.round(width) + "px";
+    }
+
+    function loadLanguages() {
+      Muffin.invoke("transcribe.languages").then(function (langs) {
+        if (!langs) return;
+        var s = Muffin.settings();
+        setOptions(document.getElementById("language"),
+          langs.transcription.map(function (n) { return { value: n, label: n }; }), s.DefaultLanguage);
+        setOptions(document.getElementById("format-language"),
+          langs.format.map(function (n) { return { value: n, label: n }; }), s.FormatLanguage);
+      });
     }
 
     function loadModels() {
@@ -329,6 +352,9 @@
       Muffin.invoke(method, {
         id: current.id,
         prompt: document.getElementById("prompt").value,
+        language: method === "history.retranscribe"
+          ? document.getElementById("language").value
+          : document.getElementById("format-language").value,
       }).then(function (result) {
         if (!result) return;
         if (result.error) { setStatus(result.error, "error"); return; }

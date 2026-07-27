@@ -55,6 +55,7 @@
   "pc.settings.changelog": "Voir le journal des modifications",
   "pc.settings.checkUpdates": "Vérifier les mises à jour",
   "pc.settings.checking": "Vérification...",
+  "pc.settings.clearChatConfirm": "Toutes les conversations seront supprimées. C'est irréversible.",
   "pc.settings.memoryCleared": "Mémoire effacée.",
   "pc.settings.memoryUpdated": "Mémoire mise à jour.",
   "pc.settings.micDesc": "Windows exige d'activer « Autoriser les applications de bureau à accéder au microphone » pour enregistrer.",

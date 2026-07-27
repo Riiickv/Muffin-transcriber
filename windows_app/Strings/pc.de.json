@@ -55,6 +55,7 @@
   "pc.settings.changelog": "Änderungsprotokoll ansehen",
   "pc.settings.checkUpdates": "Nach Updates suchen",
   "pc.settings.checking": "Wird geprüft...",
+  "pc.settings.clearChatConfirm": "Alle Unterhaltungen werden gelöscht. Das lässt sich nicht rückgängig machen.",
   "pc.settings.memoryCleared": "Speicher geleert.",
   "pc.settings.memoryUpdated": "Speicher aktualisiert.",
   "pc.settings.micDesc": "Windows verlangt, dass du „Desktop-Apps den Zugriff auf das Mikrofon erlauben“ aktivierst, um aufzunehmen.",

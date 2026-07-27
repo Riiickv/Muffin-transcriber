@@ -278,31 +278,30 @@ public static class LLMFormatter
 
     private static string ExtractFormatterOutput(string output)
     {
-        string text;
-        if (output.Contains("[START_FORMAT]", StringComparison.Ordinal))
+        // The LAST boundary of ANY kind wins, rather than the first rule that
+        // matches.
+        //
+        // The engine echoes the prompt back, and the prompt itself contains the
+        // words "[START_FORMAT]" as an instruction. Preferring that marker meant
+        // that when the model did NOT emit its own, the split landed inside the
+        // echoed instructions and the summary came out as "' and do not add any
+        // conversational text ... (truncated)". Whichever boundary sits closest
+        // to the end is the one just before the real answer.
+        int start = 0;
+        foreach (string boundary in new[]
         {
-            text = output.Split("[START_FORMAT]").Last();
-        }
-        else if (output.Contains("... (truncated)", StringComparison.Ordinal))
+            "[START_FORMAT]",
+            "... (truncated)",
+            "<|im_start|>assistant",
+            "<|start_header_id|>assistant<|end_header_id|>",
+            "<|assistant|>",
+        })
         {
-            text = output.Split("... (truncated)").Last();
+            int idx = output.LastIndexOf(boundary, StringComparison.Ordinal);
+            if (idx >= 0 && idx + boundary.Length > start) start = idx + boundary.Length;
         }
-        else if (output.Contains("<|im_start|>assistant", StringComparison.Ordinal))
-        {
-            text = output.Split("<|im_start|>assistant").Last();
-        }
-        else if (output.Contains("<|start_header_id|>assistant<|end_header_id|>", StringComparison.Ordinal))
-        {
-            text = output.Split("<|start_header_id|>assistant<|end_header_id|>").Last();
-        }
-        else if (output.Contains("<|assistant|>", StringComparison.Ordinal))
-        {
-            text = output.Split("<|assistant|>").Last();
-        }
-        else
-        {
-            text = output;
-        }
+
+        string text = output[start..];
 
         foreach (string marker in new[]
         {

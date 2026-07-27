@@ -29,6 +29,7 @@ public sealed partial class WebBridge
             ["version"] = AppStrings.AppVersion,
             ["hasMicrophone"] = RecordingController.HasMicrophone,
             ["isRecording"] = RecordingController.IsRecording,
+            ["banner"] = _pendingBanner,
         });
 
         Register("settings.set", args =>
@@ -91,6 +92,14 @@ public sealed partial class WebBridge
             _settings.SetupCompleted = true;
             _settings.Save();
             Navigate("home");
+            return (object?)null;
+        });
+
+        // A banner's button lives in the page; the work behind it lives here.
+        Register("app.bannerAction", args =>
+        {
+            Action? action = _bannerAction;
+            action?.Invoke();
             return (object?)null;
         });
 
@@ -157,6 +166,49 @@ public sealed partial class WebBridge
         }
 
         if (changed) _settings.Save();
+    }
+
+    private Action? _bannerAction;
+    private Dictionary<string, object?>? _pendingBanner;
+
+    /// <summary>
+    /// Shows a banner in the UI. It is drawn by the page, not by XAML, so it
+    /// carries the app's own accent, type and corners instead of the stock
+    /// system look sitting on top of a themed app.
+    ///
+    /// Held until a screen is listening: engine health and update checks finish
+    /// before the first page has booted.
+    /// </summary>
+    public void ShowBanner(string kind, string title, string message, string? actionLabel, Action? action)
+    {
+        _bannerAction = action;
+        var payload = new Dictionary<string, object?>
+        {
+            ["kind"] = kind,
+            ["title"] = title,
+            ["message"] = message,
+            ["actionLabel"] = actionLabel,
+        };
+
+        _pendingBanner = payload;
+        Emit("app.banner", payload);
+    }
+
+    public void UpdateBanner(string message, string? actionLabel, int? percent)
+    {
+        if (_pendingBanner is not null)
+        {
+            _pendingBanner["message"] = message;
+            _pendingBanner["actionLabel"] = actionLabel;
+            _pendingBanner["percent"] = percent;
+        }
+
+        Emit("app.bannerUpdate", new Dictionary<string, object?>
+        {
+            ["message"] = message,
+            ["actionLabel"] = actionLabel,
+            ["percent"] = percent,
+        });
     }
 
     private static async void Launch(string url)
