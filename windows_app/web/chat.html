@@ -348,7 +348,10 @@
 
     // The assistant can ask for a transcript to be deleted; the app asks first.
     Muffin.on("chat.confirmDelete", function (e) {
-      confirmDelete(Muffin.t("chat.deleteTitle", "Delete transcript?"), e.name, function () {
+      confirmDelete(
+        Muffin.t("dialog.confirmDelete.title", "Delete transcript?"),
+        Muffin.t("dialog.confirmDelete.message", "Are you sure you want to delete this transcript?") + ' "' + e.name + '"',
+        function () {
         Muffin.invoke("history.delete", { id: e.id });
         showToast(Muffin.t("chat.actionExecuted", "Done"));
       });
@@ -369,21 +372,27 @@
 
     // One shape for both: the chat you are deleting and the transcript the
     // assistant asked to delete ask the same question, in the same card.
-    function confirmDelete(title, name, onYes) {
+    // One shape for both: the chat you are deleting and the transcript the
+    // assistant asked to delete ask the same question, in the same card, with
+    // the same wording the mobile app uses.
+    function confirmDelete(title, message, onYes) {
       showDialog({
         title: title,
-        message: Muffin.t("chat.deleteMessage", 'Delete "{name}"? This can\'t be undone.').replace("{name}", name),
-        icon: "", // delete
+        message: message,
+        icon: "", // warning
         iconTone: "danger",
         buttons: [
-          { label: Muffin.t("common.cancel", "Cancel"), variant: "ghost" },
-          { label: Muffin.t("common.delete", "Delete"), variant: "danger", onPress: onYes },
+          { label: Muffin.t("dialog.confirmDelete.cancel", "Cancel"), variant: "ghost" },
+          { label: Muffin.t("dialog.confirmDelete.delete", "Delete"), variant: "danger", onPress: onYes },
         ],
       });
     }
 
     function askDelete(session) {
-      confirmDelete(Muffin.t("chat.deleteChat", "Delete chat"), session.title, function () {
+      confirmDelete(
+        Muffin.t("dialog.deleteChat.title", "Delete chat?"),
+        Muffin.t("dialog.deleteChat.messageNamed", '"{name}" will be deleted.').replace("{name}", session.title),
+        function () {
         Muffin.invoke("chat.delete", { id: session.id }).then(function (list) {
           sessions = list || [];
           if (activeId === session.id) {

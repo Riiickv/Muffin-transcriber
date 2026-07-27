@@ -293,6 +293,110 @@ function showDialog(opts) {
 }
 window.showDialog = showDialog;
 
+// ---- Right-click menu -------------------------------------------------------
+// WebView2 shows Edge's own context menu: a wide list in the system font with
+// Emoji, Web Select, Inspect and a translate entry, none of which belong in a
+// transcriber. This is the app's, with the four commands that do.
+var ctxEl = null;
+
+// Only the places where a text command means something: the same places the
+// stylesheet allows a selection. Right-clicking a nav button offered "Select
+// all" before this, which selects a nav button.
+var SELECTABLE = ".transcript, .bubble, .prompt, .search, .dialog-input, input, textarea, [contenteditable]";
+
+function contextItems(target) {
+  var field = target.closest("input, textarea");
+  var editable = field && !field.disabled && !field.readOnly;
+  var text = target.closest(SELECTABLE);
+  var selection = String(window.getSelection());
+  var inField = editable && field.selectionStart !== field.selectionEnd;
+  var hasSelection = inField || (!field && selection.length > 0);
+
+  if (!editable && !text && !hasSelection) return [];
+
+  var items = [];
+  if (editable) {
+    items.push({ label: Muffin.t("pc.menu.cut", "Cut"), enabled: inField, run: function () { document.execCommand("cut"); } });
+  }
+  items.push({ label: Muffin.t("pc.menu.copy", "Copy"), enabled: hasSelection, run: function () { document.execCommand("copy"); } });
+  if (editable) {
+    items.push({
+      label: Muffin.t("pc.menu.paste", "Paste"), enabled: true,
+      run: function () {
+        // execCommand("paste") is refused for security, so go through the API
+        // and put the text in by hand.
+        navigator.clipboard.readText().then(function (text) {
+          field.focus();
+          var start = field.selectionStart, end = field.selectionEnd;
+          field.value = field.value.slice(0, start) + text + field.value.slice(end);
+          field.selectionStart = field.selectionEnd = start + text.length;
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+          field.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      },
+    });
+  }
+  if (editable || text) {
+    items.push({
+      label: Muffin.t("pc.menu.selectAll", "Select all"), enabled: true,
+      run: function () {
+        if (editable) { field.focus(); field.select(); return; }
+        var range = document.createRange();
+        range.selectNodeContents(text);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      },
+    });
+  }
+  return items;
+}
+
+function closeContextMenu() {
+  if (ctxEl) { ctxEl.remove(); ctxEl = null; }
+}
+
+function openContextMenu(x, y, items) {
+  closeContextMenu();
+  ctxEl = document.createElement("div");
+  ctxEl.className = "ctx-menu";
+  items.forEach(function (item) {
+    var row = document.createElement("button");
+    row.type = "button";
+    row.className = "ctx-item";
+    row.textContent = item.label;
+    row.disabled = !item.enabled;
+    row.addEventListener("click", function () { closeContextMenu(); item.run(); });
+    ctxEl.appendChild(row);
+  });
+  document.body.appendChild(ctxEl);
+
+  // Placed in viewport coordinates, and never off the edge it was opened near.
+  var size = ctxEl.getBoundingClientRect();
+  var margin = 6;
+  var left = Math.min(x, window.innerWidth - size.width - margin);
+  var top = Math.min(y, window.innerHeight - size.height - margin);
+  ctxEl.style.left = Math.max(margin, left) + "px";
+  ctxEl.style.top = Math.max(margin, top) + "px";
+}
+
+function wireContextMenu() {
+  document.addEventListener("contextmenu", function (e) {
+    // Nothing to offer on a button or an icon, and an empty menu is worse
+    // than none: let those right-clicks do nothing at all.
+    var items = contextItems(e.target);
+    e.preventDefault();
+    if (!items.length) return;
+    openContextMenu(e.clientX, e.clientY, items);
+  });
+  document.addEventListener("mousedown", function (e) {
+    if (ctxEl && !ctxEl.contains(e.target)) closeContextMenu();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeContextMenu(); });
+  window.addEventListener("resize", closeContextMenu);
+  window.addEventListener("scroll", closeContextMenu, true);
+}
+
 // ---- Tooltips ---------------------------------------------------------------
 // Windows' own tooltip is a yellow-white box in the system font that appears
 // after a second and ignores the theme entirely. This replaces it without any
@@ -480,4 +584,5 @@ document.addEventListener("DOMContentLoaded", function () {
   wireSplitters();
   wireRail();
   wireTooltips();
+  wireContextMenu();
 });
