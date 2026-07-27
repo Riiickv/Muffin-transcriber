@@ -34,7 +34,7 @@
 
     <section class="chat-main">
       <div class="chat-head">
-        <h2 data-i18n="chat.header">Chat</h2>
+        <h2 id="chat-title" data-i18n="chat.header">Chat</h2>
         <span class="beta-badge" data-i18n="chat.beta">Beta</span>
       </div>
 
@@ -154,9 +154,15 @@
       Muffin.invoke("chat.open", { id: id }).then(function (session) {
         if (!session) return;
         activeId = session.id;
+        setHeader(session.title);
         renderSessions();
         renderMessages(session.messages);
       });
+    }
+
+    function setHeader(title) {
+      document.getElementById("chat-title").textContent =
+        title || Muffin.t("chat.header", "Chat");
     }
 
     document.getElementById("new-chat").addEventListener("click", function () {
@@ -181,21 +187,51 @@
         scroll.appendChild(empty);
         return;
       }
-      messages.forEach(function (m) { addBubble(m.role, m.content); });
+      messages.forEach(function (m) { addBubble(m.role, m.content, m.actions); });
       toBottom();
     }
 
-    function addBubble(role, text) {
+    // A reply is its text plus, underneath, a chip per tool call it made. The
+    // action never replaces the words: answering "hello" with "Done" is what
+    // that produced.
+    function addBubble(role, text, actions) {
       var scroll = document.getElementById("scroll");
       var empty = scroll.querySelector(".chat-empty");
       if (empty) empty.remove();
 
+      var group = document.createElement("div");
+      group.className = "msg " + (role === "user" ? "user" : "assistant");
+
       var bubble = document.createElement("div");
       bubble.className = "bubble " + (role === "user" ? "user" : "assistant");
       bubble.textContent = text;
-      scroll.appendChild(bubble);
+      bubble.hidden = !text;
+      group.appendChild(bubble);
+
+      renderActions(group, actions);
+      scroll.appendChild(group);
       toBottom();
+
+      bubble._group = group;
       return bubble;
+    }
+
+    function renderActions(group, actions) {
+      group.querySelectorAll(".act-chip").forEach(function (c) { c.remove(); });
+      (actions || []).forEach(function (a) {
+        var chip = document.createElement("div");
+        chip.className = "act-chip" + (a.ok ? "" : " failed");
+        var icon = document.createElement("span");
+        icon.className = "msr";
+        icon.textContent = a.ok ? "" : ""; // check_circle / warning
+        chip.appendChild(icon);
+        var label = document.createElement("span");
+        label.textContent = a.ok
+          ? Muffin.t("chat.actionExecuted", "Done") + ": " + a.action
+          : Muffin.t("chat.actionFailed", "Couldn't do that");
+        chip.appendChild(label);
+        group.appendChild(chip);
+      });
     }
 
     function toBottom() {
@@ -220,8 +256,11 @@
         activeId = result.id;
         if (result.error) {
           streamBubble.textContent = result.error;
+          streamBubble.hidden = false;
         } else {
           streamBubble.textContent = result.text;
+          streamBubble.hidden = !result.text;
+          renderActions(streamBubble._group, result.actions);
           sessions = result.sessions || sessions;
           renderSessions();
         }
@@ -241,7 +280,9 @@
 
     Muffin.on("chat.busy", function (e) {
       busy = e.busy;
-      document.getElementById("send").disabled = busy;
+      var send = document.getElementById("send");
+      send.disabled = busy;
+      send.querySelector(".msr").textContent = busy ? "" : ""; // more_horiz / arrow_upward
     });
 
     // The assistant can ask for a transcript to be deleted; the app asks first.

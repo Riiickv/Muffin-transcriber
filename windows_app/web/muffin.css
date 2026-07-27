@@ -502,9 +502,9 @@ textarea { resize: vertical; min-height: 72px; }
   font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--r-pill);
 }
 .chat-scroll { flex: 1; overflow-y: auto; padding: var(--sp-lg); display: flex; flex-direction: column; gap: var(--sp-md); }
-.bubble { max-width: 78%; padding: var(--sp-md) var(--sp-lg); border-radius: var(--r-lg); line-height: 1.5; }
-.bubble.user { align-self: flex-end; background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
-.bubble.assistant { align-self: flex-start; background: var(--surface); border: 1px solid var(--card-border); border-bottom-left-radius: 4px; }
+.bubble { padding: var(--sp-md) var(--sp-lg); border-radius: var(--r-lg); line-height: 1.5; }
+.bubble.user {  background: var(--accent); color: var(--on-accent); border-bottom-right-radius: 4px; }
+.bubble.assistant {  background: var(--surface); border: 1px solid var(--card-border); border-bottom-left-radius: 4px; }
 .chat-empty { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); padding: var(--sp-xxl); font-size: 15px; line-height: 1.6; }
 .composer {
   margin: var(--sp-lg); display: flex; align-items: flex-end; gap: var(--sp-sm);
@@ -880,3 +880,25 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
 }
 .setup-btn { flex: 1; height: 48px; justify-content: center; }
 .setup-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---- Chat: a reply and, under it, what its tool calls did ----
+   The chip sits beneath the bubble instead of replacing it, the way the mobile
+   chat renders an executed action. Answering "hello" with the single word
+   "Done" was the reply being thrown away. */
+.msg { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-width: 78%; }
+.msg.user { align-items: flex-end; align-self: flex-end; }
+.msg.assistant { align-items: flex-start; align-self: flex-start; }
+.msg .bubble { align-self: auto; max-width: 100%; }
+.msg .bubble[hidden] { display: none; }
+
+.act-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent); font-size: 12px; font-weight: 700;
+}
+.act-chip .msr { font-size: 16px; }
+.act-chip.failed {
+  background: color-mix(in srgb, var(--text-subtle) 20%, transparent);
+  color: var(--text-muted);
+}
