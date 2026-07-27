@@ -121,10 +121,45 @@ public sealed partial class WebBridge
             }
         };
 
+        await ClearStaleAssetCacheAsync(core);
+
         _view.Source = new Uri($"https://{VirtualHost}/{startPage}");
     }
 
     public const string VirtualHost = "muffin.app";
+
+    /// <summary>
+    /// WebView2 caches the UI files like any web page, keyed on their URL, and
+    /// their URLs never change. Without this, an update installs new HTML and
+    /// CSS that the user never sees: they keep getting the previous version's
+    /// screens, and the fix "did not work".
+    ///
+    /// So the cache is dropped whenever the app version changes, and on every
+    /// debug run, where the files change constantly.
+    /// </summary>
+    private static async Task ClearStaleAssetCacheAsync(CoreWebView2 core)
+    {
+        string marker = System.IO.Path.Combine(AppModel.AppDataDir, "web_assets_version");
+
+        try
+        {
+#if DEBUG
+            bool stale = true;
+#else
+            bool stale = !System.IO.File.Exists(marker)
+                || System.IO.File.ReadAllText(marker).Trim() != AppStrings.AppVersion;
+#endif
+            if (!stale) return;
+
+            await core.Profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.DiskCache);
+            System.IO.File.WriteAllText(marker, AppStrings.AppVersion);
+        }
+        catch (Exception ex)
+        {
+            // A cache that refuses to clear is not a reason to fail to start.
+            CrashLog.Write("Clearing the web asset cache", ex);
+        }
+    }
 
     private void Register(string method, Func<JsonElement, Task<object?>> handler) => _handlers[method] = handler;
 
