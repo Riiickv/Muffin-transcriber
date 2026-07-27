@@ -79,7 +79,17 @@ public sealed partial class WebBridge
     /// <summary>Boots WebView2 and shows the first screen.</summary>
     public async Task InitializeAsync(string startPage)
     {
-        await _view.EnsureCoreWebView2Async();
+        // WebView2 otherwise writes its whole browser profile into the folder
+        // next to the exe. That is the install directory: it gets wiped by the
+        // next update, it fails outright if anyone installs under Program
+        // Files, and it ended up inside the installer itself. It belongs in
+        // AppData with the rest of the app's data.
+        string profileDir = System.IO.Path.Combine(AppModel.AppDataDir, "WebView2");
+        System.IO.Directory.CreateDirectory(profileDir);
+        CoreWebView2Environment environment =
+            await CoreWebView2Environment.CreateWithOptionsAsync(string.Empty, profileDir, null);
+
+        await _view.EnsureCoreWebView2Async(environment);
         CoreWebView2 core = _view.CoreWebView2;
 
         // The UI is served from the install dir under a virtual host name.
