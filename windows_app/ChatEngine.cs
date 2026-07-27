@@ -190,7 +190,7 @@ public static class ChatEngine
             if (!string.IsNullOrWhiteSpace(m)) memory = $"\n<memory>\nThings you've learned about the user:\n{m}\n</memory>";
         }
 
-        return $@"You are Muffin Chat, the built-in assistant for the Muffin transcription app. You help the user with their transcripts and you can operate the app for them — change settings, jump to a screen, or delete a transcript.
+        return $@"You are Muffin Chat, the built-in assistant for the Muffin transcription app. You help the user with their transcripts and you can operate the app for them: change settings, jump to a screen, or delete a transcript.
 
 You can see the user's transcripts (<context> and <history_index>) and every app setting with its current value and location (<app_settings>). Use them to answer accurately, including ""where is setting X?"" and ""what is X set to right now?"".
 

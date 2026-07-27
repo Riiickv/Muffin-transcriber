@@ -63,7 +63,7 @@ public sealed partial class MiniWindow : Window
         }
         else if (_hasBeenActivated)
         {
-            // Close on click-away, but never mid-processing or the dispatcher tears down mid-await and the result is lost — defer until done.
+            // Close on click-away, but never mid-processing or the dispatcher tears down mid-await and the result is lost. Defer until done.
             if (_isProcessing)
             {
                 _closeRequested = true;
