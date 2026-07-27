@@ -357,6 +357,43 @@
       });
     });
 
+    // ...and for one to be renamed. The assistant never writes the name itself:
+    // it works out WHICH transcript, and the person who knows what it should be
+    // called types it. Its suggestion, when it made a sensible one, is already
+    // in the field, so agreeing is one click.
+    Muffin.on("chat.askRename", function (e) {
+      showDialog({
+        title: Muffin.t("chat.renameAskTitle", "What should I call it?"),
+        message: Muffin.t("chat.renameAskMessage", 'Renaming "{name}"').replace("{name}", e.current),
+        icon: "", // edit
+        input: { value: e.proposed || e.current, placeholder: Muffin.t("chat.renameAskTitle", "What should I call it?") },
+        buttons: [
+          {
+            label: Muffin.t("dialog.confirmDelete.cancel", "Cancel"), variant: "ghost",
+            onPress: function () { answerRename(e, ""); },
+          },
+          {
+            label: Muffin.t("history.saveRename", "Save"),
+            onPress: function (name) {
+              if (!name || name === e.current) { answerRename(e, ""); return; }
+              Muffin.invoke("history.rename", { id: e.id, title: name }).then(function () {
+                answerRename(e, name);
+                showToast(Muffin.t("chat.actionExecuted", "Done"));
+              });
+            },
+          },
+        ],
+        // Closing it with Escape or the scrim is a "no" like any other.
+        onDismiss: function () { answerRename(e, ""); },
+      });
+    });
+
+    // The model is told what really happened, so its next reply is about that
+    // and not about what it hoped would happen.
+    function answerRename(e, name) {
+      Muffin.invoke("chat.renameAnswered", { chatId: activeId, current: e.current, name: name });
+    }
+
     document.getElementById("send").addEventListener("click", send);
     document.getElementById("input").addEventListener("keydown", function (e) {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }

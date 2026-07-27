@@ -50,6 +50,24 @@ public sealed partial class WebBridge
             return (object?)_sessions.Select(SessionMap).ToList();
         });
 
+        // What the user answered to the assistant's rename question. The rename
+        // itself goes through history.rename like any other; this is only how
+        // the model finds out, so its next reply is about what happened rather
+        // than what it hoped would happen.
+        Register("chat.renameAnswered", args =>
+        {
+            ChatSession? session = _sessions.FirstOrDefault(s => s.Id == Str(args, "chatId"))
+                                  ?? _sessions.FirstOrDefault();
+            if (session is null) return (object?)null;
+
+            string oldName = Str(args, "current");
+            string newName = Str(args, "name").Trim();
+            Note(session, newName.Length > 0
+                ? $"The user answered: renamed \"{oldName}\" to \"{newName}\"."
+                : $"The user cancelled; \"{oldName}\" was NOT renamed.");
+            return (object?)null;
+        });
+
         Register("chat.delete", args =>
         {
             _sessions.RemoveAll(s => s.Id == Str(args, "id"));
@@ -98,7 +116,7 @@ public sealed partial class WebBridge
                 target.Messages.Add(new ChatMessage("assistant", reply));
                 target.UpdatedAt = DateTime.Now;
 
-                List<Dictionary<string, object?>> actions = await ExecuteToolCalls(reply);
+                List<Dictionary<string, object?>> actions = await ExecuteToolCalls(reply, target);
 
                 return new Dictionary<string, object?>
                 {
@@ -139,8 +157,9 @@ public sealed partial class WebBridge
         ["id"] = session.Id,
         ["title"] = session.Title,
         // Chips are derived from the stored reply, never re-executed: reopening
-        // a conversation must not change a setting again.
-        ["messages"] = session.Messages.Select(m => new Dictionary<string, object?>
+        // a conversation must not change a setting again. The [action result]
+        // notes are for the model, not the user, so they are not drawn.
+        ["messages"] = session.Messages.Where(m => m.Role != "system").Select(m => new Dictionary<string, object?>
         {
             ["role"] = m.Role,
             ["content"] = m.Role == "assistant" ? StripToolCalls(m.Content) : m.Content,
@@ -205,19 +224,31 @@ public sealed partial class WebBridge
             })
             .ToList();
 
-    private async Task<List<Dictionary<string, object?>>> ExecuteToolCalls(string reply)
+    private async Task<List<Dictionary<string, object?>>> ExecuteToolCalls(string reply, ChatSession session)
     {
         var results = new List<Dictionary<string, object?>>();
         foreach (JsonElement call in ParseToolCalls(reply))
         {
-            results.Add(await Dispatch(call));
+            results.Add(await Dispatch(call, session));
         }
         return results;
     }
 
+    /// <summary>
+    /// What actually happened, written back into the conversation so the model
+    /// reads it next turn. Without this it only ever sees its own sentence and
+    /// carries on as though every action succeeded, which is how "I renamed it"
+    /// gets said about a rename the user cancelled.
+    /// </summary>
+    private void Note(ChatSession session, string note)
+    {
+        session.Messages.Add(new ChatMessage("system", "[action result] " + note));
+        WinChatStore.Save(_sessions);
+    }
+
     // Returns what happened, so the screen can show a chip under the reply the
     // way the mobile app does, instead of the action replacing the reply.
-    private Task<Dictionary<string, object?>> Dispatch(JsonElement call)
+    private Task<Dictionary<string, object?>> Dispatch(JsonElement call, ChatSession session)
     {
         Dictionary<string, object?> Result(string action, bool ok) =>
             new() { ["action"] = action, ["ok"] = ok };
@@ -290,6 +321,44 @@ public sealed partial class WebBridge
                 break;
             }
 
+            case "RENAME_TRANSCRIPT":
+            {
+                TranscriptionHistoryItem? target = FindTranscript(call, preferNewest: true);
+                if (target is null)
+                {
+                    Note(session, "FAILED: there are no transcripts at all, so there is nothing to rename.");
+                    handled = false;
+                    break;
+                }
+
+                // ALWAYS ask, never rename straight from the model's text. The
+                // name is free text with nothing to validate it against, and a
+                // small model gets it wrong in ways that quietly corrupt
+                // something the user cares about: it invents a name, or echoes
+                // the current one back, or appends instead of replacing. So its
+                // job shrinks to the part it CAN do - which transcript - and the
+                // name comes from the person who knows it. A sensible
+                // suggestion is prefilled: one click when it is right.
+                string current = Path.GetFileNameWithoutExtension(target.SourceFileName);
+                string proposed = Str(call, "new_name");
+                if (proposed.Length == 0) proposed = Str(call, "name");
+                proposed = proposed.Trim();
+                // Renaming X to X is not a name, it is the model echoing.
+                if (string.Equals(proposed, current, StringComparison.OrdinalIgnoreCase)) proposed = "";
+
+                Emit("chat.askRename", new Dictionary<string, object?>
+                {
+                    ["id"] = target.Id,
+                    ["current"] = current,
+                    ["proposed"] = proposed,
+                });
+
+                Note(session, proposed.Length > 0
+                    ? $"Suggested renaming \"{current}\" to \"{proposed}\" and asked the user to confirm. Do not claim it is renamed until they do."
+                    : $"Asked the user what to call \"{current}\". Wait for their answer.");
+                break;
+            }
+
             default:
                 handled = false;
                 break;
@@ -310,7 +379,7 @@ public sealed partial class WebBridge
         return doc.RootElement.Clone();
     }
 
-    private static TranscriptionHistoryItem? FindTranscript(JsonElement call)
+    private static TranscriptionHistoryItem? FindTranscript(JsonElement call, bool preferNewest = false)
     {
         List<TranscriptionHistoryItem> history = TranscriptionHistory.Load();
 
@@ -322,10 +391,17 @@ public sealed partial class WebBridge
         }
 
         string name = Str(call, "transcript_name").ToLowerInvariant();
-        if (name.Length == 0) return null;
+        if (name.Length > 0)
+        {
+            TranscriptionHistoryItem? byName = history.FirstOrDefault(h =>
+                Path.GetFileNameWithoutExtension(h.SourceFileName).ToLowerInvariant().Contains(name));
+            if (byName is not null) return byName;
+        }
 
-        return history.FirstOrDefault(h =>
-            Path.GetFileNameWithoutExtension(h.SourceFileName).ToLowerInvariant().Contains(name));
+        // Renaming is told to leave the id out when it is unsure, and "rename
+        // that" almost always means the one just made. Deleting gets no such
+        // guess: the wrong one there is unrecoverable.
+        return preferNewest ? history.OrderByDescending(h => h.Timestamp).FirstOrDefault() : null;
     }
 
     private static bool TryParseJson(string json, out JsonElement element)
