@@ -234,6 +234,10 @@ public static class AppStrings
     public static string Settings_AutoDelete1Month => T("settings.autoDelete1Month", "1 Month");
     public static string Settings_AboutHeader => T("settings.aboutHeader", "About");
     public static string Settings_PrivacyPolicy => T("settings.privacyPolicy", "Privacy policy");
+    public static string Settings_SupportTitle => T("settings.supportTitle", "Support me!");
+    public static string Settings_SupportMessage => T("settings.supportMessage", "Muffin is free, private and works offline. If you like it and would like to support my project, here's how!");
+    public static string Settings_SupportButton => T("settings.supportButton", "Buy a coffee");
+    public static string Settings_SupportCancel => T("settings.supportCancel", "Maybe later");
     public static string Settings_VersionFormat => T("settings.version", "Muffin Transcriber v{version}");
 
     // Settings entries that exist only on Windows.

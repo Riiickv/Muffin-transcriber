@@ -32,6 +32,18 @@
     <Content Include="Assets\Square44x44Logo.targetsize-48_altform-lightunplated.png" />
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\AppIcon.ico" />
+    <!--
+      The title bar's icon, and the only asset here that is read at RUNTIME:
+      the rest are MSIX package artwork. Nothing in Assets\ was being copied
+      next to the exe, so ms-appx:///Assets/... resolved to a file that was not
+      there and the title bar had no icon at all. A PNG rather than the .ico
+      because XAML will not reliably decode a multi-frame icon; this is that
+      same icon's 256px frame. The .ico still gives the exe its icon through
+      ApplicationIcon, which is embedded and needs no copy.
+    -->
+    <Content Include="Assets\AppIcon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
 

@@ -17,6 +17,10 @@ public sealed partial class WebBridge
 {
     private const string PrivacyPolicyUrl = "https://github.com/Riiickv/Muffin-transcriber/blob/main/PRIVACY.md";
 
+    // The only other link the app ever opens, and only when asked. A plain
+    // page load: no identifiers, no query string, nothing about the user.
+    private const string SupportUrl = "https://buymeacoffee.com/riiickv";
+
     private void RegisterAppHandlers()
     {
         // One round trip per page load: language, theme and settings arrive
@@ -54,6 +58,12 @@ public sealed partial class WebBridge
         Register("app.privacyPolicy", args =>
         {
             Launch(PrivacyPolicyUrl);
+            return (object?)null;
+        });
+
+        Register("app.support", args =>
+        {
+            Launch(SupportUrl);
             return (object?)null;
         });
 

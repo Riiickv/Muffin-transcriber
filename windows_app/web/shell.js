@@ -11,6 +11,20 @@
     if (page !== here) location.href = page;
   });
 
+  // The title bar's support button asks here, so the question looks like every
+  // other question the app asks. Nothing is sent anywhere until "Buy a coffee".
+  Muffin.on("app.askSupport", function () {
+    showDialog({
+      title: Muffin.t("settings.supportTitle", "Support me!"),
+      message: Muffin.t("settings.supportMessage", ""),
+      icon: "", // favorite
+      buttons: [
+        { label: Muffin.t("settings.supportCancel", "Maybe later"), variant: "ghost" },
+        { label: Muffin.t("settings.supportButton", "Buy a coffee"), onPress: function () { Muffin.invoke("app.support"); } },
+      ],
+    });
+  });
+
   function pageFor(tab) {
     switch (tab) {
       case "home": case "transcribe": return "index.html";
