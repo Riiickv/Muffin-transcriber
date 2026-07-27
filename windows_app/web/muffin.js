@@ -182,6 +182,127 @@ function wireCollapsibles() {
 window.openCollapsible = openCollapsible;
 window.setCollapsible = setCollapsible;
 
+// ---- Tooltips ---------------------------------------------------------------
+// Windows' own tooltip is a yellow-white box in the system font that appears
+// after a second and ignores the theme entirely. This replaces it without any
+// markup change: title="" is still where the text lives (and still what the
+// i18n pass writes to), it is just moved out of the way on hover so the native
+// one never fires, and put back when the pointer leaves.
+var tipEl = null;
+var tipTimer = 0;
+var tipOwner = null;
+
+function tipNode() {
+  if (!tipEl) {
+    tipEl = document.createElement("div");
+    tipEl.className = "tooltip";
+    tipEl.setAttribute("role", "tooltip");
+    document.body.appendChild(tipEl);
+  }
+  return tipEl;
+}
+
+function showTip(el) {
+  var text = el.getAttribute("title") || el.dataset.tip;
+  if (!text) return;
+  // Stash it: an element with no title cannot raise the native tooltip.
+  if (el.hasAttribute("title")) {
+    el.dataset.tip = text;
+    el.removeAttribute("title");
+    // The text was the only label on most of these icon buttons, so it has to
+    // keep reaching a screen reader now that the attribute is gone.
+    if (!el.hasAttribute("aria-label")) el.setAttribute("aria-label", text);
+  }
+  tipOwner = el;
+
+  var tip = tipNode();
+  tip.textContent = text;
+  // Closed it is hidden but still laid out, so it can be measured before it is
+  // placed and never appears in the wrong spot first.
+  tip.classList.remove("open", "below", "beside");
+
+  var host = el.getBoundingClientRect();
+  var size = tip.getBoundingClientRect();
+  var gap = 8;
+  var margin = 6;
+  var top, left;
+
+  // Above a button is right for a toolbar and wrong for the rail, where it
+  // would sit on top of the next button up. A container says which it wants.
+  var placer = el.closest("[data-tip-place]");
+  var beside = placer && placer.dataset.tipPlace === "right";
+
+  if (beside) {
+    left = host.right + gap;
+    if (left + size.width + margin > window.innerWidth) left = host.left - gap - size.width;
+    top = host.top + host.height / 2 - size.height / 2;
+    top = Math.max(margin, Math.min(window.innerHeight - size.height - margin, top));
+  } else {
+    var below = host.top - size.height - gap < margin;
+    top = below ? host.bottom + gap : host.top - size.height - gap;
+    left = host.left + host.width / 2 - size.width / 2;
+    left = Math.max(margin, Math.min(window.innerWidth - size.width - margin, left));
+    tip.classList.toggle("below", below);
+  }
+
+  tip.style.left = Math.round(left) + "px";
+  tip.style.top = Math.round(top) + "px";
+  tip.classList.toggle("beside", !!beside);
+  tip.classList.add("open");
+}
+
+// Hiding and un-stashing are two different things. Clicking a button should
+// hide the tip, but the pointer is still sitting on that button: hand the title
+// attribute back now and Windows draws its own tooltip a second later, which is
+// the thing this whole file exists to prevent. The title goes back only once
+// the pointer has actually left.
+function hideTip() {
+  clearTimeout(tipTimer);
+  if (tipEl) tipEl.classList.remove("open");
+}
+
+function releaseTip() {
+  hideTip();
+  if (!tipOwner) return;
+  // Give the attribute back, so i18n and anything reading it still find it.
+  if (tipOwner.dataset.tip) tipOwner.setAttribute("title", tipOwner.dataset.tip);
+  tipOwner = null;
+}
+
+function tipTarget(node) {
+  if (!node || !node.closest) return null;
+  var el = node.closest("[title], [data-tip]");
+  return el && (el.getAttribute("title") || el.dataset.tip) ? el : null;
+}
+
+function wireTooltips() {
+  document.addEventListener("mouseover", function (e) {
+    var el = tipTarget(e.target);
+    if (!el) return;
+    // Same element, already showing: nothing to do. Same element after a click
+    // hid the tip: schedule it again.
+    if (el === tipOwner && tipEl && tipEl.classList.contains("open")) return;
+    if (tipOwner && tipOwner !== el) releaseTip();
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(function () { showTip(el); }, 350);
+  });
+  document.addEventListener("mouseout", function (e) {
+    if (tipOwner && tipTarget(e.relatedTarget) === tipOwner) return;
+    releaseTip();
+  });
+  // Keyboard users get the same text, immediately: they cannot hover for it.
+  document.addEventListener("focusin", function (e) {
+    var el = tipTarget(e.target);
+    if (el) { releaseTip(); showTip(el); }
+  });
+  document.addEventListener("focusout", releaseTip);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") hideTip(); });
+  // A tip pinned to the viewport would hang in mid-air once the page moved.
+  window.addEventListener("scroll", hideTip, true);
+  window.addEventListener("resize", hideTip);
+  document.addEventListener("click", hideTip);
+}
+
 function wireSwatches() {
   document.querySelectorAll(".swatches").forEach(function (group) {
     group.querySelectorAll(".swatch").forEach(function (sw) {
@@ -247,4 +368,5 @@ document.addEventListener("DOMContentLoaded", function () {
   wireCollapsibles();
   wireSplitters();
   wireRail();
+  wireTooltips();
 });
