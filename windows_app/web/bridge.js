@@ -163,25 +163,52 @@
 
   var readyHandlers = [];
   var isReady = false;
+  var bootData = null;
+  var CACHE_KEY = "muffin.bootstrap";
 
   function ready(fn) {
     if (isReady) fn();
     else readyHandlers.push(fn);
   }
 
+  function apply(data) {
+    if (!data) return;
+    bootData = data;
+    strings = data.strings || {};
+    applyStrings();
+    applyTheme(data.theme);
+    readSettings(data.settings);
+  }
+
+  function markReady() {
+    bindSettings();
+    document.body.classList.add("booted");
+    if (isReady) return;
+    isReady = true;
+    readyHandlers.forEach(function (fn) { try { fn(); } catch (e) { console.error(e); } });
+    readyHandlers = [];
+  }
+
+  // Every screen is its own document, so each switch used to wait on a round
+  // trip to C# before it was allowed to show anything. The last payload is kept
+  // for the session and painted immediately, then refreshed underneath.
   function boot() {
+    try {
+      var cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        apply(JSON.parse(cached));
+        markReady();
+      }
+    } catch (e) {
+      // No cache, a corrupt one, or storage denied: fall through to the call.
+    }
+
     return invoke("app.bootstrap").then(function (data) {
       if (data) {
-        strings = data.strings || {};
-        applyStrings();
-        applyTheme(data.theme);
-        readSettings(data.settings);
+        apply(data);
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (e) { }
       }
-      bindSettings();
-      isReady = true;
-      readyHandlers.forEach(function (fn) { try { fn(); } catch (e) { console.error(e); } });
-      readyHandlers = [];
-      document.body.classList.add("booted");
+      markReady();
       return data;
     });
   }
@@ -189,10 +216,26 @@
   on("strings.changed", function (payload) {
     strings = (payload && payload.strings) || {};
     applyStrings();
+    if (bootData) {
+      bootData.strings = strings;
+      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(bootData)); } catch (e) { }
+    }
     emit("retranslate");
   });
-  on("theme.changed", applyTheme);
-  on("settings.changed", function (payload) { readSettings(payload); });
+  on("theme.changed", function (theme) {
+    applyTheme(theme);
+    if (bootData) {
+      bootData.theme = theme;
+      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(bootData)); } catch (e) { }
+    }
+  });
+  on("settings.changed", function (payload) {
+    readSettings(payload);
+    if (bootData) {
+      bootData.settings = payload;
+      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(bootData)); } catch (e) { }
+    }
+  });
 
   window.Muffin = {
     invoke: invoke,
@@ -200,6 +243,7 @@
     t: t,
     applyStrings: applyStrings,
     settings: function () { return settings; },
+    data: function () { return bootData; },
     get: get,
     set: set,
     ready: ready,

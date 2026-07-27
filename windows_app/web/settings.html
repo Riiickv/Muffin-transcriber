@@ -272,10 +272,12 @@
 
       // The System swatch shows the actual Windows accent, so picking it is not
       // a guess. Everything else is the same four colours as the mobile app.
-      Muffin.invoke("app.bootstrap").then(function (data) {
-        if (data && data.theme) document.getElementById("sw-system").style.background = data.theme.systemAccent;
-        if (data) document.getElementById("version").textContent = "Muffin " + data.version;
-      });
+      // Read from the payload the page already booted with, not a second call.
+      var boot = Muffin.data();
+      if (boot) {
+        if (boot.theme) document.getElementById("sw-system").style.background = boot.theme.systemAccent;
+        document.getElementById("version").textContent = "Muffin " + boot.version;
+      }
     });
 
     function fillModelSelect(id, models, selected) {
