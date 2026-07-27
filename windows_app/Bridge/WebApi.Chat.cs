@@ -179,10 +179,29 @@ public sealed partial class WebBridge
     private static List<Dictionary<string, object?>> NamedActions(string reply) =>
         ParseToolCalls(reply)
             .Where(call => call.TryGetProperty("action", out _))
-            .Select(call => new Dictionary<string, object?>
+            .Select(call =>
             {
-                ["action"] = call.GetProperty("action").GetString() ?? "",
-                ["ok"] = true,
+                var entry = new Dictionary<string, object?>
+                {
+                    ["action"] = call.GetProperty("action").GetString() ?? "",
+                    ["ok"] = true,
+                };
+
+                // Reopening a conversation shows the same live control it did
+                // the first time, rather than a chip about a setting.
+                SettingSpec? spec = AppCapabilities.GetSpec(Str(call, "key"));
+                if (spec is not null)
+                {
+                    entry["setting"] = new Dictionary<string, object?>
+                    {
+                        ["key"] = spec.Key,
+                        ["label"] = spec.Label,
+                        ["location"] = spec.Location,
+                        ["type"] = spec.Type,
+                        ["options"] = spec.Options,
+                    };
+                }
+                return entry;
             })
             .ToList();
 
@@ -203,6 +222,22 @@ public sealed partial class WebBridge
         Dictionary<string, object?> Result(string action, bool ok) =>
             new() { ["action"] = action, ["ok"] = ok };
 
+        // A setting action carries the setting itself, so the chat can show the
+        // live control the mobile app shows instead of a bare "Done" chip.
+        Dictionary<string, object?> WithSetting(string action, SettingSpec spec) => new()
+        {
+            ["action"] = action,
+            ["ok"] = true,
+            ["setting"] = new Dictionary<string, object?>
+            {
+                ["key"] = spec.Key,
+                ["label"] = spec.Label,
+                ["location"] = spec.Location,
+                ["type"] = spec.Type,
+                ["options"] = spec.Options,
+            },
+        };
+
         if (!call.TryGetProperty("action", out JsonElement actionEl))
         {
             return Task.FromResult(Result("", false));
@@ -215,22 +250,23 @@ public sealed partial class WebBridge
         {
             case "SET_SETTING":
             {
-                SettingSpec? spec = AppCapabilities.GetSpec(Str(call, "key"));
-                if (spec is not null && call.TryGetProperty("value", out JsonElement value))
+                SettingSpec? setSpec = AppCapabilities.GetSpec(Str(call, "key"));
+                if (setSpec is not null && call.TryGetProperty("value", out JsonElement value))
                 {
                     // Routed through the same path the UI uses, so a setting the
                     // assistant changes lights up on screen like any other.
-                    ApplySetting(spec.Key, Coerce(spec, value));
+                    ApplySetting(setSpec.Key, Coerce(setSpec, value));
+                    return Task.FromResult(WithSetting(name, setSpec));
                 }
-                else handled = false;
+                handled = false;
                 break;
             }
 
             case "SHOW_SETTING":
             {
-                SettingSpec? spec = AppCapabilities.GetSpec(Str(call, "key"));
-                if (spec is not null) Emit("chat.showSetting", new Dictionary<string, object?> { ["key"] = spec.Key });
-                else handled = false;
+                SettingSpec? showSpec = AppCapabilities.GetSpec(Str(call, "key"));
+                if (showSpec is not null) return Task.FromResult(WithSetting(name, showSpec));
+                handled = false;
                 break;
             }
 
