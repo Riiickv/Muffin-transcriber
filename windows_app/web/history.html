@@ -225,21 +225,30 @@
       shown.forEach(function (item) {
         var card = document.createElement("div");
         card.className = "hist-card" + (current && current.id === item.id ? " active" : "");
+        // The mobile card: a row of icon, title/date and the two buttons, with
+        // the preview on its own line UNDER them, indented past the icon. It is
+        // not a third column, which is what kept the preview short and the card
+        // tall for no reason.
         card.innerHTML =
-          '<div class="lead"><span class="msr" style="font-size:22px">&#xE1B8;</span></div>' +
-          '<div class="body">' +
-            '<div class="h-title"></div>' +
-            '<div class="h-date"></div>' +
-            '<div class="h-snippet"></div>' +
+          '<div class="h-head">' +
+            '<div class="lead"><span class="msr" style="font-size:18px">&#xE1B8;</span></div>' +
+            '<div class="h-main">' +
+              '<div class="h-title"></div>' +
+              '<div class="h-date"></div>' +
+            '</div>' +
+            '<div class="acts">' +
+              '<button data-rename><span class="msr" style="font-size:18px">&#xE3C9;</span></button>' +
+              '<button data-delete><span class="msr" style="font-size:18px">&#xE872;</span></button>' +
+            '</div>' +
           '</div>' +
-          '<div class="acts">' +
-            '<button data-rename><span class="msr" style="font-size:18px">&#xE3C9;</span></button>' +
-            '<button data-delete><span class="msr" style="font-size:18px">&#xE872;</span></button>' +
-          '</div>';
+          '<div class="h-snippet"></div>';
 
         card.querySelector(".h-title").textContent = item.title;
         card.querySelector(".h-date").textContent = formatHistoryDate(item.timestamp);
-        card.querySelector(".h-snippet").textContent = item.snippet;
+        var snippet = card.querySelector(".h-snippet");
+        snippet.textContent = item.snippet;
+        // No preview, no empty line reserving room for one.
+        snippet.hidden = !item.snippet;
         card.querySelector("[data-rename]").title = Muffin.t("history.renameAction", "Rename transcript");
         card.querySelector("[data-delete]").title = Muffin.t("history.deleteAction", "Delete transcript");
 
@@ -260,7 +269,7 @@
     // Renaming happens where the title is, the way the mobile list does it:
     // commit on Enter or blur, cancel on Escape.
     function renameInline(card, item) {
-      var body = card.querySelector(".body");
+      var body = card.querySelector(".h-main");
       var titleEl = body.querySelector(".h-title");
       if (body.querySelector(".s-edit")) return;
 
