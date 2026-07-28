@@ -83,12 +83,12 @@ public sealed partial class WebBridge
 
         Register("app.checkUpdates", async _ =>
         {
-            (bool available, string latest, string url) = await AutoUpdater.CheckForUpdatesAsync();
+            (bool available, string latest, string url, long size) = await AutoUpdater.CheckForUpdatesAsync();
 
             // Telling the user an update exists without offering it leaves them
             // with no way to take it. Raise the same banner the startup check
             // raises, with its Update button.
-            if (available) UpdateAvailable?.Invoke(latest, url);
+            if (available) UpdateAvailable?.Invoke(latest, url, size);
 
             return new Dictionary<string, object?>
             {
@@ -185,7 +185,7 @@ public sealed partial class WebBridge
     }
 
     /// <summary>Raised when a check finds a newer version, with (version, url).</summary>
-    public event Action<string, string>? UpdateAvailable;
+    public event Action<string, string, long>? UpdateAvailable;
 
     private Action? _bannerAction;
     private Dictionary<string, object?>? _pendingBanner;

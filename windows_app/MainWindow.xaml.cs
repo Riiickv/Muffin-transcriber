@@ -239,10 +239,10 @@ public sealed partial class MainWindow : Window
 
     private async Task CheckForUpdatesAsync()
     {
-        var (available, latestVersion, url) = await AutoUpdater.CheckForUpdatesAsync();
+        var (available, latestVersion, url, size) = await AutoUpdater.CheckForUpdatesAsync();
         if (available)
         {
-            ShowUpdateBanner(latestVersion, url);
+            ShowUpdateBanner(latestVersion, url, size);
         }
     }
 
@@ -289,23 +289,37 @@ public sealed partial class MainWindow : Window
         DispatcherQueue.TryEnqueue(() => _bridge?.ShowBanner(kind, title, message, actionLabel, action));
     }
 
-    public void ShowUpdateBanner(string latestVersion, string url)
+    public void ShowUpdateBanner(string latestVersion, string url, long size)
     {
         _updateDownloadUrl = url;
+        _updateSize = size;
+
+        // The installer may already be here, whole, from an earlier attempt:
+        // a restart, or a "ready" message that never reached the page. Offering
+        // Restart beats fetching 77 MB again to arrive at the same file.
+        _updateDownloaded = AutoUpdater.HasCompletedDownload(size);
+        if (_updateDownloaded) _installerPath = AutoUpdater.InstallerPath;
+        CrashLog.Note($"update: {latestVersion} available, already downloaded={_updateDownloaded}");
+
         DispatcherQueue.TryEnqueue(() => _bridge?.ShowBanner(
             "success",
             AppStrings.Update_BannerTitle,
-            string.Format(AppStrings.Update_StatusAvailableFormat, latestVersion),
-            AppStrings.Update_BtnUpdate,
+            _updateDownloaded
+                ? AppStrings.Update_StatusReady
+                : string.Format(AppStrings.Update_StatusAvailableFormat, latestVersion),
+            _updateDownloaded ? AppStrings.Update_BtnRestart : AppStrings.Update_BtnUpdate,
             StartUpdate));
     }
 
     private bool _updateDownloaded;
+    private long _updateSize;
+    private bool _updateRunning;
 
     private async void StartUpdate()
     {
         if (_updateDownloaded)
         {
+            CrashLog.Note("update: launching the installer");
             if (!AutoUpdater.InstallAndRestart(_installerPath))
             {
                 _bridge?.UpdateBanner(AppStrings.Update_StatusInstallCancelled, AppStrings.Update_BtnRestart, null);
@@ -313,6 +327,12 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // The button stays live while the download runs, and pressing it twice
+        // used to start a second one writing to the same file.
+        if (_updateRunning) return;
+        _updateRunning = true;
+
+        CrashLog.Note("update: download started");
         _bridge?.UpdateBanner(AppStrings.Update_BtnDownloading, null, 0);
 
         try
@@ -329,11 +349,35 @@ public sealed partial class MainWindow : Window
             _installerPath = await AutoUpdater.DownloadUpdateAsync(_updateDownloadUrl, progress);
 
             _updateDownloaded = true;
-            _bridge?.UpdateBanner(AppStrings.Update_StatusReady, AppStrings.Update_BtnRestart, null);
+            CrashLog.Note("update: download finished, offering restart");
+            ShowReadyToInstall();
         }
         catch (Exception ex)
         {
+            CrashLog.Write("update download", ex);
             _bridge?.UpdateBanner(string.Format(AppStrings.Update_StatusFailedFormat, ex.Message), AppStrings.Update_BtnUpdate, null);
         }
+        finally
+        {
+            _updateRunning = false;
+        }
+    }
+
+    /// <summary>
+    /// Says the update is ready, and keeps saying it. A single pushed message is
+    /// all this used to be, and a message posted while the page is navigating is
+    /// dropped on the floor: the download was complete on disk while the banner
+    /// still read "downloading" and offered no way forward. The banner the app
+    /// replays on every page load now carries the finished state too, so the
+    /// next screen is right even if the message itself never arrived.
+    /// </summary>
+    private void ShowReadyToInstall()
+    {
+        _bridge?.ShowBanner(
+            "success",
+            AppStrings.Update_BannerTitle,
+            AppStrings.Update_StatusReady,
+            AppStrings.Update_BtnRestart,
+            StartUpdate);
     }
 }
