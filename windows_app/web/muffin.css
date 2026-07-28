@@ -1043,6 +1043,10 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
 .app-banner .b-close:hover { background: var(--surface); color: var(--text); }
 
 /* ---- Collapsible section (the custom prompt) ---- */
+/* Closed, this is one 20px line of text, so it does not want a section's worth
+   of air above it: the same gap the rows inside a card use. It was 16px and
+   inline on one page only, which left the label floating in a 52px band. */
+.collapsible { margin-top: var(--sp-md); }
 .collapsible-head {
   width: 100%; display: flex; align-items: center; justify-content: space-between;
   background: transparent; border: none; padding: 0; cursor: pointer;
