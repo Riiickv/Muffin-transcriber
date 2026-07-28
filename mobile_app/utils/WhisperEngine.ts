@@ -4,6 +4,7 @@ import { loadSettings } from './settingsStore';
 import { loadMemories } from './memoryStore';
 import { createSegmentAccumulator } from './segmentAccumulator';
 import { getOptimalThreads } from './cpuThreads';
+import { trimSilence, discardTrim } from './speechTrim';
 
 export { createSegmentAccumulator };
 
@@ -201,8 +202,19 @@ export async function transcribeFile(
   // no queue in whisper.rn, and the call sites are easy to miss - Re-transcribe
   // on a history entry, an imported file, and the recorder all land here - so
   // the guard lives at the engine where nothing can route around it.
+  // Cut the silence out first. Whisper spends as long on a silent window as a
+  // full one, and silence is where it hallucinates: with nothing to transcribe
+  // it emits whatever its language model likes, which is where invented
+  // sentences come from. So this is faster AND cleaner, unlike shrinking the
+  // encoder context, which was faster and wrong.
+  //
+  // Every failure inside returns null and we transcribe the original, so the
+  // worst case is exactly today's behaviour.
+  const trimmed = await trimSilence(audioPath);
+  const inputPath = trimmed ? trimmed.path : audioPath;
+
   return whisperQueue(async () => {
-    const { promise, stop } = whisperContext!.transcribe(audioPath, options);
+    const { promise, stop } = whisperContext!.transcribe(inputPath, options);
     stopCurrentTranscription = stop;
     try {
       const result = await promise;
@@ -216,6 +228,7 @@ export async function transcribeFile(
       };
     } finally {
       stopCurrentTranscription = null;
+      if (trimmed) await discardTrim(trimmed.path);
     }
   });
 }
