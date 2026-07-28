@@ -307,5 +307,6 @@ public static class AppStrings
     public static string Update_StatusReady => T("pc.update.ready", "Muffin update ready to install!");
     public static string Update_StatusAvailableFormat => T("pc.update.availableFormat", "Version {0} is available.");
     public static string Update_StatusFailedFormat => T("pc.update.failedFormat", "Download failed: {0}");
+    public static string Update_StatusNoConnection => T("pc.update.failedNetwork", "Could not reach GitHub. Check your connection and try again.");
     public static string Update_StatusInstallCancelled => T("pc.update.installCancelled", "Update install was cancelled. Click Restart to try again.");
 }

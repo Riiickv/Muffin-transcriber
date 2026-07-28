@@ -103,6 +103,7 @@
   "pc.update.availableFormat": "La versión {0} está disponible.",
   "pc.update.downloading": "Descargando actualización...",
   "pc.update.failedFormat": "Error en la descarga: {0}",
+  "pc.update.failedNetwork": "No se pudo conectar con GitHub. Comprueba tu conexión e inténtalo de nuevo.",
   "pc.update.installCancelled": "Instalación cancelada. Haz clic en Reiniciar para volver a intentarlo.",
   "pc.update.ready": "¡Actualización de Muffin lista para instalar!",
   "pc.update.restart": "Reiniciar",

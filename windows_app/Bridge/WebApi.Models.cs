@@ -17,6 +17,16 @@ public sealed partial class WebBridge
 {
     private readonly Dictionary<string, CancellationTokenSource> _downloads = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// How far each running download has got. Progress is pushed to whatever
+    /// page is open, and a page that loads mid-download has missed all of it,
+    /// so the last percentage is kept here for the next screen to ask for.
+    /// </summary>
+    private readonly Dictionary<string, int> _downloadPercent = new(StringComparer.Ordinal);
+
+    public Dictionary<string, object?> ActiveDownloads() =>
+        _downloadPercent.ToDictionary(kv => kv.Key, kv => (object?)kv.Value);
+
     private void RegisterModelHandlers()
     {
         Register("models.list", _ => (object?)new Dictionary<string, object?>
@@ -38,17 +48,22 @@ public sealed partial class WebBridge
             string destination = AppModel.ModelPath(model.File);
             var cts = new CancellationTokenSource();
             _downloads[file] = cts;
+            _downloadPercent[file] = 0;
 
             var progress = new Progress<(long downloaded, long total, double speed, TimeSpan? eta)>(p =>
+            {
+                int percent = p.total > 0 ? (int)(p.downloaded * 100 / p.total) : 0;
+                _downloadPercent[file] = percent;
                 Emit("models.progress", new Dictionary<string, object?>
                 {
                     ["file"] = file,
                     ["downloaded"] = p.downloaded,
                     ["total"] = p.total,
-                    ["percent"] = p.total > 0 ? (int)(p.downloaded * 100 / p.total) : 0,
+                    ["percent"] = percent,
                     ["speed"] = Math.Round(p.speed, 1),
                     ["etaSeconds"] = p.eta.HasValue ? (int)p.eta.Value.TotalSeconds : (int?)null,
-                }));
+                });
+            });
 
             try
             {
@@ -71,6 +86,7 @@ public sealed partial class WebBridge
             finally
             {
                 _downloads.Remove(file);
+                _downloadPercent.Remove(file);
             }
         });
 

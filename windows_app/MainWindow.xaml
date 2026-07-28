@@ -43,7 +43,11 @@
                     Background="Transparent"
                     BorderThickness="0"
                     VerticalAlignment="Center"
-                    Padding="24,7,5,7"
+                    Width="36"
+                    Height="28"
+                    Padding="0"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
                     ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_SupportTitle}">
                     <!--
                         Ricky's logo, not a glyph: it is artwork, and it is what
@@ -52,10 +56,12 @@
                         Smaller than the phone's 26px, because a title bar strip
                         is not a phone header.
 
-                        The padding is lopsided on purpose: it holds the button
-                        at the size it was while sitting the mark close to the
-                        Minimize button, without a negative margin reaching into
-                        the caption strip and stealing that button's clicks.
+                        The button is sized explicitly. Left to itself it takes
+                        the default Button width, which is far wider than this
+                        mark, and a centred icon in a wide button reads as a
+                        mark stranded in the middle of the title bar. 36px wide
+                        puts its right edge against the caption buttons with the
+                        logo centred inside it.
 
                         The file is pre-tinted to the danger colour, which is the
                         same value in every theme, because the source PNG is a

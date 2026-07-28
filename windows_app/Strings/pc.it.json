@@ -103,6 +103,7 @@
   "pc.update.availableFormat": "La versione {0} è disponibile.",
   "pc.update.downloading": "Download dell'aggiornamento...",
   "pc.update.failedFormat": "Download non riuscito: {0}",
+  "pc.update.failedNetwork": "Impossibile raggiungere GitHub. Controlla la connessione e riprova.",
   "pc.update.installCancelled": "Installazione annullata. Clicca Riavvia per riprovare.",
   "pc.update.ready": "Aggiornamento di Muffin pronto per l'installazione!",
   "pc.update.restart": "Riavvia",

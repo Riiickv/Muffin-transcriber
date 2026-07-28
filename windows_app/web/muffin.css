@@ -132,6 +132,26 @@ html, body {
 .rail-item.active { color: var(--accent); background: var(--accent-fill); }
 .rail-spacer { flex: 1; }
 
+/* The download ring, on the rail of every screen (mobile keeps the same thing
+   in its header). Present only while something is downloading. */
+.dl-ring {
+  position: relative; width: 40px; height: 40px; flex-shrink: 0;
+  background: transparent; border: none; padding: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.dl-ring[hidden] { display: none; }
+.dl-ring svg { width: 34px; height: 34px; transform: rotate(-90deg); }
+.dl-ring circle { fill: none; stroke-width: 3; }
+.dl-ring .dl-track { stroke: var(--surface-strong); }
+.dl-ring .dl-bar {
+  stroke: var(--accent); stroke-linecap: round;
+  transition: stroke-dashoffset var(--t-quick) linear;
+}
+.dl-ring .dl-pct {
+  position: absolute; font-size: 9px; font-weight: 700; color: var(--text-muted);
+}
+.dl-ring:hover .dl-pct { color: var(--text); }
+
 /* The mic FAB, accent-filled, in the rail like the mobile tab bar. */
 .mic-fab {
   width: 44px; height: 44px; border-radius: var(--r-pill);

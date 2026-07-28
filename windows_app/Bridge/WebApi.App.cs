@@ -34,6 +34,8 @@ public sealed partial class WebBridge
             ["hasMicrophone"] = RecordingController.HasMicrophone,
             ["isRecording"] = RecordingController.IsRecording,
             ["banner"] = _pendingBanner,
+            // So a screen opened mid-download shows the ring straight away.
+            ["downloads"] = ActiveDownloads(),
         });
 
         Register("settings.set", args =>
