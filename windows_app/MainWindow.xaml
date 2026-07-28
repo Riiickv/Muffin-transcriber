@@ -22,34 +22,40 @@
             IsBackButtonVisible="False"
             IsPaneToggleButtonVisible="False">
             <!--
-                A PNG, not the .ico. XAML's image decoder will not reliably
-                read a multi-frame .ico, and the icon simply never appeared.
-                This is the 256px frame of that same file, extracted; the .ico
+                The icon goes in LeftHeader rather than IconSource, which draws
+                it at a fixed 16px and cannot be told otherwise: at 16 it is a
+                smudge next to 48px of title bar. 26px is as large as it goes
+                without crowding the title text.
+
+                A PNG, not the .ico. XAML's image decoder will not reliably read
+                a multi-frame .ico, which is why the icon never appeared at all
+                before; this is the 256px frame of that same file. The .ico
                 still supplies the exe icon through ApplicationIcon.
             -->
-            <TitleBar.IconSource>
-                <ImageIconSource ImageSource="ms-appx:///Assets/AppIcon.png" />
-            </TitleBar.IconSource>
+            <TitleBar.LeftHeader>
+                <Image
+                    Source="ms-appx:///Assets/AppIcon.png"
+                    Width="26"
+                    Height="26"
+                    Margin="4,0,0,0"
+                    VerticalAlignment="Center" />
+            </TitleBar.LeftHeader>
 
             <!--
-                In Content, not RightHeader. RightHeader sits in its own column
-                with the title bar's own spacing around it, which is where the
-                gap before Minimize was coming from; Content stretches to the
-                caption buttons, so right-aligning inside it puts the mark hard
-                against them.
-
-                Still inside the TitleBar control rather than overlaid on the
-                Grid: the title bar is a drag region, and a button floating on
-                top of it would have its clicks swallowed. TitleBar handles
-                passthrough for its own children.
+                RightHeader is the slot meant for this: it sits immediately
+                left of the caption buttons and TitleBar handles click
+                passthrough for it, which an overlay on the drag region would
+                not get. Its own spacing is what left the gap, and guessing at
+                a negative margin was wrong twice, so the code behind measures
+                the real distance to the caption buttons after layout and
+                closes it exactly. See NudgeSupportButton.
             -->
-            <TitleBar.Content>
+            <TitleBar.RightHeader>
                 <Button
                     x:Name="SupportButton"
                     Click="OnSupportClick"
                     Background="Transparent"
                     BorderThickness="0"
-                    HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Width="36"
                     Height="28"
@@ -84,7 +90,7 @@
                     -->
                     <Image Source="ms-appx:///Assets/RickLogo.png" Width="17" Height="12.75" />
                 </Button>
-            </TitleBar.Content>
+            </TitleBar.RightHeader>
         </TitleBar>
 
         <!--
