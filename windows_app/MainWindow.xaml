@@ -42,18 +42,26 @@
                     Click="OnSupportClick"
                     Background="Transparent"
                     BorderThickness="0"
-                    Padding="10,4"
                     VerticalAlignment="Center"
+                    Padding="24,7,5,7"
                     ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_SupportTitle}">
                     <!--
                         Ricky's logo, not a glyph: it is artwork, and it is what
-                        the mobile header uses. 26x19.5 keeps its real 488x366
+                        the mobile header uses. 17x12.75 keeps its real 488x366
                         proportions; forcing it square would squash the face.
+                        Smaller than the phone's 26px, because a title bar strip
+                        is not a phone header.
+
+                        The padding is lopsided on purpose: it holds the button
+                        at the size it was while sitting the mark close to the
+                        Minimize button, without a negative margin reaching into
+                        the caption strip and stealing that button's clicks.
+
                         The file is pre-tinted to the danger colour, which is the
                         same value in every theme, because the source PNG is a
                         near-white shape that would vanish on a light title bar.
                     -->
-                    <Image Source="ms-appx:///Assets/RickLogo.png" Width="26" Height="19.5" />
+                    <Image Source="ms-appx:///Assets/RickLogo.png" Width="17" Height="12.75" />
                 </Button>
             </TitleBar.RightHeader>
         </TitleBar>
