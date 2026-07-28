@@ -404,7 +404,9 @@ function wireContextMenu() {
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeContextMenu(); });
   window.addEventListener("resize", closeContextMenu);
-  window.addEventListener("scroll", closeContextMenu, true);
+  window.addEventListener("scroll", function (e) {
+    if (!scrolledInsideAPopup(e)) closeContextMenu();
+  }, true);
 }
 
 // ---- Tooltips ---------------------------------------------------------------
@@ -584,7 +586,20 @@ function wireRail() {
 document.addEventListener("click", closeAllDropdowns);
 // A menu pinned to the viewport would hang in mid-air once the page moved.
 window.addEventListener("resize", closeAllDropdowns);
-window.addEventListener("scroll", closeAllDropdowns, true);
+
+// ...but scrolling INSIDE the menu is the user reading it, not the page moving
+// under it. This listener is on capture, so it saw those scrolls too and shut
+// the menu on the first notch of the wheel: a hundred languages, and no way to
+// reach any but the first few.
+function scrolledInsideAPopup(e) {
+  var node = e.target;
+  return !!(node && node.nodeType === 1 && node.closest && node.closest(".dropdown-menu, .ctx-menu"));
+}
+
+window.addEventListener("scroll", function (e) {
+  if (scrolledInsideAPopup(e)) return;
+  closeAllDropdowns();
+}, true);
 document.addEventListener("DOMContentLoaded", function () {
   enhanceSelects();
   wireToggles();
