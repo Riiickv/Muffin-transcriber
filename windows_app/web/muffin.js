@@ -158,12 +158,14 @@ function wireSegments() {
 
 // A labelled section that folds away. The prompt is optional detail, so it
 // starts closed rather than taking up room on every screen.
-function openCollapsible(box) {
+function setCollapsible(box, open) {
   if (!box) return;
-  box.classList.add("open");
+  box.classList.toggle("open", open);
   var head = box.querySelector(".collapsible-head");
-  if (head) head.setAttribute("aria-expanded", "true");
+  if (head) head.setAttribute("aria-expanded", open);
 }
+
+function openCollapsible(box) { setCollapsible(box, true); }
 
 function wireCollapsibles() {
   document.querySelectorAll(".collapsible").forEach(function (box) {
@@ -178,6 +180,7 @@ function wireCollapsibles() {
   });
 }
 window.openCollapsible = openCollapsible;
+window.setCollapsible = setCollapsible;
 
 function wireSwatches() {
   document.querySelectorAll(".swatches").forEach(function (group) {
