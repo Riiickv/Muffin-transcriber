@@ -383,9 +383,7 @@
         busy = true;
         busyAction = state.action;
         busyPercent = state.percent || 0;
-        ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
-          document.getElementById(id).disabled = true;
-        });
+        paintActionButtons();
         if (busyPercent > 0) {
           var bar = document.getElementById("d-progress");
           bar.hidden = false;
@@ -399,9 +397,9 @@
       Muffin.invoke("history.list").then(function (list) { items = list || items; renderList(); });
     }
 
-    document.getElementById("a-retranscribe").addEventListener("click", function () { runAction("history.retranscribe"); });
-    document.getElementById("a-format").addEventListener("click", function () { runAction("history.format"); });
-    document.getElementById("a-summarize").addEventListener("click", function () { runAction("history.summarize"); });
+    document.getElementById("a-retranscribe").addEventListener("click", function () { clickAction("retranscribe"); });
+    document.getElementById("a-format").addEventListener("click", function () { clickAction("format"); });
+    document.getElementById("a-summarize").addEventListener("click", function () { clickAction("summarize"); });
 
     // The mobile detail screen names the job and appends the percentage when
     // there is one (utils/transcribeProgress.ts describeProgress). No stopwatch.
@@ -413,6 +411,56 @@
 
     var busyAction = null;
     var busyPercent = 0;
+    var stopping = false;
+
+    // The running action's own button becomes a red Stop; the other two go
+    // grey. A disabled button says "not now"; this says what is happening and
+    // offers the way out, which is the only control that makes sense mid-run.
+    // Same as the mobile detail screen.
+    var ACTION_BUTTONS = {
+      retranscribe: { id: "a-retranscribe", glyph: "" },
+      format: { id: "a-format", glyph: "" },
+      summarize: { id: "a-summarize", glyph: "" },
+    };
+    var ACTION_LABELS = {
+      retranscribe: ["historyDetail.retranscribe", "Re-Transcribe"],
+      format: ["historyDetail.format", "Improve"],
+      summarize: ["historyDetail.summarize", "Summarize"],
+    };
+
+    function paintActionButtons() {
+      Object.keys(ACTION_BUTTONS).forEach(function (kind) {
+        var spec = ACTION_BUTTONS[kind];
+        var el = document.getElementById(spec.id);
+        var isRunner = busy && busyAction === kind;
+
+        el.classList.toggle("stop", isRunner);
+        el.disabled = busy && (!isRunner || stopping);
+
+        el.querySelector(".msr").textContent = isRunner ? "" : spec.glyph; // stop
+        var label = el.querySelector(".msr").nextElementSibling;
+        if (isRunner) {
+          label.textContent = stopping
+            ? Muffin.t("historyDetail.stopping", "Stopping...")
+            : Muffin.t("historyDetail.stop", "Stop");
+        } else {
+          label.textContent = Muffin.t(ACTION_LABELS[kind][0], ACTION_LABELS[kind][1]);
+        }
+      });
+    }
+
+    function clickAction(kind) {
+      if (busy && busyAction === kind) {
+        // Not awaited into a frozen button: the engines only notice between
+        // chunks, so say "Stopping" and let it wind down.
+        stopping = true;
+        paintActionButtons();
+        Muffin.invoke("history.cancel");
+        return;
+      }
+      if (busy) return;
+      runAction("history." + kind);
+    }
 
     // Announced once, when the job starts. It used to be a line of text under
     // the buttons, repainted on every percent; the bar right there carries the
@@ -426,20 +474,18 @@
       busy = false;
       busyAction = null;
       busyPercent = 0;
-      ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
-        document.getElementById(id).disabled = false;
-      });
+      stopping = false;
+      paintActionButtons();
       document.getElementById("d-progress").hidden = true;
     }
 
     Muffin.on("history.busy", function (e) {
       busy = e.busy;
-      ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
-        document.getElementById(id).disabled = busy;
-      });
       if (busy) {
         busyAction = e.action;
         busyPercent = 0;
+        stopping = false;
+        paintActionButtons();
         announceBusy();
       } else {
         finishBusy();
