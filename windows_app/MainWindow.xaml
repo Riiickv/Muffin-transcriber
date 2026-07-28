@@ -39,8 +39,12 @@
                     hands it, which is not the full height of the bar, so it
                     sat high against the title. The Grid stretches to the bar
                     and the icon centres inside that instead.
+
+                    The left margin replaces the inset IconSource used to give
+                    it: moved into LeftHeader the icon lost that and sat hard
+                    against the window edge.
                 -->
-                <Grid VerticalAlignment="Stretch" Margin="4,0,0,0">
+                <Grid VerticalAlignment="Stretch" Margin="14,0,0,0">
                     <Image
                         Source="ms-appx:///Assets/AppIcon.png"
                         Width="26"
