@@ -24,6 +24,9 @@ namespace MuffinTranscriber
 
         [JsonPropertyName("browser_download_url")]
         public string BrowserDownloadUrl { get; set; } = string.Empty;
+
+        [JsonPropertyName("size")]
+        public long Size { get; set; }
     }
 
     public class AutoUpdater
@@ -36,17 +39,17 @@ namespace MuffinTranscriber
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "MuffinTranscriber-AutoUpdater");
         }
 
-        public static async Task<(bool UpdateAvailable, string LatestVersion, string DownloadUrl)> CheckForUpdatesAsync()
+        public static async Task<(bool UpdateAvailable, string LatestVersion, string DownloadUrl, long Size)> CheckForUpdatesAsync()
         {
             try
             {
                 var response = await _httpClient.GetAsync(RepoApiUrl);
                 if (!response.IsSuccessStatusCode)
-                    return (false, "", "");
+                    return (false, "", "", 0);
 
                 var release = await response.Content.ReadFromJsonAsync<GitHubRelease>();
                 if (release == null || string.IsNullOrEmpty(release.TagName))
-                    return (false, "", "");
+                    return (false, "", "", 0);
 
                 string currentVersion = AppStrings.AppVersion;
                 
@@ -57,16 +60,16 @@ namespace MuffinTranscriber
                         if (asset.Name.Equals("Muffin_Setup.exe", StringComparison.OrdinalIgnoreCase)
                             && IsTrustedDownloadUrl(asset.BrowserDownloadUrl))
                         {
-                            return (true, release.TagName, asset.BrowserDownloadUrl);
+                            return (true, release.TagName, asset.BrowserDownloadUrl, asset.Size);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Update check failed: {ex.Message}");
+                CrashLog.Write("Update check", ex);
             }
-            return (false, "", "");
+            return (false, "", "", 0);
         }
 
         // The elevated installer is launched from whatever URL we hand back, so only
@@ -97,12 +100,36 @@ namespace MuffinTranscriber
             return rParts.Length > cParts.Length;
         }
 
+        /// <summary>Where a downloaded installer waits. One fixed path, so a
+        /// finished download survives a restart instead of being fetched twice.</summary>
+        public static string InstallerPath => Path.Combine(Path.GetTempPath(), "Muffin_Setup_Update.exe");
+
+        /// <summary>
+        /// True when the installer for this release is already sitting on disk,
+        /// complete. 77 MB is not worth downloading twice because a banner
+        /// message went missing, and it means a restart can offer to install
+        /// straight away rather than starting over.
+        /// </summary>
+        public static bool HasCompletedDownload(long expectedSize)
+        {
+            if (expectedSize <= 0) return false;
+            try
+            {
+                var info = new FileInfo(InstallerPath);
+                return info.Exists && info.Length == expectedSize;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public static async Task<string> DownloadUpdateAsync(string downloadUrl, IProgress<int> progress)
         {
             if (!IsTrustedDownloadUrl(downloadUrl))
                 throw new InvalidOperationException("Refusing to download an update from an untrusted URL.");
 
-            var tempFile = Path.Combine(Path.GetTempPath(), "Muffin_Setup_Update.exe");
+            var tempFile = InstallerPath;
             
             if (File.Exists(tempFile))
                 File.Delete(tempFile);
@@ -153,6 +180,8 @@ namespace MuffinTranscriber
             }
             while (isMoreToRead);
 
+            await fileStream.FlushAsync();
+            CrashLog.Note($"update: downloaded {totalRead} of {totalBytes} bytes");
             return tempFile;
         }
 
@@ -174,7 +203,7 @@ namespace MuffinTranscriber
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Installer launch failed/cancelled: {ex.Message}");
+                CrashLog.Write("Installer launch", ex);
                 return false;
             }
 
