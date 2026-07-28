@@ -57,7 +57,7 @@
         <section class="card">
           <div class="action-row">
             <button class="action-btn" id="a-retranscribe"><span class="msr">&#xE029;</span><span data-i18n="historyDetail.retranscribe">Re-Transcribe</span></button>
-            <button class="action-btn" id="a-format"><span class="msr">&#xE65F;</span><span data-i18n="historyDetail.format">Format</span></button>
+            <button class="action-btn" id="a-format"><span class="msr">&#xE65F;</span><span data-i18n="historyDetail.format">Improve</span></button>
             <button class="action-btn" id="a-summarize"><span class="msr">&#xE02F;</span><span data-i18n="historyDetail.summarize">Summarize</span></button>
           </div>
 
@@ -76,11 +76,11 @@
 
           <div class="row" style="margin-top: var(--sp-md);">
             <div class="col">
-              <span class="lbl" data-i18n="transcribe.formatLanguageLabel">Format Language</span>
+              <span class="lbl" data-i18n="transcribe.formatLanguageLabel">Improvement language</span>
               <select id="format-language" data-setting="FormatLanguage"></select>
             </div>
             <div class="col">
-              <span class="lbl" data-i18n="historyDetail.formatterModelLabel">Format quality</span>
+              <span class="lbl" data-i18n="historyDetail.formatterModelLabel">Improvement quality</span>
               <select id="formatter-model" data-setting="PreferredFormatterModel"></select>
             </div>
           </div>
@@ -108,7 +108,7 @@
           <div class="tabs-row">
             <div class="segmented tabs">
               <button class="segment active" data-tab="raw" data-i18n="historyDetail.rawTab">Raw</button>
-              <button class="segment" data-tab="formatted" data-i18n="historyDetail.formattedTab">Formatted</button>
+              <button class="segment" data-tab="formatted" data-i18n="historyDetail.formattedTab">Improved</button>
               <button class="segment" data-tab="summary" data-i18n="historyDetail.summaryTab">Summary</button>
             </div>
             <div style="display:flex; gap:8px;">
@@ -403,7 +403,7 @@
     // there is one (utils/transcribeProgress.ts describeProgress). No stopwatch.
     var BUSY_LABEL = {
       retranscribe: ["historyDetail.retranscribing", "Re-transcribing..."],
-      format: ["historyDetail.formatting", "Formatting..."],
+      format: ["historyDetail.formatting", "Improving..."],
       summarize: ["historyDetail.summarizing", "Summarizing..."],
     };
 

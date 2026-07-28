@@ -87,7 +87,7 @@
   "pc.status.complete": "Transkription abgeschlossen.",
   "pc.status.completeCopied": "Transkription abgeschlossen und kopiert.",
   "pc.status.fileReady": "Datei bereit.",
-  "pc.status.formatComplete": "Formatierung abgeschlossen.",
+  "pc.status.formatComplete": "Verbesserung abgeschlossen.",
   "pc.status.invalidFile": "Verwende eine Audio- oder Videodatei.",
   "pc.status.loadedFromHistory": "Aus dem Verlauf geladen.",
   "pc.status.loadedFromHistoryCopied": "Aus dem Verlauf geladen und kopiert.",

@@ -39,10 +39,10 @@ export const IT = {
     welcomeBody: "Muffin è un trascrittore che usa l'AI per migliorare il testo. Può anche imparare da te e aiutarti quando l'audio non è chiaro!",
     welcomeStep: "Puoi condividere i tuoi file con Muffin o registrare nell'app, e farà tutto il lavoro per te!",
     welcomeButton: "Configura!",
-    formatToggle: "Formatta",
+    formatToggle: "Migliora",
     summarizeToggle: "Riassumi",
-    formatterModelLabel: "Qualità formattazione",
-    formatLanguageLabel: "Lingua formattazione",
+    formatterModelLabel: "Qualità miglioramento",
+    formatLanguageLabel: "Lingua miglioramento",
     customPromptLabel: "Sii specifico",
     customPromptPlaceholder: "Usa elenchi puntati, massimo 100 parole, ecc.",
 
@@ -55,13 +55,13 @@ export const IT = {
     transcriptTitle: "Trascrizione",
     transcriptPlaceholder: "La trascrizione apparirà qui.",
     rawTab: "Grezzo",
-    formattedTab: "Formattato",
+    formattedTab: "Migliorato",
     summaryTab: "Riassunto",
 
     loadingModel: "Caricamento trascrittore...",
     convertingAudio: "Conversione audio...",
     transcribing: "Trascrizione in corso...",
-    formatting: "Formattazione...",
+    formatting: "Miglioramento...",
     summarizing: "Riassunto in corso...",
     generatingTitle: "Creazione titolo...",
 
@@ -88,7 +88,7 @@ export const IT = {
     loadingModel: "Caricamento trascrittore...",
     transcribing: "Trascrizione in corso...",
 
-    formatToggle: "Formatta trascrizione",
+    formatToggle: "Migliora trascrizione",
     summarizeToggle: "Riassumi",
     whisperModelLabel: "Whisper",
     languageLabel: "Lingua",
@@ -121,11 +121,11 @@ export const IT = {
     audioMissing: "File audio non trovato",
 
     retranscribe: "Ritrascrivi",
-    format: "Formatta",
+    format: "Migliora",
     summarize: "Riassumi",
 
     retranscribing: "Ritrascrizione...",
-    formatting: "Formattazione...",
+    formatting: "Miglioramento...",
     summarizing: "Riassunto in corso...",
     working: "Elaborazione...",
     summaryTooShort: "Troppo corto per riassumerlo.",
@@ -138,14 +138,14 @@ export const IT = {
     stopping: "Arresto...",
 
     whisperModelLabel: "Qualità trascrizione",
-    formatterModelLabel: "Qualità formattazione",
+    formatterModelLabel: "Qualità miglioramento",
 
     customPromptLabel: "Sii specifico",
     customPromptPlaceholder: "Usa elenchi puntati, massimo 100 parole, ecc...",
 
     transcriptTitle: "Trascrizione",
     rawTab: "Grezzo",
-    formattedTab: "Formattato",
+    formattedTab: "Migliorato",
     summaryTab: "Riassunto",
     copyButton: "Copia",
     copiedTitle: "Copiato!",
@@ -238,8 +238,8 @@ export const IT = {
     speedSlow: "Lenta",
     speedBalanced: "Bilanciata",
     speedFast: "Veloce",
-    formatByDefault: "Formatta di default",
-    formatByDefaultDesc: "Formatta la trascrizione dopo averla trascritta",
+    formatByDefault: "Migliora di default",
+    formatByDefaultDesc: "Migliora la trascrizione dopo averla trascritta",
     summarizeByDefault: "Riassumi di default",
     summarizeByDefaultDesc: "Riassume la trascrizione dopo averla trascritta",
 
@@ -278,17 +278,17 @@ export const IT = {
     customPromptsFooter: "Lascia vuoto per usare i valori predefiniti di Muffin. Valgono per ogni trascrizione.",
     storageHeader: "Archiviazione",
     customPrompt: "Prompt personalizzato",
-    formatSystemPrompt: "Prompt predefinito di formattazione",
+    formatSystemPrompt: "Prompt predefinito di miglioramento",
     formatSystemPromptPlaceholder: "Sei un editor esperto...",
     summarySystemPrompt: "Prompt predefinito di riassunto",
     summarySystemPromptPlaceholder: "Riassumi il testo seguente...",
 
     transcription: "Trascrizione",
     whisperModel: "Modello trascrittore",
-    formatSummarize: "Formatta e riassumi",
+    formatSummarize: "Migliora e riassumi",
     preferredFormatter: "Modello formattatore",
     preferredChat: "Modello chat",
-    formatLanguage: "Lingua formattazione",
+    formatLanguage: "Lingua miglioramento",
 
     modelManagement: "Modelli",
     modelsInstalled: "installati",
@@ -455,7 +455,7 @@ export const IT = {
 
     transcriptionFailed: { title: "Trascrizione fallita" },
     reTranscribeFailed: { title: "Ritrascrizione fallita" },
-    formattingFailed: { title: "Formattazione fallita" },
+    formattingFailed: { title: "Miglioramento fallito" },
     summarizationFailed: { title: "Riassunto fallito" },
     actionFailed: {
       title: "Azione fallita",

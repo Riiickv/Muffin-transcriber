@@ -18,10 +18,10 @@ export const ES = {
     welcomeBody: "Muffin es un transcriptor que usa IA para mejorar el texto. ¡Incluso puede aprender de ti y ayudarte cuando el audio no se entiende bien!",
     welcomeStep: "¡Puedes compartir tus archivos con Muffin o grabar en la app, y él hará todo el trabajo por ti!",
     welcomeButton: "¡Configurar!",
-    formatToggle: "Formatear",
+    formatToggle: "Mejorar",
     summarizeToggle: "Resumir",
-    formatterModelLabel: "Calidad del formato",
-    formatLanguageLabel: "Idioma del formato",
+    formatterModelLabel: "Calidad de la mejora",
+    formatLanguageLabel: "Idioma de la mejora",
     customPromptLabel: "Sé específico",
     customPromptPlaceholder: "Usa viñetas, máximo 100 palabras, etc.",
 
@@ -34,13 +34,13 @@ export const ES = {
     transcriptTitle: "Transcripción",
     transcriptPlaceholder: "La transcripción aparecerá aquí.",
     rawTab: "Sin editar",
-    formattedTab: "Formateado",
+    formattedTab: "Mejorado",
     summaryTab: "Resumen",
 
     loadingModel: "Cargando transcriptor...",
     convertingAudio: "Convirtiendo audio...",
     transcribing: "Transcribiendo...",
-    formatting: "Formateando...",
+    formatting: "Mejorando...",
     summarizing: "Resumiendo...",
     generatingTitle: "Creando título...",
 
@@ -67,7 +67,7 @@ export const ES = {
     loadingModel: "Cargando transcriptor...",
     transcribing: "Transcribiendo...",
 
-    formatToggle: "Formatear transcripción",
+    formatToggle: "Mejorar transcripción",
     summarizeToggle: "Resumir",
     whisperModelLabel: "Whisper",
     languageLabel: "Idioma",
@@ -97,10 +97,10 @@ export const ES = {
   historyDetail: {
     play: "Reproducir", pause: "Pausa", audioMissing: "Archivo de audio no encontrado",
 
-    retranscribe: "Retranscribir", format: "Formatear", summarize: "Resumir",
+    retranscribe: "Retranscribir", format: "Mejorar", summarize: "Resumir",
 
     retranscribing: "Retranscribiendo...",
-    formatting: "Formateando...",
+    formatting: "Mejorando...",
     summarizing: "Resumiendo...",
     working: "Trabajando...",
     summaryTooShort: "Demasiado corto para resumirlo.",
@@ -113,14 +113,14 @@ export const ES = {
     stopping: "Deteniendo...",
 
     whisperModelLabel: "Calidad de transcripción",
-    formatterModelLabel: "Calidad del formato",
+    formatterModelLabel: "Calidad de la mejora",
 
     customPromptLabel: "Sé específico",
     customPromptPlaceholder: "Usa viñetas, máximo 100 palabras, etc...",
 
     transcriptTitle: "Transcripción",
     rawTab: "Sin editar",
-    formattedTab: "Formateado",
+    formattedTab: "Mejorado",
     summaryTab: "Resumen",
     copyButton: "Copiar",
     copiedTitle: "¡Copiado!",
@@ -213,8 +213,8 @@ export const ES = {
     speedSlow: "Lenta",
     speedBalanced: "Equilibrada",
     speedFast: "Rápida",
-    formatByDefault: "Formatear por defecto",
-    formatByDefaultDesc: "Formatea la transcripción después de transcribirla",
+    formatByDefault: "Mejorar por defecto",
+    formatByDefaultDesc: "Mejora la transcripción después de transcribirla",
     summarizeByDefault: "Resumir por defecto",
     summarizeByDefaultDesc: "Resume la transcripción después de transcribirla",
 
@@ -253,17 +253,17 @@ export const ES = {
     customPromptsFooter: "Déjalo vacío para usar los valores por defecto de Muffin. Se aplican a todas las transcripciones.",
     storageHeader: "Almacenamiento",
     customPrompt: "Prompt personalizado",
-    formatSystemPrompt: "Prompt por defecto de formato",
+    formatSystemPrompt: "Prompt por defecto de mejora",
     formatSystemPromptPlaceholder: "Eres un editor experto...",
     summarySystemPrompt: "Prompt por defecto de resumen",
     summarySystemPromptPlaceholder: "Resume el siguiente texto...",
 
     transcription: "Transcripción",
     whisperModel: "Modelo transcriptor",
-    formatSummarize: "Formatear y resumir",
+    formatSummarize: "Mejorar y resumir",
     preferredFormatter: "Modelo formateador",
     preferredChat: "Modelo de chat",
-    formatLanguage: "Idioma del formato",
+    formatLanguage: "Idioma de la mejora",
 
     modelManagement: "Modelos",
     modelsInstalled: "instalados",
@@ -405,7 +405,7 @@ export const ES = {
 
     transcriptionFailed: { title: "Transcripción fallida" },
     reTranscribeFailed: { title: "Retranscripción fallida" },
-    formattingFailed: { title: "Formateo fallido" },
+    formattingFailed: { title: "Mejora fallida" },
     summarizationFailed: { title: "Resumen fallido" },
     actionFailed: { title: "Acción fallida", message: "No se ha podido abrir la app." },
     recordingFailed: {

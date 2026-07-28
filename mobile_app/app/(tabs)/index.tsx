@@ -455,7 +455,7 @@ export default function HomeScreen() {
       {/* Formatting card first - configure once, then hit Transcribe. */}
       <Card index={0} style={{ marginBottom: isShort ? SPACING.md : SPACING.lg }}>
         <View style={[styles.switchRow, isShort && { marginBottom: SPACING.sm }]}>
-          <Text style={styles.label}>{t('transcribe.formatToggle') || 'Format'}</Text>
+          <Text style={styles.label}>{t('transcribe.formatToggle') || 'Improve'}</Text>
           <ExpressiveSwitch
             value={settings.formatByDefault}
             onValueChange={(v) => setSetting('formatByDefault', v)}
@@ -486,10 +486,10 @@ export default function HomeScreen() {
           </View>
           <View style={styles.gutter} />
           <View style={styles.flex1}>
-            <Text style={styles.label}>{t('transcribe.formatLanguageLabel') || 'Format Language'}</Text>
+            <Text style={styles.label}>{t('transcribe.formatLanguageLabel') || 'Improvement language'}</Text>
             <SelectDropdown
               options={getFormatLanguageOptions()}
-              fieldLabel={t('transcribe.formatLanguageLabel') || 'Format Language'}
+              fieldLabel={t('transcribe.formatLanguageLabel') || 'Improvement language'}
               value={settings.formatLanguage}
               onSelect={(val) => setSetting('formatLanguage', val)}
               placeholder="Original"

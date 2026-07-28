@@ -18,10 +18,10 @@ export const DE = {
     welcomeBody: "Muffin ist ein Transkribierer, der KI nutzt, um den Text zu verbessern. Er kann sogar von dir lernen und dir helfen, wenn das Audio undeutlich ist!",
     welcomeStep: "Du kannst deine Dateien mit Muffin teilen oder in der App aufnehmen, und er macht die ganze Arbeit für dich!",
     welcomeButton: "Einrichten!",
-    formatToggle: "Formatieren",
+    formatToggle: "Verbessern",
     summarizeToggle: "Zusammenfassen",
-    formatterModelLabel: "Formatierungsqualität",
-    formatLanguageLabel: "Formatierungssprache",
+    formatterModelLabel: "Verbesserungsqualität",
+    formatLanguageLabel: "Verbesserungssprache",
     customPromptLabel: "Sei genau",
     customPromptPlaceholder: "Nutze Stichpunkte, maximal 100 Wörter, usw.",
 
@@ -34,13 +34,13 @@ export const DE = {
     transcriptTitle: "Transkript",
     transcriptPlaceholder: "Das Transkript erscheint hier.",
     rawTab: "Roh",
-    formattedTab: "Formatiert",
+    formattedTab: "Verbessert",
     summaryTab: "Zusammenfassung",
 
     loadingModel: "Transkribierer wird geladen...",
     convertingAudio: "Audio wird konvertiert...",
     transcribing: "Wird transkribiert...",
-    formatting: "Wird formatiert...",
+    formatting: "Wird verbessert...",
     summarizing: "Wird zusammengefasst...",
     generatingTitle: "Titel wird erstellt...",
 
@@ -67,7 +67,7 @@ export const DE = {
     loadingModel: "Transkribierer wird geladen...",
     transcribing: "Wird transkribiert...",
 
-    formatToggle: "Transkript formatieren",
+    formatToggle: "Transkript verbessern",
     summarizeToggle: "Zusammenfassen",
     whisperModelLabel: "Whisper",
     languageLabel: "Sprache",
@@ -97,10 +97,10 @@ export const DE = {
   historyDetail: {
     play: "Abspielen", pause: "Pause", audioMissing: "Audiodatei nicht gefunden",
 
-    retranscribe: "Neu transkribieren", format: "Formatieren", summarize: "Zusammenfassen",
+    retranscribe: "Neu transkribieren", format: "Verbessern", summarize: "Zusammenfassen",
 
     retranscribing: "Wird neu transkribiert...",
-    formatting: "Wird formatiert...",
+    formatting: "Wird verbessert...",
     summarizing: "Wird zusammengefasst...",
     working: "Arbeitet...",
     summaryTooShort: "Zu kurz für eine Zusammenfassung.",
@@ -113,14 +113,14 @@ export const DE = {
     stopping: "Wird gestoppt...",
 
     whisperModelLabel: "Transkriptionsqualität",
-    formatterModelLabel: "Formatierungsqualität",
+    formatterModelLabel: "Verbesserungsqualität",
 
     customPromptLabel: "Sei genau",
     customPromptPlaceholder: "Nutze Stichpunkte, maximal 100 Wörter, usw...",
 
     transcriptTitle: "Transkript",
     rawTab: "Roh",
-    formattedTab: "Formatiert",
+    formattedTab: "Verbessert",
     summaryTab: "Zusammenfassung",
     copyButton: "Kopieren",
     copiedTitle: "Kopiert!",
@@ -213,8 +213,8 @@ export const DE = {
     speedSlow: "Langsam",
     speedBalanced: "Ausgewogen",
     speedFast: "Schnell",
-    formatByDefault: "Standardmäßig formatieren",
-    formatByDefaultDesc: "Formatiert das Transkript nach dem Transkribieren",
+    formatByDefault: "Standardmäßig verbessern",
+    formatByDefaultDesc: "Verbessert das Transkript nach dem Transkribieren",
     summarizeByDefault: "Standardmäßig zusammenfassen",
     summarizeByDefaultDesc: "Fasst das Transkript nach dem Transkribieren zusammen",
 
@@ -253,17 +253,17 @@ export const DE = {
     customPromptsFooter: "Leer lassen, um Muffins Standard zu nutzen. Gilt für jedes Transkript.",
     storageHeader: "Speicher",
     customPrompt: "Eigener Prompt",
-    formatSystemPrompt: "Standard-Formatierungsprompt",
+    formatSystemPrompt: "Standard-Verbesserungsprompt",
     formatSystemPromptPlaceholder: "Du bist ein erfahrener Lektor...",
     summarySystemPrompt: "Standard-Zusammenfassungsprompt",
     summarySystemPromptPlaceholder: "Fasse den folgenden Text zusammen...",
 
     transcription: "Transkription",
     whisperModel: "Transkribierer-Modell",
-    formatSummarize: "Formatieren & Zusammenfassen",
+    formatSummarize: "Verbessern & Zusammenfassen",
     preferredFormatter: "Formatierer-Modell",
     preferredChat: "Chat-Modell",
-    formatLanguage: "Formatierungssprache",
+    formatLanguage: "Verbesserungssprache",
 
     modelManagement: "Modelle",
     modelsInstalled: "installiert",
@@ -405,7 +405,7 @@ export const DE = {
 
     transcriptionFailed: { title: "Transkription fehlgeschlagen" },
     reTranscribeFailed: { title: "Neu-Transkribieren fehlgeschlagen" },
-    formattingFailed: { title: "Formatieren fehlgeschlagen" },
+    formattingFailed: { title: "Verbessern fehlgeschlagen" },
     summarizationFailed: { title: "Zusammenfassen fehlgeschlagen" },
     actionFailed: { title: "Aktion fehlgeschlagen", message: "Die App konnte nicht geöffnet werden." },
     recordingFailed: {

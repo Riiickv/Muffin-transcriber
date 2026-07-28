@@ -17,7 +17,7 @@ export type TranscriptTab = 'raw' | 'formatted' | 'summary';
 // switching language left Raw/Formatted/Summary in the old one.
 export const getTranscriptTabs = (): readonly { key: TranscriptTab; label: string }[] => [
   { key: 'raw', label: t('transcribe.rawTab') || 'Raw' },
-  { key: 'formatted', label: t('transcribe.formattedTab') || 'Formatted' },
+  { key: 'formatted', label: t('transcribe.formattedTab') || 'Improved' },
   { key: 'summary', label: t('transcribe.summaryTab') || 'Summary' },
 ];
 

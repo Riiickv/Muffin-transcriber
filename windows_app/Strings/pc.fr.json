@@ -87,7 +87,7 @@
   "pc.status.complete": "Transcription terminée.",
   "pc.status.completeCopied": "Transcription terminée et copiée.",
   "pc.status.fileReady": "Fichier prêt.",
-  "pc.status.formatComplete": "Mise en forme terminée.",
+  "pc.status.formatComplete": "Amélioration terminée.",
   "pc.status.invalidFile": "Utilisez un fichier audio ou vidéo.",
   "pc.status.loadedFromHistory": "Chargé depuis l'historique.",
   "pc.status.loadedFromHistoryCopied": "Chargé depuis l'historique et copié.",

@@ -19,7 +19,7 @@ export type SettingSpec = {
 };
 
 export const SETTINGS_REGISTRY: SettingSpec[] = [
-  { key: 'formatByDefault', store: 'settings', label: 'Format by default', location: 'Settings › General', description: 'Clean up punctuation and capitalization automatically after each transcription.', type: 'boolean', valuesHint: 'true or false' },
+  { key: 'formatByDefault', store: 'settings', label: 'Improve by default', location: 'Settings › General', description: 'Clean up punctuation and capitalization automatically after each transcription.', type: 'boolean', valuesHint: 'true or false' },
   { key: 'summarizeByDefault', store: 'settings', label: 'Summarize by default', location: 'Settings › General', description: 'Produce a bullet-point summary automatically after each transcription.', type: 'boolean', valuesHint: 'true or false' },
   { key: 'normalizeAudio', store: 'settings', label: 'Normalize audio', location: 'Settings › General', description: 'Boost quiet audio before transcribing for better accuracy.', type: 'boolean', valuesHint: 'true or false' },
   { key: 'autoCopyTranscript', store: 'settings', label: 'Auto-copy transcript', location: 'Settings › General', description: 'Copy the finished transcript to the clipboard automatically.', type: 'boolean', valuesHint: 'true or false' },
