@@ -777,6 +777,17 @@ textarea { resize: vertical; min-height: 72px; }
 .dialog-backdrop.open .dialog-card { transform: none; }
 .dialog-icon { font-size: 44px; color: var(--accent); margin-bottom: var(--sp-md); }
 .dialog-icon.danger { color: var(--danger); }
+/* Artwork instead of a glyph, 44px tall like the mobile card. Painted through
+   a mask so the mark takes the accent and follows the picker; the PNG itself is
+   a near-white shape that would disappear on a light background. */
+.dialog-art {
+  display: block; height: 44px; margin-bottom: var(--sp-md);
+  background-color: var(--accent);
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+}
+.dialog-art.danger { background-color: var(--danger); }
 .dialog-title { font-size: 20px; font-weight: 700; margin: 0 0 var(--sp-sm); text-align: center; }
 .dialog-message {
   font-size: 15px; line-height: 22px; color: var(--text-muted);
