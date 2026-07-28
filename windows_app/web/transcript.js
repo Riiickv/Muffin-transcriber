@@ -131,7 +131,56 @@ function createTranscript(root) {
     });
   }
 
+  // "While you're waiting...", the current stage, and the support button, in
+  // place of the transcript while the work runs. Ported from the mobile
+  // WaitingCard: transcription is minutes of dead time, and it is the one
+  // moment someone is genuinely idle and looking at the screen.
+  //
+  // No spinner, deliberately. The status line already moves through its stages
+  // (converting, transcribing, improving), which says more than a spinner does.
+  var waitingEl = null;
+
+  function showWaiting(status) {
+    if (!waitingEl) {
+      waitingEl = document.createElement("div");
+      waitingEl.className = "waiting-card";
+      waitingEl.innerHTML =
+        '<div class="w-title"></div><div class="w-status"></div>' +
+        '<button class="btn btn-accent w-support"></button>';
+      waitingEl.querySelector(".w-support").addEventListener("click", function () {
+        if (window.showSupportDialog) window.showSupportDialog();
+      });
+    }
+    waitingEl.querySelector(".w-title").textContent =
+      Muffin.t("transcribe.whileWaiting", "While you're waiting...");
+    var line = waitingEl.querySelector(".w-status");
+    line.textContent = status || "";
+    line.hidden = !status;
+    waitingEl.querySelector(".w-support").textContent =
+      Muffin.t("transcribe.supportMe", "Support me!");
+
+    if (waitingEl.parentNode !== root) {
+      box.hidden = true;
+      box.parentNode.insertBefore(waitingEl, box);
+    }
+  }
+
+  function hideWaiting() {
+    if (waitingEl && waitingEl.parentNode) waitingEl.parentNode.removeChild(waitingEl);
+    box.hidden = false;
+  }
+
   return {
+    /**
+     * Swaps the transcript for the waiting card while something is running.
+     * Called with the latest status on every tick, including the ones too
+     * frequent to announce, because here they are the point.
+     */
+    waiting: function (on, status) {
+      if (on) showWaiting(status);
+      else hideWaiting();
+    },
+
     // The whole output at once. animate types the raw text out, but only when
     // the user asked for the typewriter.
     set: function (data, options) {

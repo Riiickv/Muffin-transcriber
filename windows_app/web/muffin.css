@@ -851,6 +851,30 @@ textarea { resize: vertical; min-height: 72px; }
 .toast[hidden] { display: none; }
 .toast.success { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .toast.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
+
+/* The running action turns red rather than grey: it is the way out of the job,
+   not a control that is unavailable. Mirrors the mobile detail screen. */
+.action-btn.stop {
+  background: var(--danger);
+  color: #FFFFFF;
+  border-color: var(--danger);
+}
+.action-btn.stop:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 85%, #000); }
+
+/* "While you're waiting...", in place of the transcript while work runs. */
+.waiting-card {
+  flex: 1; min-height: 160px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: var(--sp-md); text-align: center;
+}
+.waiting-card .w-title { font-size: 16px; font-weight: 700; }
+.waiting-card .w-status {
+  font-size: 14px; color: var(--text-muted); margin-top: var(--sp-xs);
+  max-width: 420px;
+}
+.waiting-card .w-status[hidden] { display: none; }
+.waiting-card .w-support { margin-top: var(--sp-lg); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 /* Nothing renders until the strings, theme and settings have arrived, so no

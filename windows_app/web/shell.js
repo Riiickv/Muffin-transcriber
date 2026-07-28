@@ -13,7 +13,9 @@
 
   // The title bar's support button asks here, so the question looks like every
   // other question the app asks. Nothing is sent anywhere until "Buy a coffee".
-  Muffin.on("app.askSupport", function () {
+  // Shared, so the title bar button and the waiting card cannot drift apart.
+  // Transcription is still running behind it, so it asks before leaving.
+  function showSupportDialog() {
     showDialog({
       title: Muffin.t("settings.supportTitle", "Support me!"),
       message: Muffin.t("settings.supportMessage", ""),
@@ -25,7 +27,10 @@
         { label: Muffin.t("settings.supportButton", "Buy a coffee"), onPress: function () { Muffin.invoke("app.support"); } },
       ],
     });
-  });
+  }
+  window.showSupportDialog = showSupportDialog;
+
+  Muffin.on("app.askSupport", showSupportDialog);
 
   function pageFor(tab) {
     switch (tab) {

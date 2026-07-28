@@ -134,7 +134,14 @@
     });
 
     Muffin.on("transcribe.state", applyState);
-    Muffin.on("transcribe.status", function (s) { if (!s.quiet) showToast(s.text, s.kind); });
+    var lastStatus = "";
+    Muffin.on("transcribe.status", function (s) {
+      lastStatus = s.text || "";
+      // Quiet ones are too frequent to announce, but they ARE the waiting
+      // card's content, so it gets them and the notification does not.
+      if (panel && running) panel.waiting(true, lastStatus);
+      if (!s.quiet) showToast(s.text, s.kind);
+    });
     Muffin.on("transcribe.output", function (out) {
       if (!panel) return;
       panel.set(out, { animate: out.animate, speed: out.typewriterSpeed, preferBest: !out.animate });
@@ -170,6 +177,12 @@
       var progress = document.getElementById("progress");
       progress.hidden = !running || !state.percent;
       progress.firstElementChild.style.width = (state.percent || 0) + "%";
+
+      // Minutes of dead time is the one moment someone is idle and looking at
+      // the screen, so the transcript box carries the waiting card instead of
+      // an empty placeholder.
+      if (state.status) lastStatus = state.status;
+      if (panel) panel.waiting(running, lastStatus);
 
       if (panel && state.output) panel.set(state.output, { preferBest: true });
     }
