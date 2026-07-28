@@ -52,6 +52,11 @@ public sealed partial class MainWindow : Window
             presenter.PreferredMinimumHeight = 560;
         }
 
+        // The caption inset is only known once there is a window and a scale to
+        // measure against, and it changes with both.
+        RootGrid.SizeChanged += (_, _) => NudgeSupportButton();
+        RootGrid.Loaded += (_, _) => NudgeSupportButton();
+
         Closed += MainWindow_Closed;
         RecordingController.RecordingFinished += OnRecordingFinished;
         RecordingController.StateChanged += OnRecordingStateChanged;
@@ -218,6 +223,49 @@ public sealed partial class MainWindow : Window
     /// app's own dialog rather than a second, different-looking one.
     /// </summary>
     private void OnSupportClick(object sender, RoutedEventArgs e) => _bridge?.Emit("app.askSupport", null);
+
+    /// <summary>
+    /// Slides the support button up against the caption buttons.
+    ///
+    /// TitleBar puts its own spacing around RightHeader, and that spacing was
+    /// the gap. I guessed at a negative margin twice and got it wrong both
+    /// times, so this measures instead: where the button actually sits, versus
+    /// where the system says the caption buttons begin, and closes the
+    /// difference. RightInset is in physical pixels, hence the scale.
+    ///
+    /// Runs on every size change because the inset moves with the window and
+    /// with the monitor's scaling.
+    /// </summary>
+    private void NudgeSupportButton()
+    {
+        if (SupportButton is null || RootGrid.ActualWidth <= 0) return;
+
+        try
+        {
+            double scale = RootGrid.XamlRoot?.RasterizationScale ?? 1.0;
+            double captionWidth = AppWindow.TitleBar.RightInset / (scale <= 0 ? 1.0 : scale);
+
+            // Where the button's right edge is now, in the window's own space.
+            Windows.Foundation.Point at = SupportButton
+                .TransformToVisual(RootGrid)
+                .TransformPoint(new Windows.Foundation.Point(SupportButton.ActualWidth, 0));
+
+            double wanted = RootGrid.ActualWidth - captionWidth - SupportButtonGap;
+            double shift = at.X - wanted;
+            if (Math.Abs(shift) < 1) return; // already there
+
+            double current = SupportButton.Margin.Right;
+            double next = Math.Max(-40, Math.Min(40, current + shift));
+            SupportButton.Margin = new Thickness(0, 0, next, 0);
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Positioning the support button", ex);
+        }
+    }
+
+    /// <summary>A hair of daylight, so it does not touch Minimize.</summary>
+    private const double SupportButtonGap = 4;
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
