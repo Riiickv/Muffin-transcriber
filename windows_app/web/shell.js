@@ -17,7 +17,9 @@
     showDialog({
       title: Muffin.t("settings.supportTitle", "Support me!"),
       message: Muffin.t("settings.supportMessage", ""),
-      icon: "", // favorite
+      // The same logo the mobile dialog shows, at its real 488x366 ratio.
+      image: "images/RickLogo.png",
+      imageAspect: 488 / 366,
       buttons: [
         { label: Muffin.t("settings.supportCancel", "Maybe later"), variant: "ghost" },
         { label: Muffin.t("settings.supportButton", "Buy a coffee"), onPress: function () { Muffin.invoke("app.support"); } },

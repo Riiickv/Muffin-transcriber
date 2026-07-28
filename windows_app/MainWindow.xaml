@@ -45,7 +45,15 @@
                     Padding="10,4"
                     VerticalAlignment="Center"
                     ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_SupportTitle}">
-                    <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xEB51;" FontSize="14" />
+                    <!--
+                        Ricky's logo, not a glyph: it is artwork, and it is what
+                        the mobile header uses. 26x19.5 keeps its real 488x366
+                        proportions; forcing it square would squash the face.
+                        The file is pre-tinted to the danger colour, which is the
+                        same value in every theme, because the source PNG is a
+                        near-white shape that would vanish on a light title bar.
+                    -->
+                    <Image Source="ms-appx:///Assets/RickLogo.png" Width="26" Height="19.5" />
                 </Button>
             </TitleBar.RightHeader>
         </TitleBar>

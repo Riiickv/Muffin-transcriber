@@ -206,7 +206,17 @@ function showDialog(opts) {
   card.setAttribute("aria-modal", "true");
   backdrop.appendChild(card);
 
-  if (opts.icon) {
+  // Artwork wins over a glyph when both are given, the way DialogCard does it.
+  // It is drawn as a mask filled with the tone colour rather than as a picture,
+  // so a one-colour mark follows the accent picker and reads on either theme.
+  if (opts.image) {
+    var art = document.createElement("span");
+    art.className = "dialog-art" + (opts.iconTone === "danger" ? " danger" : "");
+    art.style.webkitMaskImage = "url(" + opts.image + ")";
+    art.style.maskImage = "url(" + opts.image + ")";
+    art.style.width = Math.round(44 * (opts.imageAspect || 1)) + "px";
+    card.appendChild(art);
+  } else if (opts.icon) {
     var icon = document.createElement("span");
     icon.className = "msr fill dialog-icon" + (opts.iconTone === "danger" ? " danger" : "");
     icon.textContent = opts.icon;
