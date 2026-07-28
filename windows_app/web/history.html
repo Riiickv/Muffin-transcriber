@@ -99,7 +99,6 @@
             </div>
           </div>
 
-          <div class="status" id="d-status" hidden></div>
           <div class="progress" id="d-progress" hidden><i style="width:0%"></i></div>
         </section>
 
@@ -366,11 +365,10 @@
         // finished while the UI still claimed to be busy is indistinguishable
         // from one that hung.
         finishBusy();
-        if (!result) { setStatus("", "info"); return; }
-        if (result.error) { setStatus(result.error, "error"); return; }
+        if (!result) return;
+        if (result.error) { showToast(result.error, "error"); return; }
         current = result;
         panel.set(result, { show: PRODUCES[method] });
-        setStatus("", "info");
         refreshRow();
       });
     }
@@ -394,11 +392,12 @@
     var busyAction = null;
     var busyPercent = 0;
 
-    function paintBusy() {
+    // Announced once, when the job starts. It used to be a line of text under
+    // the buttons, repainted on every percent; the bar right there carries the
+    // percentage, so saying it again a hundred times is just noise.
+    function announceBusy() {
       var label = BUSY_LABEL[busyAction] || ["historyDetail.working", "Working..."];
-      var text = Muffin.t(label[0], label[1]);
-      if (busyPercent > 0) text += " " + busyPercent + "%";
-      setStatus(text, "info");
+      showToast(Muffin.t(label[0], label[1]));
     }
 
     function finishBusy() {
@@ -419,7 +418,7 @@
       if (busy) {
         busyAction = e.action;
         busyPercent = 0;
-        paintBusy();
+        announceBusy();
       } else {
         finishBusy();
       }
@@ -430,18 +429,11 @@
       bar.hidden = false;
       busyPercent = e.percent || 0;
       bar.firstElementChild.style.width = busyPercent + "%";
-      paintBusy();
     });
 
     Muffin.on("history.partial", function (e) { if (panel) panel.stream(e.tab, e.text); });
 
-    function setStatus(text, kind) {
-      var el = document.getElementById("d-status");
-      if (!text) { el.hidden = true; return; }
-      el.textContent = text;
-      el.className = "status " + (kind || "info");
-      el.hidden = false;
-    }
+
 
     // ---- player ------------------------------------------------------------
     // The bars are the mobile stylised waveform, seeded by the transcript id, so

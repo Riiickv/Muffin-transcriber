@@ -180,6 +180,8 @@
     else readyHandlers.push(fn);
   }
 
+  var appliedStrings = null;
+
   function apply(data) {
     if (!data) return;
     bootData = data;
@@ -187,8 +189,23 @@
     // boot cache, ready fires on the cached payload and the fresh one that
     // actually carries the banner would never be seen.
     if (data.banner) emit("app.banner", data.banner);
+
     strings = data.strings || {};
-    applyStrings();
+
+    // Only when they actually changed. applyStrings() repaints the text of
+    // every data-i18n element, and several of those are written by the screen
+    // from app state: the Pick file button, the Go button, the library's three
+    // action buttons, the chat's title. With the boot cache this runs twice on
+    // every navigation, once from the cache and once when the real payload
+    // lands, and the second pass wiped whatever the screen had put there. The
+    // file you had picked was still queued in the app; the button had simply
+    // been told to say "Pick file" again.
+    var fingerprint = JSON.stringify(strings);
+    if (fingerprint !== appliedStrings) {
+      appliedStrings = fingerprint;
+      applyStrings();
+    }
+
     applyTheme(data.theme);
     readSettings(data.settings);
   }
@@ -228,6 +245,7 @@
 
   on("strings.changed", function (payload) {
     strings = (payload && payload.strings) || {};
+    appliedStrings = JSON.stringify(strings);
     applyStrings();
     if (bootData) {
       bootData.strings = strings;
