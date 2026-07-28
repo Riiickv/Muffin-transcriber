@@ -180,13 +180,14 @@ export async function transcribeFile(
     // the app consumes them and they add per-token cost.
     beamSize: 1,
     bestOf: 1,
-    // No temperature fallback. whisper.cpp re-decodes a window from scratch at
-    // 0.2, 0.4, 0.6... whenever the segment trips its compression or logprob
-    // threshold, so one awkward stretch of audio can cost six full decodes of
-    // that window. Real voice notes trip it often: background noise, a cough, a
-    // pause. Taking the first decode is what makes a bad clip finish in about
-    // the time a good one does.
-    temperatureInc: 0,
+    // Temperature fallback stays at whisper.cpp's default. Turning it off
+    // (temperatureInc 0) was a real speed win and an unusable one: the retry
+    // is what CATCHES a degenerate decode, so without it Tiny returned
+    // "bieno 150 deha" twice over with Japanese characters in the middle of a
+    // French clip. Repetition and language-mixing are exactly the failure the
+    // compression and logprob thresholds are checking for. Do not disable it
+    // again; if the retries need to be cheaper, raise the increment so there
+    // are three attempts instead of six rather than removing the recovery.
     // Match thread count to the device's performance cores.
     maxThreads: await getOptimalThreads(),
     // Shrunken encoder context for short clips (0 = default 1500).
