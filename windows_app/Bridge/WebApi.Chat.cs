@@ -21,6 +21,16 @@ public sealed partial class WebBridge
     {
         Register("chat.sessions", _ => (object?)_sessions.Select(SessionMap).ToList());
 
+        // Asked for on load. A reply carries on generating while you are on
+        // another tab, and coming back showed a ready-looking composer whose
+        // send button silently did nothing, because chat.send refuses while
+        // one is already running.
+        Register("chat.state", _ => (object?)new Dictionary<string, object?>
+        {
+            ["busy"] = _chatBusy,
+            ["id"] = _sessions.FirstOrDefault()?.Id ?? "",
+        });
+
         Register("chat.open", args =>
         {
             ChatSession? session = _sessions.FirstOrDefault(s => s.Id == Str(args, "id"));

@@ -145,6 +145,7 @@
       loadModels();
       refresh(true);
       restoreListWidth();
+      restoreBusy();
     });
 
     function restoreListWidth() {
@@ -370,6 +371,27 @@
         current = result;
         panel.set(result, { show: PRODUCES[method] });
         refreshRow();
+      });
+    }
+
+    // A job started before this screen existed, or before you last left it.
+    // Every screen is its own document, so nothing survives a tab switch on
+    // its own; the app is asked instead.
+    function restoreBusy() {
+      Muffin.invoke("history.state").then(function (state) {
+        if (!state || !state.busy) return;
+        busy = true;
+        busyAction = state.action;
+        busyPercent = state.percent || 0;
+        ["a-retranscribe", "a-format", "a-summarize"].forEach(function (id) {
+          document.getElementById(id).disabled = true;
+        });
+        if (busyPercent > 0) {
+          var bar = document.getElementById("d-progress");
+          bar.hidden = false;
+          bar.firstElementChild.style.width = busyPercent + "%";
+        }
+        announceBusy();
       });
     }
 

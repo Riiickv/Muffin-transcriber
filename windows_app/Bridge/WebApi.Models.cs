@@ -35,6 +35,9 @@ public sealed partial class WebBridge
             ["formatter"] = Group(AppModel.FormatterModels, DeviceTier.Group.Formatter),
             ["embedding"] = Group(AppModel.EmbeddingModels, DeviceTier.Group.Embedding),
             ["installedCount"] = InstalledCount(),
+            // So a screen opened mid-download draws the bars rather than a
+            // Download button that silently does nothing when pressed.
+            ["downloading"] = ActiveDownloads(),
         });
 
         Register("models.download", async args =>

@@ -113,8 +113,8 @@
       document.getElementById("optional").hidden = !isOptional;
       document.getElementById("list-main").hidden = isOptional;
 
-      if (isOptional) embeddingList.render(catalog.embedding);
-      else mainList.render(catalog[current.group]);
+      if (isOptional) embeddingList.render(catalog.embedding, catalog.downloading);
+      else mainList.render(catalog[current.group], catalog.downloading);
 
       document.getElementById("back").disabled = page === 0;
       document.getElementById("next").textContent = isOptional

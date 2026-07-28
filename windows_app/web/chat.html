@@ -63,7 +63,18 @@
     var streamBubble = null;
     var firstToken = true;
 
-    Muffin.ready(function () { loadSessions(true); });
+    Muffin.ready(function () {
+      loadSessions(true);
+      // A reply carries on generating while you are elsewhere. Without this the
+      // composer looked ready and the send button did nothing.
+      Muffin.invoke("chat.state").then(function (state) {
+        if (!state || !state.busy) return;
+        busy = true;
+        var send = document.getElementById("send");
+        send.disabled = true;
+        send.querySelector(".msr").textContent = ""; // more_horiz
+      });
+    });
 
     document.getElementById("beta").addEventListener("click", function () {
       showDialog({

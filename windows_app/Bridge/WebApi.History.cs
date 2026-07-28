@@ -19,6 +19,13 @@ public sealed partial class WebBridge
 
     private CancellationTokenSource? _historyCts;
 
+    // What is running, so a screen that was not on the page while it started
+    // can pick it up. Every screen is its own document here, so anything held
+    // only in a page's JS is gone the moment you switch tabs.
+    private string _busyId = "";
+    private string _busyAction = "";
+    private int _busyPercent;
+
     private void RegisterHistoryHandlers()
     {
         Register("history.list", _ => (object?)TranscriptionHistory.Load().Select(SummaryMap).ToList());
@@ -50,6 +57,17 @@ public sealed partial class WebBridge
             return (object?)TranscriptionHistory.Load().Select(SummaryMap).ToList();
         });
 
+        // Asked for on load. Without it, coming back to a transcript mid-Improve
+        // showed enabled buttons and no progress, and pressing one again just
+        // cancelled the job that was already running.
+        Register("history.state", _ => (object?)new Dictionary<string, object?>
+        {
+            ["busy"] = _historyCts is not null,
+            ["id"] = _busyId,
+            ["action"] = _busyAction,
+            ["percent"] = _busyPercent,
+        });
+
         Register("history.cancel", _ =>
         {
             _historyCts?.Cancel();
@@ -74,12 +92,16 @@ public sealed partial class WebBridge
             return await RunAction(item.Id, "retranscribe", async ct =>
             {
                 string language = Str(args, "language", item.Language);
-                var progress = new Progress<int>(pct => Emit("history.progress", new Dictionary<string, object?>
+                var progress = new Progress<int>(pct =>
                 {
-                    ["id"] = item.Id,
-                    ["action"] = "retranscribe",
-                    ["percent"] = pct,
-                }));
+                    _busyPercent = pct;
+                    Emit("history.progress", new Dictionary<string, object?>
+                    {
+                        ["id"] = item.Id,
+                        ["action"] = "retranscribe",
+                        ["percent"] = pct,
+                    });
+                });
 
                 TranscriptionResult tr = await TranscriptionService.TranscribeAsync(
                     item.SourceFilePath, model, language, _settings.NormalizeAudio, progress, ct);
@@ -162,6 +184,9 @@ public sealed partial class WebBridge
     {
         _historyCts?.Cancel();
         _historyCts = new CancellationTokenSource();
+        _busyId = id;
+        _busyAction = action;
+        _busyPercent = 0;
         Emit("history.busy", new Dictionary<string, object?> { ["id"] = id, ["action"] = action, ["busy"] = true });
 
         try
@@ -181,6 +206,9 @@ public sealed partial class WebBridge
         {
             _historyCts?.Dispose();
             _historyCts = null;
+            _busyId = "";
+            _busyAction = "";
+            _busyPercent = 0;
             Emit("history.busy", new Dictionary<string, object?> { ["id"] = id, ["action"] = action, ["busy"] = false });
         }
     }
