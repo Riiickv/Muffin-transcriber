@@ -1,6 +1,5 @@
 import { Platform } from 'react-native';
 import type { WhisperContext } from 'whisper.rn';
-import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { loadSettings } from './settingsStore';
 import { loadMemories } from './memoryStore';
 import { createSegmentAccumulator } from './segmentAccumulator';
@@ -130,22 +129,20 @@ export async function transcribeFile(
   const settings = await loadSettings();
 
   // Whisper's encoder always processes a full 30s window (1500 frames), so a
-  // 10s voice note wastes 2/3 of the encode on silence. For short WAV clips,
-  // shrink the encoder context proportionally (patched into whisper.rn via
-  // patches/whisper.rn+0.6.0.patch). Conservative: +128 frames headroom,
-  // floor 256, only under 25s - too-small contexts cause token repetition.
-  let audioCtx = 0; // 0 = whisper default
-  try {
-    if (audioPath.toLowerCase().split('?')[0].endsWith('.wav')) {
-      const info = await FileSystemLegacy.getInfoAsync(audioPath);
-      if (info.exists && typeof info.size === 'number' && info.size > 44) {
-        const seconds = (info.size - 44) / 32000; // 16 kHz mono s16le
-        if (seconds > 0 && seconds <= 25) {
-          audioCtx = Math.max(256, Math.min(1500, Math.ceil(((seconds / 30) * 1500 + 128) / 64) * 64));
-        }
-      }
-    }
-  } catch {}
+  // 10s voice note spends two thirds of the encode on padding. Shrinking the
+  // context for short clips was worth roughly 3x on those, and the code that
+  // did it is still patched into whisper.rn.
+  //
+  // DISABLED. Shrinking it broke the output in two ways that both read as the
+  // app being broken rather than fast: an Italian recording came back as
+  // French, and clips ended in a sentence repeated four times over. Whisper's
+  // encoder was trained at the full 1500-frame context and its language
+  // detection reads that same encoder output, so a truncated context degrades
+  // the representation everything downstream depends on.
+  //
+  // Re-enabling this needs measured evidence per model tier, not a proportional
+  // formula: Tiny has the least headroom to lose and is exactly where it showed.
+  const audioCtx = 0; // 0 = whisper default (1500)
 
   let initialPrompt = undefined;
   if (settings.enableContextLearning) {
