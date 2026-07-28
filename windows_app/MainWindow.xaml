@@ -31,45 +31,60 @@
                 <ImageIconSource ImageSource="ms-appx:///Assets/AppIcon.png" />
             </TitleBar.IconSource>
 
-            <TitleBar.RightHeader>
-                <!--
-                    Mobile puts "Support me!" in Settings; on a desktop window
-                    the title bar is the one piece of chrome that is always
-                    there, so it lives to the left of Minimize.
-                -->
+            <!--
+                In Content, not RightHeader. RightHeader sits in its own column
+                with the title bar's own spacing around it, which is where the
+                gap before Minimize was coming from; Content stretches to the
+                caption buttons, so right-aligning inside it puts the mark hard
+                against them.
+
+                Still inside the TitleBar control rather than overlaid on the
+                Grid: the title bar is a drag region, and a button floating on
+                top of it would have its clicks swallowed. TitleBar handles
+                passthrough for its own children.
+            -->
+            <TitleBar.Content>
                 <Button
                     x:Name="SupportButton"
                     Click="OnSupportClick"
                     Background="Transparent"
                     BorderThickness="0"
+                    HorizontalAlignment="Right"
                     VerticalAlignment="Center"
                     Width="36"
                     Height="28"
                     Padding="0"
                     HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center"
-                    ToolTipService.ToolTip="{x:Bind local:AppStrings.Settings_SupportTitle}">
+                    VerticalContentAlignment="Center">
+                    <!--
+                        The app draws its own tooltips everywhere else, and that
+                        framework lives in the web layer where this button
+                        cannot reach it. This is the closest a XAML tooltip
+                        gets: same corner radius, same hairline border, themed
+                        rather than the stock pale box.
+                    -->
+                    <ToolTipService.ToolTip>
+                        <ToolTip
+                            Content="{x:Bind local:AppStrings.Settings_SupportTitle}"
+                            Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="10,6"
+                            FontSize="12" />
+                    </ToolTipService.ToolTip>
                     <!--
                         Ricky's logo, not a glyph: it is artwork, and it is what
                         the mobile header uses. 17x12.75 keeps its real 488x366
                         proportions; forcing it square would squash the face.
-                        Smaller than the phone's 26px, because a title bar strip
-                        is not a phone header.
 
-                        The button is sized explicitly. Left to itself it takes
-                        the default Button width, which is far wider than this
-                        mark, and a centred icon in a wide button reads as a
-                        mark stranded in the middle of the title bar. 36px wide
-                        puts its right edge against the caption buttons with the
-                        logo centred inside it.
-
-                        The file is pre-tinted to the danger colour, which is the
-                        same value in every theme, because the source PNG is a
-                        near-white shape that would vanish on a light title bar.
+                        Pre-tinted to the danger colour, which is one value in
+                        every theme, because the source PNG is a near-white
+                        shape that would vanish on a light title bar.
                     -->
                     <Image Source="ms-appx:///Assets/RickLogo.png" Width="17" Height="12.75" />
                 </Button>
-            </TitleBar.RightHeader>
+            </TitleBar.Content>
         </TitleBar>
 
         <!--
