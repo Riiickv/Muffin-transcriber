@@ -355,7 +355,21 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             CrashLog.Write("update download", ex);
-            _bridge?.UpdateBanner(string.Format(AppStrings.Update_StatusFailedFormat, ex.Message), AppStrings.Update_BtnUpdate, null);
+
+            // "No such host is known. (github.com:443)" is a true sentence and
+            // a useless one: it reads like the app broke rather than the
+            // connection dropped, which is what it means. The Update button
+            // comes back either way, because retrying is the answer.
+            bool offline = ex is System.Net.Http.HttpRequestException
+                        or System.Net.Sockets.SocketException
+                        or TaskCanceledException
+                        || ex.InnerException is System.Net.Sockets.SocketException;
+
+            _bridge?.UpdateBanner(
+                offline ? AppStrings.Update_StatusNoConnection
+                        : string.Format(AppStrings.Update_StatusFailedFormat, ex.Message),
+                AppStrings.Update_BtnUpdate,
+                null);
         }
         finally
         {

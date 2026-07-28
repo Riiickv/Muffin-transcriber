@@ -83,6 +83,65 @@
     if (timer) timer.hidden = !on;
   }
 
+  // ---- model downloads ---------------------------------------------------
+  // Mobile keeps a progress ring in the header of every tab, so a download is
+  // still visibly running when you walk away from the Models screen. Here only
+  // that screen listened, and a download became invisible the moment you left
+  // it. The ring lives on the rail, which every screen has, and the app hands
+  // over the running downloads on load so a fresh page picks them straight up.
+
+  var downloads = {};
+
+  function ringEl() {
+    var el = document.getElementById("dl-ring");
+    if (el) return el;
+    var rail = document.querySelector(".rail");
+    if (!rail) return null;
+
+    el = document.createElement("button");
+    el.id = "dl-ring";
+    el.className = "dl-ring";
+    el.hidden = true;
+    el.innerHTML =
+      '<svg viewBox="0 0 36 36" aria-hidden="true">' +
+        '<circle class="dl-track" cx="18" cy="18" r="15" />' +
+        '<circle class="dl-bar" cx="18" cy="18" r="15" />' +
+      '</svg><span class="dl-pct"></span>';
+    el.addEventListener("click", function () {
+      if ((location.pathname.split("/").pop() || "") !== "models.html") location.href = "models.html";
+    });
+    rail.insertBefore(el, rail.querySelector(".rail-spacer"));
+    return el;
+  }
+
+  function paintDownloads() {
+    var el = ringEl();
+    if (!el) return;
+    var files = Object.keys(downloads);
+    if (!files.length) { el.hidden = true; return; }
+
+    // Several at once is rare, and one readable number beats a stack of bars.
+    var avg = files.reduce(function (sum, f) { return sum + (downloads[f] || 0); }, 0) / files.length;
+    var circumference = 2 * Math.PI * 15;
+    el.querySelector(".dl-bar").style.strokeDasharray = circumference;
+    el.querySelector(".dl-bar").style.strokeDashoffset = circumference * (1 - avg / 100);
+    el.querySelector(".dl-pct").textContent = Math.round(avg) + "%";
+    el.title = Muffin.t("settings.modelManagement", "Models");
+    el.hidden = false;
+  }
+
+  Muffin.on("models.progress", function (p) {
+    if (!p || !p.file) return;
+    downloads[p.file] = p.percent || 0;
+    paintDownloads();
+  });
+
+  Muffin.on("models.done", function (e) {
+    if (!e || !e.file) return;
+    delete downloads[e.file];
+    paintDownloads();
+  });
+
   // ---- banners -----------------------------------------------------------
   // Updates and engine problems used to be a stock system InfoBar floating over
   // a themed app. Drawn here, they carry the app's own accent, type and corners.
@@ -156,10 +215,13 @@
     bannerEl().hidden = false;
   });
 
-  // A banner raised before this screen existed is replayed on boot.
+  // A banner raised before this screen existed is replayed on boot, and so is
+  // any download that started on a screen this one replaced.
   Muffin.ready(function () {
     var data = Muffin.data();
-    if (data && data.banner) showBanner(data.banner);
+    if (!data) return;
+    if (data.banner) showBanner(data.banner);
+    if (data.downloads) { downloads = data.downloads; paintDownloads(); }
   });
 
   // ---- toast -------------------------------------------------------------
