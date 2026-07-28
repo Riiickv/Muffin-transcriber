@@ -244,12 +244,28 @@ export async function formatTranscript(
   // for corrections to what was said and nothing added. That's a real
   // trade: a model allowed to change words can change meaning, and the
   // grounding rule below is what holds it.
+  // The instruction has to fit the model. The full one below is three
+  // sentences carrying six separate requirements, and a 0.5B cannot hold that:
+  // it wanders, echoes the prompt back, or stops early, and every one of those
+  // is caught by the guards at the end of this function and thrown away. The
+  // user sees the transcript come back unchanged and concludes Improve does
+  // nothing on the Fast tier, which is exactly what was happening: the failure
+  // was silent.
+  //
+  // So the small tier gets one job in one sentence. A smaller improvement than
+  // the big models make, and one that actually survives.
+  const isSmallModel = /0[._]5b/i.test(modelFile);
   const taskInstruction =
     customFormat ||
-    'Write the transcript out as correct, readable text in its own language. Put commas where the sentence needs them, full stops at the ends of sentences, and capital letters on names of people, places and brands. Fix clear speech-to-text errors such as wrong verb forms, wrong agreement, and words split or joined incorrectly. Keep the speaker\'s wording where it is already correct, keep the meaning exactly, and add nothing that was not said.';
+    (isSmallModel
+      ? 'Copy the transcript out, adding commas, full stops and capital letters. Change no words.'
+      : 'Write the transcript out as correct, readable text in its own language. Put commas where the sentence needs them, full stops at the ends of sentences, and capital letters on names of people, places and brands. Fix clear speech-to-text errors such as wrong verb forms, wrong agreement, and words split or joined incorrectly. Keep the speaker\'s wording where it is already correct, keep the meaning exactly, and add nothing that was not said.');
   
   let memoryContext = "";
-  if (settings.enableContextLearning) {
+  // Not on the small tier: a spelling list competes for attention the model
+  // has not got, and losing the whole improvement to it is a bad trade for a
+  // few proper nouns.
+  if (settings.enableContextLearning && !isSmallModel) {
     const memories = await loadMemories();
     if (memories.length > 0) {
       memoryContext = `\n\nEnsure you use the correct spelling and context for the following terms:\n${memories.map(m => "- " + m.text).join('\n')}`;
