@@ -51,9 +51,9 @@
               <span class="msr chev">&#xE5CF;</span>
             </button>
             <div class="collapsible-body">
-              <textarea class="prompt" data-setting="CustomFormatSystemPrompt"
+              <div class="collapsible-inner"><textarea class="prompt" data-setting="CustomFormatSystemPrompt"
                 data-i18n-attr="placeholder:transcribe.customPromptPlaceholder"
-                placeholder="Use bullet points, max 100 words, etc."></textarea>
+                placeholder="Use bullet points, max 100 words, etc."></textarea></div>
             </div>
           </div>
         </section>
@@ -116,9 +116,10 @@
       panel = createTranscript(document.getElementById("transcript-card"));
 
       // Switching Summarize on is the moment you might want to say how, so the
-      // prompt opens itself here. In the library you open it yourself.
+      // prompt opens itself; switching it off folds it away again. In the
+      // library you open it yourself.
       document.getElementById("summarize-switch").addEventListener("click", function () {
-        if (this.classList.contains("on")) openCollapsible(document.getElementById("prompt-collapse"));
+        setCollapsible(document.getElementById("prompt-collapse"), this.classList.contains("on"));
       });
 
       Muffin.invoke("transcribe.languages").then(function (langs) {
