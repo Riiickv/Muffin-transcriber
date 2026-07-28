@@ -91,7 +91,7 @@ export function RecordOptionsSheet() {
         />
 
         <ToggleRow
-          label={t('transcribe.formatToggle') || 'Format'}
+          label={t('transcribe.formatToggle') || 'Improve'}
           value={settings.formatByDefault}
           onValueChange={(v) => setSetting('formatByDefault', v)}
         />

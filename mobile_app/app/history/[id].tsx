@@ -206,7 +206,7 @@ export default function HistoryDetailScreen() {
     a === 'retranscribe'
       ? t('historyDetail.retranscribe') || 'Re-Transcribe'
       : a === 'format'
-      ? t('historyDetail.format') || 'Format'
+      ? t('historyDetail.format') || 'Improve'
       : t('historyDetail.summarize') || 'Summarize';
 
   /**
@@ -362,7 +362,7 @@ export default function HistoryDetailScreen() {
     } catch (e) {
       console.error(e);
       haptics.error();
-      dialog.show({ title: t('dialog.formattingFailed.title') || 'Formatting failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
+      dialog.show({ title: t('dialog.formattingFailed.title') || 'Improvement failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
       endAiJob(jobToken);
     }
@@ -518,7 +518,7 @@ export default function HistoryDetailScreen() {
           </View>
           <View style={styles.gutterSm} />
           <View style={styles.flex1}>
-            {actionButton('format', 'wand', t('historyDetail.format') || 'Format', handleFormat, !!item?.rawTranscript)}
+            {actionButton('format', 'wand', t('historyDetail.format') || 'Improve', handleFormat, !!item?.rawTranscript)}
           </View>
           <View style={styles.gutterSm} />
           <View style={styles.flex1}>
@@ -588,7 +588,7 @@ export default function HistoryDetailScreen() {
               : processingLabel === 'retranscribe'
               ? describeProgress(t('historyDetail.retranscribing') || 'Re-transcribing...', localProgress)
               : processingLabel === 'format'
-              ? t('historyDetail.formatting') || 'Formatting...'
+              ? t('historyDetail.formatting') || 'Improving...'
               : t('historyDetail.summarizing') || 'Summarizing...'
           }
           renderStatic={() => (

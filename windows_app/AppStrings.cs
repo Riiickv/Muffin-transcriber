@@ -42,7 +42,7 @@ public static class AppStrings
     // MINI WINDOW (share target) - PC-only surface.
     public static string Mini_DropFileHere => T("pc.mini.dropHere", "Drop File Here");
     public static string Mini_Tooltip_Copy => T("common.copy", "Copy");
-    public static string Mini_Tooltip_Format => T("historyDetail.format", "Format");
+    public static string Mini_Tooltip_Format => T("historyDetail.format", "Improve");
     public static string Mini_Status_Transcribing => T("transcribe.transcribing", "Transcribing...");
     public static string Mini_Status_Done => T("chat.actionExecuted", "Done");
     public static string Mini_Status_Error => T("pc.mini.errorPrefix", "Error: ");
@@ -52,9 +52,9 @@ public static class AppStrings
     public static string Mini_Status_Loading => T("pc.mini.loading", "Loading file...");
     public static string Mini_Status_NoFile => T("pc.mini.noFile", "No file was shared.");
     public static string Mini_Status_Copied => T("record.copied", "Copied!");
-    public static string Mini_Status_Formatting => T("transcribe.formatting", "Formatting...");
-    public static string Mini_Status_Formatted => T("transcribe.formattedTab", "Formatted");
-    public static string Mini_Status_FormatFailed => T("dialog.formattingFailed.title", "Formatting failed");
+    public static string Mini_Status_Formatting => T("transcribe.formatting", "Improving...");
+    public static string Mini_Status_Formatted => T("transcribe.formattedTab", "Improved");
+    public static string Mini_Status_FormatFailed => T("dialog.formattingFailed.title", "Improvement failed");
     public static string Mini_Error_Generic => T("dialog.transcriptionFailed.title", "Transcription failed");
     public static string Mini_Tooltip_OpenApp => T("pc.mini.openApp", "Open Full App");
 
@@ -66,15 +66,15 @@ public static class AppStrings
     public static string Home_LanguageLabel => T("transcribe.languageLabel", "Language");
     public static string Home_WhisperModelLabel => T("transcribe.whisperModelLabel", "Transcription quality");
     public static string Home_TranscribeButton => T("transcribe.transcribeButton", "Go!");
-    public static string Home_FormatSwitch => T("transcribe.formatToggle", "Format");
+    public static string Home_FormatSwitch => T("transcribe.formatToggle", "Improve");
     public static string Home_SummarizeSwitch => T("transcribe.summarizeToggle", "Summarize");
-    public static string Home_FormatModelLabel => T("transcribe.formatterModelLabel", "Format quality");
-    public static string Home_FormatLanguageLabel => T("transcribe.formatLanguageLabel", "Format Language");
+    public static string Home_FormatModelLabel => T("transcribe.formatterModelLabel", "Improvement quality");
+    public static string Home_FormatLanguageLabel => T("transcribe.formatLanguageLabel", "Improvement language");
     public static string Home_CustomPromptLabel => T("transcribe.customPromptLabel", "Be specific");
     public static string Home_CustomPromptPlaceholder => T("transcribe.customPromptPlaceholder", "Use bullet points, max 100 words, etc.");
     public static string Home_TranscriptTitle => T("transcribe.transcriptTitle", "Transcript");
     public static string Home_TabRaw => T("transcribe.rawTab", "Raw");
-    public static string Home_TabFormatted => T("transcribe.formattedTab", "Formatted");
+    public static string Home_TabFormatted => T("transcribe.formattedTab", "Improved");
     public static string Home_TabSummary => T("transcribe.summaryTab", "Summary");
     public static string Home_CopyButton => T("common.copy", "Copy");
     public static string Home_TranscriptPlaceholder => T("transcribe.transcriptPlaceholder", "Transcript will appear here.");
@@ -82,7 +82,7 @@ public static class AppStrings
 
     // Progress and status lines.
     public static string Home_Status_TranscribingWhisper => T("transcribe.transcribing", "Transcribing...");
-    public static string Home_Status_FormattingLLM => T("transcribe.formatting", "Formatting...");
+    public static string Home_Status_FormattingLLM => T("transcribe.formatting", "Improving...");
     public static string Home_Status_SummarizingLLM => T("transcribe.summarizing", "Summarizing...");
     public static string Home_Status_CopiedToClipboard => T("historyDetail.copiedDesc", "Text copied to clipboard");
     public static string Home_Status_NoFormatter => T("dialog.noFormatterModel.title", "No formatter selected");
@@ -142,12 +142,12 @@ public static class AppStrings
     public static string History_NoWhisperInstalled => T("dialog.noWhisperModel.title", "No transcriber selected");
     public static string History_Tooltip_Rename => T("history.renameAction", "Rename transcript");
     public static string History_Tooltip_Delete => T("history.deleteAction", "Delete transcript");
-    public static string History_Tooltip_Format => T("historyDetail.format", "Format");
+    public static string History_Tooltip_Format => T("historyDetail.format", "Improve");
     public static string History_Tooltip_Summarize => T("historyDetail.summarize", "Summarize");
     public static string History_Status_SourceMissing => T("historyDetail.audioMissing", "Audio file not found");
     public static string History_Status_SelectFormatter => T("dialog.noFormatterModel.message", "Choose a formatter model first.");
-    public static string History_Status_FormatComplete => T("pc.status.formatComplete", "Formatting complete.");
-    public static string History_Status_FormatFailed => T("dialog.formattingFailed.title", "Formatting failed");
+    public static string History_Status_FormatComplete => T("pc.status.formatComplete", "Improvement complete.");
+    public static string History_Status_FormatFailed => T("dialog.formattingFailed.title", "Improvement failed");
     public static string History_Status_NoSubtitles => T("pc.history.noSubtitles", "No subtitle data available for this transcript. Please re-transcribe the file.");
     public static string History_Status_SelectSummarizer => T("dialog.noFormatterModel.message", "Choose a formatter model first.");
     public static string History_Status_SummaryComplete => T("pc.status.summaryComplete", "Summarization complete.");
@@ -201,14 +201,14 @@ public static class AppStrings
     public static string Settings_SpeedSlow => T("settings.speedSlow", "Slow");
     public static string Settings_SpeedBalanced => T("settings.speedBalanced", "Balanced");
     public static string Settings_SpeedFast => T("settings.speedFast", "Fast");
-    public static string Settings_FormattingHeader => T("settings.formatSummarize", "Format & Summarize");
-    public static string Settings_FormatByDefaultTitle => T("settings.formatByDefault", "Format by default");
-    public static string Settings_FormatByDefaultDesc => T("settings.formatByDefaultDesc", "Formats transcript after transcription");
+    public static string Settings_FormattingHeader => T("settings.formatSummarize", "Improve & Summarize");
+    public static string Settings_FormatByDefaultTitle => T("settings.formatByDefault", "Improve by default");
+    public static string Settings_FormatByDefaultDesc => T("settings.formatByDefaultDesc", "Improves the transcript after transcribing");
     public static string Settings_SummarizeByDefaultTitle => T("settings.summarizeByDefault", "Summarize by Default");
     public static string Settings_SummarizeByDefaultDesc => T("settings.summarizeByDefaultDesc", "Summarizes transcript after transcription");
     public static string Settings_PrefWhisperTitle => T("settings.whisperModel", "Transcriber model");
     public static string Settings_PreferredFormatterTitle => T("settings.preferredFormatter", "Formatter model");
-    public static string Settings_FormatLanguageTitle => T("settings.formatLanguage", "Format language");
+    public static string Settings_FormatLanguageTitle => T("settings.formatLanguage", "Improvement language");
     public static string Settings_MemoryHeader => T("settings.memoryContext", "Memory Context");
     public static string Settings_MemoryFooter => T("settings.memoryDesc", "Allow the transcription to use memories. Higher accuracy but slower.");
     public static string Settings_ContextLearnTitle => T("settings.contextLearning", "Memory");
@@ -223,7 +223,7 @@ public static class AppStrings
     public static string Settings_LanguageDesc => T("pc.settings.appLanguageDesc", "Automatic follows your PC's language.");
     public static string Settings_PromptsHeader => T("settings.customPrompts", "Custom prompts");
     public static string Settings_PromptsFooter => T("settings.customPromptsFooter", "Leave empty to use Muffin's defaults. These apply to every transcript.");
-    public static string Settings_CustomFormatTitle => T("settings.formatSystemPrompt", "Format default prompt");
+    public static string Settings_CustomFormatTitle => T("settings.formatSystemPrompt", "Improvement default prompt");
     public static string Settings_CustomFormatPlaceholder => T("settings.formatSystemPromptPlaceholder", "You are an expert editor...");
     public static string Settings_CustomSummaryTitle => T("settings.summarySystemPrompt", "Summary default prompt");
     public static string Settings_CustomSummaryPlaceholder => T("settings.summarySystemPromptPlaceholder", "Summarize the following text...");

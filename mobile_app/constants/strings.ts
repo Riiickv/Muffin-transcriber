@@ -72,11 +72,11 @@ export const APP_STRINGS = {
     welcomeStep: "You can share your files with Muffin or record in the app, and it will do all the work for you!",
     welcomeButton: "Setup!",
 
-    // -- The Format / Summarize card at the top --
-    formatToggle: "Format",
+    // -- The Improve / Summarize card at the top --
+    formatToggle: "Improve",
     summarizeToggle: "Summarize",
-    formatterModelLabel: "Format quality",
-    formatLanguageLabel: "Format Language",
+    formatterModelLabel: "Improvement quality",
+    formatLanguageLabel: "Improvement language",
     customPromptLabel: "Be specific",
     customPromptPlaceholder: "Use bullet points, max 100 words, etc.",
 
@@ -91,14 +91,14 @@ export const APP_STRINGS = {
     transcriptTitle: "Transcript",
     transcriptPlaceholder: "Transcript will appear here.",
     rawTab: "Raw",
-    formattedTab: "Formatted",
+    formattedTab: "Improved",
     summaryTab: "Summary",
 
     // -- Progress messages shown while it works --
     loadingModel: "Loading transcriber...",
     convertingAudio: "Converting audio...",
     transcribing: "Transcribing...",
-    formatting: "Formatting...",
+    formatting: "Improving...",
     summarizing: "Summarizing...",
     generatingTitle: "Generating title...",
 
@@ -135,7 +135,7 @@ export const APP_STRINGS = {
     transcribing: "Transcribing...",
 
     // -- Compact labels on this screen (shorter than elsewhere, space is tight) --
-    formatToggle: "Format Transcript",
+    formatToggle: "Improve Transcript",
     summarizeToggle: "Summarize",
     whisperModelLabel: "Whisper",
     languageLabel: "Language",
@@ -177,12 +177,12 @@ export const APP_STRINGS = {
 
     // -- The three action buttons --
     retranscribe: "Re-Transcribe",
-    format: "Format",
+    format: "Improve",
     summarize: "Summarize",
 
     // -- What those buttons say while they're working --
     retranscribing: "Re-transcribing...",
-    formatting: "Formatting...",
+    formatting: "Improving...",
     summarizing: "Summarizing...",
     working: "Working...",
 
@@ -205,7 +205,7 @@ export const APP_STRINGS = {
 
     // -- Model pickers --
     whisperModelLabel: "Transcription quality",
-    formatterModelLabel: "Format quality",
+    formatterModelLabel: "Improvement quality",
 
     // -- Custom prompt box --
     customPromptLabel: "Be specific",
@@ -214,7 +214,7 @@ export const APP_STRINGS = {
     // -- Transcript box --
     transcriptTitle: "Transcript",
     rawTab: "Raw",
-    formattedTab: "Formatted",
+    formattedTab: "Improved",
     summaryTab: "Summary",
     copyButton: "Copy",
     copiedTitle: "Copied!",
@@ -331,8 +331,8 @@ export const APP_STRINGS = {
     speedSlow: "Slow",
     speedBalanced: "Balanced",
     speedFast: "Fast",
-    formatByDefault: "Format by default",
-    formatByDefaultDesc: "Formats transcript after transcription",
+    formatByDefault: "Improve by default",
+    formatByDefaultDesc: "Improves the transcript after transcribing",
     summarizeByDefault: "Summarize by Default",
     summarizeByDefaultDesc: "Summarizes transcript after transcription",
 
@@ -377,7 +377,7 @@ export const APP_STRINGS = {
     customPromptsFooter: "Leave empty to use Muffin's defaults. These apply to every transcript.",
     storageHeader: "Storage",
     customPrompt: "Custom prompt",
-    formatSystemPrompt: "Format default prompt",
+    formatSystemPrompt: "Improvement default prompt",
     formatSystemPromptPlaceholder: "You are an expert editor...",
     summarySystemPrompt: "Summary default prompt",
     summarySystemPromptPlaceholder: "Summarize the following text...",
@@ -385,10 +385,10 @@ export const APP_STRINGS = {
     // -- Which models to use (dropdowns on the Preferences page) --
     transcription: "Transcription",
     whisperModel: "Transcriber model",
-    formatSummarize: "Format & Summarize",
+    formatSummarize: "Improve & Summarize",
     preferredFormatter: "Formatter model",
     preferredChat: "Chat model",
-    formatLanguage: "Format language",
+    formatLanguage: "Improvement language",
 
     // ---- MODELS PAGE (section headings above each group) ----
     modelManagement: "Models",
@@ -585,7 +585,7 @@ export const APP_STRINGS = {
     // -- Something went wrong. The exact reason gets added underneath. --
     transcriptionFailed: { title: "Transcription failed" },
     reTranscribeFailed: { title: "Re-transcribe failed" },
-    formattingFailed: { title: "Formatting failed" },
+    formattingFailed: { title: "Improvement failed" },
     summarizationFailed: { title: "Summarization failed" },
     actionFailed: {
       title: "Action failed",

@@ -18,10 +18,10 @@ export const FR = {
     welcomeBody: "Muffin est un transcripteur qui utilise l'IA pour améliorer le texte. Il peut même apprendre de toi et t'aider quand l'audio n'est pas clair !",
     welcomeStep: "Tu peux partager tes fichiers avec Muffin ou enregistrer dans l'app, et il fera tout le travail pour toi !",
     welcomeButton: "Configurer !",
-    formatToggle: "Mettre en forme",
+    formatToggle: "Améliorer",
     summarizeToggle: "Résumer",
-    formatterModelLabel: "Qualité de mise en forme",
-    formatLanguageLabel: "Langue de mise en forme",
+    formatterModelLabel: "Qualité d'amélioration",
+    formatLanguageLabel: "Langue d'amélioration",
     customPromptLabel: "Sois précis",
     customPromptPlaceholder: "Utilise des puces, 100 mots maximum, etc.",
 
@@ -34,13 +34,13 @@ export const FR = {
     transcriptTitle: "Transcription",
     transcriptPlaceholder: "La transcription apparaîtra ici.",
     rawTab: "Brut",
-    formattedTab: "Mis en forme",
+    formattedTab: "Amélioré",
     summaryTab: "Résumé",
 
     loadingModel: "Chargement du transcripteur...",
     convertingAudio: "Conversion de l'audio...",
     transcribing: "Transcription en cours...",
-    formatting: "Mise en forme...",
+    formatting: "Amélioration...",
     summarizing: "Résumé en cours...",
     generatingTitle: "Création du titre...",
 
@@ -67,7 +67,7 @@ export const FR = {
     loadingModel: "Chargement du transcripteur...",
     transcribing: "Transcription en cours...",
 
-    formatToggle: "Mettre en forme la transcription",
+    formatToggle: "Améliorer la transcription",
     summarizeToggle: "Résumer",
     whisperModelLabel: "Whisper",
     languageLabel: "Langue",
@@ -97,10 +97,10 @@ export const FR = {
   historyDetail: {
     play: "Lecture", pause: "Pause", audioMissing: "Fichier audio introuvable",
 
-    retranscribe: "Retranscrire", format: "Mettre en forme", summarize: "Résumer",
+    retranscribe: "Retranscrire", format: "Améliorer", summarize: "Résumer",
 
     retranscribing: "Retranscription...",
-    formatting: "Mise en forme...",
+    formatting: "Amélioration...",
     summarizing: "Résumé en cours...",
     working: "Traitement...",
     summaryTooShort: "Trop court pour être résumé.",
@@ -113,14 +113,14 @@ export const FR = {
     stopping: "Arrêt...",
 
     whisperModelLabel: "Qualité de transcription",
-    formatterModelLabel: "Qualité de mise en forme",
+    formatterModelLabel: "Qualité d'amélioration",
 
     customPromptLabel: "Sois précis",
     customPromptPlaceholder: "Utilise des puces, 100 mots maximum, etc...",
 
     transcriptTitle: "Transcription",
     rawTab: "Brut",
-    formattedTab: "Mis en forme",
+    formattedTab: "Amélioré",
     summaryTab: "Résumé",
     copyButton: "Copier",
     copiedTitle: "Copié !",
@@ -213,8 +213,8 @@ export const FR = {
     speedSlow: "Lente",
     speedBalanced: "Équilibrée",
     speedFast: "Rapide",
-    formatByDefault: "Mettre en forme par défaut",
-    formatByDefaultDesc: "Met en forme la transcription après la transcription",
+    formatByDefault: "Améliorer par défaut",
+    formatByDefaultDesc: "Améliore la transcription après la transcription",
     summarizeByDefault: "Résumer par défaut",
     summarizeByDefaultDesc: "Résume la transcription après la transcription",
 
@@ -253,17 +253,17 @@ export const FR = {
     customPromptsFooter: "Laisse vide pour utiliser les réglages par défaut de Muffin. Ils s'appliquent à chaque transcription.",
     storageHeader: "Stockage",
     customPrompt: "Prompt personnalisé",
-    formatSystemPrompt: "Prompt de mise en forme par défaut",
+    formatSystemPrompt: "Prompt d'amélioration par défaut",
     formatSystemPromptPlaceholder: "Tu es un éditeur expert...",
     summarySystemPrompt: "Prompt de résumé par défaut",
     summarySystemPromptPlaceholder: "Résume le texte suivant...",
 
     transcription: "Transcription",
     whisperModel: "Modèle de transcription",
-    formatSummarize: "Mise en forme et résumé",
+    formatSummarize: "Amélioration et résumé",
     preferredFormatter: "Modèle de mise en forme",
     preferredChat: "Modèle de chat",
-    formatLanguage: "Langue de mise en forme",
+    formatLanguage: "Langue d'amélioration",
 
     modelManagement: "Modèles",
     modelsInstalled: "installés",
@@ -405,7 +405,7 @@ export const FR = {
 
     transcriptionFailed: { title: "Échec de la transcription" },
     reTranscribeFailed: { title: "Échec de la retranscription" },
-    formattingFailed: { title: "Échec de la mise en forme" },
+    formattingFailed: { title: "Échec de l'amélioration" },
     summarizationFailed: { title: "Échec du résumé" },
     actionFailed: { title: "Échec de l'action", message: "Impossible d'ouvrir l'app." },
     recordingFailed: {

@@ -19,7 +19,7 @@ public static class AppCapabilities
 {
     public static readonly SettingSpec[] Settings =
     [
-        new("FormatByDefault", "Format by default", "Settings › Formatting", "Clean up punctuation and capitalization automatically after each transcription.", "boolean", [], "true or false"),
+        new("FormatByDefault", "Improve by default", "Settings", "Clean up punctuation and capitalization automatically after each transcription.", "boolean", [], "true or false"),
         new("SummarizeByDefault", "Summarize by default", "Home / Record screen", "Produce a bullet-point summary automatically after each transcription.", "boolean", [], "true or false"),
         new("NormalizeAudio", "Normalize audio", "Settings › Transcription Behavior", "Boost quiet audio before transcribing for better accuracy.", "boolean", [], "true or false"),
         new("AutoCopyTranscript", "Auto-copy transcript", "Settings › Transcription Behavior", "Copy the finished transcript to the clipboard automatically.", "boolean", [], "true or false"),
