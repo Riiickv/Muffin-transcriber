@@ -151,7 +151,8 @@ public sealed partial class WebBridge
         var whisperProgress = new Progress<int>(pct =>
         {
             _percent = pct;
-            SetStatus(string.Format(AppStrings.Home_Status_TranscribingPercentFormat, pct), "info");
+            // The bar right below already says this, once per percent.
+            SetStatus(string.Format(AppStrings.Home_Status_TranscribingPercentFormat, pct), "info", quiet: true);
             EmitTranscribeState();
         });
 
@@ -377,11 +378,21 @@ public sealed partial class WebBridge
         Emit("transcribe.output", OutputMap(animate: false));
     }
 
-    private void SetStatus(string message, string kind)
+    /// <summary>
+    /// Says what is happening. The screen announces these, so they have to be
+    /// worth announcing: pass quiet for the ones that only restate the progress
+    /// bar, or a long transcription would fire one notification per percent.
+    /// </summary>
+    private void SetStatus(string message, string kind, bool quiet = false)
     {
         _status = message;
         _statusKind = kind;
-        Emit("transcribe.status", new Dictionary<string, object?> { ["text"] = message, ["kind"] = kind });
+        Emit("transcribe.status", new Dictionary<string, object?>
+        {
+            ["text"] = message,
+            ["kind"] = kind,
+            ["quiet"] = quiet,
+        });
     }
 
     private static void CopyText(string text)

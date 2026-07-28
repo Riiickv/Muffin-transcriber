@@ -829,6 +829,8 @@ textarea { resize: vertical; min-height: 72px; }
   animation: toast-in var(--spring-settle-ms) var(--spring-settle) both;
 }
 .toast[hidden] { display: none; }
+.toast.success { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+.toast.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, transparent); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 /* Nothing renders until the strings, theme and settings have arrived, so no
