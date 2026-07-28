@@ -114,6 +114,11 @@ public sealed partial class WebBridge
         });
 
         // A banner's button lives in the page; the work behind it lives here.
+        // The banner is pushed, and a push can be dropped: the window may be
+        // mid-navigation, or have no page attached yet. So the screen can also
+        // ASK what the banner should say, and does while one is in progress.
+        Register("app.currentBanner", _ => (object?)_pendingBanner);
+
         Register("app.bannerAction", args =>
         {
             Action? action = _bannerAction;
