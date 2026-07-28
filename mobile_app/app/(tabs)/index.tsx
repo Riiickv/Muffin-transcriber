@@ -6,6 +6,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { FadeInView } from '@/components/FadeInView';
 import ExpressiveSwitch from '@/components/ExpressiveSwitch';
 import { Card } from '@/components/Card';
+import { Collapsible } from '@/components/Collapsible';
 import { Button } from '@/components/Button';
 import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import * as DocumentPicker from 'expo-document-picker';
@@ -39,6 +40,9 @@ export default function HomeScreen() {
   const { addOrUpdate } = useHistory();
   const { settings, setSetting } = useSettings();
   const [customPrompt, setCustomPrompt] = useDebouncedSetting('customFormatSystemPrompt');
+  // Closed by default: optional detail, and on a short phone an always-open
+  // prompt pushes the transcript off the bottom of the screen.
+  const [promptOpen, setPromptOpen] = useState(false);
   const dialog = useDialog();
 
   // Identifies the in-flight run; background LLM work checks it so a newer run can't overwrite the screen with stale results.
@@ -467,7 +471,7 @@ export default function HomeScreen() {
           <Text style={styles.label}>{t('transcribe.summarizeToggle') || 'Summarize'}</Text>
           <ExpressiveSwitch
             value={settings.summarizeByDefault}
-            onValueChange={(v) => setSetting('summarizeByDefault', v)}
+            onValueChange={(v) => { setSetting('summarizeByDefault', v); setPromptOpen(v); }}
             activeColor={theme.tint}
             thumbActiveColor="#000000"
           />
@@ -498,15 +502,20 @@ export default function HomeScreen() {
         </View>
 
         <View style={{ marginTop: isShort ? SPACING.md : SPACING.lg }}>
-          <Text style={styles.label}>{t('settings.customPrompt') || 'Custom Prompt'}</Text>
-          <TextInput
-            style={[styles.input, isShort && { minHeight: 44, maxHeight: 56 }, { color: theme.text, borderColor: theme.divider }]}
-            value={customPrompt}
-            onChangeText={setCustomPrompt}
-            placeholder="e.g. Translate to Spanish, use bullet points..."
-            placeholderTextColor={theme.textSubtle}
-            multiline
-          />
+          <Collapsible
+            label={t('transcribe.customPromptLabel') || 'Be specific'}
+            open={promptOpen}
+            onToggle={setPromptOpen}
+          >
+            <TextInput
+              style={[styles.input, isShort && { minHeight: 44, maxHeight: 56 }, { color: theme.text, borderColor: theme.divider }]}
+              value={customPrompt}
+              onChangeText={setCustomPrompt}
+              placeholder={t('transcribe.customPromptPlaceholder') || 'Use bullet points, max 100 words, etc.'}
+              placeholderTextColor={theme.textSubtle}
+              multiline
+            />
+          </Collapsible>
         </View>
       </Card>
 

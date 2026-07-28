@@ -8,6 +8,7 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
 import { Card } from '@/components/Card';
+import { Collapsible } from '@/components/Collapsible';
 import { IconButton } from '@/components/IconButton';
 import type { IconName } from '@/components/Icon';
 import { Button } from '@/components/Button';
@@ -51,6 +52,7 @@ export default function HistoryDetailScreen() {
   const item = items.find((h) => h.id === id);
   const { settings, setSetting } = useSettings();
   const [customPrompt, setCustomPrompt] = useDebouncedSetting('customFormatSystemPrompt');
+  const [promptOpen, setPromptOpen] = useState(false);
   const dialog = useDialog();
   const insets = useSafeAreaInsets();
 
@@ -552,8 +554,13 @@ export default function HistoryDetailScreen() {
 
         <View style={[styles.hr, isShort && { marginVertical: SPACING.md }, { backgroundColor: theme.divider }]} />
 
-        <View>
-          <Text style={styles.label}>{t('settings.customPrompt') || 'Custom Prompt'}</Text>
+        {/* Opened by hand here. The transcribe screen opens it for you when
+            Summarize goes on; in the library there is no such moment. */}
+        <Collapsible
+          label={t('historyDetail.customPromptLabel') || 'Be specific'}
+          open={promptOpen}
+          onToggle={setPromptOpen}
+        >
           <TextInput
             style={[styles.customPromptInput, isShort && { height: 64 }, { color: theme.text, borderColor: theme.divider }]}
             value={customPrompt}
@@ -563,7 +570,7 @@ export default function HistoryDetailScreen() {
             multiline
             scrollEnabled
           />
-        </View>
+        </Collapsible>
       </Card>
 
       {/* flex:1 so this card absorbs whatever the cards above leave, making the
