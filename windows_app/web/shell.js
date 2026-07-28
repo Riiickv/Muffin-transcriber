@@ -164,13 +164,23 @@
 
   // ---- toast -------------------------------------------------------------
 
-  function showToast(message) {
+  // The transcribe screen announces its progress through here rather than
+  // parking a line of text under the buttons, so a failure has to look like a
+  // failure: an error that reads exactly like "Transcription complete" is worse
+  // than no colour at all. An error also lingers, since it is the one you may
+  // want to read twice.
+  function showToast(message, kind) {
     var el = document.getElementById("toast");
-    if (!el) return;
+    if (!el || !message) return;
     el.textContent = message;
+    el.className = "toast " + (kind || "info");
     el.hidden = false;
+    // Restart the entrance, or a second toast slides in without moving.
+    el.style.animation = "none";
+    void el.offsetHeight;
+    el.style.animation = "";
     clearTimeout(el._timer);
-    el._timer = setTimeout(function () { el.hidden = true; }, 2600);
+    el._timer = setTimeout(function () { el.hidden = true; }, kind === "error" ? 5000 : 2600);
   }
 
   window.showToast = showToast;

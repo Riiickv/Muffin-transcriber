@@ -74,7 +74,6 @@
             <button class="btn col" id="pick" data-i18n="transcribe.selectFileButton">Pick file</button>
             <button class="btn btn-accent col" id="go" data-i18n="transcribe.transcribeButton">Go!</button>
           </div>
-          <div class="status" id="status" hidden></div>
           <div class="progress" id="progress" hidden><i style="width:0%"></i></div>
         </section>
 
@@ -135,7 +134,7 @@
     });
 
     Muffin.on("transcribe.state", applyState);
-    Muffin.on("transcribe.status", function (s) { showStatus(s.text, s.kind); });
+    Muffin.on("transcribe.status", function (s) { if (!s.quiet) showToast(s.text, s.kind); });
     Muffin.on("transcribe.output", function (out) {
       if (!panel) return;
       panel.set(out, { animate: out.animate, speed: out.typewriterSpeed, preferBest: !out.animate });
@@ -150,12 +149,16 @@
       fillModels("whisper-model", state.whisperModels, s.PreferredWhisperModel);
       fillModels("formatter-model", state.formatterModels, s.PreferredFormatterModel);
 
+      // The button says whether it worked, rather than reciting a file name
+      // that wraps to two lines and pushes the card around.
       var pick = document.getElementById("pick");
       pick.textContent = state.files.length === 0
         ? Muffin.t("transcribe.selectFileButton", "Pick file")
         : state.files.length === 1
-          ? state.files[0]
+          ? Muffin.t("pc.status.fileReady", "File ready.")
           : Muffin.t("pc.status.queuedMultiple", "{0} files queued.").replace("{0}", state.files.length);
+      // The name is still there to hover, since the button no longer shows it.
+      pick.title = state.files.length === 1 ? state.files[0] : "";
       pick.disabled = running;
 
       var go = document.getElementById("go");
@@ -168,7 +171,6 @@
       progress.hidden = !running || !state.percent;
       progress.firstElementChild.style.width = (state.percent || 0) + "%";
 
-      if (state.status) showStatus(state.status, state.statusKind);
       if (panel && state.output) panel.set(state.output, { preferBest: true });
     }
 
@@ -182,14 +184,6 @@
       }
       sel.disabled = false;
       setOptions(sel, models.map(function (m) { return { value: m.file, label: m.name }; }), selected);
-    }
-
-    function showStatus(text, kind) {
-      var el = document.getElementById("status");
-      if (!text) { el.hidden = true; return; }
-      el.textContent = text;
-      el.className = "status " + (kind || "info");
-      el.hidden = false;
     }
 
     document.getElementById("pick").addEventListener("click", function () {
