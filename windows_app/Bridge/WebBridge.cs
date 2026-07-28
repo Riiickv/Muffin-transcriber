@@ -285,16 +285,27 @@ public sealed partial class WebBridge
 
     private void Send(string json)
     {
+        // Losing a progress tick is fine; the next tick corrects it. Losing a
+        // terminal message is not, and this used to swallow both without a
+        // word, which cost an evening working out why a finished update still
+        // said "downloading".
+        if (_view.CoreWebView2 is null)
+        {
+            CrashLog.Note("bridge: dropped a message, no CoreWebView2: " + Peek(json));
+            return;
+        }
+
         try
         {
-            _view.CoreWebView2?.PostWebMessageAsString(json);
+            _view.CoreWebView2.PostWebMessageAsString(json);
         }
-        catch
+        catch (Exception ex)
         {
-            // The window is closing, or the page is mid-navigation. Losing a
-            // progress tick is fine; the next screen asks for state on load.
+            CrashLog.Note($"bridge: dropped a message ({ex.GetType().Name}: {ex.Message}): {Peek(json)}");
         }
     }
+
+    private static string Peek(string json) => json.Length <= 120 ? json : json[..120];
 
     // ---- small helpers used by the handler partials -------------------------
 

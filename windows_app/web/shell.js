@@ -206,21 +206,50 @@
     if (!bar.hidden) bar.firstElementChild.style.width = percent + "%";
   }
 
-  Muffin.on("app.banner", showBanner);
+  Muffin.on("app.banner", function (b) { showBanner(b); watchBanner(); });
   Muffin.on("app.bannerUpdate", function (b) {
     if (!b) return;
     bannerEl().querySelector(".b-message").textContent = b.message || "";
     setBannerAction(b.actionLabel);
     setBannerProgress(b.percent);
     bannerEl().hidden = false;
+    watchBanner();
   });
+
+  // A banner showing a progress bar is mid-something, and the message saying
+  // that something FINISHED is a single push. A push can be dropped, and when
+  // the dropped one is the last one the banner sits on "Downloading update..."
+  // for ever with no way forward. So while a bar is on screen, the page asks
+  // the app what the banner should say, once a second, and stops as soon as
+  // the bar is gone. Cheap, and it cannot get stuck.
+  var bannerWatch = null;
+
+  function watchBanner() {
+    var bar = bannerEl().querySelector(".b-progress");
+    if (bar.hidden) {
+      if (bannerWatch) { clearInterval(bannerWatch); bannerWatch = null; }
+      return;
+    }
+    if (bannerWatch) return;
+    bannerWatch = setInterval(function () {
+      Muffin.invoke("app.currentBanner").then(function (b) {
+        if (!b) return;
+        var el = bannerEl();
+        el.querySelector(".b-message").textContent = b.message || "";
+        setBannerAction(b.actionLabel);
+        setBannerProgress(b.percent);
+        el.hidden = false;
+        watchBanner();
+      });
+    }, 1000);
+  }
 
   // A banner raised before this screen existed is replayed on boot, and so is
   // any download that started on a screen this one replaced.
   Muffin.ready(function () {
     var data = Muffin.data();
     if (!data) return;
-    if (data.banner) showBanner(data.banner);
+    if (data.banner) { showBanner(data.banner); watchBanner(); }
     if (data.downloads) { downloads = data.downloads; paintDownloads(); }
   });
 
