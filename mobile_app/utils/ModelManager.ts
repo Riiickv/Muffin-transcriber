@@ -47,25 +47,31 @@ export function modelDesc(m: ModelDef): string {
 // Each group is ordered fastest -> best, so the list itself is the ladder.
 export const WHISPER_MODELS: readonly ModelDef[] = [
   // No English-only Whisper here on purpose: the app is multilingual, and a
+  // Every tier is q8_0, not fp16. The dotprod/i8mm kernels that shipped in
+  // vc65 give q8_0 an mmla GEMM path, and phone inference is bound by memory
+  // bandwidth long before arithmetic, so halving the weights is the win: Tiny
+  // 74 MB -> 42 MB, Small 466 MB -> 252 MB. It is also half the RAM, which is
+  // what decides whether a 4 GB phone can run the tier at all.
+  //
   // "Fast" option that silently only did English was a trap - people picked it
   // for the speed and got nothing in their language. Tiny is already the fast
   // multilingual floor, so that's the fast tier.
   {
-    id: 'ggml-tiny.bin',
+    id: 'ggml-tiny-q8_0.bin',
     name: 'Fastest',
     technicalName: 'Whisper Tiny',
-    url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin',
-    size: '74 MB',
+    url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q8_0.bin',
+    size: '42 MB',
     description: 'Roughest wording. Fine for short, clear notes.',
     nameKey: 'models.tierFastest',
     descKey: 'models.descWhisperFastest',
   },
   {
-    id: 'ggml-small.bin',
+    id: 'ggml-small-q8_0.bin',
     name: 'Balanced',
     technicalName: 'Whisper Small',
-    url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin',
-    size: '466 MB',
+    url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin',
+    size: '252 MB',
     description: 'The sweet spot for most voice notes.',
     nameKey: 'models.tierBalanced',
     descKey: 'models.descWhisperBalanced',
@@ -185,7 +191,7 @@ export class ModelManager {
       await FileSystem.makeDirectoryAsync(MODELS_DIR, { intermediates: true });
     }
     // Models removed from the catalog - free the orphaned space.
-    for (const obsolete of ['ggml-large-v3-turbo-q5_0.bin']) {
+    for (const obsolete of ['ggml-large-v3-turbo-q5_0.bin', 'ggml-tiny.bin', 'ggml-small.bin', 'ggml-base.en.bin']) {
       this.deleteModel(obsolete).catch(() => {});
     }
   }

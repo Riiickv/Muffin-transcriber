@@ -68,7 +68,12 @@ const MODEL_RENAMES: Record<string, string> = {
   'ggml-large-v3-turbo-q5_0.bin': 'ggml-large-v3-turbo-q8_0.bin',
   // The English-only Base model is gone. Anyone who had it selected gets moved
   // to Balanced (Small) - multilingual, the closest thing to what they had.
-  'ggml-base.en.bin': 'ggml-small.bin',
+  'ggml-base.en.bin': 'ggml-small-q8_0.bin',
+  // fp16 -> q8_0. Same tier, same name on screen, half the file. The old ones
+  // are deleted on startup, so the picker sends them to download the new one
+  // rather than leaving both on disk.
+  'ggml-tiny.bin': 'ggml-tiny-q8_0.bin',
+  'ggml-small.bin': 'ggml-small-q8_0.bin',
 };
 
 // hydrate spreads over defaults so settings added in later versions are present

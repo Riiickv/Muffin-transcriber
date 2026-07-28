@@ -35,13 +35,13 @@ export function tierForMemoryBytes(bytes: number | null | undefined): DeviceTier
  */
 export const RECOMMENDED: Record<DeviceTier, Record<ModelGroup, string | null>> = {
   low: {
-    whisper: 'ggml-tiny.bin',
+    whisper: 'ggml-tiny-q8_0.bin',
     formatter: 'qwen2.5-0.5b-instruct-q4_0.gguf',
     chat: null, // nothing here is honest on 4 GB
     embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',
   },
   mid: {
-    whisper: 'ggml-small.bin',
+    whisper: 'ggml-small-q8_0.bin',
     formatter: 'qwen2.5-1.5b-instruct-q4_0.gguf',
     chat: 'Llama-3.2-1B-Instruct-Q4_K_M.gguf',
     embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',
