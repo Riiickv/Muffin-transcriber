@@ -24,7 +24,11 @@ function createModelList(host, options) {
     return Math.floor(seconds / 60) + "m " + Math.floor(seconds % 60) + "s";
   }
 
-  function render(models) {
+  // `downloading` is {file: percent} for whatever the app has in flight. A
+  // download keeps going while you are on another screen, and this list is
+  // rebuilt from scratch every time the screen loads, so without it a running
+  // download came back as a Download button that silently did nothing.
+  function render(models, downloading) {
     host.textContent = "";
     rows = {};
 
@@ -48,7 +52,14 @@ function createModelList(host, options) {
       wrap.querySelector(".m-name").textContent = model.name;
       host.appendChild(wrap);
 
-      rows[model.file] = { el: wrap, model: model, info: null };
+      var live = downloading && Object.prototype.hasOwnProperty.call(downloading, model.file);
+      rows[model.file] = {
+        el: wrap,
+        model: model,
+        info: live ? { percent: downloading[model.file], downloaded: 0, total: 0, speed: 0, etaSeconds: 0 } : null,
+      };
+
+      if (live) paint(model.file);
 
       wrap.querySelector(".m-get").addEventListener("click", function () { download(model.file); });
       wrap.querySelector(".m-del").addEventListener("click", function () { remove(model.file); });

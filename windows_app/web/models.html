@@ -58,7 +58,7 @@
     function load() {
       Muffin.invoke("models.list").then(function (models) {
         if (!models) return;
-        Object.keys(lists).forEach(function (group) { lists[group].render(models[group]); });
+        Object.keys(lists).forEach(function (group) { lists[group].render(models[group], models.downloading); });
       });
     }
 
