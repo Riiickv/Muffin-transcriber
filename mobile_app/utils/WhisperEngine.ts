@@ -4,40 +4,11 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { loadSettings } from './settingsStore';
 import { loadMemories } from './memoryStore';
 import { createSegmentAccumulator } from './segmentAccumulator';
+import { getOptimalThreads } from './cpuThreads';
 
 export { createSegmentAccumulator };
 
-// ggml synchronizes all threads per graph node, so one little core stalls the
-// big ones - on 2-big-core phones 4 threads is ~60% SLOWER than 2. Count the
-// performance cores from sysfs (world-readable) and clamp to [2,5]; any read
-// failure falls back to 4 (correct for modern 4-5-big-core SoCs).
-let cachedThreads: number | null = null;
-async function getOptimalThreads(): Promise<number> {
-  if (cachedThreads !== null) return cachedThreads;
-  let threads = 4;
-  try {
-    const possible = await FileSystemLegacy.readAsStringAsync('file:///sys/devices/system/cpu/possible');
-    const m = possible.trim().match(/(\d+)-(\d+)/);
-    const nCpu = m ? parseInt(m[2], 10) + 1 : 8;
-    const freqs: number[] = [];
-    for (let i = 0; i < Math.min(nCpu, 16); i++) {
-      try {
-        const f = await FileSystemLegacy.readAsStringAsync(
-          `file:///sys/devices/system/cpu/cpu${i}/cpufreq/cpuinfo_max_freq`
-        );
-        const v = parseInt(f.trim(), 10);
-        if (isFinite(v) && v > 0) freqs.push(v);
-      } catch {}
-    }
-    if (freqs.length >= 2) {
-      const max = Math.max(...freqs);
-      const perfCores = freqs.filter((f) => f >= max * 0.8).length;
-      threads = Math.max(2, Math.min(5, perfCores));
-    }
-  } catch {}
-  cachedThreads = threads;
-  return threads;
-}
+
 
 let initWhisper: any;
 function getInitWhisper() {
@@ -209,6 +180,13 @@ export async function transcribeFile(
     // the app consumes them and they add per-token cost.
     beamSize: 1,
     bestOf: 1,
+    // No temperature fallback. whisper.cpp re-decodes a window from scratch at
+    // 0.2, 0.4, 0.6... whenever the segment trips its compression or logprob
+    // threshold, so one awkward stretch of audio can cost six full decodes of
+    // that window. Real voice notes trip it often: background noise, a cough, a
+    // pause. Taking the first decode is what makes a bad clip finish in about
+    // the time a good one does.
+    temperatureInc: 0,
     // Match thread count to the device's performance cores.
     maxThreads: await getOptimalThreads(),
     // Shrunken encoder context for short clips (0 = default 1500).

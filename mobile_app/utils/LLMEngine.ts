@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { getOptimalThreads } from './cpuThreads';
 import type { LlamaContext } from 'llama.rn';
 import { loadSettings } from './settingsStore';
 import { loadMemories, saveMemories, suggestMemories } from './memoryStore';
@@ -69,7 +70,11 @@ export async function loadLLM(modelPath: string): Promise<void> {
       // OpenCL, whose flash-attention path rejects quantized KV caches and
       // the whole context init hard-fails (verified against llama.rn 0.12.5
       // + ggml-opencl sources).
-      n_threads: 4,
+      // Was a flat 4. ggml stalls every thread at each graph node, so the
+      // right number is the size of the big cluster: 4 on a Tensor, 5 on a
+      // Snapdragon flagship. That phone was leaving a core idle on every
+      // improvement, summary and reply.
+      n_threads: await getOptimalThreads(),
     });
     currentModelPath = modelPath;
   })();
