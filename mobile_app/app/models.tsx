@@ -56,6 +56,21 @@ export default function ModelsScreen() {
             something you came here to do. */}
         <SettingsGroup title={t('settings.modelListOptions') || 'List options'} index={4}>
           <SettingsRow
+            label={t('settings.showModelNames') || 'Show model names'}
+            description={
+              t('settings.showModelNamesDesc') ||
+              'List them by what they are called instead of what they do.'
+            }
+            right={
+              <ExpressiveSwitch
+                value={settings.showModelNames}
+                onValueChange={(v) => setSetting('showModelNames', v)}
+                activeColor={theme.tint}
+                thumbActiveColor="#000000"
+              />
+            }
+          />
+          <SettingsRow
             label={t('settings.showTimeEstimate') || 'Show estimated time'}
             description={
               t('settings.showTimeEstimateDesc') ||

@@ -12,7 +12,7 @@ import { useDownloads, startModelDownload, pauseDownload, resumeDownload, cancel
 import { formatEta } from '@/utils/format';
 import { estimateFor, formatEstimateSeconds } from '@/utils/modelTimeEstimate';
 import { getDeviceTier } from '@/utils/deviceTier';
-import { loadRuns, averageSecondsByModel } from '@/utils/perfLog';
+import { averageSecondsByModel } from '@/utils/perfLog';
 import { useSettings } from '@/utils/settingsStore';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
@@ -73,8 +73,10 @@ export function ModelDownloadList({
     useCallback(() => {
       if (!showEstimate) return;
       let active = true;
-      loadRuns().then((runs) => {
-        if (active) setMeasured(averageSecondsByModel(runs));
+      // The running average, not the capped run list: it folds in every run
+      // ever, so this number gets better each time you use the model.
+      averageSecondsByModel().then((avgs) => {
+        if (active) setMeasured(avgs);
       });
       return () => {
         active = false;

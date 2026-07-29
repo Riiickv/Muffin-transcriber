@@ -44,6 +44,15 @@ export interface Settings {
    * turned off.
    */
   showModelTimeEstimate: boolean;
+  /**
+   * List models by what they are called rather than by what they do for you:
+   * "Whisper Large v3 Turbo" instead of "Most accurate".
+   *
+   * Off by default, and matching the desktop switch of the same name: the tier
+   * is the useful answer to "which one do I want", and the model number only
+   * means something once you already know.
+   */
+  showModelNames: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -71,6 +80,7 @@ export const DEFAULT_SETTINGS: Settings = {
   appLanguage: 'auto',
   seenTesterWelcome: false,
   showModelTimeEstimate: false,
+  showModelNames: false,
 };
 
 // Model ids that changed in the catalog (e.g. quant swaps) - remap stale

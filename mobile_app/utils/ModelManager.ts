@@ -35,7 +35,22 @@ export interface ModelDef {
 }
 
 /** The tier label in the current app language, English if untranslated. */
+/**
+ * Set from the root layout, next to setAppLanguage, and for the same reason.
+ *
+ * A module flag rather than an argument because modelName() is called from four
+ * places and the LAST time one of them resolved a label its own way, every model
+ * picker in the app stayed in English while the rest of it translated. One
+ * function, one answer, no call site allowed to differ.
+ */
+let showTechnicalNames = false;
+
+export function setShowModelNames(on: boolean): void {
+  showTechnicalNames = on;
+}
+
 export function modelName(m: ModelDef): string {
+  if (showTechnicalNames && m.technicalName) return m.technicalName;
   return t(m.nameKey) || m.name;
 }
 

@@ -280,6 +280,8 @@ export const ES = {
     chatModelsHeader: "Modelos de chat",
     embeddingModelsHeader: "Modelos de apoyo (obligatorios para que el chat sea útil)",
     modelListOptions: "Opciones de la lista",
+    showModelNames: "Mostrar los nombres de los modelos",
+    showModelNamesDesc: "Los enumera por como se llaman en vez de por lo que hacen.",
     showTimeEstimate: "Mostrar el tiempo estimado",
     showTimeEstimateDesc: "Añade una línea con el tiempo probable de cada modelo en este teléfono.",
 

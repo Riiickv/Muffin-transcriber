@@ -107,6 +107,9 @@ async function record(run: PerfRun): Promise<void> {
   } catch {
     // A timing that cannot be stored must never break the thing it was timing.
   }
+  // Outside the try above: the trimmed list and the running average are two
+  // stores, and losing one is no reason to skip the other.
+  await updateAverage(run);
 }
 
 export async function loadRuns(): Promise<PerfRun[]> {
@@ -120,7 +123,9 @@ export async function loadRuns(): Promise<PerfRun[]> {
 
 export async function clearRuns(): Promise<void> {
   try {
-    await AsyncStorage.removeItem(KEY);
+    // The averages go with them. Leaving them behind would make Clear a lie,
+    // and would strand numbers nobody can see the runs behind any more.
+    await AsyncStorage.multiRemove([KEY, AVG_KEY]);
   } catch {
     // Nothing to do; the next write trims the list anyway.
   }
@@ -155,43 +160,76 @@ export function formatRuns(runs: PerfRun[]): string {
 }
 
 /**
- * Average recorded seconds per model, from the runs already on this phone.
+ * A model's running average, and how many runs it is made of.
  *
- * This is what lets the Models screen show a real number instead of an estimate
- * calibrated on somebody else's device: once you have transcribed twice with a
- * model, your own average is strictly better information than any table.
- *
- * Keyed by model file name, which is what both engines record. Transcription and
- * LLM runs are kept apart because they measure different things - a flat cost per
- * recording versus a cost per minute of transcript - and a model only ever
- * appears in one of them.
+ * Separate from the run list on purpose. That list is capped at MAX_RUNS so the
+ * Speed report stays readable, which meant an average taken from it silently
+ * FORGOT: twenty transcriptions with one model would push another model's runs
+ * off the end and its measured time would revert to a guess. This accumulates
+ * instead, so the number gets better every single time the model is used and
+ * never gets worse for having used a different one.
  */
-export function averageSecondsByModel(runs: PerfRun[]): Record<string, number> {
-  const totals: Record<string, { sum: number; n: number }> = {};
-  for (const run of runs) {
-    // A run marked COLD paid for a model load the next one will not, so it
-    // would drag the average toward a cost most runs do not pay.
-    if (run.stages.some((s) => s.name.startsWith('COLD'))) continue;
-    if (run.totalMs <= 0) continue;
+export type ModelAverage = {
+  /** Seconds - per recording for transcription, per minute for the LLM. */
+  mean: number;
+  /** How many runs are in it. Shown as confidence, and used to weight the mean. */
+  runs: number;
+};
 
-    let seconds = run.totalMs / 1000;
-    if (run.kind !== 'transcribe') {
-      // LLM runs are quoted per minute of transcript. outputChars is the only
-      // length we kept; ~14 characters a second of speech, from the same
-      // session these estimates are calibrated against.
-      const minutes = (run.outputChars ?? 0) / 14 / 60;
-      if (minutes < 0.15) continue; // too short to divide by safely
-      seconds = seconds / minutes;
-    }
+const AVG_KEY = 'muffin.perf.modelAvg';
 
-    const bucket = (totals[run.model] ??= { sum: 0, n: 0 });
-    bucket.sum += seconds;
-    bucket.n += 1;
+/**
+ * What one run contributes, or null when it should not count.
+ *
+ * A cold run paid for a model load the next one will not, so folding it in would
+ * pull the average toward a cost most runs never pay.
+ */
+function contributionOf(run: PerfRun): number | null {
+  if (run.stages.some((s) => s.name.startsWith('COLD'))) return null;
+  if (run.totalMs <= 0) return null;
+  if (run.kind === 'transcribe') return run.totalMs / 1000;
+
+  // LLM runs are quoted per minute of transcript, since their cost scales with
+  // length where transcription's does not. outputChars is the only length kept;
+  // ~14 characters a second of speech, from the session these are calibrated on.
+  const minutes = (run.outputChars ?? 0) / 14 / 60;
+  if (minutes < 0.15) return null; // too short to divide by safely
+  return run.totalMs / 1000 / minutes;
+}
+
+/** Folds one finished run into its model's average. */
+async function updateAverage(run: PerfRun): Promise<void> {
+  const seconds = contributionOf(run);
+  if (seconds === null) return;
+  try {
+    const all = await loadModelAverages();
+    const prev = all[run.model];
+    // An incremental mean, so nothing has to be stored per run: the new average
+    // is the old one moved a fraction of the way toward this measurement.
+    all[run.model] = prev
+      ? { runs: prev.runs + 1, mean: prev.mean + (seconds - prev.mean) / (prev.runs + 1) }
+      : { runs: 1, mean: seconds };
+    await AsyncStorage.setItem(AVG_KEY, JSON.stringify(all));
+  } catch {
+    // A timing that cannot be stored must never break the thing it was timing.
   }
+}
 
+export async function loadModelAverages(): Promise<Record<string, ModelAverage>> {
+  try {
+    const raw = await AsyncStorage.getItem(AVG_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, ModelAverage>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Just the means, which is what the Models screen asks for. */
+export async function averageSecondsByModel(): Promise<Record<string, number>> {
+  const all = await loadModelAverages();
   const out: Record<string, number> = {};
-  for (const [model, { sum, n }] of Object.entries(totals)) {
-    if (n > 0) out[model] = sum / n;
+  for (const [model, avg] of Object.entries(all)) {
+    if (avg && avg.runs > 0 && avg.mean > 0) out[model] = avg.mean;
   }
   return out;
 }
