@@ -600,6 +600,111 @@ window.addEventListener("scroll", function (e) {
   if (scrolledInsideAPopup(e)) return;
   closeAllDropdowns();
 }, true);
+
+/* ---- Custom text selection ----
+   Windows draws the highlight itself: a hard-edged rectangle in the system
+   colour, and the last piece of the desktop still showing through the text.
+   ::selection can recolour it but cannot round it, so this hides the native
+   paint and traces the live Range instead, drawing one rounded rect per line.
+
+   Only the PAINT is replaced. The real selection is untouched, so Ctrl+C, the
+   context menu, Ctrl+A and drag-select all behave exactly as they did.
+
+   The one thing this cannot cover is <input> and <textarea>: their text lives
+   inside the control rather than in the document, so a Range never reaches it
+   and there are no rects to trace. Those keep the flat accent highlight, which
+   is why the ::selection rule is still there. */
+var SEL_MAX_RECTS = 240;
+var selLayer = null;
+var selFrame = 0;
+
+// getClientRects() returns one rect per line box PER ELEMENT, and the
+// transcript splits its last 44 characters across nine trail spans. Without
+// this, selecting the end of a streaming transcript would draw nine separate
+// pills on one line. Rects that sit on the same line and touch become one.
+//
+// The sort is not decoration. Those rects come back grouped by element, not in
+// reading order: a span that wraps contributes a rect on line 4 and another on
+// line 5 before the next span contributes its own line 4. Merging against only
+// the previous entry therefore missed most of the pairs AND left overlapping
+// rects, which at 32% alpha stack into visibly darker patches mid-line.
+function mergeSelRects(rects) {
+  var sorted = [];
+  for (var i = 0; i < rects.length; i++) {
+    var r = rects[i];
+    if (r.width < 0.5 || r.height < 0.5) continue;
+    sorted.push({ top: r.top, bottom: r.bottom, left: r.left, right: r.right });
+  }
+  sorted.sort(function (a, b) {
+    return (Math.round(a.top) - Math.round(b.top)) || (a.left - b.left);
+  });
+
+  var out = [];
+  for (var j = 0; j < sorted.length; j++) {
+    var s = sorted[j];
+    var last = out.length ? out[out.length - 1] : null;
+    if (last && Math.abs(last.top - s.top) < 1.5 && Math.abs(last.bottom - s.bottom) < 1.5 &&
+        s.left <= last.right + 1.5) {
+      last.right = Math.max(last.right, s.right);
+      continue;
+    }
+    out.push(s);
+  }
+  return out;
+}
+
+function paintSelection() {
+  selFrame = 0;
+  if (!selLayer) return;
+  var sel = window.getSelection();
+  var rects = [];
+  if (sel && sel.rangeCount && !sel.isCollapsed) {
+    var merged = mergeSelRects(sel.getRangeAt(0).getClientRects());
+    var vh = window.innerHeight;
+    var vw = window.innerWidth;
+    for (var i = 0; i < merged.length && rects.length < SEL_MAX_RECTS; i++) {
+      var m = merged[i];
+      // Only what is actually on screen. A two-hour transcript selected whole
+      // is thousands of lines, and all but a screenful of them are invisible.
+      if (m.bottom < 0 || m.top > vh || m.right < 0 || m.left > vw) continue;
+      rects.push(m);
+    }
+  }
+
+  // The nodes are pooled rather than rebuilt: this runs on every frame of a
+  // drag-select, and churning the DOM there is what makes custom selection
+  // feel worse than the native one.
+  while (selLayer.childNodes.length > rects.length) selLayer.removeChild(selLayer.lastChild);
+  while (selLayer.childNodes.length < rects.length) selLayer.appendChild(document.createElement("div"));
+  for (var j = 0; j < rects.length; j++) {
+    var box = rects[j];
+    var node = selLayer.childNodes[j];
+    // Grown slightly past the glyphs so descenders and the first character are
+    // not clipped by the rounding, the way the native highlight pads them.
+    node.style.left = (box.left - 2.5) + "px";
+    node.style.top = (box.top - 1) + "px";
+    node.style.width = (box.right - box.left + 5) + "px";
+    node.style.height = (box.bottom - box.top + 2) + "px";
+  }
+}
+
+function scheduleSelection() {
+  if (!selFrame) selFrame = requestAnimationFrame(paintSelection);
+}
+
+function wireSelection() {
+  selLayer = document.createElement("div");
+  selLayer.className = "sel-layer";
+  document.body.appendChild(selLayer);
+  // Set from here, never in the markup: if this function ever throws, the class
+  // is missing and the native highlight is still painted. A selection you
+  // cannot see is a far worse failure than one that looks like Windows.
+  document.body.classList.add("sel-custom");
+  document.addEventListener("selectionchange", scheduleSelection);
+  window.addEventListener("scroll", scheduleSelection, true);
+  window.addEventListener("resize", scheduleSelection);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   enhanceSelects();
   wireToggles();
@@ -610,4 +715,5 @@ document.addEventListener("DOMContentLoaded", function () {
   wireRail();
   wireTooltips();
   wireContextMenu();
+  wireSelection();
 });
