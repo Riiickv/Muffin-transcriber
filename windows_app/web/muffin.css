@@ -111,6 +111,30 @@
   color: var(--text);
 }
 
+/* Once wireSelection() has run, the native highlight is hidden everywhere the
+   app can redraw it itself: rounded rects traced from the Range, in .sel-layer.
+   The .sel-custom class comes from JS, so if that never runs this whole block
+   does not apply and the plain accent highlight above is what shows.
+
+   Inputs and textareas are exempt. Their text is not in the document, so there
+   is nothing to trace, and hiding the native paint there would leave a
+   selection that is genuinely invisible. */
+body.sel-custom ::selection { background: transparent; color: inherit; }
+body.sel-custom input::selection,
+body.sel-custom textarea::selection {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--text);
+}
+
+/* Above the dialogs (80) so text selected inside one is still highlighted, and
+   below the tooltip and context menu (90/95), which belong on top of it. */
+.sel-layer { position: fixed; inset: 0; pointer-events: none; z-index: 85; }
+.sel-layer > div {
+  position: fixed;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
 /* The caret is a separate colour from the text, so it stays visible against a
    selection and reads as the app's rather than the system's. */
 input, textarea, [contenteditable] {
