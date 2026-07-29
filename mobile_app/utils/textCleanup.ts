@@ -190,3 +190,64 @@ export function looksUnstable(formatted: string, raw: string): boolean {
   if (echoesPrompt(formatted)) return true;
   return false;
 }
+
+/**
+ * How much transcript one pass can carry.
+ *
+ * n_ctx is 4096 and the prompt and the reply share it. Nothing checked that,
+ * and the native side is unforgiving about it: rn-completion.cpp bails with
+ * context_full and generates NOTHING when the prompt alone reaches n_ctx, or -
+ * if ctx_shift is on - calls truncatePrompt, which keeps n_keep tokens from the
+ * start and then erases a block from the MIDDLE. n_keep is 0 here, so that path
+ * throws away the system prompt and the beginning of the transcript and keeps
+ * the tail.
+ *
+ * Either way a long recording was quietly processed as its last few minutes, or
+ * not at all. A two hour lecture is roughly 24,000 tokens against a 4,096
+ * window - six times over.
+ *
+ * Characters, not tokens, because tokenizing to measure would cost a round trip
+ * per chunk. ~3.2 chars per token is conservative for European languages, and
+ * conservative is the right direction: an over-long chunk is the failure this
+ * exists to prevent.
+ */
+export const CHARS_PER_TOKEN = 3.2;
+
+/** Formatting returns text about as long as it was given, so input and output
+ *  both have to fit. Summarising returns far less, so it can take more in. */
+export const FORMAT_CHUNK_CHARS = Math.floor(1300 * CHARS_PER_TOKEN);   // ~4,100
+export const SUMMARY_CHUNK_CHARS = Math.floor(2600 * CHARS_PER_TOKEN);  // ~8,300
+
+/**
+ * Splits on sentence ends, never mid-word.
+ *
+ * Cutting a transcript at an arbitrary character would hand the model half a
+ * sentence and get half a sentence back. Falls back to a hard cut only if a
+ * single "sentence" is somehow longer than the budget, which is what unpunctuated
+ * whisper output of a long monologue actually looks like.
+ */
+export function splitForModel(text: string, maxChars: number): string[] {
+  if (text.length <= maxChars) return [text];
+
+  const sentences = text.match(/[^.!?\n]+[.!?\n]*/g) || [text];
+  const chunks: string[] = [];
+  let current = '';
+
+  for (const sentence of sentences) {
+    if (sentence.length > maxChars) {
+      if (current) { chunks.push(current); current = ''; }
+      for (let i = 0; i < sentence.length; i += maxChars) {
+        chunks.push(sentence.slice(i, i + maxChars));
+      }
+      continue;
+    }
+    if ((current + sentence).length > maxChars) {
+      chunks.push(current);
+      current = sentence;
+    } else {
+      current += sentence;
+    }
+  }
+  if (current.trim()) chunks.push(current);
+  return chunks;
+}
