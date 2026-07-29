@@ -168,16 +168,38 @@ public static class ChatEngine
     {
         string Truncate(string? s, int limit) => string.IsNullOrEmpty(s) ? "None" : (s.Length > limit ? s[..limit] + "... (truncated)" : s);
 
+        // ONE body, not three variants, and the mobile app's limits. Sending the
+        // summary AND the formatted AND the raw text was up to 5000 characters
+        // per transcript for three transcripts, which overruns the context
+        // window; llama.cpp then drops the FRONT of the prompt, which is
+        // exactly where the persona and the rules about answering live. The
+        // model was left holding nothing but <tools>, so it reached for tools.
+        //
+        // Formatted is the same words as raw with punctuation, so it is
+        // strictly the better one to send; raw is the fallback before
+        // formatting has run.
+        //
+        // An absent summary is left out rather than written as "None": a small
+        // model reads a tag with a placeholder in it as a fact about the
+        // transcript and reports it back, which is where "has a variant_summary
+        // of []" came from.
         string contextText = relevant.Count == 0
             ? "No relevant transcripts found."
-            : string.Join("\n", relevant.Select(item => $@"<transcript>
+            : string.Join("\n", relevant.Select(item =>
+            {
+                string body = !string.IsNullOrEmpty(item.FormattedTranscript)
+                    ? item.FormattedTranscript
+                    : item.RawTranscript;
+                string summaryLine = string.IsNullOrEmpty(item.Summary)
+                    ? ""
+                    : $"\n  <summary>{Truncate(item.Summary, 400)}</summary>";
+                return $@"<transcript>
   <name>{Path.GetFileNameWithoutExtension(item.SourceFileName)}</name>
   <id>{item.Id}</id>
-  <created_at>{item.Timestamp:g}</created_at>
-  <variant_summary>{Truncate(item.Summary, 1000)}</variant_summary>
-  <variant_formatted>{Truncate(item.FormattedTranscript, 2000)}</variant_formatted>
-  <variant_raw>{Truncate(item.RawTranscript, 2000)}</variant_raw>
-</transcript>"));
+  <created_at>{item.Timestamp:g}</created_at>{summaryLine}
+  <text>{Truncate(body, 1200)}</text>
+</transcript>";
+            }));
 
         string historyIndex = string.Join("\n", history.Select(h =>
             $"- ID: {h.Id} | Name: {Path.GetFileNameWithoutExtension(h.SourceFileName)} | Date: {h.Timestamp:g}"));
@@ -194,14 +216,17 @@ public static class ChatEngine
 
 You can see the user's transcripts (<context> and <history_index>) and every app setting with its current value and location (<app_settings>). Use them to answer accurately, including ""where is setting X?"" and ""what is X set to right now?"".
 
-Each transcript in <context> has three variants: <variant_raw> (exact words), <variant_formatted> (cleaned up), <variant_summary> (short summary).
+Each transcript in <context> carries its <text> and, when one exists, a short <summary>.
 
 CRITICAL RULES:
-1. Be concise, friendly and direct.
-2. Refer to a transcript by its exact <name> so the UI can link it.
-3. Never make things up. If you don't know, say so.
-4. Use the exact transcript ID from <history_index> when deleting or renaming.
-5. A message that starts with [action result] is the app telling you what really happened. Believe it over your own last sentence, and never claim something was done that it does not confirm.
+1. Be concise, friendly and direct. ONE short sentence is almost always the whole answer - two at the very most. Do not restate the question, do not list what you could do, do not explain yourself.
+2. A QUESTION is answered with words. ""What is this transcript about?"", ""when did I record that?"", ""what did I say about X?"" all want a sentence and NO action. Doing things the user did not ask for is worse than saying nothing: they came for an answer and got their screen changed.
+3. Refer to a transcript by its exact <name> so the UI can link it - say ""In the transcript called Meeting Notes..."" not ""In the latest transcript..."".
+4. Never make things up. If you don't know, say so.
+5. Put the exact transcript ID from <history_index> INSIDE the tool_call, but NEVER say an ID out loud. To the user a transcript has a name, not an ID.
+6. Never mention tools, tool_call, JSON, actions, settings keys, IDs, tag names, or anything about how this app is built. The user is not a programmer and none of it means anything to them. Describe what happened in everyday words instead.
+7. NEVER say you have done something unless you emitted the tool_call for it IN THE SAME REPLY. No tool_call means it did not happen, and telling the user it did is a lie they will discover.
+8. Messages beginning with [action result] are the app telling YOU, privately, what your last action actually did. The user cannot see them. Use them to know what happened - never repeat them, quote them, or copy their wording into your reply.
 
 {AppCapabilities.BuildCapabilitiesBlock()}
 
