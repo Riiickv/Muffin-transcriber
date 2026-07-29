@@ -546,8 +546,18 @@ export async function generateTitle(
     });
     
     let title = extractFormatterOutput(result.text).trim();
-    // remove quotes if the model hallucinated them
-    title = title.replace(/^"|"$/g, '').trim();
+    // Only the first line: asked for a title, a small model sometimes answers
+    // with the title and then explains itself underneath.
+    title = title.split('\n')[0].trim();
+    // Strip whatever it wrapped the title in. Quotes were handled; brackets
+    // were not, and "[Transcript Assistance]" is what a model actually returns,
+    // brackets and all, which then became the name in the list.
+    const WRAPPERS = /^[\s"'`*#[\](){}<>]+|[\s"'`*[\](){}<>]+$/g;
+    title = title.replace(WRAPPERS, '').trim();
+    // "Title: Budget meeting" -> "Budget meeting".
+    const colon = title.indexOf(':');
+    if (colon >= 0 && colon <= 12) title = title.slice(colon + 1).trim();
+    title = title.replace(WRAPPERS, '').replace(/[.,;!]+$/, '').trim();
     return title.length > 0 ? title : fallback;
   } catch(e) {
     console.warn("Failed to generate title", e);
