@@ -169,7 +169,9 @@
       '<img class="tb-icon" src="images/AppIcon.png" alt="" />' +
       '<div class="tb-title"></div>' +
       '<div class="tb-spacer"></div>' +
-      '<button class="tb-btn tb-support" type="button"><img src="images/RickLogo.png" alt="" /></button>' +
+      // Masked, not an <img>: the source PNG is a near-white shape, and the
+      // mask lets it take a colour the way the dialog's artwork does.
+      '<button class="tb-btn tb-support" type="button"><i class="tb-mark"></i></button>' +
       // Drawn in CSS, not a font. Segoe MDL2 would have been the system's
       // glyphs, which is the thing being replaced.
       '<button class="tb-btn tb-min" type="button"><i class="tb-ico min"></i></button>' +

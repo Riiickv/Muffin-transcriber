@@ -142,7 +142,6 @@ html, body {
   display: flex; align-items: center;
   padding-left: var(--sp-md);
   background: var(--bg);
-  border-bottom: 1px solid var(--divider);
   user-select: none;
 }
 body.has-titlebar .app { padding-top: 40px; }
@@ -157,12 +156,24 @@ body.has-titlebar .app { padding-top: 40px; }
   display: flex; align-items: center; justify-content: center;
   color: var(--text-muted);
 }
-.titlebar .tb-btn:hover { background: var(--surface); color: var(--text); }
+/* Hover and press take the accent, so the window controls answer to the
+   picker like everything else rather than sitting in a neutral grey. */
+.titlebar .tb-btn:hover { background: var(--accent-fill); color: var(--accent); }
+.titlebar .tb-btn:active { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+/* Close is the one that should read as consequence, not accent. */
 .titlebar .tb-close:hover { background: var(--danger); color: #FFFFFF; }
+.titlebar .tb-close:active { background: color-mix(in srgb, var(--danger) 85%, #000); color: #FFFFFF; }
 
-/* The support mark keeps its own colour rather than following the row. */
+/* The mark is painted through a mask, so it takes the danger colour in every
+   theme the way the mobile header does, instead of being a near-white PNG. */
 .titlebar .tb-support { margin-right: var(--sp-sm); }
-.titlebar .tb-support img { width: 17px; height: 12.75px; }
+.titlebar .tb-mark {
+  display: block; width: 17px; height: 13px;
+  background-color: var(--danger);
+  -webkit-mask: url("images/RickLogo.png") center / contain no-repeat;
+  mask: url("images/RickLogo.png") center / contain no-repeat;
+}
+.titlebar .tb-support:hover .tb-mark { background-color: var(--danger); }
 
 /* ---- the three glyphs, as shapes ---- */
 .titlebar .tb-ico { position: relative; display: block; width: 10px; height: 10px; }
