@@ -66,7 +66,7 @@
          Listed by extension on purpose: a bare web\**\* also matches source
          files, and Windows paths are case-insensitive, so it shipped the
          bridge's .cs alongside the pages. -->
-    <Content Include="web\**\*.html;web\**\*.css;web\**\*.js;web\**\*.ttf;web\**\*.png;web\**\*.svg">
+    <Content Include="web\**\*.html;web\**\*.css;web\**\*.js;web\**\*.ttf;web\**\*.woff2;web\**\*.png;web\**\*.svg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
