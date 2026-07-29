@@ -24,11 +24,16 @@
 
     <main class="two-pane">
       <aside class="hist-list" id="hist-list">
-        <h2 data-i18n="history.header">History</h2>
-        <input class="search" id="search" type="search"
-          data-i18n-attr="placeholder:pc.history.search" placeholder="Search transcripts" />
-        <div id="rows"></div>
-        <div class="empty" id="empty" hidden data-i18n="pc.history.noResults">No matches.</div>
+        <div class="hl-head">
+          <h2 data-i18n="history.header">History</h2>
+          <div class="search field" id="search" data-field data-single-line contenteditable="plaintext-only"
+            data-i18n-attr="placeholder:pc.history.search" placeholder="Search transcripts"></div>
+        </div>
+        <div class="hl-rows" id="rows"></div>
+        <div class="empty" id="empty" hidden>
+          <span class="msr empty-icon">&#xE8B3;</span>
+          <div data-i18n="pc.history.noResults">No matches.</div>
+        </div>
       </aside>
 
       <div class="splitter" data-min="260" data-max="720" data-persist="HistoryListWidth"></div>
@@ -95,9 +100,9 @@
               <span class="msr chev">&#xE5CF;</span>
             </button>
             <div class="collapsible-body">
-              <div class="collapsible-inner"><textarea class="prompt" id="prompt"
+              <div class="collapsible-inner"><div class="prompt" id="prompt"
                 data-i18n-attr="placeholder:historyDetail.customPromptPlaceholder"
-                placeholder="Use bullet points, max 100 words, etc..."></textarea></div>
+                placeholder="Use bullet points, max 100 words, etc..." data-field contenteditable="plaintext-only"></div></div>
             </div>
           </div>
 

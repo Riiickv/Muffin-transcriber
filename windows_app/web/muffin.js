@@ -237,12 +237,15 @@ function showDialog(opts) {
 
   var field = null;
   if (opts.input) {
-    field = document.createElement("input");
+    // One of ours, so the dialog's field gets the same caret and the same
+    // rounded selection as everything else you can type in.
+    field = document.createElement("div");
     field.className = "dialog-input";
-    field.type = "text";
+    field.setAttribute("data-field", "");
+    field.setAttribute("data-single-line", "");
+    if (opts.input.placeholder) field.setAttribute("placeholder", opts.input.placeholder);
+    makeField(field);
     field.value = opts.input.value || "";
-    if (opts.input.placeholder) field.placeholder = opts.input.placeholder;
-    if (opts.input.maxLength) field.maxLength = opts.input.maxLength;
     card.appendChild(field);
   }
 
@@ -338,11 +341,15 @@ function contextItems(target) {
     ];
   }
 
-  var field = target.closest("input, textarea");
+  var field = target.closest("input, textarea, [contenteditable]");
   var editable = field && !field.disabled && !field.readOnly;
   var text = target.closest(SELECTABLE);
   var selection = String(window.getSelection());
-  var inField = editable && field.selectionStart !== field.selectionEnd;
+  // A contenteditable field's selection IS the document selection; an input
+  // keeps its own, which is why the two are asked in different ways.
+  var inField = editable && (field.isContentEditable
+    ? selection.length > 0 && field.contains(window.getSelection().anchorNode)
+    : field.selectionStart !== field.selectionEnd);
   var hasSelection = inField || (!field && selection.length > 0);
 
   if (!editable && !text && !hasSelection) return [];
@@ -360,6 +367,11 @@ function contextItems(target) {
         // and put the text in by hand.
         navigator.clipboard.readText().then(function (text) {
           field.focus();
+          if (field.isContentEditable) {
+            // insertText respects the live caret and keeps the undo stack.
+            document.execCommand("insertText", false, text);
+            return;
+          }
           var start = field.selectionStart, end = field.selectionEnd;
           field.value = field.value.slice(0, start) + text + field.value.slice(end);
           field.selectionStart = field.selectionEnd = start + text.length;
@@ -439,6 +451,155 @@ function wireContextMenu() {
   window.addEventListener("scroll", function (e) {
     if (!scrolledInsideAPopup(e)) closeContextMenu();
   }, true);
+}
+
+// ---- Text fields ------------------------------------------------------------
+// An <input> or a <textarea> is a black box. Its text lives inside the control
+// rather than in the document, so the custom selection cannot reach it, and the
+// only thing CSS can say about its caret is caret-color: there is no width, no
+// weight. A 1px accent line on a dark field is what "not visible, and if it is
+// custom then it's too thin" was.
+//
+// contenteditable puts the text back in the document. The selection layer then
+// covers these like any other text, and the caret below is drawn rather than
+// asked for. Everything marked data-field answers to .value and .select() the
+// way the control it replaced did, so no screen had to change how it reads its
+// own field.
+
+function paintPlaceholder(el) {
+  // :empty is not enough: an emptied contenteditable keeps a stray <br>.
+  el.classList.toggle("is-empty", el.textContent.length === 0);
+}
+
+function makeField(el) {
+  if (!el || el.dataset.fieldBound) return el;
+  el.dataset.fieldBound = "1";
+  el.setAttribute("contenteditable", "plaintext-only");
+  el.setAttribute("role", "textbox");
+  // Set here as well as in the markup, so a field built in JS is styled by the
+  // same rules without every call site having to remember the attribute.
+  el.setAttribute("data-field", "");
+
+  Object.defineProperty(el, "value", {
+    configurable: true,
+    get: function () { return el.textContent; },
+    set: function (v) {
+      el.textContent = v == null ? "" : String(v);
+      paintPlaceholder(el);
+    },
+  });
+
+  el.select = function () {
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  el.addEventListener("input", function () { paintPlaceholder(el); });
+
+  // A one-line field must stay one line.
+  if (el.hasAttribute("data-single-line")) {
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") e.preventDefault();
+    });
+  }
+
+  // plaintext-only already strips markup on paste, but not on a drop, and a
+  // drop is how a paragraph of styled text gets in.
+  el.addEventListener("drop", function (e) {
+    var text = e.dataTransfer && e.dataTransfer.getData("text/plain");
+    if (text === undefined || text === null) return;
+    e.preventDefault();
+    el.focus();
+    document.execCommand("insertText", false, text);
+  });
+
+  paintPlaceholder(el);
+  return el;
+}
+
+function wireFields(root) {
+  (root || document).querySelectorAll("[data-field]").forEach(makeField);
+}
+window.makeField = makeField;
+window.wireFields = wireFields;
+
+// ---- The caret --------------------------------------------------------------
+// Hidden natively (caret-color: transparent) and drawn here instead, so it can
+// have a width, the accent, and rounded ends like everything else.
+var caretEl = null;
+var caretFrame = 0;
+
+function caretNode() {
+  if (!caretEl) {
+    caretEl = document.createElement("div");
+    caretEl.className = "caret";
+    document.body.appendChild(caretEl);
+  }
+  return caretEl;
+}
+
+// A collapsed range inside text reports a zero-width rect with a real height.
+// An EMPTY field has no text node to measure at all, so the first line is
+// worked out from the box itself rather than by inserting a probe node, which
+// would fire input events and poison the undo stack just to take a measurement.
+function caretGeometry(el, range) {
+  var rect = range.getBoundingClientRect();
+  if (rect.height) return { left: rect.left, top: rect.top, height: rect.height };
+
+  var box = el.getBoundingClientRect();
+  var style = getComputedStyle(el);
+  var height = parseFloat(style.lineHeight);
+  if (!isFinite(height)) height = parseFloat(style.fontSize) * 1.4;
+  return {
+    left: box.left + parseFloat(style.paddingLeft) + parseFloat(style.borderLeftWidth),
+    top: box.top + parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth),
+    height: height,
+  };
+}
+
+function paintCaret() {
+  caretFrame = 0;
+  var caret = caretNode();
+  var el = document.activeElement;
+  var sel = window.getSelection();
+
+  if (!el || !el.isContentEditable || !sel || !sel.rangeCount || !sel.isCollapsed
+      || !el.contains(sel.anchorNode)) {
+    caret.classList.remove("on");
+    return;
+  }
+
+  var at = caretGeometry(el, sel.getRangeAt(0));
+  // A field that scrolls would otherwise draw its caret outside itself.
+  var box = el.getBoundingClientRect();
+  if (at.top + at.height < box.top - 1 || at.top > box.bottom + 1) {
+    caret.classList.remove("on");
+    return;
+  }
+
+  caret.style.left = at.left + "px";
+  caret.style.top = at.top + "px";
+  caret.style.height = at.height + "px";
+  // Restart the blink so it stays solid while typing, the way a real one does.
+  caret.classList.remove("on");
+  void caret.offsetWidth;
+  caret.classList.add("on");
+}
+
+function scheduleCaret() {
+  if (!caretFrame) caretFrame = requestAnimationFrame(paintCaret);
+}
+
+function wireCaret() {
+  document.addEventListener("selectionchange", scheduleCaret);
+  document.addEventListener("input", scheduleCaret, true);
+  document.addEventListener("focusin", scheduleCaret);
+  document.addEventListener("focusout", scheduleCaret);
+  window.addEventListener("scroll", scheduleCaret, true);
+  window.addEventListener("resize", scheduleCaret);
 }
 
 // ---- Tooltips ---------------------------------------------------------------
@@ -766,6 +927,8 @@ document.addEventListener("DOMContentLoaded", function () {
   wireCollapsibles();
   wireSplitters();
   wireRail();
+  wireFields();
+  wireCaret();
   wireTooltips();
   wireContextMenu();
   wireSelection();
