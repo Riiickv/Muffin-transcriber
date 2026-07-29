@@ -61,6 +61,10 @@ public sealed partial class WebBridge
     /// Sends the UI to another screen. Each screen is its own document, so this
     /// is a navigation, and the state that outlives it lives here in C#.
     /// </summary>
+    /// <summary>Opens History with one transcript already selected.</summary>
+    public void NavigateToTranscript(string id) =>
+        Emit("navigate", new Dictionary<string, object?> { ["page"] = "history.html", ["open"] = id });
+
     public void Navigate(string tag)
     {
         string page = tag switch
@@ -85,6 +89,32 @@ public sealed partial class WebBridge
         // Files, and it ended up inside the installer itself. It belongs in
         // AppData with the rest of the app's data.
         string profileDir = System.IO.Path.Combine(AppModel.AppDataDir, "WebView2");
+
+        // WebView2 updates itself, silently, on every Windows machine. When it
+        // does while a profile written by the previous build is on disk, the
+        // control can come up perfectly happily and then render NOTHING: a grey
+        // rectangle, no error, no exception, no log line. An app that looks
+        // dead is an app that gets uninstalled, so a run that failed to render
+        // leaves a marker and the next start throws the profile away. It costs
+        // nothing - the profile is a cache - and it happens before the control
+        // exists, because the folder cannot be deleted while it is in use.
+        if (System.IO.File.Exists(ResetMarkerPath))
+        {
+            try
+            {
+                System.IO.File.Delete(ResetMarkerPath);
+                if (System.IO.Directory.Exists(profileDir))
+                {
+                    System.IO.Directory.Delete(profileDir, true);
+                    CrashLog.Note("rebuilt the WebView2 profile after a blank start");
+                }
+            }
+            catch (Exception ex)
+            {
+                CrashLog.Write("Rebuilding the WebView2 profile", ex);
+            }
+        }
+
         System.IO.Directory.CreateDirectory(profileDir);
         CoreWebView2Environment environment =
             await CoreWebView2Environment.CreateWithOptionsAsync(string.Empty, profileDir, null);
@@ -132,7 +162,7 @@ public sealed partial class WebBridge
             }
         };
 
-        core.NavigationCompleted += (_, _) =>
+        core.NavigationCompleted += (_, e) =>
         {
             _navigationWatch.Stop();
             if (_navigationWatch.ElapsedMilliseconds >= SlowCallMs)
@@ -145,6 +175,26 @@ public sealed partial class WebBridge
 
         _view.Source = new Uri($"https://{VirtualHost}/{startPage}");
     }
+
+    /// <summary>
+    /// True once a page has actually come up, set from the bootstrap call every
+    /// screen makes as it loads.
+    ///
+    /// NavigationCompleted is not the same question. It reported IsSuccess for
+    /// the very load that drew nothing at all, because as far as WebView2 was
+    /// concerned the document was fetched; whether a single pixel reached the
+    /// screen is not something it claims to know. The bootstrap call is
+    /// end-to-end: the HTML parsed, the scripts ran, and the bridge answered.
+    /// </summary>
+    public bool PageRendered { get; internal set; }
+
+    /// <summary>
+    /// Written when a start produced no page, read on the next start. A file
+    /// rather than a setting: the point is to survive a process that may be
+    /// about to be killed by the user for looking broken.
+    /// </summary>
+    public static string ResetMarkerPath =>
+        System.IO.Path.Combine(AppModel.AppDataDir, "webview_reset_pending");
 
     public const string VirtualHost = "muffin.example";
 

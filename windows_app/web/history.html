@@ -198,6 +198,13 @@
       Muffin.invoke("history.list").then(function (list) {
         items = list || [];
         renderList();
+        // A recording that just finished arrives with its own row named in the
+        // URL, so it opens that one instead of whatever happened to be newest.
+        var wanted = new URLSearchParams(location.search).get("open");
+        if (wanted && items.some(function (i) { return i.id === wanted; })) {
+          open(wanted);
+          return;
+        }
         if (selectFirst && items.length) open(items[0].id);
         if (!items.length) showDetail(false);
       });

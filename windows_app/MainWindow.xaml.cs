@@ -107,10 +107,57 @@ public sealed partial class MainWindow : Window
         }
 
         PaintShell(_bridge.ThemeMode);
+        _ = WatchForABlankStartAsync();
 
         if (shareOperation is not null)
         {
             await ProcessShareAsync(shareOperation);
+        }
+    }
+
+    /// <summary>
+    /// Catches the failure mode where WebView2 comes up without complaint and
+    /// then draws nothing.
+    ///
+    /// It happens when the WebView2 runtime updates itself - which it does
+    /// silently, on every Windows machine - while a profile written by the
+    /// previous build is on disk. There is no exception and no log line; the
+    /// window is simply a grey rectangle, and an app that looks dead gets
+    /// uninstalled rather than reported.
+    ///
+    /// So if no page has loaded after a generous wait, the profile is marked
+    /// for rebuilding and the app restarts itself once. The profile is only a
+    /// cache, so nothing is lost by throwing it away. Once, because a restart
+    /// loop would be worse than the blank window it is trying to fix.
+    /// </summary>
+    private async Task WatchForABlankStartAsync()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(12));
+        if (_bridge is null || _bridge.PageRendered) return;
+
+        try
+        {
+            if (File.Exists(WebBridge.ResetMarkerPath))
+            {
+                // Already tried. Say so instead of restarting for ever.
+                CrashLog.Note("blank start persisted after rebuilding the WebView2 profile");
+                ShowNativeError(AppStrings.Health_BannerTitle, AppStrings.Health_WebViewMissingBody);
+                return;
+            }
+
+            CrashLog.Note("blank start: no page rendered, rebuilding the WebView2 profile");
+            File.WriteAllText(WebBridge.ResetMarkerPath, DateTime.Now.ToString("o"));
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = Environment.ProcessPath ?? "",
+                UseShellExecute = true,
+            });
+            Application.Current.Exit();
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Recovering from a blank start", ex);
         }
     }
 
@@ -147,18 +194,45 @@ public sealed partial class MainWindow : Window
 
     // Wherever you were when you stopped recording, the audio lands on the
     // transcribe screen and starts processing itself.
+    /// <summary>
+    /// A finished recording is SAVED first, given a history row, and opened
+    /// there - and only then transcribed into that row.
+    ///
+    /// The order is the point. It used to go straight to the transcribe screen
+    /// with the audio still sitting in a temporary file, so every way the run
+    /// could fail took the recording with it. Now the row and the playable
+    /// audio exist before anything can go wrong, and History is where you land,
+    /// the way the phone does it.
+    /// </summary>
     private void OnRecordingFinished(object? sender, string wavPath)
     {
-        DispatcherQueue.TryEnqueue(() =>
+        DispatcherQueue.TryEnqueue(async () =>
         {
-            _bridge?.Navigate("home");
-            _bridge?.TranscribeRecording(wavPath);
+            if (_bridge is null) return;
+
+            string? entryId = await _bridge.SaveRecordingAsync(wavPath);
+            if (entryId is null)
+            {
+                // Could not keep a copy: fall back to the old path rather than
+                // dropping the recording on the floor.
+                _bridge.Navigate("home");
+                _bridge.TranscribeRecording(wavPath);
+                return;
+            }
+
+            _bridge.NavigateToTranscript(entryId);
+            string? kept = _bridge.KeptPathFor(entryId);
+            if (kept is not null) _bridge.TranscribeSavedRecording(kept);
         });
     }
 
     private void OnRecordingStateChanged(object? sender, EventArgs e)
     {
         _lastTick = -1;
+        // Every recording gets a fresh verdict; one good session must not vouch
+        // for the next one.
+        _heardSomething = false;
+        _warnedAboutSilence = false;
         _bridge?.Emit("record.changed", new Dictionary<string, object?>
         {
             ["recording"] = RecordingController.IsRecording,
@@ -169,16 +243,40 @@ public sealed partial class MainWindow : Window
     // counts whole seconds needs; only whole-second changes cross the bridge.
     private int _lastTick = -1;
 
+    // Silence watch. A microphone that is muted, unplugged, or set to the wrong
+    // device records a perfectly flat signal, and nothing notices until the
+    // transcript comes back empty - which for a lecture is two hours later and
+    // far too late to do anything about it.
+    //
+    // The peak level already arrives ~33 times a second for the timer, so this
+    // costs nothing: if nothing crosses the floor for the first stretch of a
+    // recording, say so WHILE it can still be fixed.
+    private const float SilenceFloor = 0.02f;
+    private const int SilenceWarnAfterSeconds = 12;
+    private bool _heardSomething;
+    private bool _warnedAboutSilence;
+
     private void OnRecordingProgress(object? sender, (TimeSpan Time, float PeakLevel) data)
     {
+        if (data.PeakLevel >= SilenceFloor) _heardSomething = true;
+
         int seconds = (int)data.Time.TotalSeconds;
         if (seconds == _lastTick) return;
         _lastTick = seconds;
+
+        if (!_heardSomething && !_warnedAboutSilence && seconds >= SilenceWarnAfterSeconds)
+        {
+            _warnedAboutSilence = true;
+            ShowAlert(InfoBarSeverity.Warning, AppStrings.Record_SilentTitle, AppStrings.Record_SilentBody,
+                AppStrings.Record_BtnSoundSettings,
+                () => _ = Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:sound")));
+        }
 
         _bridge?.Emit("record.progress", new Dictionary<string, object?>
         {
             ["seconds"] = seconds,
             ["level"] = Math.Round(data.PeakLevel, 3),
+            ["silent"] = !_heardSomething,
         });
     }
 

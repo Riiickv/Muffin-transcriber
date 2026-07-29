@@ -25,17 +25,26 @@ public sealed partial class WebBridge
     {
         // One round trip per page load: language, theme and settings arrive
         // together so nothing renders in English or in the wrong accent first.
-        Register("app.bootstrap", _ => (object?)new Dictionary<string, object?>
+        Register("app.bootstrap", _ =>
         {
-            ["strings"] = LocalizationManager.Snapshot(),
-            ["settings"] = SettingsMap(),
-            ["theme"] = ThemeMap(),
-            ["version"] = AppStrings.AppVersion,
-            ["hasMicrophone"] = RecordingController.HasMicrophone,
-            ["isRecording"] = RecordingController.IsRecording,
-            ["banner"] = _pendingBanner,
-            // So a screen opened mid-download shows the ring straight away.
-            ["downloads"] = ActiveDownloads(),
+            // Proof that a screen is alive: this call only happens once the
+            // HTML has parsed and its scripts have run. The blank-start
+            // watchdog waits for exactly this, because NavigationCompleted
+            // reported success for the very load that drew nothing.
+            PageRendered = true;
+
+            return (object?)new Dictionary<string, object?>
+            {
+                ["strings"] = LocalizationManager.Snapshot(),
+                ["settings"] = SettingsMap(),
+                ["theme"] = ThemeMap(),
+                ["version"] = AppStrings.AppVersion,
+                ["hasMicrophone"] = RecordingController.HasMicrophone,
+                ["isRecording"] = RecordingController.IsRecording,
+                ["banner"] = _pendingBanner,
+                // So a screen opened mid-download shows the ring straight away.
+                ["downloads"] = ActiveDownloads(),
+            };
         });
 
         Register("settings.set", args =>
@@ -118,6 +127,15 @@ public sealed partial class WebBridge
         // mid-navigation, or have no page attached yet. So the screen can also
         // ASK what the banner should say, and does while one is in progress.
         Register("app.currentBanner", _ => (object?)_pendingBanner);
+
+        // Asked by every screen as it boots. Returns an error nobody has seen
+        // yet, exactly once.
+        Register("app.unseenError", _ =>
+        {
+            Dictionary<string, object?>? unseen = _unseenError;
+            _unseenError = null;
+            return (object?)unseen;
+        });
 
         // The title bar is drawn by the page now, so the window controls have
         // to come back through here.
@@ -231,6 +249,13 @@ public sealed partial class WebBridge
     private Dictionary<string, object?>? _pendingBanner;
 
     /// <summary>
+    /// The last error banner that no page has displayed yet. Cleared only once
+    /// a page confirms it drew it, so an error raised before the first screen
+    /// booted - or while one was navigating - is shown on the next one.
+    /// </summary>
+    private Dictionary<string, object?>? _unseenError;
+
+    /// <summary>
     /// Shows a banner in the UI. It is drawn by the page, not by XAML, so it
     /// carries the app's own accent, type and corners instead of the stock
     /// system look sitting on top of a themed app.
@@ -250,6 +275,17 @@ public sealed partial class WebBridge
         };
 
         _pendingBanner = payload;
+
+        // An ERROR is kept in its own slot as well. _pendingBanner holds one
+        // banner, so the next thing to raise one - an update check, a download
+        // finishing - quietly replaced it, and if no page was listening when it
+        // was first sent the message was simply gone. That is how "Muffin can't
+        // start its engines" reached the log and never reached the user.
+        //
+        // Errors are the ones nobody may miss, so they survive until a page has
+        // actually shown one.
+        if (kind == "error") _unseenError = payload;
+
         Emit("app.banner", payload);
     }
 

@@ -8,6 +8,10 @@
     var page = payload && (payload.page || pageFor(payload.tab));
     if (!page) return;
     var here = location.pathname.split("/").pop() || "index.html";
+    // "open" names a transcript to select on arrival, and is followed even when
+    // the page is already the one showing: a finished recording has to select
+    // ITS row, not leave whatever was open before.
+    if (payload.open) { location.href = page + "?open=" + encodeURIComponent(payload.open); return; }
     if (page !== here) location.href = page;
   });
 
@@ -302,14 +306,18 @@
     return el;
   }
 
-  function showBanner(b) {
+  function showBanner(b, force) {
     if (!b) return;
 
     // The banner is replayed on every screen, so one the user closed must not
     // come back; a different one still must.
+    //
+    // force is for an error nobody has seen yet: it has never been on screen,
+    // so a matching signature can only be a coincidence, and skipping it would
+    // hide the one class of message that must not be hidden.
     var signature = (b.kind || "") + "|" + (b.title || "") + "|" + (b.message || "");
     try {
-      if (sessionStorage.getItem("muffin.bannerDismissed") === signature) return;
+      if (!force && sessionStorage.getItem("muffin.bannerDismissed") === signature) return;
     } catch (e) { }
 
     var el = bannerEl();
@@ -379,9 +387,18 @@
   // any download that started on a screen this one replaced.
   Muffin.ready(function () {
     var data = Muffin.data();
-    if (!data) return;
-    if (data.banner) { showBanner(data.banner); watchBanner(); }
-    if (data.downloads) { downloads = data.downloads; paintDownloads(); }
+    if (data) {
+      if (data.banner) { showBanner(data.banner); watchBanner(); }
+      if (data.downloads) { downloads = data.downloads; paintDownloads(); }
+    }
+
+    // An error raised while no page was listening, or while one was navigating,
+    // is handed over here and shown on arrival. A push can be dropped, and the
+    // one that was dropped was "Muffin can't start its engines": the app knew
+    // it was broken, said so, and nobody ever saw it.
+    Muffin.invoke("app.unseenError").then(function (unseen) {
+      if (unseen) showBanner(unseen, true);
+    });
   });
 
   // ---- toast -------------------------------------------------------------
