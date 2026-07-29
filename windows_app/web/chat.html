@@ -52,9 +52,9 @@
       </div>
 
       <div class="composer">
-        <textarea id="input" rows="1"
+        <div id="input" class="field" data-field contenteditable="plaintext-only"
           data-i18n-attr="placeholder:chat.inputPlaceholder"
-          placeholder="Ask about your transcripts..."></textarea>
+          placeholder="Ask about your transcripts..."></div>
         <button class="send-btn" id="send" data-i18n-attr="title:chat.sendButton" title="Send"><span class="msr fill" style="font-size:20px">&#xE5D8;</span></button>
       </div>
     </section>
@@ -141,8 +141,9 @@
       var titleEl = main.querySelector(".s-title");
       if (main.querySelector(".s-edit")) return;
 
-      var input = document.createElement("input");
+      var input = makeField(document.createElement("div"));
       input.className = "s-edit";
+      input.setAttribute("data-single-line", "");
       input.value = session.title;
       main.replaceChild(input, titleEl);
       input.focus();
@@ -271,7 +272,6 @@
       if (!text) return;
 
       input.value = "";
-      input.style.height = "auto";
       addBubble("user", text);
       streamBubble = addBubble("assistant", Muffin.t("chat.thinking", "Thinking..."));
       firstToken = true;
@@ -421,11 +421,8 @@
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
     });
 
-    var textarea = document.getElementById("input");
-    textarea.addEventListener("input", function () {
-      textarea.style.height = "auto";
-      textarea.style.height = Math.min(120, textarea.scrollHeight) + "px";
-    });
+    // No auto-grow code any more: the composer is a div, so it grows with its
+    // own content and stops at the max-height the stylesheet gives it.
 
     // ---- delete confirmation -----------------------------------------------
 

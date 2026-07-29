@@ -141,6 +141,49 @@ input, textarea, [contenteditable] {
   caret-color: var(--accent);
 }
 
+/* ---- Text fields ----
+   Every place you can type is a contenteditable div rather than an <input> or
+   a <textarea>. Those keep their text inside the control instead of in the
+   document, which put both the selection and the caret out of reach: the
+   rounded highlight stopped at their edges, and caret-color is the only thing
+   CSS can say about a caret, so it was a 1px system-width line. */
+[data-field] {
+  display: block; width: 100%;
+  background: var(--surface-strong);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-sm);
+  padding: 8px var(--sp-md);
+  color: var(--text); font: inherit; line-height: 1.5;
+  outline: none; overflow-y: auto;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  caret-color: transparent;
+}
+[data-field]:focus { border-color: var(--accent); }
+/* attr(placeholder), so the i18n pass still writes the text where it always
+   did. A class rather than :empty, because an emptied contenteditable keeps a
+   <br> behind and :empty stops matching. */
+[data-field].is-empty::before {
+  content: attr(placeholder);
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+[data-field][data-single-line] {
+  white-space: pre; overflow-x: auto; overflow-y: hidden;
+}
+
+/* Drawn, not asked for: 2px, the accent, rounded, and solid while you type. */
+.caret {
+  position: fixed; width: 2px; border-radius: 1px;
+  background: var(--accent); pointer-events: none;
+  z-index: 86; display: none;
+}
+.caret.on { display: block; animation: caret-blink 1.1s step-end infinite; }
+@keyframes caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 99% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
 .rail-item .msr, .mic-fab .msr { font-size: 23px; }
 
 html, body {
@@ -526,23 +569,40 @@ textarea { resize: vertical; min-height: 72px; }
 
 /* ---- History: two-pane (list + detail), the desktop arrangement ---- */
 .two-pane { display: flex; flex: 1; min-width: 0; }
+/* A card, like the rail and the chat's session pane, not a column behind a
+   divider. The header and the search field stay put; only the list scrolls. */
 .hist-list {
   width: 420px; flex-shrink: 0;
-  border-right: 1px solid var(--divider);
-  overflow-y: auto; padding: var(--sp-lg);
+  display: flex; flex-direction: column;
+  margin: var(--sp-sm) 0;
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
 }
-.hist-list h2 { font-size: 26px; font-weight: 700; margin: 0 0 var(--sp-lg); }
+.hl-head { padding: var(--sp-lg) var(--sp-lg) var(--sp-md); flex-shrink: 0; }
+.hl-rows { flex: 1; overflow-y: auto; padding: 0 var(--sp-lg) var(--sp-lg); }
+.hist-list h2 { font-size: 26px; font-weight: 700; margin: 0 0 var(--sp-md); }
 .search {
-  display: flex; align-items: center; gap: var(--sp-sm);
-  background: var(--surface); border: 1px solid var(--divider);
+  display: block;
+  /* --surface-strong: the pane behind it is --surface now, and a field in the
+     same colour as its panel is not a field. */
+  background: var(--surface-strong); border: 1px solid var(--card-border);
   border-radius: var(--r-sm); padding: 8px var(--sp-md);
-  color: var(--text-muted); font-size: 13px; margin-bottom: var(--sp-lg);
+  color: var(--text-muted); font-size: 13px; width: 100%;
+}
+.hist-list .empty {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: var(--sp-sm);
+  padding: var(--sp-lg);
 }
 
 /* List item = a card, like the mobile History list: pink waveform square,
    title, date, a 2-line preview snippet, and edit/delete at top-right. */
 .hist-card {
-  background: var(--surface);
+  /* One step above the pane it sits on, or a card in the panel's own colour
+     reads as a rectangle drawn on nothing. */
+  background: var(--surface-strong);
   border: 1px solid var(--card-border);
   border-radius: var(--r-md);
   padding: var(--sp-md);
@@ -765,12 +825,12 @@ textarea { resize: vertical; min-height: 72px; }
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
 }
 .composer:focus-within { border-color: var(--accent); }
-.composer textarea::placeholder { color: var(--text-subtle); }
-.composer textarea {
-  flex: 1; background: transparent; border: none; resize: none;
+.composer .field {
+  flex: 1; width: auto; background: transparent; border: none;
   min-height: 40px; max-height: 120px; padding: 10px 14px;
-  color: var(--text); font: inherit; outline: none;
+  border-radius: var(--r-pill);
 }
+.composer .field:focus { border-color: transparent; }
 .send-btn {
   width: 40px; height: 40px; border-radius: 50%; background: var(--accent); color: var(--on-accent);
   border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;

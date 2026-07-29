@@ -115,6 +115,13 @@
       } else if (el.tagName === "SELECT") {
         el.value = String(value);
         if (window.syncDropdown) window.syncDropdown(el);
+      } else if (el.isContentEditable) {
+        // textContent, not .value: the prompt boxes are our own fields now, and
+        // this can run before muffin.js has put the .value shim on them.
+        if (document.activeElement !== el) {
+          el.textContent = value == null ? "" : String(value);
+          el.classList.toggle("is-empty", el.textContent.length === 0);
+        }
       } else if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
         if (document.activeElement !== el) el.value = value == null ? "" : String(value);
       }
@@ -158,13 +165,14 @@
         });
       } else if (el.tagName === "SELECT") {
         el.addEventListener("change", function () { set(key, el.value); });
-      } else if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+      } else if (el.isContentEditable || el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+        var read = function () { return el.isContentEditable ? el.textContent : el.value; };
         var timer = null;
         el.addEventListener("input", function () {
           clearTimeout(timer);
-          timer = setTimeout(function () { set(key, el.value); }, 400);
+          timer = setTimeout(function () { set(key, read()); }, 400);
         });
-        el.addEventListener("blur", function () { clearTimeout(timer); set(key, el.value); });
+        el.addEventListener("blur", function () { clearTimeout(timer); set(key, read()); });
       }
     });
   }

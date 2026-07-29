@@ -176,17 +176,17 @@
           <div class="srow stacked">
             <div class="s-label"><div class="s-name" data-i18n="settings.formatSystemPrompt">Improvement default prompt</div></div>
             <div class="s-control">
-              <textarea class="prompt" data-setting="CustomFormatSystemPrompt"
+              <div class="prompt" data-setting="CustomFormatSystemPrompt"
                 data-i18n-attr="placeholder:settings.formatSystemPromptPlaceholder"
-                placeholder="You are an expert editor..."></textarea>
+                placeholder="You are an expert editor..." data-field contenteditable="plaintext-only"></div>
             </div>
           </div>
           <div class="srow stacked">
             <div class="s-label"><div class="s-name" data-i18n="settings.summarySystemPrompt">Summary default prompt</div></div>
             <div class="s-control">
-              <textarea class="prompt" data-setting="CustomSummarySystemPrompt"
+              <div class="prompt" data-setting="CustomSummarySystemPrompt"
                 data-i18n-attr="placeholder:settings.summarySystemPromptPlaceholder"
-                placeholder="Summarize the following text..."></textarea>
+                placeholder="Summarize the following text..." data-field contenteditable="plaintext-only"></div>
             </div>
           </div>
         </div>
@@ -235,9 +235,9 @@
   <div class="modal-backdrop" id="memory-modal" hidden>
     <div class="modal">
       <h2 data-i18n="settings.manageMemory">Manage memories</h2>
-      <textarea id="memory-text" class="prompt tall"
+      <div id="memory-text" class="prompt tall"
         data-i18n-attr="placeholder:settings.noMemories"
-        placeholder="No memories saved yet. Keep chatting or add them."></textarea>
+        placeholder="No memories saved yet. Keep chatting or add them." data-field contenteditable="plaintext-only"></div>
       <div class="modal-actions">
         <button class="btn btn-ghost danger" id="memory-clear" data-i18n="common.delete">Delete</button>
         <div class="modal-spacer"></div>
