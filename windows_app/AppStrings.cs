@@ -120,6 +120,11 @@ public static class AppStrings
     public static string Chat_Thinking => T("chat.thinking", "Thinking...");
     public static string Chat_Done => T("chat.actionExecuted", "Done");
     public static string Chat_ActionFailed => T("chat.actionFailed", "Couldn't do that");
+
+    // Shown under the chip when the assistant reached for something that is not
+    // one of its actions at all, rather than for one that ran and failed.
+    public static string Chat_ActionUnsupported =>
+        T("pc.chat.actionUnsupported", "That isn't something I can do from the chat.");
     public static string Chat_ErrorMessage => T("chat.errorMessage", "Sorry, something went wrong. Here is what the app said:");
     public static string Chat_DeleteTitle => T("chat.deleteTitle", "Delete transcript?");
     public static string Chat_DeleteConfirm => T("chat.deleteMessage", "Delete “{name}”? This can't be undone.");

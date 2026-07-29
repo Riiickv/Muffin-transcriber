@@ -4,6 +4,7 @@
   "pc.accent.purple": "Roxo",
   "pc.accent.red": "Vermelho",
   "pc.accent.system": "Sistema",
+  "pc.chat.actionUnsupported": "Isso não é algo que eu possa fazer pelo chat.",
   "pc.crash.body": "O Muffin encontrou um erro inesperado mas continuou a funcionar. Se algo parecer bloqueado, reinicia a app. Os detalhes técnicos estão no registo.",
   "pc.crash.openLog": "Abrir registo",
   "pc.crash.title": "Algo correu mal",
