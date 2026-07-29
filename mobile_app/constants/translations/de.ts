@@ -329,9 +329,9 @@ export const DE = {
     tierAccurate: "Am genauesten",
     tierSmartSearch: "Intelligente Suche",
 
-    descWhisperFastest: "Gröbere Formulierung. Gut für kurze, klare Notizen.",
-    descWhisperBalanced: "Der ideale Mittelweg für die meisten Sprachnotizen.",
-    descWhisperAccurate: "Am besten bei Akzenten und Hintergrundgeräuschen. Am langsamsten.",
+    descWhisperFastest: "Gröbere Formulierung. Gut für kurze, klare Notizen, und in Sekunden fertig.",
+    descWhisperBalanced: "Der ideale Mittelweg für die meisten Sprachnotizen. Ein paar Sekunden für eine kurze Notiz.",
+    descWhisperAccurate: "Am besten bei Akzenten und Hintergrundgeräuschen. Braucht mindestens eine halbe Minute pro Aufnahme, auch bei kurzen.",
     descFmtFastest: "Für die Chips neuerer Handys optimiert.",
     descFmtFast: "Etwas bessere Formulierung als Am schnellsten.",
     descFmtBalanced: "Größer, aber auf neueren Handys immer noch schnell.",

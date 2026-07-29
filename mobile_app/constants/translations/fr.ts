@@ -329,9 +329,9 @@ export const FR = {
     tierAccurate: "Le plus précis",
     tierSmartSearch: "Recherche intelligente",
 
-    descWhisperFastest: "Formulation plus brute. Convient aux notes courtes et claires.",
-    descWhisperBalanced: "Le bon compromis pour la plupart des notes vocales.",
-    descWhisperAccurate: "Le meilleur avec les accents et le bruit de fond. Le plus lent.",
+    descWhisperFastest: "Formulation plus brute. Convient aux notes courtes et claires, et se termine en quelques secondes.",
+    descWhisperBalanced: "Le bon compromis pour la plupart des notes vocales. Quelques secondes pour une note courte.",
+    descWhisperAccurate: "Le meilleur avec les accents et le bruit de fond. Demande au moins une demi-minute par enregistrement, même court.",
     descFmtFastest: "Optimisé pour les puces des téléphones récents.",
     descFmtFast: "Formulation un peu meilleure que Le plus rapide.",
     descFmtBalanced: "Plus gros, mais toujours rapide sur les téléphones récents.",
