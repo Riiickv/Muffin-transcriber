@@ -270,10 +270,13 @@ public static class LLMFormatter
         if (string.IsNullOrWhiteSpace(raw)) return null;
 
         string title = raw.Trim().Split('\n')[0].Trim();
-        title = title.Trim('"', '\'', '`', '*', '#', ' ');
+        // Brackets as well as quotes: asked for a title, models reach for
+        // "[Transcript Assistance]" and the brackets ended up in the chat list.
+        const string wrappers = "\"'`*#[]()<>{} ";
+        title = title.Trim(wrappers.ToCharArray());
         int colon = title.IndexOf(':');
         if (colon >= 0 && colon <= 12) title = title[(colon + 1)..].Trim();
-        title = title.Trim('"', '\'', '`', '*', ' ').TrimEnd('.', ',', ';', '!');
+        title = title.Trim(wrappers.ToCharArray()).TrimEnd('.', ',', ';', '!');
 
         if (title.Length == 0 || title.Length > 60) return null;
         string[] words = title.Split(' ', StringSplitOptions.RemoveEmptyEntries);
