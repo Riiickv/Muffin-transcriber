@@ -29,6 +29,19 @@ export default function TabLayout() {
         headerShown: useClientOnlyValue(false, true) && !isFirstRun,
         headerShadowVisible: false,
         headerStyle: { borderBottomWidth: 0, backgroundColor: theme.background },
+        // The screen title is drawn by React Navigation, not by our Text, so it
+        // never picked up the app's font - it has been the platform's default
+        // this whole time, under Nunito too. Nobody noticed until the rest of
+        // the app stopped looking like the system.
+        //
+        // The Bold cut is the 112% one, the same width the desktop gives a page
+        // title, and no fontWeight beside it: the weight is in the file, and
+        // asking for one as well makes Android synthesise a second bold on top.
+        headerTitleStyle: {
+          fontFamily: 'GoogleSansFlex-Bold',
+          fontSize: 24,
+          color: theme.text,
+        },
         // No paddingBottom here: it would shrink every scene, so scrollable
         // content would stop above the floating bar and clip. Screens reserve
         // TAB_BAR_SPACE in their own content instead, which lets lists scroll

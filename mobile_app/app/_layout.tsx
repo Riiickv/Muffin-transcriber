@@ -128,7 +128,17 @@ function RootLayoutNav() {
         {/* Recording is owned here, above the tabs, so the mic button records
             from anywhere and the transcription survives navigating to History. */}
         <RecordingProvider>
-          <Stack>
+          <Stack
+            screenOptions={{
+              // Same as the tabs: the header title is React Navigation's own
+              // Text and needs telling explicitly.
+              headerTitleStyle: {
+                fontFamily: 'GoogleSansFlex-Bold',
+                fontSize: 20,
+                color: theme.text,
+              },
+            }}
+          >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             {/* Title is set dynamically inside history/[id].tsx via <Stack.Screen /> */}
             <Stack.Screen name="history/[id]" />
