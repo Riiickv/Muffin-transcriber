@@ -203,3 +203,8 @@ AITranscriber_Release/
 /*.wav.srt
 /*.wav.txt
 /TestTranscribeApp/
+
+# Store artwork and logo sources: Ricky's, not the app's, and not for the repo.
+mobile_app/assets/images/store_images-*.png
+mobile_app/assets/images/MuffinLogoBig.*
+mobile_app/assets/images/img_1.ai
