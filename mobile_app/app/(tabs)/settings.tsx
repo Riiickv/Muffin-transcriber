@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { TextInput } from '@/components/Themed';
 import { useState, useCallback } from 'react';
 import { useFocusEffect, router } from 'expo-router';
 
