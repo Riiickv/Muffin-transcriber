@@ -38,13 +38,22 @@ export function Text(props: TextProps) {
   const { style, lightColor, darkColor, ...otherProps } = props;
   const { theme } = useTheme();
   
+  // Google Sans Flex, in the three cuts the app ships.
+  //
+  // The desktop expresses its type hierarchy along the font's width axis:
+  // titles wide, controls slightly wide, prose neutral. React Native has no
+  // width axis and no font-variation-settings, so the width is baked into each
+  // file and picked here by the only thing this component knows about a piece
+  // of text - how bold it is. Bold means a title or a heading, so it gets the
+  // widest cut; regular is body text and stays neutral. The numbers match the
+  // desktop's exactly (100%, 104%, 112%).
   const flattenedStyle = StyleSheet.flatten(style) || {};
-  let fontFamily = 'Nunito_400Regular';
+  let fontFamily = 'GoogleSansFlex-Body';
   const fw = flattenedStyle.fontWeight;
   if (fw === 'bold' || fw === '700' || fw === '800' || fw === '900') {
-    fontFamily = 'Nunito_700Bold';
+    fontFamily = 'GoogleSansFlex-Bold';
   } else if (fw === '500' || fw === '600') {
-    fontFamily = 'Nunito_600SemiBold';
+    fontFamily = 'GoogleSansFlex-Medium';
   }
 
   // Cap how far the system font-size setting can inflate the UI. Uncapped, a
