@@ -95,12 +95,37 @@ export async function loadLLM(modelPath: string): Promise<void> {
 }
 
 /**
+ * Bumped by every stopLlamaWork(). The multi-pass jobs below read it to tell
+ * "someone pressed Stop DURING my run" from "someone pressed Stop before I
+ * started", without a flag anyone has to remember to clear.
+ */
+let stopTicket = 0;
+
+/** Thrown by a multi-pass job the user stopped. Not a failure; say nothing. */
+export class LlamaStopped extends Error {
+  constructor() {
+    super('Stopped');
+    this.name = 'LlamaStopped';
+  }
+}
+
+export function isStopped(e: unknown): boolean {
+  return e instanceof LlamaStopped || (e as any)?.name === 'LlamaStopped';
+}
+
+/**
  * Abort whatever the model is generating, without unloading it.
  *
  * The context stays alive and warm, so the next task starts immediately. The
  * aborted call resolves with whatever it had produced, which callers discard.
+ *
+ * stopCompletion only ends the completion in flight. A long transcript is many
+ * completions in a row, so on its own this ended one pass of eighteen and the
+ * next one started immediately - Stop looked ignored for another ten minutes.
+ * The ticket is what the chunk loops watch.
  */
 export async function stopLlamaWork(): Promise<void> {
+  stopTicket += 1;
   try {
     await llamaContext?.stopCompletion();
   } catch (e) {
@@ -225,10 +250,14 @@ export async function formatTranscript(
   // of the next.
   if (transcript.length > FORMAT_CHUNK_CHARS) {
     const chunks = splitForModel(transcript, FORMAT_CHUNK_CHARS);
+    const ticket = stopTicket;
     const done: string[] = [];
-    for (const chunk of chunks) {
-      const piece = await formatTranscript(chunk, modelPath, modelFile, undefined, sourceLanguage);
-      done.push(piece);
+    for (let i = 0; i < chunks.length; i++) {
+      // Stop means stop. Everything not yet improved is handed back exactly as
+      // it was recorded: the result still contains every word the user said,
+      // which matters more here than finishing the job.
+      if (stopTicket !== ticket) return done.concat(chunks.slice(i)).join(' ');
+      done.push(await formatTranscript(chunks[i], modelPath, modelFile, undefined, sourceLanguage));
       // Stream what is finished so a twenty minute lecture is not a blank
       // screen for several minutes.
       onPartial?.(done.join(' '));
@@ -348,8 +377,13 @@ export async function summarizeTranscript(
   // Chunks are bigger here than for formatting because the output is short.
   if (transcript.length > SUMMARY_CHUNK_CHARS) {
     const chunks = splitForModel(transcript, SUMMARY_CHUNK_CHARS);
+    const ticket = stopTicket;
     const partials: string[] = [];
     for (const chunk of chunks) {
+      // Unlike Improve, a half-finished summary cannot be handed over: it would
+      // read as a summary of the whole recording while covering only its start.
+      // So a stopped summary produces nothing and the previous one stands.
+      if (stopTicket !== ticket) throw new LlamaStopped();
       const piece = await summarizeTranscript(chunk, modelPath, modelFile, undefined, sourceLanguage);
       // A chunk that failed contributes nothing rather than the word "Couldn't".
       if (piece && !piece.startsWith(t('historyDetail.summaryFailed') || 'x')) partials.push(piece);
