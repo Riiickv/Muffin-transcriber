@@ -58,6 +58,8 @@ export const FR = {
   },
 
   record: {
+    silentTitle: "Muffin n'entend rien",
+    silentBody: "Cet enregistrement est silencieux jusqu'ici. Vérifiez que le bon microphone est sélectionné et qu'aucune autre application ne l'utilise. L'enregistrement continue.",
     optionsTitle: "Options d'enregistrement",
     readyToTranscribe: "Prêt à transcrire",
     listening: "J'écoute...",

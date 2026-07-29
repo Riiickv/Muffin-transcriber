@@ -58,6 +58,8 @@ export const DE = {
   },
 
   record: {
+    silentTitle: "Muffin hört nichts",
+    silentBody: "Diese Aufnahme ist bisher still. Prüfe, ob das richtige Mikrofon ausgewählt ist und keine andere App es benutzt. Die Aufnahme läuft weiter.",
     optionsTitle: "Aufnahmeoptionen",
     readyToTranscribe: "Bereit zum Transkribieren",
     listening: "Ich höre zu...",
