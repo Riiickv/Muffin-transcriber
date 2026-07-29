@@ -313,6 +313,9 @@ export const APP_STRINGS = {
   //  "SETTINGS" TAB
   // ==========================================================================
   settings: {
+    speedReport: "Speed report",
+    copyReport: "Copy",
+    clearReport: "Clear",
     chatBetaLabel: "Chat with Muffin",
     header: "Settings",
 

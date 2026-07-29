@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { recordLlm } from './perfLog';
 import type { LlamaContext } from 'llama.rn';
 import { loadSettings } from './settingsStore';
 import { loadHistory, HistoryItem } from './historyStore';
@@ -349,7 +350,7 @@ export async function chatStream(
   ];
 
   try {
-    await llamaContext.completion(
+    const chatResult = await llamaContext.completion(
       {
         prompt,
         n_predict: 768,
@@ -364,6 +365,7 @@ export async function chatStream(
         onToken(text);
       }
     );
+    void recordLlm('chat', modelFile, (chatResult as any)?.timings, fullResponse.length);
   } catch (error) {
     // Re-throw so the caller (chat.tsx) can distinguish a real failure from a
     // short/empty response and show the "encountered an error" bubble.

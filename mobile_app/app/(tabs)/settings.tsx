@@ -1,4 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { loadRuns, clearRuns, formatRuns } from '@/utils/perfLog';
 import { TextInput } from '@/components/Themed';
 import { useState, useCallback } from 'react';
 import { useFocusEffect, router } from 'expo-router';
@@ -86,6 +88,30 @@ export default function SettingsScreen() {
   }));
 
   const downloadedCount = Object.values(downloadedModels).filter(Boolean).length;
+
+  // The numbers behind "is it fast?". Every transcription and every LLM task
+  // records how long it took; this reads them back. Nothing is uploaded - it is
+  // the same on-device storage as everything else in the app.
+  const showSpeedReport = async () => {
+    haptics.tap();
+    const report = formatRuns(await loadRuns());
+    dialog.show({
+      title: t('settings.speedReport') || 'Speed report',
+      message: report,
+      buttons: [
+        {
+          label: t('settings.copyReport') || 'Copy',
+          variant: 'secondary',
+          onPress: () => { void Clipboard.setStringAsync(report); },
+        },
+        {
+          label: t('settings.clearReport') || 'Clear',
+          variant: 'danger',
+          onPress: () => { void clearRuns(); },
+        },
+      ],
+    });
+  };
 
   const handleCompress = async () => {
     if (!settings.preferredChatModel) {
@@ -342,6 +368,11 @@ export default function SettingsScreen() {
           icon="library"
           label={t('settings.privacyPolicy')}
           onPress={() => { haptics.tap(); openPrivacyPolicy(); }}
+        />
+        <SettingsRow
+          icon="waveform"
+          label={t('settings.speedReport') || 'Speed report'}
+          onPress={showSpeedReport}
         />
       </SettingsGroup>
 
