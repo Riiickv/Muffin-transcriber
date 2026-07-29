@@ -32,6 +32,19 @@ export function noteModelLoad(ms: number): void {
   pendingLoadMs = ms;
 }
 
+/**
+ * Reads the pending load and clears it, so exactly one run is marked cold.
+ *
+ * Whichever run finishes next claims it. The engines are serialized, so that is
+ * the run that paid for it - but it is a diagnostic, not an accounting system,
+ * and a mislabelled COLD is cheaper than plumbing the value through every call.
+ */
+function takePendingLoad(): number {
+  const ms = pendingLoadMs;
+  pendingLoadMs = 0;
+  return ms;
+}
+
 export type PerfStage = {
   name: string;
   ms: number;
@@ -70,6 +83,8 @@ export function startRun(kind: string, model: string) {
       last = now;
     },
     async finish(extra?: { audioSeconds?: number; outputChars?: number }) {
+      const loadMs = takePendingLoad();
+      if (loadMs > 0) stages.push({ name: 'COLD - model loaded this run', ms: loadMs });
       const run: PerfRun = {
         at: new Date().toISOString(),
         kind,
@@ -170,8 +185,7 @@ export async function recordLlm(
   // the weights page in from flash during prefill rather than before it, and a
   // cold prefill measured a quarter of the speed of the warm one right after.
   // Marked, so nobody averages the two together and tunes against the mean.
-  const loadMs = pendingLoadMs;
-  pendingLoadMs = 0;
+  const loadMs = takePendingLoad();
   if (loadMs > 0) {
     stages.push({ name: 'COLD - model loaded this run', ms: loadMs });
   }

@@ -102,6 +102,9 @@ export default function SettingsScreen() {
     dialog.show({
       title: t('settings.speedReport') || 'Speed report',
       message: report,
+      // Columns of numbers, not prose. Centred, every line started in a
+      // different place and nothing lined up with anything.
+      messageAlign: 'left' as const,
       buttons: [
         {
           label: t('settings.copyReport') || 'Copy',
