@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { View, StyleSheet, TextInput, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { TextInput } from '@/components/Themed';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { Stack } from 'expo-router';
 

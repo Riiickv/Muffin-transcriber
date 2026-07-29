@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, TextInput } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { TextInput } from './Themed';
 import * as IntentLauncher from 'expo-intent-launcher';
 
 import { Text } from './Themed';

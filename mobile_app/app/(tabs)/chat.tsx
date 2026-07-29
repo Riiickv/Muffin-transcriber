@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, TextInput, FlatList, Animated, Easing, Keyboard, Pressable } from 'react-native';
+import { View, StyleSheet, FlatList, Animated, Easing, Keyboard, Pressable } from 'react-native';
+import { TextInput } from '@/components/Themed';
 import { Stack, router } from 'expo-router';
 
 import { Text } from '@/components/Themed';

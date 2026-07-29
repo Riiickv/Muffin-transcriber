@@ -1,4 +1,5 @@
-import { FlatList, Modal, Pressable, StyleSheet, View, TextInput } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { TextInput } from '@/components/Themed';
 import React, { useState } from 'react';
 import { router } from 'expo-router';
 

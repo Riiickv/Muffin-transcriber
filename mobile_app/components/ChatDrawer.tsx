@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { FlatList, Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { TextInput } from './Themed';
 import Animated, {
   Easing,
   runOnJS,

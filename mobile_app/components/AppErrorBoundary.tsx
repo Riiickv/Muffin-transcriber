@@ -53,8 +53,11 @@ const styles = {
     justifyContent: 'center' as const,
     padding: 32,
   },
-  title: { color: '#FFFFFF', fontSize: 20, fontWeight: '700' as const, textAlign: 'center' as const, marginBottom: 12 },
-  body: { color: '#B9B2BC', fontSize: 15, lineHeight: 22, textAlign: 'center' as const, marginBottom: 24 },
+  // The families are named directly rather than through Themed: this boundary
+  // wraps the theme provider, so it has to be able to render when that is the
+  // very thing that threw. Bold at 20 is the display cut, same as everywhere.
+  title: { fontFamily: 'GoogleSansFlex-Bold', color: '#FFFFFF', fontSize: 20, fontWeight: '700' as const, textAlign: 'center' as const, marginBottom: 12 },
+  body: { fontFamily: 'GoogleSansFlex-Body', color: '#B9B2BC', fontSize: 15, lineHeight: 22, textAlign: 'center' as const, marginBottom: 24 },
   button: { backgroundColor: '#F49CC4', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 999 },
-  buttonText: { color: '#1E1A1E', fontSize: 16, fontWeight: '700' as const },
+  buttonText: { fontFamily: 'GoogleSansFlex-Title', color: '#1E1A1E', fontSize: 16, fontWeight: '700' as const },
 };
