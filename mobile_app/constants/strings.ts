@@ -176,6 +176,8 @@ export const APP_STRINGS = {
   //  TRANSCRIPT DETAIL - opens when you tap a transcript in History
   // ==========================================================================
   historyDetail: {
+    editTranscript: "Edit transcript",
+    doneEditing: "Done",
     // -- Audio player at the top --
     play: "Play",
     pause: "Pause",

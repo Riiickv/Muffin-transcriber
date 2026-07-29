@@ -39,6 +39,12 @@ type Props = {
   copyDisabled: boolean;
   onFullscreen: () => void;
   fullscreenDisabled: boolean;
+  /** Editing is offered only where there is somewhere to save to, which is the
+   *  library: the Muffin! tab's text has no history row behind it yet. Omit
+   *  these and no pencil appears. */
+  editing?: boolean;
+  onToggleEdit?: () => void;
+  editDisabled?: boolean;
 };
 
 /**
@@ -68,6 +74,9 @@ export function TranscriptPanel({
   onCopy,
   copyDisabled,
   onFullscreen,
+  editing,
+  onToggleEdit,
+  editDisabled,
   fullscreenDisabled,
 }: Props) {
   const { theme } = useTheme();
@@ -86,6 +95,16 @@ export function TranscriptPanel({
         />
         {/* ghost-tint + sm: same look as the ghost Button they replaced, so
             they read as part of the row rather than a new kind of control. */}
+        {onToggleEdit && (
+          <IconButton
+            icon={editing ? 'check' : 'edit'}
+            variant={editing ? 'tint' : 'ghost-tint'}
+            size="sm"
+            onPress={onToggleEdit}
+            disabled={editDisabled}
+            accessibilityLabel={editing ? t('historyDetail.doneEditing') || 'Done' : t('historyDetail.editTranscript') || 'Edit transcript'}
+          />
+        )}
         <IconButton icon="copy" variant="ghost-tint" size="sm" onPress={onCopy} disabled={copyDisabled} />
         <IconButton
           icon="open-in-full"

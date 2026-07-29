@@ -97,6 +97,8 @@ export const FR = {
   },
 
   historyDetail: {
+    editTranscript: "Modifier la transcription",
+    doneEditing: "Terminé",
     play: "Lecture", pause: "Pause", audioMissing: "Fichier audio introuvable",
 
     retranscribe: "Retranscrire", format: "Améliorer", summarize: "Résumer",

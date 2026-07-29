@@ -97,6 +97,8 @@ export const PT = {
   },
 
   historyDetail: {
+    editTranscript: "Editar transcrição",
+    doneEditing: "Concluído",
     play: "Reproduzir", pause: "Pausa", audioMissing: "Ficheiro de áudio não encontrado",
 
     retranscribe: "Transcrever de novo", format: "Melhorar", summarize: "Resumir",
