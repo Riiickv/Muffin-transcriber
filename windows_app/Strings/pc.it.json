@@ -111,5 +111,6 @@
   "pc.update.update": "Aggiorna!",
   "pc.window.close": "Chiudi",
   "pc.window.maximize": "Ingrandisci",
-  "pc.window.minimize": "Riduci a icona"
+  "pc.window.minimize": "Riduci a icona",
+  "pc.window.restore": "Ripristina"
 }

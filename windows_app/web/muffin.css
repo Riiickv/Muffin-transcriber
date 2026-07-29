@@ -161,10 +161,11 @@ html, body {
    font IS the system's glyphs, and the point was to stop borrowing them. */
 .titlebar {
   position: fixed; top: 0; left: 0; right: 0; height: 40px; z-index: 100;
-  /* No gap: the window controls sit flush against each other the way caption
-     buttons do. The icon and title space themselves instead. */
-  display: flex; align-items: center;
-  padding-left: var(--sp-md);
+  /* The controls no longer sit flush in the corner the way caption buttons do.
+     They are rail buttons that happen to live up here, so they get the rail's
+     spacing and its rounded square. */
+  display: flex; align-items: center; gap: 2px;
+  padding: 0 var(--sp-sm) 0 var(--sp-md);
   background: var(--bg);
   user-select: none;
 }
@@ -175,13 +176,14 @@ body.has-titlebar .app { padding-top: 40px; }
 .titlebar .tb-spacer { flex: 1; }
 
 .titlebar .tb-btn {
-  width: 44px; height: 40px; flex-shrink: 0;
+  width: 32px; height: 32px; flex-shrink: 0;
   background: transparent; border: none; padding: 0; cursor: pointer;
+  border-radius: var(--r-md);
   display: flex; align-items: center; justify-content: center;
   color: var(--text-muted);
 }
-/* Hover and press take the accent, so the window controls answer to the
-   picker like everything else rather than sitting in a neutral grey. */
+/* The same shape and the same fill as the selected rail button, because that
+   is what a "this one is lit" button looks like everywhere else in the app. */
 .titlebar .tb-btn:hover { background: var(--accent-fill); color: var(--accent); }
 .titlebar .tb-btn:active { background: color-mix(in srgb, var(--accent) 28%, transparent); }
 /* Close is the one that should read as consequence, not accent. */
@@ -199,32 +201,35 @@ body.has-titlebar .app { padding-top: 40px; }
 }
 .titlebar .tb-support:hover .tb-mark { background-color: var(--danger); }
 
-/* ---- the three glyphs, as shapes ---- */
-.titlebar .tb-ico { position: relative; display: block; width: 10px; height: 10px; }
+/* ---- the three glyphs, as shapes ----
+   2px strokes, not hairlines. Every other glyph in the app is a Material
+   Symbol with real weight behind it, and 1px window controls beside them read
+   as if a different app's icons had been pasted in. */
+.titlebar .tb-ico { position: relative; display: block; width: 12px; height: 12px; }
 
 /* minimize: one rule */
 .titlebar .tb-ico.min::before {
-  content: ""; position: absolute; left: 0; right: 0; top: 50%;
-  height: 1px; background: currentColor;
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; margin-top: -1px;
+  height: 2px; border-radius: 1px; background: currentColor;
 }
 
 /* maximize: a rounded square. restore: that square, offset, with a second
    behind it, which is what the two-window state actually looks like. */
 .titlebar .tb-ico.max::before {
   content: ""; position: absolute; inset: 0;
-  border: 1px solid currentColor; border-radius: 2px;
+  border: 2px solid currentColor; border-radius: 4px;
 }
-.titlebar .tb-ico.max.restore::before { inset: 2px 0 0 2px; }
+.titlebar .tb-ico.max.restore::before { inset: 3px 0 0 3px; }
 .titlebar .tb-ico.max.restore::after {
-  content: ""; position: absolute; inset: 0 2px 2px 0;
-  border: 1px solid currentColor; border-radius: 2px;
+  content: ""; position: absolute; inset: 0 3px 3px 0;
+  border: 2px solid currentColor; border-radius: 4px;
 }
 
 /* close: two strokes */
 .titlebar .tb-ico.close::before,
 .titlebar .tb-ico.close::after {
-  content: ""; position: absolute; left: -1px; right: -1px; top: 50%;
-  height: 1px; background: currentColor; border-radius: 1px;
+  content: ""; position: absolute; left: -1px; right: -1px; top: 50%; margin-top: -1px;
+  height: 2px; background: currentColor; border-radius: 1px;
 }
 .titlebar .tb-ico.close::before { transform: rotate(45deg); }
 .titlebar .tb-ico.close::after { transform: rotate(-45deg); }
@@ -232,6 +237,11 @@ body.has-titlebar .app { padding-top: 40px; }
 /* ---- Layout: nav rail + scrolling page, mirroring the desktop shell ---- */
 .app { display: flex; height: 100vh; }
 
+/* A card, not a wall. It used to be a full-height column with a divider down
+   one side, which meant it inherited the window's own rounded bottom-left
+   corner and ran straight up under the title bar, so its top edge was sliced
+   off. Inset on all four sides it is simply its own rounded rectangle, and
+   nothing it is next to can crop it. */
 .rail {
   width: 60px;
   flex-shrink: 0;
@@ -240,7 +250,10 @@ body.has-titlebar .app { padding-top: 40px; }
   align-items: center;
   padding: var(--sp-md) 0;
   gap: var(--sp-xs);
-  border-right: 1px solid var(--divider);
+  margin: var(--sp-sm);
+  background: var(--surface);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-lg);
 }
 .rail-item {
   width: 40px; height: 40px;
@@ -251,7 +264,9 @@ body.has-titlebar .app { padding-top: 40px; }
   font-size: 20px;
   border: none; background: transparent;
 }
-.rail-item:hover { background: var(--surface); color: var(--text); }
+/* --surface-strong, because the rail itself is --surface now and a hover in
+   the same colour as the panel under it is no hover at all. */
+.rail-item:hover { background: var(--surface-strong); color: var(--text); }
 .rail-item.active { color: var(--accent); background: var(--accent-fill); }
 .rail-spacer { flex: 1; }
 

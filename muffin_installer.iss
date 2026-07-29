@@ -1,5 +1,5 @@
 #define MyAppName "Muffin Transcriber"
-#define MyAppVersion "1.6.3"
+#define MyAppVersion "1.6.5"
 #define MyAppPublisher "Muffin Open Source"
 #define MyAppExeName "MuffinTranscriber.exe"
 

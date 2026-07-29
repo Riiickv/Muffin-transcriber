@@ -181,15 +181,22 @@
 
     bar.querySelector(".tb-title").textContent = Muffin.t("app.title", "Muffin Transcriber");
 
+    // data-tip, never title: a title attribute is what Windows reads to draw
+    // its own tooltip, and it drew one next to ours on the support button.
     var support = bar.querySelector(".tb-support");
-    support.title = Muffin.t("settings.supportTitle", "Support me!");
+    support.dataset.tip = Muffin.t("settings.supportTitle", "Support me!");
+    support.setAttribute("aria-label", support.dataset.tip);
     support.addEventListener("click", function () {
       if (window.showSupportDialog) window.showSupportDialog();
     });
 
-    bar.querySelector(".tb-min").title = Muffin.t("pc.window.minimize", "Minimize");
-    bar.querySelector(".tb-max").title = Muffin.t("pc.window.maximize", "Maximize");
-    bar.querySelector(".tb-close").title = Muffin.t("pc.window.close", "Close");
+    [[".tb-min", "pc.window.minimize", "Minimize"],
+     [".tb-max", "pc.window.maximize", "Maximize"],
+     [".tb-close", "pc.window.close", "Close"]].forEach(function (spec) {
+      var el = bar.querySelector(spec[0]);
+      el.dataset.tip = Muffin.t(spec[1], spec[2]);
+      el.setAttribute("aria-label", el.dataset.tip);
+    });
 
     bar.querySelector(".tb-min").addEventListener("click", function () { Muffin.invoke("window.minimize"); });
     bar.querySelector(".tb-close").addEventListener("click", function () { Muffin.invoke("window.close"); });
@@ -203,6 +210,17 @@
       Muffin.invoke("window.toggleMaximize").then(function (r) { paintMaxIcon(r && r.maximized); });
     });
 
+    // The window has no caption for Windows to grab any more, so a press on the
+    // empty part of the strip is handed over as one. Left button only: the
+    // right one belongs to the menu below.
+    bar.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0 || e.target.closest(".tb-btn")) return;
+      // A double-click arrives as two presses; letting the first one start a
+      // drag would eat the second and maximise would never fire.
+      if (e.detail > 1) return;
+      Muffin.invoke("window.beginDrag");
+    });
+
     Muffin.invoke("window.state").then(function (r) { paintMaxIcon(r && r.maximized); });
     document.body.classList.add("has-titlebar");
     return bar;
@@ -212,35 +230,9 @@
     var el = document.querySelector(".tb-max .tb-ico");
     if (el) el.classList.toggle("restore", !!maximized);
   }
+  window.paintMaxIcon = paintMaxIcon;
 
-  // The strip, with a hole cut for every button.
-  function reportDragRegions() {
-    var bar = document.getElementById("titlebar");
-    if (!bar || !Muffin.isHosted) return;
-
-    var barRect = bar.getBoundingClientRect();
-    var buttons = [].slice.call(bar.querySelectorAll(".tb-btn"))
-      .map(function (b) { return b.getBoundingClientRect(); })
-      .filter(function (r) { return r.width > 0; })
-      .sort(function (a, b) { return a.left - b.left; });
-
-    var rects = [];
-    var x = barRect.left;
-    buttons.forEach(function (r) {
-      if (r.left > x) rects.push({ x: x, y: barRect.top, w: r.left - x, h: barRect.height });
-      x = Math.max(x, r.right);
-    });
-    if (x < barRect.right) rects.push({ x: x, y: barRect.top, w: barRect.right - x, h: barRect.height });
-
-    Muffin.invoke("window.dragRegions", { rects: rects });
-  }
-
-  Muffin.ready(function () {
-    if (buildTitleBar()) {
-      reportDragRegions();
-      window.addEventListener("resize", reportDragRegions);
-    }
-  });
+  Muffin.ready(function () { buildTitleBar(); });
 
   // ---- banners -----------------------------------------------------------
   // Updates and engine problems used to be a stock system InfoBar floating over

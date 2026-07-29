@@ -315,6 +315,29 @@ var ctxEl = null;
 var SELECTABLE = ".transcript, .bubble, .prompt, .search, .dialog-input, input, textarea, [contenteditable]";
 
 function contextItems(target) {
+  // The strip used to be a caption region, so this right-click never reached
+  // the page: Windows answered it with Restore / Move / Size / Minimize /
+  // Maximize / Close in its own grey box. Move and Size are keyboard-era
+  // commands nobody reaches for, so the menu is the three that are real.
+  if (target.closest && target.closest(".titlebar")) {
+    var maximized = document.querySelector(".tb-max .tb-ico.restore");
+    return [
+      {
+        label: maximized
+          ? Muffin.t("pc.window.restore", "Restore")
+          : Muffin.t("pc.window.maximize", "Maximize"),
+        enabled: true,
+        run: function () {
+          Muffin.invoke("window.toggleMaximize").then(function (r) {
+            if (window.paintMaxIcon) window.paintMaxIcon(r && r.maximized);
+          });
+        },
+      },
+      { label: Muffin.t("pc.window.minimize", "Minimize"), enabled: true, run: function () { Muffin.invoke("window.minimize"); } },
+      { label: Muffin.t("pc.window.close", "Close"), enabled: true, run: function () { Muffin.invoke("window.close"); } },
+    ];
+  }
+
   var field = target.closest("input, textarea");
   var editable = field && !field.disabled && !field.readOnly;
   var text = target.closest(SELECTABLE);
@@ -384,10 +407,14 @@ function openContextMenu(x, y, items) {
   // Placed in viewport coordinates, and never off the edge it was opened near.
   var size = ctxEl.getBoundingClientRect();
   var margin = 6;
+  // The title bar is opaque and sits above everything, so a menu opened from
+  // it started underneath the strip with its first command sliced in half.
+  // Nothing may begin higher than the bar ends.
+  var ceiling = document.body.classList.contains("has-titlebar") ? 44 : margin;
   var left = Math.min(x, window.innerWidth - size.width - margin);
   var top = Math.min(y, window.innerHeight - size.height - margin);
   ctxEl.style.left = Math.max(margin, left) + "px";
-  ctxEl.style.top = Math.max(margin, top) + "px";
+  ctxEl.style.top = Math.max(ceiling, top) + "px";
 }
 
 function wireContextMenu() {
@@ -410,14 +437,34 @@ function wireContextMenu() {
 }
 
 // ---- Tooltips ---------------------------------------------------------------
-// Windows' own tooltip is a yellow-white box in the system font that appears
-// after a second and ignores the theme entirely. This replaces it without any
-// markup change: title="" is still where the text lives (and still what the
-// i18n pass writes to), it is just moved out of the way on hover so the native
-// one never fires, and put back when the pointer leaves.
+// Windows' own tooltip is a pale box in the system font that appears after a
+// second and ignores the theme entirely. This replaces it.
+//
+// The text is still authored as title="" in the markup, and the i18n pass still
+// writes there, but no title ever survives on the page: every one is moved to
+// data-tip the moment it appears. Stashing it on hover instead was not enough
+// and the support button proved it, drawing both tooltips side by side. The
+// browser reads title when the pointer comes to rest, and that can happen
+// before a hover delay has elapsed, so the only reliable answer is for the
+// attribute never to be there at all.
 var tipEl = null;
 var tipTimer = 0;
 var tipOwner = null;
+
+/**
+ * Moves every title on the page to data-tip. aria-label carries the text on to
+ * a screen reader, which is what the title was doing for these icon buttons.
+ */
+function stripNativeTitles(root) {
+  (root || document).querySelectorAll("[title]").forEach(function (el) {
+    var text = el.getAttribute("title");
+    el.removeAttribute("title");
+    if (!text) return;
+    el.dataset.tip = text;
+    if (!el.hasAttribute("aria-label")) el.setAttribute("aria-label", text);
+  });
+}
+window.stripNativeTitles = stripNativeTitles;
 
 function tipNode() {
   if (!tipEl) {
@@ -430,16 +477,8 @@ function tipNode() {
 }
 
 function showTip(el) {
-  var text = el.getAttribute("title") || el.dataset.tip;
+  var text = el.dataset.tip;
   if (!text) return;
-  // Stash it: an element with no title cannot raise the native tooltip.
-  if (el.hasAttribute("title")) {
-    el.dataset.tip = text;
-    el.removeAttribute("title");
-    // The text was the only label on most of these icon buttons, so it has to
-    // keep reaching a screen reader now that the attribute is gone.
-    if (!el.hasAttribute("aria-label")) el.setAttribute("aria-label", text);
-  }
   tipOwner = el;
 
   var tip = tipNode();
@@ -478,11 +517,6 @@ function showTip(el) {
   tip.classList.add("open");
 }
 
-// Hiding and un-stashing are two different things. Clicking a button should
-// hide the tip, but the pointer is still sitting on that button: hand the title
-// attribute back now and Windows draws its own tooltip a second later, which is
-// the thing this whole file exists to prevent. The title goes back only once
-// the pointer has actually left.
 function hideTip() {
   clearTimeout(tipTimer);
   if (tipEl) tipEl.classList.remove("open");
@@ -490,19 +524,17 @@ function hideTip() {
 
 function releaseTip() {
   hideTip();
-  if (!tipOwner) return;
-  // Give the attribute back, so i18n and anything reading it still find it.
-  if (tipOwner.dataset.tip) tipOwner.setAttribute("title", tipOwner.dataset.tip);
   tipOwner = null;
 }
 
 function tipTarget(node) {
   if (!node || !node.closest) return null;
-  var el = node.closest("[title], [data-tip]");
-  return el && (el.getAttribute("title") || el.dataset.tip) ? el : null;
+  var el = node.closest("[data-tip]");
+  return el && el.dataset.tip ? el : null;
 }
 
 function wireTooltips() {
+  stripNativeTitles();
   document.addEventListener("mouseover", function (e) {
     var el = tipTarget(e.target);
     if (!el) return;
