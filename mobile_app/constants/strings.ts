@@ -474,9 +474,9 @@ export const APP_STRINGS = {
     tierSmartSearch: "Smart search",
 
     // One-line blurb per model.
-    descWhisperFastest: "Roughest wording. Fine for short, clear notes.",
-    descWhisperBalanced: "The sweet spot for most voice notes.",
-    descWhisperAccurate: "Best with accents and background noise. Slowest.",
+    descWhisperFastest: "Roughest wording. Fine for short, clear notes, and done in seconds.",
+    descWhisperBalanced: "The sweet spot for most voice notes. A few seconds for a short one.",
+    descWhisperAccurate: "Best with accents and background noise. Costs at least half a minute per recording, however short.",
     descFmtFastest: "Tuned for newer phone chips.",
     descFmtFast: "Slightly better wording than Fastest.",
     descFmtBalanced: "Bigger, still quick on newer phones.",

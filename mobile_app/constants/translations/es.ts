@@ -329,9 +329,9 @@ export const ES = {
     tierAccurate: "Más preciso",
     tierSmartSearch: "Búsqueda inteligente",
 
-    descWhisperFastest: "Redacción más tosca. Bien para notas cortas y claras.",
-    descWhisperBalanced: "El punto justo para la mayoría de las notas de voz.",
-    descWhisperAccurate: "El mejor con acentos y ruido de fondo. El más lento.",
+    descWhisperFastest: "Redacción más tosca. Bien para notas cortas y claras, y termina en segundos.",
+    descWhisperBalanced: "El punto justo para la mayoría de las notas de voz. Unos segundos para una nota corta.",
+    descWhisperAccurate: "El mejor con acentos y ruido de fondo. Tarda al menos medio minuto por grabación, por corta que sea.",
     descFmtFastest: "Optimizado para los chips de teléfonos más nuevos.",
     descFmtFast: "Redacción algo mejor que Más rápido.",
     descFmtBalanced: "Más grande, pero aún ágil en teléfonos nuevos.",

@@ -62,7 +62,7 @@ export const WHISPER_MODELS: readonly ModelDef[] = [
     technicalName: 'Whisper Tiny',
     url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q8_0.bin',
     size: '42 MB',
-    description: 'Roughest wording. Fine for short, clear notes.',
+    description: 'Roughest wording. Fine for short, clear notes, and done in seconds.',
     nameKey: 'models.tierFastest',
     descKey: 'models.descWhisperFastest',
   },
@@ -72,19 +72,29 @@ export const WHISPER_MODELS: readonly ModelDef[] = [
     technicalName: 'Whisper Small',
     url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin',
     size: '252 MB',
-    description: 'The sweet spot for most voice notes.',
+    description: 'The sweet spot for most voice notes. A few seconds for a short one.',
     nameKey: 'models.tierBalanced',
     descKey: 'models.descWhisperBalanced',
   },
   // q8_0, not q5_0: q5 bit-unpacking has no fast SIMD path in this build's
   // plain-NEON kernels and measures several times slower than q8_0 on phones.
+  //
+  // "Slowest" undersold this, and in the wrong direction: the cost is not per
+  // minute of audio, it is a flat toll on every recording. Turbo pairs a full
+  // 32-layer encoder with a 4-layer decoder, and the encoder always chews a
+  // padded 30s window - so 6 seconds of speech and 37 seconds of speech cost
+  // almost the same. Measured on a Pixel 9 Pro XL: 9s of audio took 25.8s, of
+  // which 1.9s was loading the model. A two hour lecture barely notices; a
+  // voice note pays half a minute for four words. The description says so now,
+  // because the alternative fixes all cost accuracy and this is a choice the
+  // person recording should get to make.
   {
     id: 'ggml-large-v3-turbo-q8_0.bin',
     name: 'Most accurate',
     technicalName: 'Whisper Large v3 Turbo',
     url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin',
     size: '874 MB',
-    description: 'Best with accents and background noise. Slowest.',
+    description: 'Best with accents and background noise. Costs at least half a minute per recording, however short.',
     nameKey: 'models.tierAccurate',
     descKey: 'models.descWhisperAccurate',
   },
