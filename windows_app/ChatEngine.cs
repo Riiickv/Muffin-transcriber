@@ -35,7 +35,16 @@ public static class ChatEngine
         List<TranscriptionHistoryItem> relevant = await SearchTranscriptsAsync(history, lastUserMessage);
 
         string systemContent = BuildSystemPrompt(history, relevant);
-        string prompt = BuildChatPrompt(model.File, systemContent, messages);
+
+        // Only the recent turns. A long conversation grows without limit, and
+        // once the whole thing stops fitting, the front of the prompt goes -
+        // taking the tool syntax with it. Twelve is several exchanges of
+        // context and cannot creep past the window on its own.
+        IReadOnlyList<ChatMessage> recent = messages.Count > 12
+            ? messages.Skip(messages.Count - 12).ToList()
+            : messages;
+
+        string prompt = BuildChatPrompt(model.File, systemContent, recent);
 
         string promptPath = Path.Combine(Path.GetTempPath(), $"ai_transcriber_chat_{Guid.NewGuid():N}.txt");
         await File.WriteAllTextAsync(promptPath, prompt, Encoding.UTF8);
@@ -60,8 +69,9 @@ public static class ChatEngine
             // follow instructions and emit the right tool call; at 0.3 a small
             // model would sometimes narrate ("I'll switch to Light mode") and
             // emit nothing, leaving the app unchanged.
+            int context = ContextSizeFor(model.File);
             string Args(int layers) =>
-                $"-m \"{modelPath}\" -f \"{promptPath}\" -n 768 --temp 0.1 -ngl {layers} -c 4096 --log-disable --no-display-prompt -st";
+                $"-m \"{modelPath}\" -f \"{promptPath}\" -n 768 --temp 0.1 -ngl {layers} -c {context} --log-disable --no-display-prompt -st";
 
             // The GPU is shared with whatever else the user is running. When it
             // is full the engine does not fall back, it refuses to load at all,
@@ -228,10 +238,6 @@ CRITICAL RULES:
 7. NEVER say you have done something unless you emitted the tool_call for it IN THE SAME REPLY. No tool_call means it did not happen, and telling the user it did is a lie they will discover.
 8. Messages beginning with [action result] are the app telling YOU, privately, what your last action actually did. The user cannot see them. Use them to know what happened - never repeat them, quote them, or copy their wording into your reply.
 
-{AppCapabilities.BuildCapabilitiesBlock()}
-
-{AppCapabilities.ToolInstructions}
-
 <global_state>
 Current date and time: {DateTime.Now:g}
 Total transcripts saved: {history.Count}
@@ -244,7 +250,32 @@ Every transcript you have, newest first:
 
 <context>
 {contextText}
-</context>{memory}";
+</context>{memory}
+
+{AppCapabilities.BuildCapabilitiesBlock()}
+
+{AppCapabilities.ToolInstructions}";
+    }
+
+    /// <summary>
+    /// How much context to give the model.
+    ///
+    /// 4096 was not enough and the symptom was baffling: the assistant would
+    /// say "Turning that on. Turning that off." and emit no tool_call at all.
+    /// The system prompt is around 3,500 tokens - the tool syntax alone is
+    /// nearly 6,000 characters - and with -n 768 reserved for the reply it did
+    /// not fit. llama.cpp drops the FRONT of an overlong prompt, which is
+    /// exactly where the tools live, so the model kept the conversation and
+    /// lost the format: it knew what to do and no longer knew how to say it.
+    ///
+    /// Phi-3-mini-4k cannot go above 4096 whatever we ask, hence the check
+    /// rather than one number for everything.
+    /// </summary>
+    private static int ContextSizeFor(string modelFile)
+    {
+        string lower = modelFile.ToLowerInvariant();
+        if (lower.Contains("phi-3-mini-4k")) return 4096;
+        return 8192;
     }
 
     private static string BuildChatPrompt(string modelFile, string systemContent, IReadOnlyList<ChatMessage> messages)

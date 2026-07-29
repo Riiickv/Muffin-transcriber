@@ -146,6 +146,18 @@
    sizes and weights each control sets for itself still apply. */
 button, input, textarea, select, [contenteditable] { font-family: inherit; }
 
+/* The focus ring. Chromium draws its own - a black and white double outline,
+   square, in nobody's colour - and it is what a keyboard user sees on every
+   control in the app. :focus-visible, not :focus, so it appears for Tab and
+   never for a mouse click. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+/* Fields say it with their border instead; a ring around a ring is noise. */
+[data-field]:focus-visible, .transcript.editable:focus-visible { outline: none; }
+
 /* ---- Applying the hierarchy ----
    One place, so a role's width lives beside the rules that already set its size
    and weight instead of being scattered through the file. */
