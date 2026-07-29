@@ -118,6 +118,8 @@ export const IT = {
   },
 
   historyDetail: {
+    editTranscript: "Modifica trascrizione",
+    doneEditing: "Fatto",
     play: "Riproduci",
     pause: "Pausa",
     audioMissing: "File audio non trovato",

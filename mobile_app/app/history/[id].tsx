@@ -1,5 +1,5 @@
 import { StyleSheet, TextInput, View, ScrollView } from 'react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import * as Clipboard from 'expo-clipboard';
@@ -17,7 +17,7 @@ import { TranscriptFullscreen } from '@/components/TranscriptFullscreen';
 import { TranscriptPanel, type TranscriptTab } from '@/components/TranscriptPanel';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { RADIUS, SPACING } from '@/constants/tokens';
-import { useHistory } from '@/utils/historyStore';
+import { useHistory, updateHistoryItem } from '@/utils/historyStore';
 import { useRecording } from '@/components/RecordingProvider';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities, findHighlights, stopLlamaWork } from '@/utils/LLMEngine';
@@ -406,6 +406,53 @@ export default function HistoryDetailScreen() {
     }
   };
 
+  // ---- editing the transcript ------------------------------------------
+  // Whisper mishears names, jargon and numbers, and correcting one used to mean
+  // copying the whole thing out into another app. A mode rather than an
+  // always-on field, because the read view's entity highlights are tappable and
+  // a TextInput cannot carry them.
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveDraft = useCallback(async (text: string) => {
+    if (!item) return;
+    // The variant being looked at, so fixing the raw text cannot quietly
+    // overwrite an improved version sitting beside it.
+    const patch =
+      transcriptTab === 'summary'
+        ? { summary: text }
+        : transcriptTab === 'formatted'
+        ? { formattedTranscript: text }
+        : { rawTranscript: text };
+    await updateHistoryItem(item.id, patch);
+  }, [item, transcriptTab]);
+
+  const onDraftChange = (text: string) => {
+    setDraft(text);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    // A second after typing stops, never per keystroke: a two hour transcript
+    // would otherwise be rewritten to disk on every letter.
+    saveTimer.current = setTimeout(() => { void saveDraft(text); }, 1000);
+  };
+
+  const toggleEdit = () => {
+    haptics.tap();
+    if (isEditing) {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      void saveDraft(draft);
+      setIsEditing(false);
+      return;
+    }
+    setDraft(transcript);
+    setIsEditing(true);
+  };
+
+  // Leaving the screen mid-edit must not lose the last few characters.
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, []);
+
   const handleCopy = async () => {
     if (!transcript) return;
     haptics.tap();
@@ -601,14 +648,37 @@ export default function HistoryDetailScreen() {
           renderStatic={() => (
             /* nestedScrollEnabled: on Android a nested same-axis scroller
                doesn't receive drags without it. */
-            <View style={[styles.transcriptBox, { borderColor: theme.divider }]}>
-              <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
-                {renderHighlightedText()}
-              </ScrollView>
+            <View style={[styles.transcriptBox, { borderColor: isEditing ? theme.tint : theme.divider }]}>
+              {isEditing ? (
+                <TextInput
+                  style={[styles.transcriptText, styles.transcriptInput, { color: theme.text }]}
+                  value={draft}
+                  onChangeText={onDraftChange}
+                  onBlur={() => { void saveDraft(draft); }}
+                  multiline
+                  textAlignVertical="top"
+                  autoFocus
+                  scrollEnabled
+                  // The OS spellchecker underlines most of a transcript in any
+                  // language the phone is not set to, in a red nothing here can
+                  // restyle.
+                  spellCheck={false}
+                  autoCorrect={false}
+                />
+              ) : (
+                <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
+                  {renderHighlightedText()}
+                </ScrollView>
+              )}
             </View>
           )}
           onCopy={handleCopy}
           copyDisabled={!transcript}
+          editing={isEditing}
+          onToggleEdit={toggleEdit}
+          // Nothing to edit while the text is still being produced, and no
+          // point offering it on an empty tab.
+          editDisabled={!transcript || isProcessing || isTranscribingThis}
           onFullscreen={() => {
             haptics.tap();
             setFullscreen(true);
@@ -741,6 +811,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: RADIUS.sm,
     padding: SPACING.md,
+  },
+  transcriptInput: {
+    flex: 1,
+    padding: 0,
+    margin: 0,
   },
   transcriptText: {
     fontSize: 16,
