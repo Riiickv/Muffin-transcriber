@@ -193,6 +193,9 @@ export const FR = {
   },
 
   settings: {
+    speedReport: "Rapport de vitesse",
+    copyReport: "Copier",
+    clearReport: "Effacer",
     chatBetaLabel: "Chat avec Muffin",
     header: "Réglages",
 

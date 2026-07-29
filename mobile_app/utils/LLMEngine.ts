@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { recordLlm } from './perfLog';
 import { getOptimalThreads } from './cpuThreads';
 import type { LlamaContext } from 'llama.rn';
 import { loadSettings } from './settingsStore';
@@ -294,6 +295,8 @@ export async function formatTranscript(
     makeTokenStreamer(onPartial)
   );
 
+  void recordLlm('improve', modelFile, (result as any).timings, (result.text || '').length);
+
   const formatted = ensureBasicPunctuation(
     stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)))
   );
@@ -371,6 +374,8 @@ export async function summarizeTranscript(
     },
     makeTokenStreamer(onPartial)
   );
+
+  void recordLlm('summarize', modelFile, (result as any).timings, (result.text || '').length);
 
   const summary = stripLeadingLabel(
     stripMarkdownArtifacts(capRunawayRepetition(extractFormatterOutput(result.text)))

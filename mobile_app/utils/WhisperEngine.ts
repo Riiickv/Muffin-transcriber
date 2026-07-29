@@ -5,6 +5,7 @@ import { loadMemories } from './memoryStore';
 import { createSegmentAccumulator } from './segmentAccumulator';
 import { getOptimalThreads } from './cpuThreads';
 import { trimSilence, discardTrim } from './speechTrim';
+import { startRun } from './perfLog';
 
 export { createSegmentAccumulator };
 
@@ -210,7 +211,13 @@ export async function transcribeFile(
   //
   // Every failure inside returns null and we transcribe the original, so the
   // worst case is exactly today's behaviour.
+  // Timed end to end, because the performance plan's gate was "measure, then
+  // decide" and nothing ever measured. Two stages: how long the silence trim
+  // costs, and how long whisper itself takes.
+  const perf = startRun('transcribe', currentModelPath.split('/').pop() || 'whisper');
+
   const trimmed = await trimSilence(audioPath);
+  perf.mark('vad');
   const inputPath = trimmed ? trimmed.path : audioPath;
 
   return whisperQueue(async () => {
@@ -218,6 +225,13 @@ export async function transcribeFile(
     stopCurrentTranscription = stop;
     try {
       const result = await promise;
+      perf.mark('transcribe');
+      // The TRIMMED length, since that is what whisper actually chewed on; a
+      // realtime factor against the original would flatter the VAD.
+      void perf.finish({
+        audioSeconds: trimmed?.keptSeconds,
+        outputChars: (result.result || '').length,
+      });
       return {
         text: result.result,
         segments: result.segments || [],
