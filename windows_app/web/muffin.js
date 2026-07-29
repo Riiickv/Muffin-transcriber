@@ -417,6 +417,11 @@ function openContextMenu(x, y, items) {
   ctxEl.style.top = Math.max(ceiling, top) + "px";
 }
 
+// The title bar is a caption region, so its right-click arrives from the app
+// rather than from the DOM. Both need the same list and the same menu.
+window.contextItems = contextItems;
+window.openContextMenu = openContextMenu;
+
 function wireContextMenu() {
   document.addEventListener("contextmenu", function (e) {
     // Nothing to offer on a button or an icon, and an empty menu is worse
@@ -452,19 +457,32 @@ var tipTimer = 0;
 var tipOwner = null;
 
 /**
- * Moves every title on the page to data-tip. aria-label carries the text on to
- * a screen reader, which is what the title was doing for these icon buttons.
+ * Moves a title to data-tip. aria-label carries the text on to a screen reader,
+ * which is what the title was doing for these icon buttons.
  */
+function stripTitle(el) {
+  if (!el || !el.getAttribute) return;
+  var text = el.getAttribute("title");
+  if (text === null) return;
+  el.removeAttribute("title");
+  if (!text) return;
+  // Overwritten, not filled in once: the mic button rewrites its label every
+  // time recording starts or stops, and keeping the first one left the app's
+  // tooltip saying "Start recording" while Windows' said "Stop recording".
+  el.dataset.tip = text;
+  el.setAttribute("aria-label", text);
+}
+
 function stripNativeTitles(root) {
-  (root || document).querySelectorAll("[title]").forEach(function (el) {
-    var text = el.getAttribute("title");
-    el.removeAttribute("title");
-    if (!text) return;
-    el.dataset.tip = text;
-    if (!el.hasAttribute("aria-label")) el.setAttribute("aria-label", text);
-  });
+  (root || document).querySelectorAll("[title]").forEach(stripTitle);
 }
 window.stripNativeTitles = stripNativeTitles;
+
+// A sweep can only clean what is there when it runs, and screens set titles
+// from state long after boot. This catches every one, whenever it is written.
+var titleWatch = new MutationObserver(function (records) {
+  records.forEach(function (record) { stripTitle(record.target); });
+});
 
 function tipNode() {
   if (!tipEl) {
@@ -535,6 +553,9 @@ function tipTarget(node) {
 
 function wireTooltips() {
   stripNativeTitles();
+  titleWatch.observe(document.documentElement, {
+    subtree: true, attributes: true, attributeFilter: ["title"],
+  });
   document.addEventListener("mouseover", function (e) {
     var el = tipTarget(e.target);
     if (!el) return;
