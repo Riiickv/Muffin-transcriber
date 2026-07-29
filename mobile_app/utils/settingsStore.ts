@@ -34,6 +34,16 @@ export interface Settings {
   /** One-time tester feedback popup. False until dismissed; a new key, so
    *  existing testers see it once after updating (hydrate fills the default). */
   seenTesterWelcome: boolean;
+  /**
+   * Show an estimated time per model on the Models screen.
+   *
+   * Off by default. It is an estimate calibrated on one phone, and a number
+   * shown to everyone by default is read as a promise; someone who wants it can
+   * ask for it. Replaced writing the cost into the model descriptions, which
+   * welded a timing claim into a sentence about accuracy and could not be
+   * turned off.
+   */
+  showModelTimeEstimate: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -60,6 +70,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // 'auto' too rather than being pinned to English.
   appLanguage: 'auto',
   seenTesterWelcome: false,
+  showModelTimeEstimate: false,
 };
 
 // Model ids that changed in the catalog (e.g. quant swaps) - remap stale

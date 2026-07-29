@@ -10,6 +10,10 @@ import { SuggestedGlow } from '@/components/SuggestedGlow';
 import { ModelManager, ModelDef, modelName, modelDesc } from '@/utils/ModelManager';
 import { useDownloads, startModelDownload, pauseDownload, resumeDownload, cancelDownload } from '@/utils/downloadManager';
 import { formatEta } from '@/utils/format';
+import { estimateFor, formatEstimateSeconds } from '@/utils/modelTimeEstimate';
+import { getDeviceTier } from '@/utils/deviceTier';
+import { loadRuns, averageSecondsByModel } from '@/utils/perfLog';
+import { useSettings } from '@/utils/settingsStore';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
@@ -59,6 +63,53 @@ export function ModelDownloadList({
   // Which models were downloading on the previous render. When one leaves the
   // active set we re-check the disk and flip its row - see the effect below.
   const activeIds = useRef<Set<string>>(new Set());
+
+  // The time line, off unless asked for. The device tier and this phone's own
+  // recorded averages are read once for the whole list rather than per row.
+  const { settings } = useSettings();
+  const showEstimate = settings.showModelTimeEstimate;
+  const [measured, setMeasured] = useState<Record<string, number>>({});
+  useFocusEffect(
+    useCallback(() => {
+      if (!showEstimate) return;
+      let active = true;
+      loadRuns().then((runs) => {
+        if (active) setMeasured(averageSecondsByModel(runs));
+      });
+      return () => {
+        active = false;
+      };
+    }, [showEstimate])
+  );
+
+  /**
+   * One line, or nothing at all.
+   *
+   * Nothing is the right answer for a model the estimator does not know: a
+   * confident guess about a model nobody has characterised is worse than
+   * silence. When this phone has its own average, it says so and drops the
+   * "about", because it is no longer an estimate.
+   */
+  const estimateLine = (modelId: string, ownAverage?: number): string | null => {
+    const e = estimateFor(modelId, getDeviceTier(), ownAverage);
+    if (!e) return null;
+    const time = formatEstimateSeconds(e.seconds);
+    const key = e.measured
+      ? e.per === 'recording'
+        ? 'models.measuredPerRecording'
+        : 'models.measuredPerMinute'
+      : e.per === 'recording'
+        ? 'models.estimatePerRecording'
+        : 'models.estimatePerMinute';
+    const fallback = e.measured
+      ? e.per === 'recording'
+        ? '{t} per recording on your phone'
+        : '{t} per minute of recording on your phone'
+      : e.per === 'recording'
+        ? 'about {t} per recording'
+        : 'about {t} per minute of recording';
+    return (t(key) || fallback).replace('{t}', time);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -116,6 +167,7 @@ export function ModelDownloadList({
             model={model}
             downloaded={!!downloadedModels[model.id]}
             info={downloads[model.id]}
+            estimate={showEstimate ? estimateLine(model.id, measured[model.id]) : null}
             onPress={() => handleDownload(model.id, model.url)}
           />
         );
@@ -138,11 +190,14 @@ const ModelRow = ({
   model,
   downloaded,
   info,
+  estimate,
   onPress,
 }: {
   model: ModelDef;
   downloaded: boolean;
   info?: DownloadInfo;
+  /** Pre-built time line, or null when the setting is off or unknown. */
+  estimate?: string | null;
   onPress: () => void;
 }) => {
   const { theme } = useTheme();
@@ -162,6 +217,16 @@ const ModelRow = ({
           <Text style={[styles.sub, { color: theme.textMuted }]} numberOfLines={2}>
             {subtitle}
           </Text>
+          {/* Its own line, under the description, and only when asked for. It
+              is not appended to the description because a timing claim and an
+              accuracy claim are different claims and should be separable. Never
+              while downloading: a progress line and a speed guess in the same
+              place is two numbers competing to be read. */}
+          {estimate && !isDownloading ? (
+            <Text style={[styles.est, { color: theme.tint }]} numberOfLines={1}>
+              {estimate}
+            </Text>
+          ) : null}
         </View>
 
         {isDownloading ? (
@@ -226,6 +291,12 @@ const ModelRow = ({
 };
 
 const styles = StyleSheet.create({
+  // Accent-coloured, because it is the one number on the row that changes what
+  // you would choose. Smaller than the description so it reads as an annotation.
+  est: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   scroll: {
     padding: SPACING.lg,
     paddingBottom: SPACING.xxxl,

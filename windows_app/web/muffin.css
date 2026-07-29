@@ -1474,6 +1474,18 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
   color: var(--accent); font-size: 12px; font-weight: 700;
 }
 .act-chip .msr { font-size: 16px; }
+
+/* The one number on a model row that changes what you would choose, so it
+   carries the accent. Smaller than the description, because it annotates it
+   rather than competing with it. Narrow tabular figures, like every other
+   duration in the app. */
+.m-est {
+  font-size: 12px;
+  margin-top: 2px;
+  color: var(--accent);
+  font-stretch: var(--wd-numeric);
+  font-variant-numeric: tabular-nums;
+}
 .act-chip.failed {
   background: color-mix(in srgb, var(--text-subtle) 20%, transparent);
   color: var(--text-muted);

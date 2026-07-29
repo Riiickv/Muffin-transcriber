@@ -37,7 +37,7 @@ function createModelList(host, options) {
       wrap.className = "m-item" + (options.highlightRecommended && model.recommended ? " suggested" : "");
       wrap.innerHTML =
         '<div class="m-row">' +
-          '<div class="m-info"><div class="m-name"></div><div class="m-sub"></div></div>' +
+          '<div class="m-info"><div class="m-name"></div><div class="m-sub"></div><div class="m-est" hidden></div></div>' +
           '<div class="m-actions">' +
             '<button class="m-get"></button>' +
             '<button class="m-del" hidden><span class="msr" style="font-size:18px">&#xE872;</span></button>' +
@@ -116,6 +116,14 @@ function createModelList(host, options) {
         "  ·  " + formatBytes(info.speed * 1024 * 1024) + "/s" +
         "  ·  " + formatEta(info.etaSeconds)
       : model.size + (model.desc && model.desc !== model.size ? "  ·  " + model.desc : "");
+
+    // Its own line, under the description, and only when asked for. Kept off
+    // the description because a timing claim and an accuracy claim are
+    // different claims and should be separable - and hidden while downloading,
+    // where a progress line and a speed guess would compete to be read.
+    var est = el.querySelector(".m-est");
+    est.textContent = model.estimate || "";
+    est.hidden = downloading || !model.estimate || !Muffin.settings().ShowModelTimeEstimate;
 
     el.querySelector(".m-get").hidden = downloading || model.installed;
     el.querySelector(".m-get").textContent = Muffin.t("settings.get", "Get");
