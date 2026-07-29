@@ -21,7 +21,7 @@ import { RADIUS, SPACING } from '@/constants/tokens';
 import { useHistory, updateHistoryItem } from '@/utils/historyStore';
 import { useRecording } from '@/components/RecordingProvider';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
-import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities, findHighlights, stopLlamaWork } from '@/utils/LLMEngine';
+import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities, findHighlights, stopLlamaWork, isStopped } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
 import { loadWhisper, stopWhisperWork } from '@/utils/WhisperEngine';
 import { transcribeAudio } from '@/utils/audioTranscription';
@@ -363,6 +363,9 @@ export default function HistoryDetailScreen() {
         console.warn
       );
     } catch (e) {
+      // The user pressed Stop. They know why it ended; an error box and a
+      // buzz would be the app blaming them for its own obedience.
+      if (isStopped(e)) return;
       console.error(e);
       haptics.error();
       dialog.show({ title: t('dialog.formattingFailed.title') || 'Improvement failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
@@ -399,6 +402,7 @@ export default function HistoryDetailScreen() {
         console.warn
       );
     } catch (e) {
+      if (isStopped(e)) return;
       console.error(e);
       haptics.error();
       dialog.show({ title: t('dialog.summarizationFailed.title') || 'Summarization failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });

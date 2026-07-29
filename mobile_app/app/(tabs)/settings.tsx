@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { loadRuns, clearRuns, formatRuns } from '@/utils/perfLog';
+import { getDeviceProfile, describeProfile } from '@/utils/deviceProfile';
 import { TextInput } from '@/components/Themed';
 import { useState, useCallback } from 'react';
 import { useFocusEffect, router } from 'expo-router';
@@ -94,7 +95,10 @@ export default function SettingsScreen() {
   // the same on-device storage as everything else in the app.
   const showSpeedReport = async () => {
     haptics.tap();
-    const report = formatRuns(await loadRuns());
+    // The timings mean nothing without knowing which engine build produced
+    // them, so the report leads with the CPU it ran on.
+    const report =
+      describeProfile(await getDeviceProfile()) + '\n\n' + formatRuns(await loadRuns());
     dialog.show({
       title: t('settings.speedReport') || 'Speed report',
       message: report,
