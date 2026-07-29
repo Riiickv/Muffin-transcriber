@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { Animated, Image, ImageSourcePropType, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Image, ImageSourcePropType, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
@@ -21,6 +21,8 @@ interface DialogCardProps {
   onRequestClose: () => void;
   title: string;
   message?: string;
+  /** Long tabular text reads better ragged-right. Defaults to centred. */
+  messageAlign?: 'center' | 'left';
   icon?: IconName;
   /**
    * Artwork instead of a glyph, for the times a font icon won't do - the
@@ -50,6 +52,7 @@ export const DialogCard = ({
   onRequestClose,
   title,
   message,
+  messageAlign = 'center',
   icon,
   image,
   imageAspect = 1,
@@ -123,10 +126,28 @@ export const DialogCard = ({
             </View>
           ) : null}
           <Text style={styles.title}>{title}</Text>
-          {message && (
-            <Text style={[styles.message, { color: theme.textMuted }]}>{message}</Text>
+          {/* The middle scrolls, the buttons do not. A dialog that outgrows the
+              screen used to run off both ends of it, taking its own buttons
+              with it - the speed report was unreadable past the fold and could
+              not be copied or cleared, because Copy and Clear were somewhere
+              below the bottom of the phone. Short dialogs are unaffected: this
+              only ever takes the height its content asks for. */}
+          {(message || children) && (
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollInner}
+              indicatorStyle={theme.isDark ? 'white' : 'black'}
+            >
+              {message && (
+                <Text
+                  style={[styles.message, { color: theme.textMuted, textAlign: messageAlign }]}
+                >
+                  {message}
+                </Text>
+              )}
+              {children && <View style={styles.body}>{children}</View>}
+            </ScrollView>
           )}
-          {children && <View style={styles.body}>{children}</View>}
           <View style={styles.buttonsRow}>
             {resolvedButtons.map((btn, i) => (
               <View key={`${btn.label}-${i}`} style={{ flex: 1 }}>
@@ -158,6 +179,7 @@ export const DialogCard = ({
 export interface DialogConfig {
   title: string;
   message?: string;
+  messageAlign?: 'center' | 'left';
   icon?: IconName;
   /** Artwork instead of a glyph. See DialogCardProps. */
   image?: ImageSourcePropType;
@@ -205,6 +227,7 @@ export const DialogProvider = ({ children }: { children: React.ReactNode }) => {
         onRequestClose={close}
         title={config?.title ?? ''}
         message={config?.message}
+        messageAlign={config?.messageAlign}
         icon={config?.icon}
         image={config?.image}
         imageAspect={config?.imageAspect}
@@ -233,9 +256,23 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
+    // Never taller than the space the overlay gives it. Without this the card
+    // grew to whatever its text needed and centred that, so a long one hung off
+    // the top and the bottom of the screen at once.
+    maxHeight: '100%',
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     padding: SPACING.xxl,
+    alignItems: 'center',
+  },
+  scroll: {
+    width: '100%',
+    // Takes only the height its content needs, and gives that height up first
+    // when there is not enough to go round - so the buttons keep theirs.
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  scrollInner: {
     alignItems: 'center',
   },
   iconWrap: {

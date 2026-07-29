@@ -5,7 +5,7 @@ import { loadMemories } from './memoryStore';
 import { createSegmentAccumulator } from './segmentAccumulator';
 import { getOptimalThreads } from './cpuThreads';
 import { trimSilence, discardTrim } from './speechTrim';
-import { startRun } from './perfLog';
+import { startRun, noteModelLoad } from './perfLog';
 
 export { createSegmentAccumulator };
 
@@ -46,6 +46,7 @@ export async function loadWhisper(modelPath: string): Promise<void> {
     if (whisperContext && currentModelPath === modelPath) return;
   }
 
+  const startedLoading = Date.now();
   const p = (async () => {
     if (whisperContext) await unloadWhisper();
     const init = getInitWhisper();
@@ -53,6 +54,11 @@ export async function loadWhisper(modelPath: string): Promise<void> {
     // available (iOS). On Android's CPU path it slows decoding down.
     whisperContext = await init({ filePath: modelPath });
     currentModelPath = modelPath;
+    // Timed for the same reason llama's load is: every clip in the first real
+    // report cost ~33s no matter how short it was, and the two candidates for
+    // that - paying for an 874 MB model again, or the encoder always chewing a
+    // padded 30s window - are told apart by whether this number is big.
+    noteModelLoad(Date.now() - startedLoading);
   })();
   loadPromise = p;
 
