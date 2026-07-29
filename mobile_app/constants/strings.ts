@@ -125,6 +125,12 @@ export const APP_STRINGS = {
   },
 
   record: {
+    // Raised WHILE recording, not after: a muted or hijacked microphone records
+    // a flat signal, and finding out from an empty transcript means finding out
+    // once the lecture is already over.
+    silentTitle: "Muffin can't hear anything",
+    silentBody: "This recording has been silent so far. Check that the right microphone is selected and nothing else is using it. Recording is still running.",
+
     optionsTitle: "Recording options",
     readyToTranscribe: "Ready to Transcribe",
     listening: "Listening...",

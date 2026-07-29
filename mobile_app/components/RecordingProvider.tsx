@@ -82,6 +82,15 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
       level.value = withTiming(0, { duration: 150 });
       return;
     }
+    // Silence watch. A muted mic, a headset that grabbed the input, or a
+    // permission the OS quietly revoked all record a flat signal, and nothing
+    // notices until the transcript comes back empty - which for a lecture is
+    // an hour later and far too late to do anything about it. The level is
+    // already being polled for the button's bars, so this costs nothing.
+    let heardSomething = false;
+    let warned = false;
+    const startedAt = Date.now();
+
     const iv = setInterval(() => {
       try {
         const status: any = (recorder as any).getStatus?.();
@@ -89,9 +98,22 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         if (typeof m === 'number') {
           const mapped = Math.max(0, Math.min(1, (m + 50) / 50));
           level.value = withTiming(mapped, { duration: 90 });
+          if (mapped >= 0.04) heardSomething = true;
+
+          if (!heardSomething && !warned && Date.now() - startedAt > 12000) {
+            warned = true;
+            dialog.show({
+              title: t('record.silentTitle') || "Muffin can't hear anything",
+              message: t('record.silentBody')
+                || "This recording has been silent so far. Check that the right microphone is selected and nothing else is using it. Recording is still running.",
+              icon: 'warning',
+              iconTone: 'danger',
+            });
+          }
         }
       } catch {
-        // metering not available on this device - bars just stay flat
+        // metering not available on this device - bars just stay flat, and
+        // with no readings at all there is nothing to warn about.
       }
     }, 90);
     return () => clearInterval(iv);
