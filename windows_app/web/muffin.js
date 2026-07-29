@@ -486,6 +486,19 @@ function makeField(el) {
     set: function (v) {
       el.textContent = v == null ? "" : String(v);
       paintPlaceholder(el);
+      // Setting the text destroys the node the selection was sitting in, and
+      // the browser leaves the caret wherever it last was: after sending a
+      // message the composer was empty with the caret still out at the end of
+      // the sentence that had just gone. Put it back at the start.
+      if (document.activeElement === el) {
+        var range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(true);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+      scheduleCaret();
     },
   });
 

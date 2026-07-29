@@ -275,8 +275,26 @@ public static class LLMFormatter
         if (colon >= 0 && colon <= 12) title = title[(colon + 1)..].Trim();
         title = title.Trim('"', '\'', '`', '*', ' ').TrimEnd('.', ',', ';', '!');
 
-        if (title.Length == 0 || title.Length > 48) return null;
+        if (title.Length == 0 || title.Length > 60) return null;
         string[] words = title.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        // Models pad a good title with a lead-in: "A conversation about large
+        // balls", "Discussion of the budget". The words that matter are at the
+        // end, so the padding comes off before the length is judged rather than
+        // the whole thing being thrown away for being four words long.
+        string[] filler =
+        [
+            "a", "an", "the", "about", "on", "of", "regarding", "concerning",
+            "title", "topic", "subject", "summary",
+            "conversation", "discussion", "talk", "chat", "transcript", "recording", "note",
+        ];
+        int start = 0;
+        while (start < words.Length - 1 && filler.Contains(words[start].Trim(',', ':').ToLowerInvariant()))
+        {
+            start++;
+        }
+        words = words[start..];
+
         if (words.Length == 0 || words.Length > 3) return null;
         return string.Join(" ", words);
     }
