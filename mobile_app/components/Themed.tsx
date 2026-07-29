@@ -65,6 +65,30 @@ function familyFor(flat: { fontWeight?: any; fontSize?: any }): string {
  * A TextInput in the app's font. Import this instead of react-native's
  * anywhere the user can see the text they are typing.
  */
+/**
+ * The style a themed control actually renders with.
+ *
+ * fontWeight is REMOVED, and that is the whole trick. On Android, a fontFamily
+ * and a fontWeight together make the system look for a registered bold variant
+ * of that family; these cuts are separate one-weight files with no variants, so
+ * the lookup fails and the text silently falls back to Roboto. The screens all
+ * say fontWeight: 'bold', which is why every one of them stayed on the system
+ * font while the navigation title - the one place the font was set WITHOUT a
+ * weight beside it - rendered correctly.
+ *
+ * The weight is already in the file: Body is 400, Medium 600, Title and Bold
+ * are 700. Nothing is lost by dropping the property, and the caller's own
+ * fontWeight is still what CHOOSES the cut before it goes.
+ */
+function themedTextStyle(flat: Record<string, any>, fallbackColor: string) {
+  const { fontWeight, ...rest } = flat;
+  return {
+    color: fallbackColor,
+    ...rest,
+    fontFamily: familyFor(flat),
+  };
+}
+
 export function TextInput(props: TextInputProps) {
   const { style, ...otherProps } = props;
   const { theme } = useTheme();
@@ -74,7 +98,7 @@ export function TextInput(props: TextInputProps) {
     <DefaultTextInput
       maxFontSizeMultiplier={1.2}
       placeholderTextColor={theme.textMuted}
-      style={[{ color: theme.text, fontFamily: familyFor(flattenedStyle) }, style]}
+      style={themedTextStyle(flattenedStyle, theme.text)}
       {...otherProps}
     />
   );
@@ -101,15 +125,17 @@ export function Text(props: TextProps) {
   // titles 106% - and here the only signal available without touching every
   // screen is how big the text is. 20 sits between the 24 of a screen title
   // and the 18 of a section heading, which is exactly where the line belongs.
-  const fontFamily = familyFor(flattenedStyle);
-
   // Cap how far the system font-size setting can inflate the UI. Uncapped, a
   // phone on a large accessibility scale wraps labels, truncates buttons and
   // pushes fixed layouts off-screen (ZTE Blade A76 report). 1.2 still honours
   // larger-font users without letting the chrome explode; a caller can pass its
   // own maxFontSizeMultiplier to override (otherProps spreads after this).
   return (
-    <DefaultText maxFontSizeMultiplier={1.2} style={[{ color: theme.text, fontFamily }, style]} {...otherProps} />
+    <DefaultText
+      maxFontSizeMultiplier={1.2}
+      style={themedTextStyle(flattenedStyle, theme.text)}
+      {...otherProps}
+    />
   );
 }
 
