@@ -16,9 +16,18 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
+        <!--
+            Nunito, the same face the rest of the app is set in. The title bar
+            was the one surface still in Segoe, which is what made it read as
+            Windows chrome bolted onto the app rather than part of it. The font
+            ships in web/fonts for the WebView; XAML loads it from the same file
+            by family name.
+        -->
         <TitleBar
             x:Name="AppTitleBar"
             Title="{x:Bind local:AppStrings.App_Title}"
+            FontFamily="ms-appx:///web/fonts/Nunito_600SemiBold.ttf#Nunito SemiBold"
+            FontSize="14"
             IsBackButtonVisible="False"
             IsPaneToggleButtonVisible="False">
             <!--
