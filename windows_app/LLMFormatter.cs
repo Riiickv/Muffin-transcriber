@@ -213,6 +213,74 @@ public static class LLMFormatter
         return $"\n\nUSER CONTEXT (Use this to fix transcription holes/jargon):\n{memory}";
     }
 
+    /// <summary>
+    /// A name for a transcript or a chat: at most three words, so the list can
+    /// be read at a glance. Returns null when there is no model, the text is too
+    /// thin to name, or the model answered with a sentence instead of a title -
+    /// the caller keeps whatever name it already had rather than showing junk.
+    /// </summary>
+    public static async Task<string?> GenerateTitleAsync(string text, string? selectedFormatter)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.Trim().Length < 24) return null;
+        if (string.IsNullOrWhiteSpace(AppModel.LlamaExe)) return null;
+
+        ModelInfo? model = AppModel.Resolve(AppModel.FormatterModels, selectedFormatter);
+        if (model is null || !AppModel.IsValidModelFile(AppModel.ModelPath(model.File))) return null;
+
+        // Only the opening matters: what something is about is settled in the
+        // first paragraph, and a whole lecture here would cost more than the
+        // three words are worth.
+        string sample = text.Length > 1200 ? text[..1200] : text;
+
+        string systemPrompt =
+            "Give this text a title of AT MOST THREE WORDS, in the language the text is written in. "
+            + "It must say what the text is ABOUT, so someone reading a list can tell at a glance. "
+            + "No quotes, no punctuation at the end, no explanation, no full sentence. "
+            + "Reply with the title ONLY, starting exactly with '[START_FORMAT]'.";
+
+        string promptPath = Path.Combine(Path.GetTempPath(), "ai_transcriber_prompt_winui_title.txt");
+        await File.WriteAllTextAsync(promptPath, BuildChatPrompt(model.File, systemPrompt, sample), Encoding.UTF8);
+
+        try
+        {
+            string args = $"-m \"{modelPath(model)}\" -f \"{promptPath}\" -n 24 --temp 0.2 -ngl 33 -c 4096 --log-disable --no-display-prompt -st";
+            ProcessResult result = await RunProcessAsync(AppModel.LlamaExe, args, TimeSpan.FromMinutes(2), [0, 130]);
+            return CleanTitle(ExtractFormatterOutput(result.Output));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"GenerateTitleAsync failed: {ex.Message}");
+            return null;
+        }
+        finally
+        {
+            try { if (File.Exists(promptPath)) File.Delete(promptPath); } catch { }
+        }
+
+        static string modelPath(ModelInfo m) => AppModel.ModelPath(m.File);
+    }
+
+    /// <summary>
+    /// Small models wrap a title in quotes, prefix it with "Title:", or answer
+    /// with a whole sentence. Anything still longer than three words after
+    /// tidying is a sentence, and a sentence is worse than the filename.
+    /// </summary>
+    private static string? CleanTitle(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+
+        string title = raw.Trim().Split('\n')[0].Trim();
+        title = title.Trim('"', '\'', '`', '*', '#', ' ');
+        int colon = title.IndexOf(':');
+        if (colon >= 0 && colon <= 12) title = title[(colon + 1)..].Trim();
+        title = title.Trim('"', '\'', '`', '*', ' ').TrimEnd('.', ',', ';', '!');
+
+        if (title.Length == 0 || title.Length > 48) return null;
+        string[] words = title.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 0 || words.Length > 3) return null;
+        return string.Join(" ", words);
+    }
+
     public static async Task ExtractContextAsync(string transcript, string? selectedFormatter)
     {
         var settings = UserSettings.Load();

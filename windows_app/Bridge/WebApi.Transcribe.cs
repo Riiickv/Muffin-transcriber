@@ -111,6 +111,36 @@ public sealed partial class WebBridge
     /// A finished recording transcribes itself: pressing stop IS the intent, the
     /// same as on mobile.
     /// </summary>
+    /// <summary>
+    /// Gives a fresh transcript a name that says what it is about, in at most
+    /// three words, so a list of them can be read at a glance instead of being
+    /// twenty rows of "Voice Memo".
+    ///
+    /// Deliberately not awaited by the caller: the transcript is saved and on
+    /// screen the moment it exists, and the name arrives a few seconds later.
+    /// A rename the user typed themselves is never overwritten, which is why
+    /// the item is re-read here rather than trusting the copy passed in.
+    /// </summary>
+    private async Task NameTranscriptAsync(TranscriptionHistoryItem item, string text, string? formatterModel)
+    {
+        try
+        {
+            string? title = await LLMFormatter.GenerateTitleAsync(text, formatterModel);
+            if (string.IsNullOrWhiteSpace(title)) return;
+
+            TranscriptionHistoryItem? current = TranscriptionHistory.Load().FirstOrDefault(h => h.Id == item.Id);
+            if (current is null || current.SourceFileName != item.SourceFileName) return;
+
+            TranscriptionHistory.AddOrUpdate(current with { SourceFileName = title });
+            Emit("history.changed", null);
+        }
+        catch (Exception ex)
+        {
+            // A transcript keeps its old name; nothing the user asked for failed.
+            CrashLog.Write("Naming a transcript", ex);
+        }
+    }
+
     public void TranscribeRecording(string wavPath)
     {
         if (!File.Exists(wavPath)) return;
@@ -284,7 +314,7 @@ public sealed partial class WebBridge
                         }
                     }
 
-                    TranscriptionHistory.AddOrUpdate(new TranscriptionHistoryItem(
+                    var saved = new TranscriptionHistoryItem(
                         Guid.NewGuid().ToString(),
                         DateTime.Now,
                         baseFileName,
@@ -294,9 +324,11 @@ public sealed partial class WebBridge
                         summary,
                         cachedPath,
                         fileHash,
-                        tr.Srt));
+                        tr.Srt);
+                    TranscriptionHistory.AddOrUpdate(saved);
 
                     _ = LLMFormatter.ExtractContextAsync(rawTranscript, formatterModel);
+                    _ = NameTranscriptAsync(saved, formatted ?? rawTranscript, formatterModel);
                 }
                 catch (OperationCanceledException)
                 {
