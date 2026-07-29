@@ -185,7 +185,12 @@ public static class AppModel
 
     /// <summary>The translated tier label shown to the user (mobile's modelName).</summary>
     public static string DisplayName(ModelInfo info) =>
-        string.IsNullOrEmpty(info.NameKey) ? CompactName(info) : LocalizationManager.GetString(info.NameKey, CompactName(info));
+        // The real name when the user has asked for it. CompactName is what the
+        // catalogue calls the model itself ("Qwen 2.5 [14B]"); the key resolves
+        // to what it does for you ("Very powerful").
+        UserSettings.Load().ShowModelNames || string.IsNullOrEmpty(info.NameKey)
+            ? CompactName(info)
+            : LocalizationManager.GetString(info.NameKey, CompactName(info));
 
     /// <summary>The translated one-line blurb (mobile's modelDesc); size if none.</summary>
     public static string DisplayDesc(ModelInfo info) =>

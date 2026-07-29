@@ -1,4 +1,7 @@
 {
+  "downloads.pause": "Pausar",
+  "downloads.pausedSuffix": "(en pausa)",
+  "downloads.resume": "Reanudar",
   "pc.accent.green": "Verde",
   "pc.accent.muffin": "Muffin",
   "pc.accent.purple": "Morado",
@@ -58,6 +61,8 @@
   "pc.models.notInstalled": "No instalado",
   "pc.models.oneAtATime": "Termina o cancela primero la descarga en curso.",
   "pc.models.recommended": "Ideal para este PC",
+  "pc.models.showNames": "Mostrar los nombres de los modelos",
+  "pc.models.showNamesDesc": "Listáralos por su nombre en vez de por lo que hacen",
   "pc.models.tierMaximum": "Máxima calidad",
   "pc.models.tierPowerful": "Potente",
   "pc.models.tierTurbo": "Rápido y preciso",

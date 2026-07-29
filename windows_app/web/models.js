@@ -43,6 +43,7 @@ function createModelList(host, options) {
             '<button class="m-del" hidden><span class="msr" style="font-size:18px">&#xE872;</span></button>' +
             '<div class="m-live" hidden>' +
               '<span class="m-pct"></span>' +
+              '<button class="m-hold"><span class="msr" style="font-size:20px"></span></button>' +
               '<button class="m-cancel"><span class="msr" style="font-size:20px">&#xE5CD;</span></button>' +
             '</div>' +
           '</div>' +
@@ -60,11 +61,19 @@ function createModelList(host, options) {
       }
       host.appendChild(wrap);
 
+      // ActiveDownloads hands over {percent, paused, name} per file, not a bare
+      // number: the rail needs the name and the paused flag too. Reading it as
+      // a number put "[object Object]%" in the row.
       var live = downloading && Object.prototype.hasOwnProperty.call(downloading, model.file);
+      var state = live ? downloading[model.file] : null;
       rows[model.file] = {
         el: wrap,
         model: model,
-        info: live ? { percent: downloading[model.file], downloaded: 0, total: 0, speed: 0, etaSeconds: 0 } : null,
+        info: live ? {
+          percent: (state && typeof state === "object" ? state.percent : state) || 0,
+          paused: !!(state && state.paused),
+          downloaded: 0, total: 0, speed: 0, etaSeconds: 0,
+        } : null,
       };
 
       if (live) paint(model.file);
@@ -73,6 +82,18 @@ function createModelList(host, options) {
       wrap.querySelector(".m-del").addEventListener("click", function () { remove(model.file); });
       wrap.querySelector(".m-cancel").addEventListener("click", function () {
         Muffin.invoke("models.cancel", { file: model.file });
+      });
+
+      wrap.querySelector(".m-hold").addEventListener("click", function () {
+        var entry = rows[model.file];
+        var paused = entry && entry.info && entry.info.paused;
+        if (paused) {
+          entry.info.paused = false;
+          paint(model.file);
+          Muffin.invoke("models.resume", { file: model.file });
+        } else {
+          Muffin.invoke("models.pause", { file: model.file });
+        }
       });
 
       paint(model.file);
@@ -103,6 +124,16 @@ function createModelList(host, options) {
     el.querySelector(".m-live").hidden = !downloading;
     el.querySelector(".m-pct").textContent = (downloading ? info.percent || 0 : 0) + "%";
 
+    // Pause keeps what has come down; cancel throws it away. On an 18 GB model
+    // those are very different buttons, so they are two.
+    var paused = downloading && info.paused;
+    var hold = el.querySelector(".m-hold");
+    hold.querySelector(".msr").textContent = paused ? "" : ""; // play / pause
+    hold.dataset.tip = paused
+      ? Muffin.t("downloads.resume", "Resume")
+      : Muffin.t("downloads.pause", "Pause");
+    el.classList.toggle("m-paused", !!paused);
+
     var track = el.querySelector(".m-track");
     track.hidden = !downloading;
     track.firstElementChild.style.width = (downloading ? info.percent || 0 : 0) + "%";
@@ -127,11 +158,21 @@ function createModelList(host, options) {
     var entry = rows[p.file];
     if (!entry) return;
     entry.info = p;
+    entry.info.paused = false;
     paint(p.file);
   });
 
   Muffin.on("models.done", function (e) {
     var entry = rows[e.file];
+    if (entry && e.paused) {
+      // Paused, so the row keeps its progress and its buttons.
+      entry.info = entry.info || { percent: e.percent || 0, downloaded: 0, total: 0, speed: 0, etaSeconds: 0 };
+      entry.info.paused = true;
+      entry.info.speed = 0;
+      entry.info.etaSeconds = 0;
+      paint(e.file);
+      return;
+    }
     if (entry) {
       entry.info = null;
       entry.model.installed = !!e.ok;

@@ -104,16 +104,21 @@
 
   var downloads = {};
 
-  function ringEl() {
-    var el = document.getElementById("dl-ring");
+  // One ring per download, not one averaged ring for all of them. Muffin ships
+  // models from 74 MB to 18.5 GB, so "62%" across a pair of them is a number
+  // about nothing: the small one finished ages ago and the big one has hours
+  // left. Each gets its own ring and its own tooltip saying which it is.
+  function ringFor(file) {
+    var id = "dl-ring-" + file.replace(/[^a-z0-9]/gi, "-");
+    var el = document.getElementById(id);
     if (el) return el;
+
     var rail = document.querySelector(".rail");
     if (!rail) return null;
 
     el = document.createElement("button");
-    el.id = "dl-ring";
+    el.id = id;
     el.className = "dl-ring";
-    el.hidden = true;
     el.innerHTML =
       '<svg viewBox="0 0 36 36" aria-hidden="true">' +
         '<circle class="dl-track" cx="18" cy="18" r="15" />' +
@@ -127,30 +132,54 @@
   }
 
   function paintDownloads() {
-    var el = ringEl();
-    if (!el) return;
-    var files = Object.keys(downloads);
-    if (!files.length) { el.hidden = true; return; }
+    var rail = document.querySelector(".rail");
+    if (!rail) return;
 
-    // Several at once is rare, and one readable number beats a stack of bars.
-    var avg = files.reduce(function (sum, f) { return sum + (downloads[f] || 0); }, 0) / files.length;
-    var circumference = 2 * Math.PI * 15;
-    el.querySelector(".dl-bar").style.strokeDasharray = circumference;
-    el.querySelector(".dl-bar").style.strokeDashoffset = circumference * (1 - avg / 100);
-    el.querySelector(".dl-pct").textContent = Math.round(avg) + "%";
-    el.title = Muffin.t("settings.modelManagement", "Models");
-    el.hidden = false;
+    // Rings for downloads that have finished or been cancelled have to go, or
+    // the rail keeps a stack of dead circles.
+    [].slice.call(rail.querySelectorAll(".dl-ring")).forEach(function (el) {
+      if (!el.dataset.file || !downloads[el.dataset.file]) el.remove();
+    });
+
+    Object.keys(downloads).forEach(function (file) {
+      var info = downloads[file];
+      var el = ringFor(file);
+      if (!el) return;
+      el.dataset.file = file;
+
+      var percent = typeof info === "number" ? info : (info.percent || 0);
+      var paused = typeof info === "object" && info.paused;
+      var name = (typeof info === "object" && info.name) || file;
+
+      var circumference = 2 * Math.PI * 15;
+      el.querySelector(".dl-bar").style.strokeDasharray = circumference;
+      el.querySelector(".dl-bar").style.strokeDashoffset = circumference * (1 - percent / 100);
+      el.querySelector(".dl-pct").textContent = Math.round(percent) + "%";
+      el.classList.toggle("paused", !!paused);
+      // The name the user picked it by, not the file on disk. Which name that
+      // is depends on the Show model names setting, and the app has already
+      // resolved it.
+      el.dataset.tip = paused
+        ? name + " " + Muffin.t("downloads.pausedSuffix", "(paused)")
+        : name;
+      el.setAttribute("aria-label", el.dataset.tip);
+    });
   }
 
   Muffin.on("models.progress", function (p) {
     if (!p || !p.file) return;
-    downloads[p.file] = p.percent || 0;
+    downloads[p.file] = { percent: p.percent || 0, name: p.name || p.file, paused: false };
     paintDownloads();
   });
 
   Muffin.on("models.done", function (e) {
     if (!e || !e.file) return;
-    delete downloads[e.file];
+    if (e.paused) {
+      var was = downloads[e.file] || {};
+      downloads[e.file] = { percent: e.percent || was.percent || 0, name: was.name || e.file, paused: true };
+    } else {
+      delete downloads[e.file];
+    }
     paintDownloads();
   });
 
