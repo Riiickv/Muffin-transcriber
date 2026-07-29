@@ -11,116 +11,18 @@
     mc:Ignorable="d">
 
     <Grid x:Name="RootGrid">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="48" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-
         <!--
-            Nunito, the same face the rest of the app is set in. The title bar
-            was the one surface still in Segoe, which is what made it read as
-            Windows chrome bolted onto the app rather than part of it. The font
-            ships in web/fonts for the WebView; XAML loads it from the same file
-            by family name.
+            No TitleBar control, and no rows. The whole window is the WebView,
+            title bar included: the caption buttons, the tooltip and the title
+            text were the last things Windows was drawing here. They are HTML
+            now, built in shell.js, so they use the app's own tooltip, its own
+            font and its own accent.
+
+            The cost is that dragging and resizing stop being free. The page
+            reports where its title strip and its buttons are, and
+            SetDragRegions hands those to InputNonClientPointerSource, which is
+            what tells Windows which pixels drag the window.
         -->
-        <TitleBar
-            x:Name="AppTitleBar"
-            Title="{x:Bind local:AppStrings.App_Title}"
-            FontFamily="ms-appx:///web/fonts/Nunito_600SemiBold.ttf#Nunito SemiBold"
-            FontSize="14"
-            IsBackButtonVisible="False"
-            IsPaneToggleButtonVisible="False">
-            <!--
-                The icon goes in LeftHeader rather than IconSource, which draws
-                it at a fixed 16px and cannot be told otherwise: at 16 it is a
-                smudge next to 48px of title bar. 26px is as large as it goes
-                without crowding the title text.
-
-                A PNG, not the .ico. XAML's image decoder will not reliably read
-                a multi-frame .ico, which is why the icon never appeared at all
-                before; this is the 256px frame of that same file. The .ico
-                still supplies the exe icon through ApplicationIcon.
-            -->
-            <TitleBar.LeftHeader>
-                <!--
-                    The Grid is not decoration. Centring the Image directly
-                    centres it inside whatever box the LeftHeader presenter
-                    hands it, which is not the full height of the bar, so it
-                    sat high against the title. The Grid stretches to the bar
-                    and the icon centres inside that instead.
-
-                    The left margin replaces the inset IconSource used to give
-                    it: moved into LeftHeader the icon lost that and sat hard
-                    against the window edge.
-                -->
-                <Grid VerticalAlignment="Stretch" Margin="14,0,0,0">
-                    <Image
-                        Source="ms-appx:///Assets/AppIcon.png"
-                        Width="26"
-                        Height="26"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center" />
-                </Grid>
-            </TitleBar.LeftHeader>
-
-            <!--
-                RightHeader is the slot meant for this: it sits immediately
-                left of the caption buttons and TitleBar handles click
-                passthrough for it, which an overlay on the drag region would
-                not get. Its own spacing is what left the gap, and guessing at
-                a negative margin was wrong twice, so the code behind measures
-                the real distance to the caption buttons after layout and
-                closes it exactly. See NudgeSupportButton.
-            -->
-            <TitleBar.RightHeader>
-                <Button
-                    x:Name="SupportButton"
-                    Click="OnSupportClick"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    VerticalAlignment="Center"
-                    Width="36"
-                    Height="28"
-                    Padding="0"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center">
-                    <!--
-                        The app draws its own tooltips everywhere else, and that
-                        framework lives in the web layer where this button
-                        cannot reach it. This is the closest a XAML tooltip
-                        gets: same corner radius, same hairline border, themed
-                        rather than the stock pale box.
-                    -->
-                    <ToolTipService.ToolTip>
-                        <ToolTip
-                            Content="{x:Bind local:AppStrings.Settings_SupportTitle}"
-                            Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
-                            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
-                            BorderThickness="1"
-                            CornerRadius="8"
-                            Padding="10,6"
-                            FontSize="12" />
-                    </ToolTipService.ToolTip>
-                    <!--
-                        Ricky's logo, not a glyph: it is artwork, and it is what
-                        the mobile header uses. 17x12.75 keeps its real 488x366
-                        proportions; forcing it square would squash the face.
-
-                        Pre-tinted to the danger colour, which is one value in
-                        every theme, because the source PNG is a near-white
-                        shape that would vanish on a light title bar.
-                    -->
-                    <Image Source="ms-appx:///Assets/RickLogo.png" Width="17" Height="12.75" />
-                </Button>
-            </TitleBar.RightHeader>
-        </TitleBar>
-
-        <!--
-            The whole UI. It is HTML/CSS built from the mobile app's own tokens,
-            fonts and icons, served from the install dir by WebView2 under a
-            virtual host name: local files, no network, nothing leaves the PC.
-        -->
-        <controls:WebView2 x:Name="WebHost" Grid.Row="1" />
-
+        <controls:WebView2 x:Name="WebHost" />
     </Grid>
 </Window>

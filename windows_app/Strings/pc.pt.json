@@ -108,5 +108,8 @@
   "pc.update.ready": "Atualização do Muffin pronta a instalar!",
   "pc.update.restart": "Reiniciar",
   "pc.update.title": "Atualização do Muffin disponível!",
-  "pc.update.update": "Atualizar!"
+  "pc.update.update": "Atualizar!",
+  "pc.window.close": "Fechar",
+  "pc.window.maximize": "Maximizar",
+  "pc.window.minimize": "Minimizar"
 }

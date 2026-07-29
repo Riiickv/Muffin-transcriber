@@ -36,9 +36,9 @@ public sealed partial class MainWindow : Window
         }
         _ = CheckEngineHealthAsync();
 
+        // No SetTitleBar: there is no XAML title bar left to hand over. The
+        // page draws its own strip and tells us which parts of it drag.
         ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
-        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         AppWindow.SetIcon("Assets/AppIcon.ico");
         ThemeHelper.Apply(this, _settings.ThemeMode);
 
@@ -54,9 +54,6 @@ public sealed partial class MainWindow : Window
 
         // The caption inset is only known once there is a window and a scale to
         // measure against, and it changes with both.
-        RootGrid.SizeChanged += (_, _) => NudgeSupportButton();
-        RootGrid.Loaded += (_, _) => NudgeSupportButton();
-
         Closed += MainWindow_Closed;
         RecordingController.RecordingFinished += OnRecordingFinished;
         RecordingController.StateChanged += OnRecordingStateChanged;
@@ -224,48 +221,63 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void OnSupportClick(object sender, RoutedEventArgs e) => _bridge?.Emit("app.askSupport", null);
 
-    /// <summary>
-    /// Slides the support button up against the caption buttons.
-    ///
-    /// TitleBar puts its own spacing around RightHeader, and that spacing was
-    /// the gap. I guessed at a negative margin twice and got it wrong both
-    /// times, so this measures instead: where the button actually sits, versus
-    /// where the system says the caption buttons begin, and closes the
-    /// difference. RightInset is in physical pixels, hence the scale.
-    ///
-    /// Runs on every size change because the inset moves with the window and
-    /// with the monitor's scaling.
-    /// </summary>
-    private void NudgeSupportButton()
-    {
-        if (SupportButton is null || RootGrid.ActualWidth <= 0) return;
+    // ---- window controls, driven by the page ------------------------------
 
+    public void MinimizeWindow()
+    {
+        if (AppWindow.Presenter is OverlappedPresenter p) p.Minimize();
+    }
+
+    /// <summary>Toggles, and reports back so the page can swap the icon.</summary>
+    public bool ToggleMaximizeWindow()
+    {
+        if (AppWindow.Presenter is not OverlappedPresenter p) return false;
+        if (p.State == OverlappedPresenterState.Maximized) { p.Restore(); return false; }
+        p.Maximize();
+        return true;
+    }
+
+    public bool IsMaximized =>
+        AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized };
+
+    public void CloseWindow() => Close();
+
+    /// <summary>
+    /// Which pixels drag the window.
+    ///
+    /// With the title bar drawn by the page there is nothing for Windows to
+    /// grab, so the strip has to be declared as caption. The page sends the
+    /// strip MINUS its buttons, already split into rectangles: a button inside
+    /// a caption region drags the window instead of being clicked. Coordinates
+    /// arrive in CSS pixels; Windows wants physical ones.
+    /// </summary>
+    public void SetDragRegions(IReadOnlyList<(double X, double Y, double W, double H)> rects)
+    {
         try
         {
+            var source = Microsoft.UI.Input.InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
             double scale = RootGrid.XamlRoot?.RasterizationScale ?? 1.0;
-            double captionWidth = AppWindow.TitleBar.RightInset / (scale <= 0 ? 1.0 : scale);
+            if (scale <= 0) scale = 1.0;
 
-            // Where the button's right edge is now, in the window's own space.
-            Windows.Foundation.Point at = SupportButton
-                .TransformToVisual(RootGrid)
-                .TransformPoint(new Windows.Foundation.Point(SupportButton.ActualWidth, 0));
+            var native = rects
+                .Where(r => r.W > 0 && r.H > 0)
+                .Select(r => new Windows.Graphics.RectInt32(
+                    (int)Math.Round(r.X * scale),
+                    (int)Math.Round(r.Y * scale),
+                    (int)Math.Round(r.W * scale),
+                    (int)Math.Round(r.H * scale)))
+                .ToArray();
 
-            double wanted = RootGrid.ActualWidth - captionWidth - SupportButtonGap;
-            double shift = at.X - wanted;
-            if (Math.Abs(shift) < 1) return; // already there
-
-            double current = SupportButton.Margin.Right;
-            double next = Math.Max(-40, Math.Min(40, current + shift));
-            SupportButton.Margin = new Thickness(0, 0, next, 0);
+            source.SetRegionRects(Microsoft.UI.Input.NonClientRegionKind.Caption, native);
         }
         catch (Exception ex)
         {
-            CrashLog.Write("Positioning the support button", ex);
+            // Losing this makes the window immovable, which is worth a log
+            // rather than silently living with.
+            CrashLog.Write("Setting the drag region", ex);
         }
     }
 
-    /// <summary>A hair of daylight, so it does not touch Minimize.</summary>
-    private const double SupportButtonGap = 4;
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {

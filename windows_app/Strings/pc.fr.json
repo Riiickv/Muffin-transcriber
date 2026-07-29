@@ -108,5 +108,8 @@
   "pc.update.ready": "Mise à jour de Muffin prête à installer !",
   "pc.update.restart": "Redémarrer",
   "pc.update.title": "Mise à jour de Muffin disponible !",
-  "pc.update.update": "Mettre à jour !"
+  "pc.update.update": "Mettre à jour !",
+  "pc.window.close": "Fermer",
+  "pc.window.maximize": "Agrandir",
+  "pc.window.minimize": "Réduire"
 }

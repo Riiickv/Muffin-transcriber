@@ -95,6 +95,28 @@
 
 * { box-sizing: border-box; }
 
+/* ---- Selection and caret: the app's, not the OS's ----
+   Windows paints selection in its own blue and the caret in the system colour,
+   which is the last place the desktop shows through. Both follow the accent
+   picker through color-mix, so changing the accent changes them too.
+
+   --on-accent rather than a fixed colour: the accent can be a pale pink or a
+   dark purple, and the text has to stay readable on whichever. */
+::selection {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--text);
+}
+::-moz-selection {
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--text);
+}
+
+/* The caret is a separate colour from the text, so it stays visible against a
+   selection and reads as the app's rather than the system's. */
+input, textarea, [contenteditable] {
+  caret-color: var(--accent);
+}
+
 .rail-item .msr, .mic-fab .msr { font-size: 23px; }
 
 html, body {
@@ -105,6 +127,72 @@ html, body {
   color: var(--text);
   overflow: hidden;
 }
+
+/* ---- Title bar: the app's, not the system's ----
+   Windows draws nothing here now. The icon, the title, the support mark and
+   the three window controls are all ours, which is what lets them use the
+   app's font, its accent and its own tooltips.
+
+   The window controls are drawn in CSS rather than set in Segoe MDL2: that
+   font IS the system's glyphs, and the point was to stop borrowing them. */
+.titlebar {
+  position: fixed; top: 0; left: 0; right: 0; height: 40px; z-index: 100;
+  /* No gap: the window controls sit flush against each other the way caption
+     buttons do. The icon and title space themselves instead. */
+  display: flex; align-items: center;
+  padding-left: var(--sp-md);
+  background: var(--bg);
+  border-bottom: 1px solid var(--divider);
+  user-select: none;
+}
+body.has-titlebar .app { padding-top: 40px; }
+
+.titlebar .tb-icon { width: 20px; height: 20px; flex-shrink: 0; margin-right: var(--sp-sm); }
+.titlebar .tb-title { font-size: 13px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.titlebar .tb-spacer { flex: 1; }
+
+.titlebar .tb-btn {
+  width: 44px; height: 40px; flex-shrink: 0;
+  background: transparent; border: none; padding: 0; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+}
+.titlebar .tb-btn:hover { background: var(--surface); color: var(--text); }
+.titlebar .tb-close:hover { background: var(--danger); color: #FFFFFF; }
+
+/* The support mark keeps its own colour rather than following the row. */
+.titlebar .tb-support { margin-right: var(--sp-sm); }
+.titlebar .tb-support img { width: 17px; height: 12.75px; }
+
+/* ---- the three glyphs, as shapes ---- */
+.titlebar .tb-ico { position: relative; display: block; width: 10px; height: 10px; }
+
+/* minimize: one rule */
+.titlebar .tb-ico.min::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%;
+  height: 1px; background: currentColor;
+}
+
+/* maximize: a rounded square. restore: that square, offset, with a second
+   behind it, which is what the two-window state actually looks like. */
+.titlebar .tb-ico.max::before {
+  content: ""; position: absolute; inset: 0;
+  border: 1px solid currentColor; border-radius: 2px;
+}
+.titlebar .tb-ico.max.restore::before { inset: 2px 0 0 2px; }
+.titlebar .tb-ico.max.restore::after {
+  content: ""; position: absolute; inset: 0 2px 2px 0;
+  border: 1px solid currentColor; border-radius: 2px;
+}
+
+/* close: two strokes */
+.titlebar .tb-ico.close::before,
+.titlebar .tb-ico.close::after {
+  content: ""; position: absolute; left: -1px; right: -1px; top: 50%;
+  height: 1px; background: currentColor; border-radius: 1px;
+}
+.titlebar .tb-ico.close::before { transform: rotate(45deg); }
+.titlebar .tb-ico.close::after { transform: rotate(-45deg); }
 
 /* ---- Layout: nav rail + scrolling page, mirroring the desktop shell ---- */
 .app { display: flex; height: 100vh; }

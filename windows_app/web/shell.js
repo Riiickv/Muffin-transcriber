@@ -147,6 +147,99 @@
     paintDownloads();
   });
 
+  // ---- title bar ---------------------------------------------------------
+  // Drawn here rather than by Windows, so the icon, the title, the support
+  // button and the window controls all use the app's font, accent and tooltip
+  // system. Injected on every page for the same reason the banner is: each
+  // screen is its own document.
+  //
+  // The window has no caption of its own any more, so nothing drags it until
+  // we say so. reportDragRegions sends the strip MINUS the buttons; a button
+  // inside a caption region drags the window instead of being clicked.
+
+  var TITLEBAR_H = 40;
+
+  function buildTitleBar() {
+    if (!Muffin.isHosted || document.getElementById("titlebar")) return null;
+
+    var bar = document.createElement("div");
+    bar.id = "titlebar";
+    bar.className = "titlebar";
+    bar.innerHTML =
+      '<img class="tb-icon" src="images/AppIcon.png" alt="" />' +
+      '<div class="tb-title"></div>' +
+      '<div class="tb-spacer"></div>' +
+      '<button class="tb-btn tb-support" type="button"><img src="images/RickLogo.png" alt="" /></button>' +
+      // Drawn in CSS, not a font. Segoe MDL2 would have been the system's
+      // glyphs, which is the thing being replaced.
+      '<button class="tb-btn tb-min" type="button"><i class="tb-ico min"></i></button>' +
+      '<button class="tb-btn tb-max" type="button"><i class="tb-ico max"></i></button>' +
+      '<button class="tb-btn tb-close" type="button"><i class="tb-ico close"></i></button>';
+    document.body.insertBefore(bar, document.body.firstChild);
+
+    bar.querySelector(".tb-title").textContent = Muffin.t("app.title", "Muffin Transcriber");
+
+    var support = bar.querySelector(".tb-support");
+    support.title = Muffin.t("settings.supportTitle", "Support me!");
+    support.addEventListener("click", function () {
+      if (window.showSupportDialog) window.showSupportDialog();
+    });
+
+    bar.querySelector(".tb-min").title = Muffin.t("pc.window.minimize", "Minimize");
+    bar.querySelector(".tb-max").title = Muffin.t("pc.window.maximize", "Maximize");
+    bar.querySelector(".tb-close").title = Muffin.t("pc.window.close", "Close");
+
+    bar.querySelector(".tb-min").addEventListener("click", function () { Muffin.invoke("window.minimize"); });
+    bar.querySelector(".tb-close").addEventListener("click", function () { Muffin.invoke("window.close"); });
+    bar.querySelector(".tb-max").addEventListener("click", function () {
+      Muffin.invoke("window.toggleMaximize").then(function (r) { paintMaxIcon(r && r.maximized); });
+    });
+
+    // Double-clicking the empty strip maximises, the way a real title bar does.
+    bar.addEventListener("dblclick", function (e) {
+      if (e.target.closest(".tb-btn")) return;
+      Muffin.invoke("window.toggleMaximize").then(function (r) { paintMaxIcon(r && r.maximized); });
+    });
+
+    Muffin.invoke("window.state").then(function (r) { paintMaxIcon(r && r.maximized); });
+    document.body.classList.add("has-titlebar");
+    return bar;
+  }
+
+  function paintMaxIcon(maximized) {
+    var el = document.querySelector(".tb-max .tb-ico");
+    if (el) el.classList.toggle("restore", !!maximized);
+  }
+
+  // The strip, with a hole cut for every button.
+  function reportDragRegions() {
+    var bar = document.getElementById("titlebar");
+    if (!bar || !Muffin.isHosted) return;
+
+    var barRect = bar.getBoundingClientRect();
+    var buttons = [].slice.call(bar.querySelectorAll(".tb-btn"))
+      .map(function (b) { return b.getBoundingClientRect(); })
+      .filter(function (r) { return r.width > 0; })
+      .sort(function (a, b) { return a.left - b.left; });
+
+    var rects = [];
+    var x = barRect.left;
+    buttons.forEach(function (r) {
+      if (r.left > x) rects.push({ x: x, y: barRect.top, w: r.left - x, h: barRect.height });
+      x = Math.max(x, r.right);
+    });
+    if (x < barRect.right) rects.push({ x: x, y: barRect.top, w: barRect.right - x, h: barRect.height });
+
+    Muffin.invoke("window.dragRegions", { rects: rects });
+  }
+
+  Muffin.ready(function () {
+    if (buildTitleBar()) {
+      reportDragRegions();
+      window.addEventListener("resize", reportDragRegions);
+    }
+  });
+
   // ---- banners -----------------------------------------------------------
   // Updates and engine problems used to be a stock system InfoBar floating over
   // a themed app. Drawn here, they carry the app's own accent, type and corners.

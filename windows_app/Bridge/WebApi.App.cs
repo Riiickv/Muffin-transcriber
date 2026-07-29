@@ -119,6 +119,39 @@ public sealed partial class WebBridge
         // ASK what the banner should say, and does while one is in progress.
         Register("app.currentBanner", _ => (object?)_pendingBanner);
 
+        // The title bar is drawn by the page now, so the window controls have
+        // to come back through here.
+        Register("window.minimize", _ => { (_window as MainWindow)?.MinimizeWindow(); return (object?)null; });
+        Register("window.close", _ => { (_window as MainWindow)?.CloseWindow(); return (object?)null; });
+        Register("window.toggleMaximize", _ => (object?)new Dictionary<string, object?>
+        {
+            ["maximized"] = (_window as MainWindow)?.ToggleMaximizeWindow() ?? false,
+        });
+        Register("window.state", _ => (object?)new Dictionary<string, object?>
+        {
+            ["maximized"] = (_window as MainWindow)?.IsMaximized ?? false,
+        });
+
+        // The strip minus its buttons: which pixels drag the window.
+        Register("window.dragRegions", args =>
+        {
+            var rects = new List<(double, double, double, double)>();
+            if (args.ValueKind == JsonValueKind.Object && args.TryGetProperty("rects", out JsonElement list)
+                && list.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement r in list.EnumerateArray())
+                {
+                    rects.Add((
+                        r.TryGetProperty("x", out var x) ? x.GetDouble() : 0,
+                        r.TryGetProperty("y", out var y) ? y.GetDouble() : 0,
+                        r.TryGetProperty("w", out var w) ? w.GetDouble() : 0,
+                        r.TryGetProperty("h", out var h) ? h.GetDouble() : 0));
+                }
+            }
+            (_window as MainWindow)?.SetDragRegions(rects);
+            return (object?)null;
+        });
+
         Register("app.bannerAction", args =>
         {
             Action? action = _bannerAction;
