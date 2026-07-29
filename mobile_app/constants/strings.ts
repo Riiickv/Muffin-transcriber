@@ -410,6 +410,8 @@ export const APP_STRINGS = {
     chatModelsHeader: "Chat models",
     embeddingModelsHeader: "Helper models (mandatory for the chat to be helpful)",
     modelListOptions: "List options",
+    showModelNames: "Show model names",
+    showModelNamesDesc: "List them by what they are called instead of what they do.",
     showTimeEstimate: "Show estimated time",
     showTimeEstimateDesc: "Adds a line with how long each model is likely to take on this phone.",
 

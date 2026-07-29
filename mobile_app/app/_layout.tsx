@@ -17,6 +17,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useShareIntent } from 'expo-share-intent';
 import { useSettings } from '@/utils/settingsStore';
 import { setAppLanguage } from '@/utils/i18n';
+import { setShowModelNames } from '@/utils/ModelManager';
 
 export {
   ErrorBoundary,
@@ -91,6 +92,9 @@ function RootLayoutNav() {
   // remount is heavy-handed, but language changes about once in an app's life
   // and the alternative is half the screens keeping their old text.
   setAppLanguage(settings.appLanguage);
+  // Same placement, same reason: read before this render's children ask for a
+  // model label, so no screen can render one from a stale flag.
+  setShowModelNames(settings.showModelNames);
 
   const customNavigationTheme = {
     ...(theme.isDark ? DarkTheme : DefaultTheme),
