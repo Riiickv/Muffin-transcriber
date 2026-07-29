@@ -24,6 +24,26 @@ public sealed class UserSettings
     /// something once you already know.
     /// </summary>
     public bool ShowModelNames { get; set; }
+
+    /// <summary>
+    /// Show which model transcribed a saved recording, on its own line under
+    /// the date.
+    ///
+    /// Separate from ShowModelNames, which is about the model PICKER: there the
+    /// question is "which one do I want", here it is "which one made this". A
+    /// person who wants tier names while choosing may still want to know that
+    /// the transcript they are squinting at came from Fastest.
+    /// </summary>
+    public bool ShowTranscriptModel { get; set; } = true;
+
+    /// <summary>
+    /// Show how long the work took, on its own line.
+    ///
+    /// Both of these are switches rather than always-on because a detail pane
+    /// is not a dashboard: two more lines under every title is a real cost to
+    /// pay on every visit, and most visits are to read the words.
+    /// </summary>
+    public bool ShowTranscriptTiming { get; set; } = true;
     public double SidebarWidth { get; set; } = 320;
     public int WindowWidth { get; set; } = 1000;
     public int WindowHeight { get; set; } = 650;

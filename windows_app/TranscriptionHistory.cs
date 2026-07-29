@@ -16,7 +16,17 @@ public sealed record TranscriptionHistoryItem(
     string? SourceFilePath = null,
     string? FileHash = null,
     string? SrtTranscript = null,
-    double[]? Embedding = null
+    double[]? Embedding = null,
+    // What produced this, and how long it took. Appended with defaults on
+    // purpose: this is a positional record serialized straight to history.json,
+    // so every transcript recorded before today deserializes with nulls and the
+    // UI simply has nothing to show for it, rather than the file failing to
+    // parse and a library disappearing.
+    string? WhisperModel = null,
+    long? TranscribeMs = null,
+    string? FormatterModel = null,
+    long? ImproveMs = null,
+    long? SummarizeMs = null
 )
 {
     public string TimestampString => Timestamp.ToString("g");

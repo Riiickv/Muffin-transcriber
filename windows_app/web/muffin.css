@@ -792,6 +792,18 @@ textarea { resize: vertical; min-height: 72px; }
 .detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-md); }
 .detail-head h2 { font-size: 20px; font-weight: 700; margin: 0; }
 .detail-head .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+/* Provenance and cost, under the date. Quieter than the subtitle, because this
+   is the answer to a question you only sometimes ask. */
+.detail-head .meta-line { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+/* The duration itself carries the accent - the number AND its unit, so "26s"
+   reads as one thing rather than a number with a stray letter after it. The
+   words around it stay muted, which is what keeps two extra lines from
+   shouting over the title they sit under. */
+.detail-head .meta-line .dur {
+  color: var(--accent);
+  font-stretch: var(--wd-numeric);
+  font-variant-numeric: tabular-nums;
+}
 
 /* Action buttons: icon ABOVE the label, three across (mobile actionButton). */
 .action-btn {
