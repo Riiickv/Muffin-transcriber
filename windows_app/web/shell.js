@@ -210,16 +210,57 @@
       Muffin.invoke("window.toggleMaximize").then(function (r) { paintMaxIcon(r && r.maximized); });
     });
 
-    // The window has no caption for Windows to grab any more, so a press on the
+    // The window has no caption for Windows to grab any more, so a drag on the
     // empty part of the strip is handed over as one. Left button only: the
-    // right one belongs to the menu below.
+    // right one belongs to the menu.
+    //
+    // On movement, not on the press. Handing a press straight to the OS move
+    // loop hands a plain CLICK to it too, and since a maximised window has to
+    // be restored before it can be moved, clicking the strip un-maximised the
+    // window. Four pixels of travel is more than any click and less than any
+    // intentional drag.
+    var dragFrom = null;
+
+    function handOver() {
+      // The move loop is modal on the app's thread, so this reply does not come
+      // back until the drag is over: the right moment to re-read the state,
+      // since dragging a maximised window restores it on the way.
+      Muffin.invoke("window.beginDrag").then(function () {
+        Muffin.invoke("window.state").then(function (r) { paintMaxIcon(r && r.maximized); });
+      });
+    }
+
+    function endDrag(e) {
+      dragFrom = null;
+      try { bar.releasePointerCapture(e.pointerId); } catch (err) { }
+    }
+
     bar.addEventListener("pointerdown", function (e) {
       if (e.button !== 0 || e.target.closest(".tb-btn")) return;
-      // A double-click arrives as two presses; letting the first one start a
-      // drag would eat the second and maximise would never fire.
-      if (e.detail > 1) return;
-      Muffin.invoke("window.beginDrag");
+
+      // Maximised is the one case that cannot hand the press over immediately.
+      // A maximised window has to be restored before Windows will move it, so
+      // doing it here un-maximised the window on a plain click. There it waits
+      // for the pointer to travel, which a click never does. The strip is only
+      // 40px tall and a drag leaves it at once, so the pointer is captured or
+      // the move that crosses the threshold never arrives.
+      if (isMaximized()) {
+        dragFrom = { x: e.clientX, y: e.clientY };
+        try { bar.setPointerCapture(e.pointerId); } catch (err) { }
+        return;
+      }
+      handOver();
     });
+
+    bar.addEventListener("pointermove", function (e) {
+      if (!dragFrom) return;
+      if (Math.abs(e.clientX - dragFrom.x) < 4 && Math.abs(e.clientY - dragFrom.y) < 4) return;
+      endDrag(e);
+      handOver();
+    });
+
+    bar.addEventListener("pointerup", endDrag);
+    bar.addEventListener("pointercancel", endDrag);
 
     Muffin.invoke("window.state").then(function (r) { paintMaxIcon(r && r.maximized); });
     document.body.classList.add("has-titlebar");
@@ -229,6 +270,12 @@
   function paintMaxIcon(maximized) {
     var el = document.querySelector(".tb-max .tb-ico");
     if (el) el.classList.toggle("restore", !!maximized);
+  }
+
+  // The icon is the state: it is set from window.state on load and kept in step
+  // on every toggle, so reading it costs nothing and cannot race the bridge.
+  function isMaximized() {
+    return !!document.querySelector(".tb-max .tb-ico.restore");
   }
   window.paintMaxIcon = paintMaxIcon;
 
