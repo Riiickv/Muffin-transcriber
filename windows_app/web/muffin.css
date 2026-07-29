@@ -8,9 +8,15 @@
  * and it all works offline (local files, no Google Fonts fetch).
  */
 
-/* Google Sans Flex, the variable one, not a static instance. Two subsets cover
-   every language Muffin speaks: latin plus latin-ext. OFL, so it ships with an
-   open source app without a question.
+/* Google Sans Flex, the variable one, not a static instance: the CSS API hands
+   static cuts to anything that cannot take woff2, and two attempts at the TTF
+   came back with no fvar at all. This is the whole family in one file. OFL, so
+   it ships with an open source app without a question.
+
+   The full font rather than the latin subsets it replaced: the UI is only ever
+   in six Latin languages, but a TRANSCRIPT can be in any of the hundred Whisper
+   handles, and per-glyph fallback to Nunito is better than a subset that simply
+   has no Vietnamese in it.
 
    Six axes, and the two that matter here are wdth (25-151) and ROND (0-100).
    ROND defaults to 0, which is already the non-rounded cut, so nothing has to
@@ -24,16 +30,7 @@
   font-style: oblique 0deg 10deg;
   font-weight: 1 1000;
   font-stretch: 25% 151%;
-  src: url("fonts/GoogleSansFlex-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: "Google Sans Flex";
-  font-style: oblique 0deg 10deg;
-  font-weight: 1 1000;
-  font-stretch: 25% 151%;
-  src: url("fonts/GoogleSansFlex-latin-ext.woff2") format("woff2");
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  src: url("fonts/GoogleSansFlex-Variable.ttf") format("truetype-variations");
 }
 
 @font-face { font-family: "Nunito"; font-weight: 400; font-style: normal; src: url("fonts/Nunito_400Regular.ttf") format("truetype"); }
