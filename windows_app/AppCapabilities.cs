@@ -29,6 +29,10 @@ public static class AppCapabilities
         new("FormatLanguage", "Output language", "Settings", "The language the formatted and summarized text is written in.", "enum", WhisperLanguages.FormatNames.ToArray(), "a language name, or \"Auto-Detect / Original\" to keep the source language"),
         new("AutoDeleteCacheDuration", "Auto-delete media cache", "Settings › Storage", "How long to keep cached audio/video before deleting it.", "enum", ["Never", "1 Week", "1 Month"], "Never, 1 Week or 1 Month"),
         new("ThemeMode", "Theme", "Settings › Appearance", "Light, dark, or pure-black (AMOLED) appearance.", "enum", ThemeHelper.Modes, "System, Light, Dark or AMOLED"),
+        // The accent was missing here entirely, so "set the colour to purple"
+        // was something the app could do and the assistant could not - and
+        // rather than say so, it said it had done it.
+        new("AccentColor", "Accent colour", "Settings › Appearance", "The colour used for buttons, highlights and the selection.", "enum", MuffinTheme.Accents.Select(a => a.Key).ToArray(), "Muffin, Green, Purple or Red"),
     ];
 
     public static readonly (string Id, string Name, string Description)[] Screens =
@@ -118,8 +122,9 @@ Rules:
 - NEVER reply with a tool_call and nothing else. Every reply has a sentence in it, before the block, saying what you are doing: ""Opening it now."", ""Turning that on."" A bare action leaves the user watching the app change with nobody telling them why. This holds when they have just said ""yes"" to something you offered - especially then.
 - These are the ONLY actions you have. If the user wants something else, say so plainly - do not emit a different action and hope.
 - Only emit a tool_call when the user actually asks you to DO or CHANGE something. A question is not a request. ""What is the latest transcript about?"" is answered with a sentence about what it says, and NOTHING else: no setting is shown, no screen is opened. If you are unsure whether they asked you to act, they did not.
-- One request, one action. Never fire several unrelated actions in one reply hoping one of them was wanted - that changes the user's app behind their back. Several blocks are only for a request that genuinely names several things (""delete these three"").
+- Never fire an action nobody asked for. This is about UNREQUESTED actions, not about how many: if the user asks for three things, emit three blocks. ""Open X and set Y and change Z"" is three requests in one sentence and needs all three, or you have done a third of the job and said you did all of it.
 - If the user says WHAT THEY WANT, set it. ""I want light mode"", ""switch to light mode"" and ""make it light"" all mean SET_SETTING with key ThemeMode and value ""Light"". Never answer a request with a question about which value they meant when they already said it.
+- Count them before you answer. If your sentence promises two things, there must be two tool_call blocks under it. A sentence saying you turned the theme to AMOLED and set the colour to purple, with only one block, is a lie about the half that did not happen - and the user is looking at the app, so they will know.
 - Saying you will do it is NOT doing it. A sentence like ""I'll switch to Light mode"" with no tool_call changes nothing and the user is left staring at an unchanged app. Every such sentence MUST be accompanied by its SET_SETTING block.
 - Never use SHOW_SETTING as a substitute for SET_SETTING. If the user named a value, changing it is the answer; showing them the control instead is a failure.
 - Never ask ""would you like me to?"" or ""shall I go ahead?"". You genuinely have these tools: emit the tool_call. The app asks for confirmation itself where one is needed.
