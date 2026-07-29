@@ -57,6 +57,30 @@ public sealed partial class WebBridge
             return (object?)TranscriptionHistory.Load().Select(SummaryMap).ToList();
         });
 
+        // Saves an edit the user typed into the transcript itself.
+        //
+        // Whisper mishears names, jargon and numbers, and until now the only way
+        // to correct one was to copy the whole thing out into something else.
+        // The variant is named explicitly so fixing the raw text cannot quietly
+        // overwrite an improved version sitting beside it.
+        Register("history.saveText", args =>
+        {
+            TranscriptionHistoryItem? item = Find(Str(args, "id"));
+            if (item is null) return null;
+
+            string variant = Str(args, "variant");
+            string text = args.TryGetProperty("text", out JsonElement t) ? (t.GetString() ?? "") : "";
+
+            TranscriptionHistoryItem updated = variant switch
+            {
+                "formatted" => item with { FormattedTranscript = text },
+                "summary" => item with { Summary = text },
+                _ => item with { RawTranscript = text },
+            };
+            TranscriptionHistory.AddOrUpdate(updated);
+            return (object?)true;
+        });
+
         // Asked for on load. Without it, coming back to a transcript mid-Improve
         // showed enabled buttons and no progress, and pressing one again just
         // cancelled the job that was already running.
@@ -244,8 +268,12 @@ public sealed partial class WebBridge
     private static string Meaningful(string? text) =>
         !string.IsNullOrWhiteSpace(text) && text.Any(char.IsLetterOrDigit) ? text : "";
 
-    private static Dictionary<string, object?> DetailMap(TranscriptionHistoryItem item) => new()
+    private Dictionary<string, object?> DetailMap(TranscriptionHistoryItem item) => new()
     {
+        // Whether THIS row is the one being transcribed right now, so the
+        // library can show the work instead of an empty transcript that looks
+        // like a recording nothing ever happened to.
+        ["transcribing"] = item.Id == TranscribingEntryId,
         ["id"] = item.Id,
         ["title"] = item.SourceFileName,
         ["timestamp"] = item.Timestamp.ToString("o"),

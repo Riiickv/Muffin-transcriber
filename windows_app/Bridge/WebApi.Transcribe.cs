@@ -290,6 +290,23 @@ public sealed partial class WebBridge
         if (_transcribeCts is null) _ = RunTranscriptionAsync();
     }
 
+    /// <summary>
+    /// The history row currently being transcribed, if any, so the library can
+    /// show the work on the row it belongs to rather than an empty transcript.
+    /// </summary>
+    public string? TranscribingEntryId
+    {
+        get
+        {
+            if (_transcribeCts is null) return null;
+            foreach (string file in _queuedFiles)
+            {
+                if (_entryForFile.TryGetValue(file, out string? id)) return id;
+            }
+            return null;
+        }
+    }
+
     /// <summary>The kept copy of a recording, by the row id it was given.</summary>
     public string? KeptPathFor(string entryId) =>
         _entryForFile.FirstOrDefault(pair => pair.Value == entryId).Key;

@@ -316,6 +316,8 @@
         document.getElementById("d-title").textContent = item.title;
         document.getElementById("d-date").textContent = formatHistoryDate(item.timestamp);
         panel.set(item, { preferBest: true });
+        // The library is the one place an edit has somewhere to be saved to.
+        panel.editing(item.id);
         setupPlayer(item);
       });
     }
@@ -416,9 +418,36 @@
       Muffin.invoke("history.list").then(function (list) { items = list || items; renderList(); });
     }
 
-    // A fresh transcript is named a few seconds after it is saved, so the row
-    // has to pick the new name up on its own.
-    Muffin.on("history.changed", refreshRow);
+    // A fresh transcript is named a few seconds after it is saved, and the words
+    // themselves land later still, so the row and the open detail both have to
+    // pick up changes on their own.
+    Muffin.on("history.changed", function () {
+      refreshRow();
+      if (current) open(current.id);
+    });
+
+    // A recording arrives here with its row already made and its transcription
+    // already running in the app. Without this the screen showed an empty
+    // transcript and no sign of anything happening, which reads exactly like a
+    // recording that was thrown away.
+    Muffin.on("transcribe.state", function (state) {
+      if (!state) return;
+      var running = !!state.running;
+      var bar = document.getElementById("d-progress");
+      if (!running) {
+        bar.hidden = true;
+        panel.waiting(false);
+        return;
+      }
+      // Only when the open transcript is the one being worked on: a file being
+      // transcribed on the other screen is not this transcript's business.
+      if (!current || !current.transcribing) return;
+      panel.waiting(true, state.status || "");
+      if (state.percent > 0) {
+        bar.hidden = false;
+        bar.firstElementChild.style.width = state.percent + "%";
+      }
+    });
 
     document.getElementById("a-retranscribe").addEventListener("click", function () { clickAction("retranscribe"); });
     document.getElementById("a-format").addEventListener("click", function () { clickAction("format"); });
