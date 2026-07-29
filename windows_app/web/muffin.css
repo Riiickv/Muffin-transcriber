@@ -171,6 +171,47 @@ input, textarea, [contenteditable] {
   white-space: pre; overflow-x: auto; overflow-y: hidden;
 }
 
+/* Anything editable gets the drawn caret, not just the fields: the transcript
+   is editable too, and one hairline system caret in the middle of the app
+   would be the only one left. */
+[contenteditable="plaintext-only"] { caret-color: transparent; }
+
+/* The transcript, once it has a history row to save into. It stays a reading
+   surface until you click into it: no field chrome, just a border that answers
+   when it has focus. */
+.transcript.editable { cursor: text; }
+.transcript.editable:hover { border-color: var(--text-subtle); }
+.transcript.editable:focus { outline: none; border-color: var(--accent); }
+
+/* ---- Scrollbars ----
+   The last system-drawn thing in the window: a grey Windows bar with square
+   ends and its own arrows, on top of an app with rounded everything. Drawn
+   from the app's own tokens instead, and it thickens when pointed at rather
+   than being permanently fat. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-strong) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--surface-strong);
+  border-radius: var(--r-pill);
+  /* Drawn inside a transparent border so the thumb is narrower than the
+     track it lives in, which is what keeps it off the text. */
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 55%, var(--surface-strong));
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:active { background: var(--accent); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* No arrow buttons: they are system chrome and nothing else in the app has
+   them. */
+::-webkit-scrollbar-button { display: none; }
+
 /* Drawn, not asked for: 2px, the accent, rounded, and solid while you type. */
 .caret {
   position: fixed; width: 2px; border-radius: 1px;

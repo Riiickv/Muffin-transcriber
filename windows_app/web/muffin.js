@@ -476,6 +476,10 @@ function makeField(el) {
   el.dataset.fieldBound = "1";
   el.setAttribute("contenteditable", "plaintext-only");
   el.setAttribute("role", "textbox");
+  // Windows draws its own red squiggles under anything it does not recognise,
+  // in its own colour, in the one place the app cannot restyle. Under an
+  // Italian transcript that is most of the words.
+  el.setAttribute("spellcheck", "false");
   // Set here as well as in the markup, so a field built in JS is styled by the
   // same rules without every call site having to remember the attribute.
   el.setAttribute("data-field", "");
@@ -654,8 +658,24 @@ window.stripNativeTitles = stripNativeTitles;
 
 // A sweep can only clean what is there when it runs, and screens set titles
 // from state long after boot. This catches every one, whenever it is written.
+//
+// childList as well as attributes, and that is the part that was missing. A
+// list row is built DETACHED - createElement, innerHTML, .title = "Rename
+// transcript" - and only then appended. Setting an attribute on a node that is
+// not yet in the document produces no record for an observer watching the
+// document, and appending it produces a childList record rather than an
+// attribute one, so every row the history and chat lists drew kept its title
+// and Windows kept drawing its own tooltip over ours.
 var titleWatch = new MutationObserver(function (records) {
-  records.forEach(function (record) { stripTitle(record.target); });
+  records.forEach(function (record) {
+    if (record.type === "attributes") { stripTitle(record.target); return; }
+    for (var i = 0; i < record.addedNodes.length; i++) {
+      var node = record.addedNodes[i];
+      if (!node || node.nodeType !== 1) continue;
+      stripTitle(node);
+      stripNativeTitles(node);
+    }
+  });
 });
 
 function tipNode() {
@@ -728,7 +748,7 @@ function tipTarget(node) {
 function wireTooltips() {
   stripNativeTitles();
   titleWatch.observe(document.documentElement, {
-    subtree: true, attributes: true, attributeFilter: ["title"],
+    subtree: true, childList: true, attributes: true, attributeFilter: ["title"],
   });
   document.addEventListener("mouseover", function (e) {
     var el = tipTarget(e.target);

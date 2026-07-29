@@ -22,6 +22,9 @@ public static class AppModel
         new("ggml-base.bin", "Whisper [base]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin", "142 MB", "models.tierFast", ""),
         new("ggml-small.bin", "Whisper [small]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin", "466 MB", "models.tierBalanced", "models.descWhisperBalanced"),
         new("ggml-large-v3.bin", "Whisper [high]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin", "2.9 GB", "models.tierAccurate", "models.descWhisperAccurate"),
+        // Desktop-only. Turbo is large-v3's accuracy at a fraction of the time,
+        // which a phone has no headroom for and a PC very much does.
+        new("ggml-large-v3-turbo.bin", "Whisper [turbo]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin", "1.5 GB", "pc.models.tierTurbo", "pc.models.descWhisperTurbo"),
     ];
 
     public static readonly ModelInfo[] FormatterModels =
@@ -29,6 +32,14 @@ public static class AppModel
         new("qwen2.5-1.5b-instruct-q4_k_m.gguf", "Qwen 2.5 [1.5B]", "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf", "1.1 GB", "models.tierFast", "models.descFmtFast"),
         new("Phi-3-mini-4k-instruct-q4.gguf", "Phi-3 Mini [3.8B]", "https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf", "2.4 GB", "models.tierBalanced", "models.descFmtBalanced"),
         new("Llama-3.2-3B-Instruct-Q4_K_M.gguf", "Llama 3.2 [3B]", "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf", "2.0 GB", "models.tierBest", "models.descFmtBest"),
+
+        // Desktop-only. Everything above is sized for a phone, which left a
+        // machine with a real graphics card running a 3B model. Sizes are the
+        // measured download, and each description says what it wants to run on
+        // so nobody pulls 18 GB onto a laptop and wonders why it crawls.
+        new("Qwen2.5-7B-Instruct-Q4_K_M.gguf", "Qwen 2.5 [7B]", "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf", "4.4 GB", "pc.models.tierPowerful", "pc.models.descFmtPowerful"),
+        new("Qwen2.5-14B-Instruct-Q4_K_M.gguf", "Qwen 2.5 [14B]", "https://huggingface.co/bartowski/Qwen2.5-14B-Instruct-GGUF/resolve/main/Qwen2.5-14B-Instruct-Q4_K_M.gguf", "8.4 GB", "pc.models.tierVeryPowerful", "pc.models.descFmtVeryPowerful"),
+        new("Qwen2.5-32B-Instruct-Q4_K_M.gguf", "Qwen 2.5 [32B]", "https://huggingface.co/bartowski/Qwen2.5-32B-Instruct-GGUF/resolve/main/Qwen2.5-32B-Instruct-Q4_K_M.gguf", "18.5 GB", "pc.models.tierMaximum", "pc.models.descFmtMaximum"),
     ];
 
     public static readonly ModelInfo[] EmbeddingModels =

@@ -174,7 +174,50 @@ function createTranscript(root) {
     box.hidden = false;
   }
 
+  // ---- editing -----------------------------------------------------------
+  // Whisper mishears names, jargon and numbers. Correcting one used to mean
+  // copying the whole transcript out into something else, so the box is a
+  // field: click into it and type. Saved on blur and a second after typing
+  // stops, never mid-keystroke, so a long transcript is not rewritten to disk
+  // 50 times a second.
+  //
+  // Only where there is something to save to. On the transcribe screen the text
+  // has no history row yet, so there is nothing an edit could be written to.
+  var editable = null;
+  var saveTimer = null;
+
+  function saveEdit() {
+    clearTimeout(saveTimer);
+    if (!editable || !content[active]) return;
+    var text = box.textContent;
+    if (text === content[active]) return;
+    content[active] = text;
+    Muffin.invoke("history.saveText", { id: editable, variant: active, text: text });
+  }
+
+  box.addEventListener("input", function () {
+    if (!editable) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveEdit, 1000);
+  });
+  box.addEventListener("blur", function () { if (editable) saveEdit(); });
+
   return {
+    /**
+     * Turns editing on for one transcript, off when there is nothing to save
+     * to. Called by the library screen as the selection changes.
+     */
+    editing: function (id) {
+      // A pending edit belongs to the transcript being left, not the next one.
+      if (editable && editable !== id) saveEdit();
+      editable = id || null;
+      box.setAttribute("contenteditable", editable ? "plaintext-only" : "false");
+      // No system spellchecker: it underlines most of a transcript in any
+      // language Windows is not set to, in a red nothing here can restyle.
+      box.setAttribute("spellcheck", "false");
+      box.classList.toggle("editable", !!editable);
+    },
+
     /**
      * Swaps the transcript for the waiting card while something is running.
      * Called with the latest status on every tick, including the ones too
