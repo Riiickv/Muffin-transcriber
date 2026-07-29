@@ -188,10 +188,10 @@ input, textarea, [contenteditable] {
    ends and its own arrows, on top of an app with rounded everything. Drawn
    from the app's own tokens instead, and it thickens when pointed at rather
    than being permanently fat. */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--surface-strong) transparent;
-}
+/* NO scrollbar-width / scrollbar-color here, deliberately. Setting either of
+   the standard properties switches Chromium to its standard scrollbar path and
+   makes it ignore every ::-webkit-scrollbar rule below, which is why the first
+   attempt at this changed nothing at all. */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
@@ -1199,17 +1199,10 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
 .dropveil .msr { font-size: 56px; display: block; margin-bottom: var(--sp-md); }
 @keyframes veil-in { from { opacity: 0; } to { opacity: 1; } }
 
-/* ---- Scrollbars: the stock Chromium bar is a grey slab that has nothing to do
-   with this app. Thin, themed, and out of the way, like the mobile lists. ---- */
-* { scrollbar-width: thin; scrollbar-color: var(--surface-strong) transparent; }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--surface-strong); border-radius: var(--r-pill);
-  border: 3px solid transparent; background-clip: content-box;
-}
-::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); background-clip: content-box; }
-::-webkit-scrollbar-corner { background: transparent; }
+/* Scrollbars are styled once, near the top of this file. There was a second
+   copy here, and its `* { scrollbar-width: thin }` was the reason none of it
+   ever showed: one standard scrollbar property anywhere switches Chromium off
+   the ::-webkit-scrollbar path entirely, and this block came last. */
 
 /* ---- Library: real search field and the empty states ---- */
 .search { width: 100%; font: inherit; font-size: 13px; outline: none; }
@@ -1286,6 +1279,15 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
    Drawn INSIDE the row: the group clips its overflow to keep its rounded
    corners, so a ring outside the bounds is simply invisible. */
 .m-item.suggested { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+/* The reason, beside the name. The glow says "this one"; this says why. */
+.m-best {
+  margin-left: var(--sp-sm);
+  padding: 2px var(--sp-sm);
+  border-radius: var(--r-pill);
+  background: var(--accent-fill); color: var(--accent);
+  font-size: 11px; font-weight: 700;
+  vertical-align: middle; white-space: nowrap;
+}
 .m-item.suggested::before {
   content: ""; position: absolute; inset: 2px; pointer-events: none;
   border: 2px solid var(--accent); border-radius: var(--r-md);

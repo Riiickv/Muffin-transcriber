@@ -19,7 +19,7 @@ public static class AppModel
     public static readonly ModelInfo[] WhisperModels =
     [
         new("ggml-tiny.bin", "Whisper [tiny]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin", "74 MB", "models.tierFastest", "models.descWhisperFastest"),
-        new("ggml-base.bin", "Whisper [base]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin", "142 MB", "models.tierFast", ""),
+        new("ggml-base.bin", "Whisper [base]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin", "142 MB", "models.tierFast", "pc.models.descWhisperFast"),
         new("ggml-small.bin", "Whisper [small]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin", "466 MB", "models.tierBalanced", "models.descWhisperBalanced"),
         new("ggml-large-v3.bin", "Whisper [high]", "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin", "2.9 GB", "models.tierAccurate", "models.descWhisperAccurate"),
         // Desktop-only. Turbo is large-v3's accuracy at a fraction of the time,
@@ -207,7 +207,7 @@ public static class AppModel
 
     public static ModelInfo? ActiveWhisperModel()
     {
-        string[] qualityOrder = ["ggml-large-v3.bin", "ggml-small.bin", "ggml-base.bin", "ggml-tiny.bin"];
+        string[] qualityOrder = ["ggml-large-v3.bin", "ggml-large-v3-turbo.bin", "ggml-small.bin", "ggml-base.bin", "ggml-tiny.bin"];
         foreach (string file in qualityOrder)
         {
             ModelInfo? info = WhisperModels.FirstOrDefault(model => model.File == file);
