@@ -192,6 +192,23 @@ public static class AppModel
             ? CompactName(info)
             : LocalizationManager.GetString(info.NameKey, CompactName(info));
 
+    /// <summary>
+    /// A saved model key ("ggml-large-v3-turbo-q8_0.bin") as something worth
+    /// reading, searching both catalogues.
+    ///
+    /// Falls back to the key with its extension stripped rather than to nothing:
+    /// a transcript made by a model since dropped from the catalogue should still
+    /// say what made it, and a blank line under the date is worse than an ugly
+    /// one.
+    /// </summary>
+    public static string DisplayModelName(string key)
+    {
+        ModelInfo? info = Resolve(WhisperModels, key) ?? Resolve(FormatterModels, key);
+        return info is not null
+            ? DisplayName(info)
+            : Path.GetFileNameWithoutExtension(key);
+    }
+
     /// <summary>The translated one-line blurb (mobile's modelDesc); size if none.</summary>
     public static string DisplayDesc(ModelInfo info) =>
         string.IsNullOrEmpty(info.DescKey) ? info.Size : LocalizationManager.GetString(info.DescKey, info.Size);

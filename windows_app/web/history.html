@@ -45,6 +45,11 @@
             <div style="min-width:0">
               <h2 id="d-title"></h2>
               <div class="subtitle" id="d-date"></div>
+              <!-- Each on its own line, and each behind its own switch in
+                   Settings: two extra rows under every title is a real cost on
+                   a screen people open to read words. -->
+              <div class="meta-line" id="d-model" hidden></div>
+              <div class="meta-line" id="d-timing" hidden></div>
             </div>
             <div style="display:flex; gap:2px;">
               <button class="icon-btn" id="d-rename" data-i18n-attr="title:history.renameAction" title="Rename transcript" style="border:none;padding:6px;"><span class="msr" style="font-size:18px">&#xE3C9;</span></button>
@@ -158,6 +163,61 @@
     function restoreListWidth() {
       var width = Muffin.get("HistoryListWidth");
       if (width) document.getElementById("hist-list").style.width = Math.round(width) + "px";
+    }
+
+    /**
+     * A duration as one readable token: "26s", or "4m 12s" once it passes a
+     * minute. Returned as HTML because the number and its unit are accented as
+     * a unit, and splitting them into separate spans would let a line break
+     * fall between a number and its "s".
+     */
+    function durationHtml(ms) {
+      var total = Math.round(ms / 1000);
+      var text = total < 60
+        ? total + "s"
+        : Math.floor(total / 60) + "m " + (total % 60) + "s";
+      var span = document.createElement("span");
+      span.className = "dur";
+      span.textContent = text;
+      return span.outerHTML;
+    }
+
+    /**
+     * The two optional lines under the date: what made this, and what it cost.
+     *
+     * Both are hidden unless their switch is on AND there is something to say -
+     * a transcript recorded before the app started keeping these numbers has
+     * nulls, and an empty line where a fact used to be is worse than no line.
+     */
+    function renderProvenance(item) {
+      var s = Muffin.settings();
+      var modelEl = document.getElementById("d-model");
+      var timingEl = document.getElementById("d-timing");
+
+      var models = [];
+      if (item.whisperModel) {
+        models.push(Muffin.t("pc.detail.modelLine", "Transcribed by") + " " + item.whisperModel);
+      }
+      if (item.formatterModel) {
+        models.push(Muffin.t("pc.detail.improvedBy", "Improved by") + " " + item.formatterModel);
+      }
+      modelEl.textContent = models.join("  ·  ");
+      modelEl.hidden = !s.ShowTranscriptModel || models.length === 0;
+
+      // Transcription leads with a capital because it starts the line; the
+      // others are clauses hanging off it, so they do not.
+      var parts = [];
+      if (item.transcribeMs) {
+        parts.push(Muffin.t("pc.detail.timingTranscribe", "Transcribed in") + " " + durationHtml(item.transcribeMs));
+      }
+      if (item.improveMs) {
+        parts.push(Muffin.t("pc.detail.timingImprove", "improved in") + " " + durationHtml(item.improveMs));
+      }
+      if (item.summarizeMs) {
+        parts.push(Muffin.t("pc.detail.timingSummarize", "summarized in") + " " + durationHtml(item.summarizeMs));
+      }
+      timingEl.innerHTML = parts.join(",  ");
+      timingEl.hidden = !s.ShowTranscriptTiming || parts.length === 0;
     }
 
     function loadLanguages() {
@@ -315,6 +375,7 @@
 
         document.getElementById("d-title").textContent = item.title;
         document.getElementById("d-date").textContent = formatHistoryDate(item.timestamp);
+        renderProvenance(item);
         panel.set(item, { preferBest: true });
         // The library is the one place an edit has somewhere to be saved to.
         panel.editing(item.id);
@@ -385,6 +446,10 @@
         if (!result) return;
         if (result.error) { showToast(result.error, "error"); return; }
         current = result;
+        // The run that just finished is the one whose time is worth seeing, so
+        // the lines update here rather than waiting for the entry to be
+        // reopened.
+        renderProvenance(result);
         var typed = method === "history.retranscribe" && Muffin.get("TypewriterEffect");
         panel.set(result, {
           show: PRODUCES[method],

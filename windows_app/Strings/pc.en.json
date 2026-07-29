@@ -2,6 +2,11 @@
   "downloads.pause": "Pause",
   "downloads.pausedSuffix": "(paused)",
   "downloads.resume": "Resume",
+  "pc.detail.improvedBy": "Improved by",
+  "pc.detail.modelLine": "Transcribed by",
+  "pc.detail.timingImprove": "improved in",
+  "pc.detail.timingSummarize": "summarized in",
+  "pc.detail.timingTranscribe": "Transcribed in",
   "pc.models.descFmtMaximum": "The best Muffin can run. Wants a graphics card with 20 GB or more.",
   "pc.models.descFmtPowerful": "Much better wording. Wants a graphics card with 6 GB or more.",
   "pc.models.descFmtVeryPowerful": "Follows long transcripts better. Wants a graphics card with 10 GB or more.",
@@ -13,5 +18,9 @@
   "pc.models.tierMaximum": "Maximum quality",
   "pc.models.tierPowerful": "Powerful",
   "pc.models.tierTurbo": "Fast and accurate",
-  "pc.models.tierVeryPowerful": "Very powerful"
+  "pc.models.tierVeryPowerful": "Very powerful",
+  "pc.settings.showTranscriptModel": "Show which model made it",
+  "pc.settings.showTranscriptModelDesc": "Names the model under a transcript's date.",
+  "pc.settings.showTranscriptTiming": "Show how long it took",
+  "pc.settings.showTranscriptTimingDesc": "Adds a line with the time each step took."
 }

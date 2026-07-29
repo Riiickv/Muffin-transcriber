@@ -419,8 +419,10 @@ public sealed partial class WebBridge
 
                     if (total == 1) SetStatus(AppStrings.Home_Status_TranscribingWhisper, "info");
                     string lang = _settings.DefaultLanguage;
+                    var transcribeClock = System.Diagnostics.Stopwatch.StartNew();
                     TranscriptionResult tr = await TranscriptionService.TranscribeAsync(
                         cachedPath, whisperModel, lang, _settings.NormalizeAudio, whisperProgress, ct);
+                    transcribeClock.Stop();
 
                     if (string.IsNullOrWhiteSpace(tr.RawTranscript))
                     {
@@ -443,6 +445,10 @@ public sealed partial class WebBridge
 
                     string? formatted = null;
                     string? summary = null;
+                    // Null unless the step actually ran, so "not done" and
+                    // "done instantly" stay distinguishable in the UI.
+                    long? improveMs = null;
+                    long? summarizeMs = null;
                     string formatterModel = FormatterKey();
 
                     if (_settings.FormatByDefault)
@@ -451,9 +457,12 @@ public sealed partial class WebBridge
                         Action<string>? onPartial = total == 1
                             ? partial => { _formatted = partial; Emit("transcribe.partial", new Dictionary<string, object?> { ["tab"] = "formatted", ["text"] = partial }); }
                             : null;
+                        var improveClock = System.Diagnostics.Stopwatch.StartNew();
                         formatted = await LLMFormatter.FormatTranscriptAsync(
                             rawTranscript, formatterModel, _settings.FormatLanguage,
                             _settings.CustomFormatSystemPrompt, ct, onPartial);
+                        improveClock.Stop();
+                        improveMs = improveClock.ElapsedMilliseconds;
                         if (!string.IsNullOrWhiteSpace(formatted))
                         {
                             _formatted = formatted;
@@ -472,9 +481,12 @@ public sealed partial class WebBridge
                     {
                         if (total == 1) SetStatus(AppStrings.Home_Status_SummarizingLLM, "info");
                         string inputForSummary = !string.IsNullOrWhiteSpace(formatted) ? formatted : rawTranscript;
+                        var summaryClock = System.Diagnostics.Stopwatch.StartNew();
                         summary = await LLMFormatter.SummarizeTranscriptAsync(
                             inputForSummary, formatterModel, _settings.FormatLanguage,
                             _settings.CustomSummarySystemPrompt, ct);
+                        summaryClock.Stop();
+                        summarizeMs = summaryClock.ElapsedMilliseconds;
                         if (!string.IsNullOrWhiteSpace(summary))
                         {
                             _summary = summary;
@@ -501,6 +513,11 @@ public sealed partial class WebBridge
                             FormattedTranscript = formatted,
                             Summary = summary,
                             SrtTranscript = tr.Srt,
+                            WhisperModel = whisperModel.File,
+                            TranscribeMs = transcribeClock.ElapsedMilliseconds,
+                            FormatterModel = improveMs is null && summarizeMs is null ? null : formatterModel,
+                            ImproveMs = improveMs,
+                            SummarizeMs = summarizeMs,
                         }
                         : new TranscriptionHistoryItem(
                             Guid.NewGuid().ToString(),
@@ -512,7 +529,13 @@ public sealed partial class WebBridge
                             summary,
                             cachedPath,
                             fileHash,
-                            tr.Srt);
+                            tr.Srt,
+                            null,
+                            whisperModel.File,
+                            transcribeClock.ElapsedMilliseconds,
+                            improveMs is null && summarizeMs is null ? null : formatterModel,
+                            improveMs,
+                            summarizeMs);
                     TranscriptionHistory.AddOrUpdate(saved);
                     Emit("history.changed", null);
 

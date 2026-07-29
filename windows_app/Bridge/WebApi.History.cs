@@ -127,15 +127,24 @@ public sealed partial class WebBridge
                     });
                 });
 
+                var clock = System.Diagnostics.Stopwatch.StartNew();
                 TranscriptionResult tr = await TranscriptionService.TranscribeAsync(
                     item.SourceFilePath, model, language, _settings.NormalizeAudio, progress, ct);
+                clock.Stop();
 
                 if (string.IsNullOrWhiteSpace(tr.RawTranscript))
                 {
                     return Fail(string.Format(AppStrings.Home_Status_NoSpeechDetected, item.SourceFileName));
                 }
 
-                var updated = item with { RawTranscript = tr.RawTranscript, SrtTranscript = tr.Srt, Language = language };
+                var updated = item with
+                {
+                    RawTranscript = tr.RawTranscript,
+                    SrtTranscript = tr.Srt,
+                    Language = language,
+                    WhisperModel = model.File,
+                    TranscribeMs = clock.ElapsedMilliseconds,
+                };
                 TranscriptionHistory.AddOrUpdate(updated);
                 return DetailMap(updated);
             });
@@ -148,6 +157,7 @@ public sealed partial class WebBridge
 
             return await RunAction(item.Id, "format", async ct =>
             {
+                var clock = System.Diagnostics.Stopwatch.StartNew();
                 string? formatted = await LLMFormatter.FormatTranscriptAsync(
                     item.RawTranscript,
                     FormatterKey(),
@@ -161,9 +171,15 @@ public sealed partial class WebBridge
                         ["text"] = partial,
                     }));
 
+                clock.Stop();
                 if (string.IsNullOrWhiteSpace(formatted)) return Fail(AppStrings.History_Status_FormatFailed);
 
-                var updated = item with { FormattedTranscript = formatted };
+                var updated = item with
+                {
+                    FormattedTranscript = formatted,
+                    FormatterModel = FormatterKey(),
+                    ImproveMs = clock.ElapsedMilliseconds,
+                };
                 TranscriptionHistory.AddOrUpdate(updated);
                 return DetailMap(updated);
             });
@@ -180,6 +196,7 @@ public sealed partial class WebBridge
                     ? item.FormattedTranscript!
                     : item.RawTranscript;
 
+                var clock = System.Diagnostics.Stopwatch.StartNew();
                 string? summary = await LLMFormatter.SummarizeTranscriptAsync(
                     input,
                     FormatterKey(),
@@ -197,7 +214,12 @@ public sealed partial class WebBridge
                         : AppStrings.History_Status_SummaryFailed);
                 }
 
-                var updated = item with { Summary = summary };
+                var updated = item with
+                {
+                    Summary = summary,
+                    FormatterModel = FormatterKey(),
+                    SummarizeMs = clock.ElapsedMilliseconds,
+                };
                 TranscriptionHistory.AddOrUpdate(updated);
                 return DetailMap(updated);
             });
@@ -282,6 +304,13 @@ public sealed partial class WebBridge
         ["formatted"] = Meaningful(item.FormattedTranscript),
         ["summary"] = Meaningful(item.Summary),
         ["srt"] = item.SrtTranscript ?? "",
+        // Nulls stay nulls: the page hides a line it has no number for, rather
+        // than printing a confident "0s" for work that was never done.
+        ["whisperModel"] = item.WhisperModel is null ? null : AppModel.DisplayModelName(item.WhisperModel),
+        ["formatterModel"] = item.FormatterModel is null ? null : AppModel.DisplayModelName(item.FormatterModel),
+        ["transcribeMs"] = item.TranscribeMs,
+        ["improveMs"] = item.ImproveMs,
+        ["summarizeMs"] = item.SummarizeMs,
         ["audioUrl"] = MediaUrl(item.SourceFilePath),
     };
 
