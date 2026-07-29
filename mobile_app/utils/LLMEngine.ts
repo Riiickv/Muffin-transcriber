@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { recordLlm } from './perfLog';
+import { recordLlm, noteModelLoad } from './perfLog';
 import { getOptimalThreads } from './cpuThreads';
 import type { LlamaContext } from 'llama.rn';
 import { loadSettings } from './settingsStore';
@@ -61,6 +61,7 @@ export async function loadLLM(modelPath: string): Promise<void> {
     if (llamaContext && currentModelPath === modelPath) return;
   }
 
+  const startedLoading = Date.now();
   const p = (async () => {
     if (llamaContext) await unloadLLM();
     const init = getInitLlama();
@@ -81,6 +82,10 @@ export async function loadLLM(modelPath: string): Promise<void> {
       n_threads: await getOptimalThreads(),
     });
     currentModelPath = modelPath;
+    // Reported as a stage: loading is mmap, so the weights page in from
+    // flash DURING the first prefill and a cold run is not the same
+    // measurement as a warm one.
+    noteModelLoad(Date.now() - startedLoading);
   })();
   loadPromise = p;
 

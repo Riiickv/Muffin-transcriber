@@ -18,6 +18,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const KEY = 'muffin.perf.runs';
 const MAX_RUNS = 20;
 
+/**
+ * How long the model that is about to run took to load, or 0 if it was warm.
+ *
+ * Lives here rather than in LLMEngine because LLMEngine already imports this
+ * module; putting it the other way round would make the two import each other,
+ * and a cycle through Metro leaves one side holding an undefined function at
+ * call time.
+ */
+let pendingLoadMs = 0;
+
+export function noteModelLoad(ms: number): void {
+  pendingLoadMs = ms;
+}
+
 export type PerfStage = {
   name: string;
   ms: number;
@@ -151,6 +165,15 @@ export async function recordLlm(
   ];
   if (timings.cache_n) {
     stages.push({ name: `${timings.cache_n} tok reused from cache`, ms: 0 });
+  }
+  // A cold run and a warm one are not the same measurement. Loading is mmap, so
+  // the weights page in from flash during prefill rather than before it, and a
+  // cold prefill measured a quarter of the speed of the warm one right after.
+  // Marked, so nobody averages the two together and tunes against the mean.
+  const loadMs = pendingLoadMs;
+  pendingLoadMs = 0;
+  if (loadMs > 0) {
+    stages.push({ name: 'COLD - model loaded this run', ms: loadMs });
   }
 
   await record({
