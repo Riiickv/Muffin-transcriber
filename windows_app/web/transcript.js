@@ -139,6 +139,10 @@ function createTranscript(root) {
   // No spinner, deliberately. The status line already moves through its stages
   // (converting, transcribing, improving), which says more than a spinner does.
   var waitingEl = null;
+  // Streaming beats waiting, exactly as TranscriptPanel decides it: the card is
+  // for work that is running with nothing to show yet, which on the desktop is
+  // the model loading. The first real token replaces it with the text itself.
+  var streaming = false;
 
   function showWaiting(status) {
     if (!waitingEl) {
@@ -177,14 +181,22 @@ function createTranscript(root) {
      * frequent to announce, because here they are the point.
      */
     waiting: function (on, status) {
-      if (on) showWaiting(status);
-      else hideWaiting();
+      if (!on) {
+        streaming = false;
+        hideWaiting();
+        return;
+      }
+      // Tokens are already arriving: they ARE the answer to "what is it doing",
+      // so the card would only be hiding them.
+      if (!streaming) showWaiting(status);
     },
 
     // The whole output at once. animate types the raw text out, but only when
     // the user asked for the typewriter.
     set: function (data, options) {
       options = options || {};
+      streaming = false;
+      hideWaiting();
       // Whether the raw text is actually NEW, not merely whether there was none
       // before. The old test was "raw was empty", which is true the first time
       // a transcript arrives and false for a re-transcribe: the reveal simply
@@ -215,6 +227,12 @@ function createTranscript(root) {
 
     // A tab growing as the model streams into it.
     stream: function (tab, text) {
+      // An empty partial is not something to show; mobile lets that fall
+      // through to the waiting card rather than flashing an empty box.
+      if (text) {
+        streaming = true;
+        hideWaiting();
+      }
       content[tab] = text;
       // The model writing into a tab is text arriving too, so it gets the same
       // trail. stopReveal() is not called here: it would rewrite the whole box
