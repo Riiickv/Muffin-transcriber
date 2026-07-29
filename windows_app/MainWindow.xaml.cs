@@ -60,6 +60,7 @@ public sealed partial class MainWindow : Window
             // the caption is gone.
             presenter.SetBorderAndTitleBar(true, false);
             RoundCorners();
+            SuppressSystemMenu();
         }
 
         // The caption inset is only known once there is a window and a scale to
@@ -278,44 +279,140 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern bool ReleaseCapture();
-
-    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
-    private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-    private const uint WM_NCLBUTTONDOWN = 0x00A1;
-    private const int HTCAPTION = 2;
-
     /// <summary>
-    /// Starts an ordinary window drag from a press inside the page.
+    /// Which pixels drag the window.
     ///
-    /// Declaring the strip as a caption region was the other way to do this, and
-    /// it came with the caption: right-clicking a caption region opens Windows'
-    /// own Restore / Move / Size / Minimize menu, which is exactly the thing
-    /// being replaced. Handing the press to Windows as HTCAPTION instead gets
-    /// the real move loop, snapping and all, with no caption anywhere.
+    /// The page cannot start the drag itself. Doing it from a pointerdown meant
+    /// a bridge round trip first, and by the time WM_NCLBUTTONDOWN arrived the
+    /// button was often already up, which is how Windows is asked for its
+    /// keyboard move: the window then follows the cursor with no button held
+    /// and stops on the next click. ReleaseCapture cannot fix it either, since
+    /// the capture belongs to the WebView2 browser process, not to this one.
     ///
-    /// A maximised window has nowhere to move, so it is restored first, the way
-    /// dragging a maximised title bar behaves.
+    /// So Windows does the hit-testing. The page sends the strip MINUS its
+    /// buttons, already split into rectangles: a button inside a caption region
+    /// would drag the window instead of being clicked. Coordinates arrive in
+    /// CSS pixels; Windows wants physical ones.
+    ///
+    /// Right-clicking a caption region is what opens the Restore / Move / Size
+    /// menu, so <see cref="SuppressSystemMenu"/> takes that message away.
     /// </summary>
-    public void BeginDrag()
+    public void SetDragRegions(IReadOnlyList<(double X, double Y, double W, double H)> rects)
     {
         try
         {
-            if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized } p)
-            {
-                p.Restore();
-            }
-            IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            ReleaseCapture();
-            SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, IntPtr.Zero);
+            var source = Microsoft.UI.Input.InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
+            double scale = RootGrid.XamlRoot?.RasterizationScale ?? 1.0;
+            if (scale <= 0) scale = 1.0;
+
+            var native = rects
+                .Where(r => r.W > 0 && r.H > 0)
+                .Select(r => new Windows.Graphics.RectInt32(
+                    (int)Math.Round(r.X * scale),
+                    (int)Math.Round(r.Y * scale),
+                    (int)Math.Round(r.W * scale),
+                    (int)Math.Round(r.H * scale)))
+                .ToArray();
+
+            source.SetRegionRects(Microsoft.UI.Input.NonClientRegionKind.Caption, native);
         }
         catch (Exception ex)
         {
             // Losing this makes the window immovable, which is worth a log
             // rather than silently living with.
-            CrashLog.Write("Starting a window drag", ex);
+            CrashLog.Write("Setting the drag region", ex);
+        }
+    }
+
+    // ---- keeping Windows' own menu off the title bar ----------------------
+
+    private delegate IntPtr SubclassProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, IntPtr id, IntPtr data);
+
+    [System.Runtime.InteropServices.DllImport("comctl32.dll", SetLastError = true)]
+    private static extern bool SetWindowSubclass(IntPtr hWnd, SubclassProc proc, IntPtr id, IntPtr data);
+
+    [System.Runtime.InteropServices.DllImport("comctl32.dll")]
+    private static extern IntPtr DefSubclassProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ScreenToClient(IntPtr hWnd, ref POINT point);
+
+    private struct POINT { public int X; public int Y; }
+
+    private const uint WM_NCRBUTTONDOWN = 0x00A4;
+    private const uint WM_NCRBUTTONUP = 0x00A5;
+    private const uint WM_SYSCOMMAND = 0x0112;
+    private const int SC_MOUSEMENU = 0xF090;
+    private const int SC_KEYMENU = 0xF100;
+
+    // Held in a field on purpose: the delegate is the only reference Windows
+    // has, and a collected one is a crash the moment the window gets a message.
+    private SubclassProc? _subclassProc;
+
+    /// <summary>
+    /// The strip is a caption region so Windows will drag it, and a caption
+    /// region answers a right-click with the Restore / Move / Size / Minimize /
+    /// Maximize / Close box in the system's own grey. The three messages that
+    /// raise it are swallowed here, and the right-click is handed to the page,
+    /// which draws the menu in the app's shape with the commands that are real.
+    /// </summary>
+    private void SuppressSystemMenu()
+    {
+        try
+        {
+            IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            _subclassProc = (h, msg, wParam, lParam, id, data) =>
+            {
+                switch (msg)
+                {
+                    case WM_NCRBUTTONDOWN:
+                        return IntPtr.Zero;
+
+                    case WM_NCRBUTTONUP:
+                        ShowCaptionMenu(h, lParam);
+                        return IntPtr.Zero;
+
+                    // Alt+Space raises the same box without any mouse involved.
+                    case WM_SYSCOMMAND:
+                        int command = (int)(wParam.ToInt64() & 0xFFF0);
+                        if (command == SC_MOUSEMENU || command == SC_KEYMENU) return IntPtr.Zero;
+                        break;
+                }
+                return DefSubclassProc(h, msg, wParam, lParam);
+            };
+            SetWindowSubclass(hwnd, _subclassProc, IntPtr.Zero, IntPtr.Zero);
+        }
+        catch (Exception ex)
+        {
+            // Worst case the system menu comes back, which is ugly, not broken.
+            CrashLog.Write("Suppressing the system menu", ex);
+        }
+    }
+
+    private void ShowCaptionMenu(IntPtr hwnd, IntPtr lParam)
+    {
+        try
+        {
+            // lParam is the cursor in screen pixels; the page thinks in CSS
+            // pixels from its own top left corner.
+            var point = new POINT
+            {
+                X = (short)(lParam.ToInt64() & 0xFFFF),
+                Y = (short)((lParam.ToInt64() >> 16) & 0xFFFF),
+            };
+            ScreenToClient(hwnd, ref point);
+            double scale = RootGrid.XamlRoot?.RasterizationScale ?? 1.0;
+            if (scale <= 0) scale = 1.0;
+
+            _bridge?.Emit("window.captionMenu", new Dictionary<string, object?>
+            {
+                ["x"] = point.X / scale,
+                ["y"] = point.Y / scale,
+            });
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Opening the title bar menu", ex);
         }
     }
 

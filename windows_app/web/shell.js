@@ -54,7 +54,10 @@
     if (!mic) return;
     mic.classList.toggle("recording", !!recording);
     mic.querySelector(".msr").textContent = recording ? "" : ""; // stop / mic
-    mic.title = Muffin.t(recording ? "record.stopRecording" : "record.startRecording", recording ? "Stop recording" : "Start recording");
+    // data-tip, not title: a title on this button is a second tooltip, drawn by
+    // Windows, in the system font, next to the app's own.
+    mic.dataset.tip = Muffin.t(recording ? "record.stopRecording" : "record.startRecording", recording ? "Stop recording" : "Start recording");
+    mic.setAttribute("aria-label", mic.dataset.tip);
     setTimerVisible(!!recording);
   }
 
@@ -219,49 +222,6 @@
     // be restored before it can be moved, clicking the strip un-maximised the
     // window. Four pixels of travel is more than any click and less than any
     // intentional drag.
-    var dragFrom = null;
-
-    function handOver() {
-      // The move loop is modal on the app's thread, so this reply does not come
-      // back until the drag is over: the right moment to re-read the state,
-      // since dragging a maximised window restores it on the way.
-      Muffin.invoke("window.beginDrag").then(function () {
-        Muffin.invoke("window.state").then(function (r) { paintMaxIcon(r && r.maximized); });
-      });
-    }
-
-    function endDrag(e) {
-      dragFrom = null;
-      try { bar.releasePointerCapture(e.pointerId); } catch (err) { }
-    }
-
-    bar.addEventListener("pointerdown", function (e) {
-      if (e.button !== 0 || e.target.closest(".tb-btn")) return;
-
-      // Maximised is the one case that cannot hand the press over immediately.
-      // A maximised window has to be restored before Windows will move it, so
-      // doing it here un-maximised the window on a plain click. There it waits
-      // for the pointer to travel, which a click never does. The strip is only
-      // 40px tall and a drag leaves it at once, so the pointer is captured or
-      // the move that crosses the threshold never arrives.
-      if (isMaximized()) {
-        dragFrom = { x: e.clientX, y: e.clientY };
-        try { bar.setPointerCapture(e.pointerId); } catch (err) { }
-        return;
-      }
-      handOver();
-    });
-
-    bar.addEventListener("pointermove", function (e) {
-      if (!dragFrom) return;
-      if (Math.abs(e.clientX - dragFrom.x) < 4 && Math.abs(e.clientY - dragFrom.y) < 4) return;
-      endDrag(e);
-      handOver();
-    });
-
-    bar.addEventListener("pointerup", endDrag);
-    bar.addEventListener("pointercancel", endDrag);
-
     Muffin.invoke("window.state").then(function (r) { paintMaxIcon(r && r.maximized); });
     document.body.classList.add("has-titlebar");
     return bar;
@@ -272,14 +232,46 @@
     if (el) el.classList.toggle("restore", !!maximized);
   }
 
-  // The icon is the state: it is set from window.state on load and kept in step
-  // on every toggle, so reading it costs nothing and cannot race the bridge.
-  function isMaximized() {
-    return !!document.querySelector(".tb-max .tb-ico.restore");
-  }
   window.paintMaxIcon = paintMaxIcon;
 
-  Muffin.ready(function () { buildTitleBar(); });
+  // The strip, with a hole cut for every button. Everything else is caption,
+  // which is what makes Windows drag it.
+  function reportDragRegions() {
+    var bar = document.getElementById("titlebar");
+    if (!bar || !Muffin.isHosted) return;
+
+    var barRect = bar.getBoundingClientRect();
+    var buttons = [].slice.call(bar.querySelectorAll(".tb-btn"))
+      .map(function (b) { return b.getBoundingClientRect(); })
+      .filter(function (r) { return r.width > 0; })
+      .sort(function (a, b) { return a.left - b.left; });
+
+    var rects = [];
+    var x = barRect.left;
+    buttons.forEach(function (r) {
+      if (r.left > x) rects.push({ x: x, y: barRect.top, w: r.left - x, h: barRect.height });
+      x = Math.max(x, r.right);
+    });
+    if (x < barRect.right) rects.push({ x: x, y: barRect.top, w: barRect.right - x, h: barRect.height });
+
+    Muffin.invoke("window.dragRegions", { rects: rects });
+  }
+
+  // A right-click on the strip never reaches the page: those pixels belong to
+  // Windows now. The app swallows its own menu there and forwards the position
+  // instead, which is where the page's menu comes from.
+  Muffin.on("window.captionMenu", function (at) {
+    var bar = document.getElementById("titlebar");
+    if (!at || !bar || !window.openContextMenu || !window.contextItems) return;
+    window.openContextMenu(at.x, at.y, window.contextItems(bar));
+  });
+
+  Muffin.ready(function () {
+    if (buildTitleBar()) {
+      reportDragRegions();
+      window.addEventListener("resize", reportDragRegions);
+    }
+  });
 
   // ---- banners -----------------------------------------------------------
   // Updates and engine problems used to be a stock system InfoBar floating over

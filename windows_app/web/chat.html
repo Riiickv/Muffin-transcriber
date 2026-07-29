@@ -15,17 +15,21 @@
       <button class="rail-item" data-nav="history.html" data-i18n-attr="title:tabs.history" title="History"><span class="msr">&#xE8B3;</span></button>
       <button class="rail-item active" data-nav="chat.html" data-i18n-attr="title:tabs.chat" title="Chat"><span class="msr">&#xE0B7;</span></button>
       <div class="rail-spacer"></div>
-      <button class="mic-fab" id="mic" data-i18n-attr="title:record.startRecording" title="Start recording"><span class="msr fill">&#xE029;</span></button>
-      <div class="mic-timer" id="mic-timer" hidden>0:00</div>
+      <div class="mic-slot">
+        <button class="mic-fab" id="mic" data-i18n-attr="title:record.startRecording" title="Start recording"><span class="msr fill">&#xE029;</span></button>
+        <div class="mic-timer" id="mic-timer" hidden>0:00</div>
+      </div>
       <button class="rail-item" data-nav="settings.html" data-i18n-attr="title:tabs.settings" title="Settings"><span class="msr">&#xE8B8;</span></button>
     </nav>
 
     <aside class="chat-sessions" id="sessions-pane">
-      <button class="btn btn-accent new-chat" id="new-chat">
-        <span class="msr" style="font-size:18px">&#xE145;</span> <span data-i18n="chat.newChat">New Chat</span>
-      </button>
-      <div id="sessions"></div>
+      <div class="cs-head">
+        <h2 data-i18n="chat.chats">Chats</h2>
+        <button class="cs-new" id="new-chat" type="button" data-i18n-attr="title:chat.newChat" title="New Chat"><span class="msr">&#xE145;</span></button>
+      </div>
+      <div class="cs-list" id="sessions"></div>
       <div class="empty" id="no-chats" hidden>
+        <span class="msr empty-icon">&#xE0B7;</span>
         <div data-i18n="chat.noChats">No chats yet.</div>
       </div>
     </aside>
@@ -41,7 +45,10 @@
       </div>
 
       <div class="chat-scroll" id="scroll">
-        <div class="chat-empty" id="chat-empty" data-i18n="chat.emptyState">You can ask me anything about your transcripts, just tell me what you need!</div>
+        <div class="chat-empty">
+          <span class="msr ce-icon">&#xE0B7;</span>
+          <div class="ce-sub" data-i18n="chat.emptyState">You can ask me anything about your transcripts, just tell me what you need!</div>
+        </div>
       </div>
 
       <div class="composer">
@@ -190,9 +197,13 @@
       var scroll = document.getElementById("scroll");
       scroll.textContent = "";
       if (!messages || !messages.length) {
+        // Same markup as the one in the page, or the empty state would look
+        // different depending on whether a chat had ever been opened.
         var empty = document.createElement("div");
         empty.className = "chat-empty";
-        empty.textContent = Muffin.t("chat.emptyState", "You can ask me anything about your transcripts, just tell me what you need!");
+        empty.innerHTML = '<span class="msr ce-icon">&#xE0B7;</span><div class="ce-sub"></div>';
+        empty.querySelector(".ce-sub").textContent =
+          Muffin.t("chat.emptyState", "You can ask me anything about your transcripts, just tell me what you need!");
         scroll.appendChild(empty);
         return;
       }
