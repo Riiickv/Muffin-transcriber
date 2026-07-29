@@ -36,27 +36,90 @@ public static class DeviceTier
     /// is peak RAM while running, which is the weights plus the context, and
     /// those do not scale together.
     /// </summary>
-    public static string? RecommendedFile(Group group) => Current switch
+    public static string? RecommendedFile(Group group) => group switch
     {
-        Tier.High => group switch
+        Group.Embedding => "all-MiniLM-L6-v2-q4_k_m.gguf",
+        Group.Whisper => Current switch
         {
-            Group.Whisper => "ggml-large-v3.bin",
-            Group.Formatter => "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
-            _ => "all-MiniLM-L6-v2-q4_k_m.gguf",
+            // Turbo, not large-v3, on a machine that can hold it: near enough
+            // the same accuracy for a fraction of the wait, which is the trade
+            // a desktop should make and a phone cannot.
+            Tier.High => "ggml-large-v3-turbo.bin",
+            Tier.Mid => "ggml-small.bin",
+            _ => "ggml-base.bin",
         },
-        Tier.Mid => group switch
-        {
-            Group.Whisper => "ggml-small.bin",
-            Group.Formatter => "Phi-3-mini-4k-instruct-q4.gguf",
-            _ => "all-MiniLM-L6-v2-q4_k_m.gguf",
-        },
-        _ => group switch
-        {
-            Group.Whisper => "ggml-base.bin",
-            Group.Formatter => "qwen2.5-1.5b-instruct-q4_k_m.gguf",
-            _ => "all-MiniLM-L6-v2-q4_k_m.gguf",
-        },
+        _ => RecommendedFormatter(),
     };
+
+    /// <summary>
+    /// The formatter is the one the graphics card decides.
+    ///
+    /// llama.cpp offloads its layers to the GPU, so what a machine can run is
+    /// governed by VRAM, not by system RAM: a 32 GB PC with onboard graphics
+    /// should be nowhere near a 32B model, and a 16 GB PC with a 5090 should
+    /// not be handed a 3B. The weights are the floor and the context sits on
+    /// top, so each threshold leaves headroom rather than matching the file.
+    ///
+    /// With no card worth using, it falls back to the RAM tiers, which is what
+    /// a CPU-only run is limited by.
+    /// </summary>
+    private static string? RecommendedFormatter()
+    {
+        double vram = VideoMemoryGB;
+        if (vram >= 22) return "Qwen2.5-32B-Instruct-Q4_K_M.gguf";
+        if (vram >= 11) return "Qwen2.5-14B-Instruct-Q4_K_M.gguf";
+        if (vram >= 6.5) return "Qwen2.5-7B-Instruct-Q4_K_M.gguf";
+
+        return Current switch
+        {
+            Tier.High => "Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+            Tier.Mid => "Phi-3-mini-4k-instruct-q4.gguf",
+            _ => "qwen2.5-1.5b-instruct-q4_k_m.gguf",
+        };
+    }
+
+    /// <summary>
+    /// Dedicated video memory of the biggest adapter, in GB, or 0 if it cannot
+    /// be read.
+    ///
+    /// From the display driver's registry key rather than WMI: Win32_Video-
+    /// Controller.AdapterRAM is a 32 bit field, so it reports 4 GB for anything
+    /// larger and would put a 5090 in the same bracket as an old laptop chip.
+    /// qwMemorySize is 64 bit and correct.
+    /// </summary>
+    public static double VideoMemoryGB { get; } = ReadVideoMemoryGB();
+
+    private const string DisplayClassKey =
+        @"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}";
+
+    private static double ReadVideoMemoryGB()
+    {
+        try
+        {
+            using Microsoft.Win32.RegistryKey? root =
+                Microsoft.Win32.Registry.LocalMachine.OpenSubKey(DisplayClassKey);
+            if (root is null) return 0;
+
+            long best = 0;
+            foreach (string name in root.GetSubKeyNames())
+            {
+                // The class key also holds Configuration/Properties subkeys;
+                // only the numbered ones are adapters.
+                if (name.Length != 4 || !int.TryParse(name, out _)) continue;
+
+                using Microsoft.Win32.RegistryKey? adapter = root.OpenSubKey(name);
+                object? value = adapter?.GetValue("HardwareInformation.qwMemorySize");
+                if (value is long bytes && bytes > best) best = bytes;
+            }
+            return best / GB;
+        }
+        catch
+        {
+            // No card, no permission, a driver that does not publish it: the
+            // caller falls back to the RAM tiers.
+            return 0;
+        }
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MemoryStatusEx

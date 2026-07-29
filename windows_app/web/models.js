@@ -50,6 +50,14 @@ function createModelList(host, options) {
         '<div class="m-track" hidden><i style="width:0%"></i></div>';
 
       wrap.querySelector(".m-name").textContent = model.name;
+      // Says WHY it is glowing. A pulsing outline on its own is decoration;
+      // with the reason on it, it is a recommendation.
+      if (options.highlightRecommended && model.recommended) {
+        var badge = document.createElement("span");
+        badge.className = "m-best";
+        badge.textContent = Muffin.t("pc.models.recommended", "Best for this PC");
+        wrap.querySelector(".m-name").appendChild(badge);
+      }
       host.appendChild(wrap);
 
       var live = downloading && Object.prototype.hasOwnProperty.call(downloading, model.file);

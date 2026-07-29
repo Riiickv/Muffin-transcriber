@@ -46,13 +46,17 @@
   <script src="shell.js" defer></script>
   <script src="models.js" defer></script>
   <script>
-    // The same list as the setup wizard, without the suggestion glow: here you
-    // are managing what you have, not being pointed at a starting choice.
+    // The same list as the setup wizard, glow included. Muffin ships models
+    // from 74 MB to 18.5 GB now, and a list that wide is a question ("which of
+    // these does my machine actually want?") rather than an inventory.
     var lists = {};
 
     Muffin.ready(function () {
       ["whisper", "formatter", "embedding"].forEach(function (group) {
-        lists[group] = createModelList(document.getElementById(group), { onChanged: load });
+        lists[group] = createModelList(document.getElementById(group), {
+          onChanged: load,
+          highlightRecommended: true,
+        });
       });
       load();
     });
