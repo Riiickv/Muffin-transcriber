@@ -119,6 +119,18 @@ public static class AppStrings
     public static string Chat_NoModel => T("chat.noModelSubtitle", "Please go to Settings and select a Chat Model to use the assistant.");
     public static string Chat_Thinking => T("chat.thinking", "Thinking...");
     public static string Chat_Done => T("chat.actionExecuted", "Done");
+    // Raised WHILE recording, not after: a muted or unplugged microphone
+    // records a flat signal, and finding out from an empty transcript means
+    // finding out once the lecture is already over.
+    public static string Record_SilentTitle =>
+        T("pc.record.silentTitle", "Muffin can't hear anything");
+
+    public static string Record_SilentBody =>
+        T("pc.record.silentBody", "This recording has been silent so far. Check that the right microphone is selected and that it isn't muted. Recording is still running.");
+
+    public static string Record_BtnSoundSettings =>
+        T("pc.record.soundSettings", "Sound settings");
+
     public static string Chat_ActionFailed => T("chat.actionFailed", "Couldn't do that");
 
     // Shown under the chip when the assistant reached for something that is not

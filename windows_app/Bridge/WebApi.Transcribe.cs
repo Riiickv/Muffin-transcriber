@@ -141,6 +141,159 @@ public sealed partial class WebBridge
         }
     }
 
+    /// <summary>
+    /// The id of the history row a queued file already owns. A recording gets
+    /// its row before a single word is transcribed, so the run fills that row
+    /// in instead of creating a second one at the end.
+    /// </summary>
+    private readonly Dictionary<string, string> _entryForFile = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Saves a finished recording and gives it a history row IMMEDIATELY, before
+    /// any transcription is attempted, and returns the row's id.
+    ///
+    /// This is the whole safety net. Transcription can fail, the mic can turn
+    /// out to have recorded silence, the machine can be shut down mid-run - and
+    /// none of that may cost someone the two hours of audio they just captured.
+    /// The row exists, the audio plays, and the words fill in afterwards. What
+    /// happened before was the reverse: the recording lived in a temporary file
+    /// until a transcription SUCCEEDED, so every failure path threw the audio
+    /// away, and "no speech detected" threw it away without even an error.
+    /// </summary>
+    public async Task<string?> SaveRecordingAsync(string wavPath)
+    {
+        try
+        {
+            if (!File.Exists(wavPath)) return null;
+
+            Directory.CreateDirectory(AppModel.AudioCacheDir);
+            string kept = Path.Combine(AppModel.AudioCacheDir, Guid.NewGuid() + Path.GetExtension(wavPath));
+            await Task.Run(() => File.Copy(wavPath, kept, true));
+
+            string hash = await AppModel.ComputeFileHashAsync(kept);
+            var item = new TranscriptionHistoryItem(
+                Guid.NewGuid().ToString(),
+                DateTime.Now,
+                AppStrings.Record_VoiceMemoName,
+                _settings.DefaultLanguage,
+                string.Empty,
+                null,
+                null,
+                kept,
+                hash,
+                null);
+
+            TranscriptionHistory.AddOrUpdate(item);
+            _entryForFile[kept] = item.Id;
+            _recordedFiles.Add(kept);
+            Emit("history.changed", null);
+            return item.Id;
+        }
+        catch (Exception ex)
+        {
+            // The recording is still in its temporary file and the caller falls
+            // back to the old path, so this is a lost row, not lost audio.
+            CrashLog.Write("Saving a recording", ex);
+            return null;
+        }
+    }
+
+    /// <summary>The row a queued file already owns, if it has one.</summary>
+    private TranscriptionHistoryItem? ExistingEntryFor(string file)
+    {
+        if (!_entryForFile.TryGetValue(file, out string? id)) return null;
+        return TranscriptionHistory.Load().FirstOrDefault(h => h.Id == id);
+    }
+
+    /// <summary>
+    /// Keeps audio that produced no words. A dropped file is unrecoverable; a
+    /// row with no transcript can be re-transcribed, played, or exported, and
+    /// it tells the user plainly that the recording itself was the problem.
+    /// </summary>
+    private void KeepSilentAudio(string file, string baseFileName, string fileHash, string cachedPath)
+    {
+        try
+        {
+            TranscriptionHistoryItem? existing = ExistingEntryFor(file);
+            if (existing is not null)
+            {
+                // The row is already there and already points at the audio;
+                // it simply stays empty.
+                Emit("history.changed", null);
+                return;
+            }
+
+            // A picked file lives wherever the user keeps it, so the cached copy
+            // is what history should point at.
+            string audio = File.Exists(cachedPath) ? cachedPath : file;
+            TranscriptionHistory.AddOrUpdate(new TranscriptionHistoryItem(
+                Guid.NewGuid().ToString(),
+                DateTime.Now,
+                baseFileName,
+                _settings.DefaultLanguage,
+                string.Empty,
+                null,
+                null,
+                audio,
+                fileHash,
+                null));
+            Emit("history.changed", null);
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Keeping silent audio", ex);
+        }
+    }
+
+    /// <summary>
+    /// Makes sure a file that failed mid-transcription is still in history with
+    /// its audio, so it can be played and re-transcribed later. A recording
+    /// already has its row; a picked file gets one now.
+    /// </summary>
+    private void KeepFailedAudio(string file)
+    {
+        try
+        {
+            if (ExistingEntryFor(file) is not null) { Emit("history.changed", null); return; }
+            if (!File.Exists(file)) return;
+
+            Directory.CreateDirectory(AppModel.AudioCacheDir);
+            string kept = Path.Combine(AppModel.AudioCacheDir, Guid.NewGuid() + Path.GetExtension(file));
+            File.Copy(file, kept, true);
+
+            TranscriptionHistory.AddOrUpdate(new TranscriptionHistoryItem(
+                Guid.NewGuid().ToString(),
+                DateTime.Now,
+                Path.GetFileName(file),
+                _settings.DefaultLanguage,
+                string.Empty,
+                null,
+                null,
+                kept,
+                null,
+                null));
+            Emit("history.changed", null);
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Keeping audio after a failure", ex);
+        }
+    }
+
+    /// <summary>Queues the audio a recording already has a row for.</summary>
+    public void TranscribeSavedRecording(string keptPath)
+    {
+        if (!File.Exists(keptPath)) return;
+        _queuedFiles.Clear();
+        _queuedFiles.Add(keptPath);
+        EmitTranscribeState();
+        if (_transcribeCts is null) _ = RunTranscriptionAsync();
+    }
+
+    /// <summary>The kept copy of a recording, by the row id it was given.</summary>
+    public string? KeptPathFor(string entryId) =>
+        _entryForFile.FirstOrDefault(pair => pair.Value == entryId).Key;
+
     public void TranscribeRecording(string wavPath)
     {
         if (!File.Exists(wavPath)) return;
@@ -254,8 +407,13 @@ public sealed partial class WebBridge
 
                     if (string.IsNullOrWhiteSpace(tr.RawTranscript))
                     {
-                        // No speech: warn and move on rather than saving a blob
-                        // of engine noise to history.
+                        // No speech. The audio is NOT thrown away: a recording
+                        // that came out silent is the one case where the user
+                        // most needs the file kept, so they can play it and hear
+                        // for themselves that the microphone was dead. Before
+                        // this, a two hour lecture recorded off a muted input
+                        // was deleted and the only trace was one red line.
+                        KeepSilentAudio(file, baseFileName, fileHash, cachedPath);
                         SetStatus(string.Format(AppStrings.Home_Status_NoSpeechDetected, baseFileName), "error");
                         continue;
                     }
@@ -314,18 +472,32 @@ public sealed partial class WebBridge
                         }
                     }
 
-                    var saved = new TranscriptionHistoryItem(
-                        Guid.NewGuid().ToString(),
-                        DateTime.Now,
-                        baseFileName,
-                        lang,
-                        rawTranscript,
-                        formatted,
-                        summary,
-                        cachedPath,
-                        fileHash,
-                        tr.Srt);
+                    // A recording already owns a row, created the moment it
+                    // stopped. Fill that one in rather than leaving an empty
+                    // row behind and adding a second one beside it.
+                    TranscriptionHistoryItem? existing = ExistingEntryFor(file);
+                    var saved = existing is not null
+                        ? existing with
+                        {
+                            Language = lang,
+                            RawTranscript = rawTranscript,
+                            FormattedTranscript = formatted,
+                            Summary = summary,
+                            SrtTranscript = tr.Srt,
+                        }
+                        : new TranscriptionHistoryItem(
+                            Guid.NewGuid().ToString(),
+                            DateTime.Now,
+                            baseFileName,
+                            lang,
+                            rawTranscript,
+                            formatted,
+                            summary,
+                            cachedPath,
+                            fileHash,
+                            tr.Srt);
                     TranscriptionHistory.AddOrUpdate(saved);
+                    Emit("history.changed", null);
 
                     _ = LLMFormatter.ExtractContextAsync(rawTranscript, formatterModel);
                     _ = NameTranscriptAsync(saved, formatted ?? rawTranscript, formatterModel);
@@ -344,6 +516,11 @@ public sealed partial class WebBridge
                     SetStatus(friendly ?? ex.Message, "error");
                     _raw = friendly ?? ex.Message;
                     Emit("transcribe.output", OutputMap(animate: false));
+                    // Whatever went wrong, the audio survives it. An engine that
+                    // will not start, a model that will not load, a disk that
+                    // filled up: none of them are a reason to lose the only copy
+                    // of what someone recorded.
+                    KeepFailedAudio(file);
                     continue;
                 }
             }
