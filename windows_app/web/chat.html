@@ -256,9 +256,12 @@
         icon.textContent = a.ok ? "" : ""; // check_circle / warning
         chip.appendChild(icon);
         var label = document.createElement("span");
+        // The reason, when the app has one. "Couldn't do that" on its own says
+        // that something failed and nothing about what to do instead, which is
+        // the whole of what the user needs.
         label.textContent = a.ok
           ? Muffin.t("chat.actionExecuted", "Done") + ": " + a.action
-          : Muffin.t("chat.actionFailed", "Couldn't do that");
+          : (a.reason || Muffin.t("chat.actionFailed", "Couldn't do that"));
         chip.appendChild(label);
         group.appendChild(chip);
       });

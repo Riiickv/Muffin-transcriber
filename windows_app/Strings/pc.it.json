@@ -4,6 +4,7 @@
   "pc.accent.purple": "Viola",
   "pc.accent.red": "Rosso",
   "pc.accent.system": "Sistema",
+  "pc.chat.actionUnsupported": "Non è una cosa che posso fare dalla chat.",
   "pc.crash.body": "Muffin ha riscontrato un errore imprevisto ma ha continuato a funzionare. Se qualcosa sembra bloccato, riavvia l'app. I dettagli tecnici sono nel log.",
   "pc.crash.openLog": "Apri log",
   "pc.crash.title": "Qualcosa è andato storto",

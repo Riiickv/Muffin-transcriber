@@ -260,8 +260,11 @@ public sealed partial class WebBridge
     // way the mobile app does, instead of the action replacing the reply.
     private Task<Dictionary<string, object?>> Dispatch(JsonElement call, ChatSession session)
     {
-        Dictionary<string, object?> Result(string action, bool ok) =>
-            new() { ["action"] = action, ["ok"] = ok };
+        // reason: what to tell the user when it did not work. "Couldn't do that"
+        // on its own is a dead end - it says something failed and nothing about
+        // what to do instead.
+        Dictionary<string, object?> Result(string action, bool ok, string? reason = null) =>
+            new() { ["action"] = action, ["ok"] = ok, ["reason"] = reason };
 
         // A setting action carries the setting itself, so the chat can show the
         // live control the mobile app shows instead of a bare "Done" chip.
@@ -370,8 +373,11 @@ public sealed partial class WebBridge
             }
 
             default:
-                handled = false;
-                break;
+                // An action that does not exist. The model invented it because
+                // the user asked for something real that chat cannot do, so the
+                // honest answer names the thing and where it lives.
+                Note(session, $"FAILED: \"{name}\" is not something you can do. Tell the user plainly, in one sentence, that you cannot do it from the chat, say which screen it is done on, and offer to take them there.");
+                return Task.FromResult(Result(name, false, AppStrings.Chat_ActionUnsupported));
         }
 
         return Task.FromResult(Result(name, handled));
