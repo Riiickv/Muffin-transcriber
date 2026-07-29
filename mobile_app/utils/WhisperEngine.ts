@@ -119,6 +119,19 @@ export type TranscribeCallbacks = {
   onPartialText?: (text: string) => void;
 };
 
+/**
+ * How long the audio was, from where whisper says the last segment ended.
+ *
+ * Costs nothing - the segments are already in hand - and it is the length
+ * whisper actually processed, which is the right denominator for a realtime
+ * factor. Centiseconds, per whisper.cpp's convention for segment times.
+ */
+function endOfLastSegment(segments?: Array<{ t1: number }>): number | undefined {
+  const last = segments?.[segments.length - 1];
+  const t1 = Number(last?.t1);
+  return Number.isFinite(t1) && t1 > 0 ? t1 / 100 : undefined;
+}
+
 export async function transcribeFile(
   audioPath: string,
   languageCode: string = 'auto',
@@ -228,8 +241,16 @@ export async function transcribeFile(
       perf.mark('transcribe');
       // The TRIMMED length, since that is what whisper actually chewed on; a
       // realtime factor against the original would flatter the VAD.
+      //
+      // But the trim is allowed to decline - it does nothing when it would save
+      // under 15%, which is most continuous speech - and this used to read
+      // `trimmed?.keptSeconds` alone. So on every clip worth keeping whole the
+      // length came back undefined and the report printed no realtime factor at
+      // all, which is the one number that says whether transcription is fast.
+      // Whisper's own segment ends give it for free, in centiseconds, and they
+      // are measured against whatever audio it was actually handed.
       void perf.finish({
-        audioSeconds: trimmed?.keptSeconds,
+        audioSeconds: trimmed?.keptSeconds ?? endOfLastSegment(result.segments),
         outputChars: (result.result || '').length,
       });
       return {
