@@ -19,6 +19,9 @@ import {
   extractFormatterOutput,
   echoesPrompt,
   looksUnstable,
+  splitForModel,
+  FORMAT_CHUNK_CHARS,
+  SUMMARY_CHUNK_CHARS,
 } from './textCleanup';
 // Re-exported so existing importers of these from LLMEngine keep working.
 export { findHighlights } from './entityExtraction';
@@ -215,6 +218,24 @@ export async function formatTranscript(
   // formatting never did.
   if (transcript.trim().split(/\s+/).length < 4) return transcript;
 
+  // A long recording goes through in pieces. Anything at or over the window
+  // used to come back empty or as its own last few minutes; see splitForModel.
+  // Each piece is formatted on its own and the results are joined, which is
+  // safe for formatting because punctuating one paragraph needs no knowledge
+  // of the next.
+  if (transcript.length > FORMAT_CHUNK_CHARS) {
+    const chunks = splitForModel(transcript, FORMAT_CHUNK_CHARS);
+    const done: string[] = [];
+    for (const chunk of chunks) {
+      const piece = await formatTranscript(chunk, modelPath, modelFile, undefined, sourceLanguage);
+      done.push(piece);
+      // Stream what is finished so a twenty minute lecture is not a blank
+      // screen for several minutes.
+      onPartial?.(done.join(' '));
+    }
+    return done.join(' ');
+  }
+
   await loadLLM(modelPath);
   if (!llamaContext) throw new Error("LLM not loaded");
   
@@ -320,7 +341,32 @@ export async function summarizeTranscript(
 ): Promise<string> {
   const wordCount = transcript.trim().split(/\s+/).length;
   if (wordCount < 15) return t('historyDetail.summaryTooShort') || 'Too short to summarize.';
-  
+
+  // Map-reduce for anything past the window. Summarising cannot simply join
+  // pieces the way formatting can - three summaries stapled together is not a
+  // summary - so each piece is summarised, then the summaries are summarised.
+  // Chunks are bigger here than for formatting because the output is short.
+  if (transcript.length > SUMMARY_CHUNK_CHARS) {
+    const chunks = splitForModel(transcript, SUMMARY_CHUNK_CHARS);
+    const partials: string[] = [];
+    for (const chunk of chunks) {
+      const piece = await summarizeTranscript(chunk, modelPath, modelFile, undefined, sourceLanguage);
+      // A chunk that failed contributes nothing rather than the word "Couldn't".
+      if (piece && !piece.startsWith(t('historyDetail.summaryFailed') || 'x')) partials.push(piece);
+      onPartial?.(partials.join(' '));
+    }
+    if (partials.length === 0) return t('historyDetail.summaryFailed') || "Couldn't summarize this one.";
+    const joined = partials.join('\n');
+    // One pass is enough unless the summaries themselves overflow, which takes
+    // a recording of several hours.
+    if (partials.length === 1 || joined.length <= SUMMARY_CHUNK_CHARS) {
+      return partials.length === 1
+        ? partials[0]
+        : await summarizeTranscript(joined, modelPath, modelFile, onPartial, sourceLanguage);
+    }
+    return await summarizeTranscript(joined.slice(0, SUMMARY_CHUNK_CHARS), modelPath, modelFile, onPartial, sourceLanguage);
+  }
+
   await loadLLM(modelPath);
   if (!llamaContext) throw new Error("LLM not loaded");
   
