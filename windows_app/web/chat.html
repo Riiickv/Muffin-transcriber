@@ -91,6 +91,17 @@
       });
     });
 
+    // A new chat is named a few seconds after its first reply, so the row and
+    // the header have to pick the new name up on their own.
+    Muffin.on("chat.sessionsChanged", function () {
+      Muffin.invoke("chat.sessions").then(function (list) {
+        sessions = list || sessions;
+        renderSessions();
+        var open = sessions.filter(function (s) { return s.id === activeId; })[0];
+        if (open) setHeader(open.title);
+      });
+    });
+
     function loadSessions(openFirst) {
       Muffin.invoke("chat.sessions").then(function (list) {
         sessions = list || [];
@@ -241,6 +252,20 @@
       return bubble;
     }
 
+    // The app's own actions, in the words a person would use for them. Anything
+    // unmapped falls back to a plain "Done" rather than printing its enum.
+    function actionDone(action) {
+      var done = Muffin.t("chat.actionExecuted", "Done");
+      switch (action) {
+        case "NAVIGATE_TO": return done + ": " + Muffin.t("pc.chat.didNavigate", "opened that screen");
+        case "SET_SETTING": return done + ": " + Muffin.t("pc.chat.didSetSetting", "changed that setting");
+        case "SHOW_SETTING": return done;
+        case "DELETE_TRANSCRIPT": return done + ": " + Muffin.t("pc.chat.didDelete", "deleted that transcript");
+        case "RENAME_TRANSCRIPT": return done + ": " + Muffin.t("pc.chat.didRename", "renamed that transcript");
+        default: return done;
+      }
+    }
+
     function renderActions(group, actions) {
       group.querySelectorAll(".act-chip, .setting-card").forEach(function (c) { c.remove(); });
       (actions || []).forEach(function (a) {
@@ -259,8 +284,12 @@
         // The reason, when the app has one. "Couldn't do that" on its own says
         // that something failed and nothing about what to do instead, which is
         // the whole of what the user needs.
+        //
+        // And the action in words. "Done: NAVIGATE_TO" is an enum name from the
+        // source, printed at someone who has never seen the source, which is
+        // the same leak the assistant is told not to make in its own sentences.
         label.textContent = a.ok
-          ? Muffin.t("chat.actionExecuted", "Done") + ": " + a.action
+          ? actionDone(a.action)
           : (a.reason || Muffin.t("chat.actionFailed", "Couldn't do that"));
         chip.appendChild(label);
         group.appendChild(chip);

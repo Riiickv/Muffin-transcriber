@@ -409,6 +409,10 @@
       Muffin.invoke("history.list").then(function (list) { items = list || items; renderList(); });
     }
 
+    // A fresh transcript is named a few seconds after it is saved, so the row
+    // has to pick the new name up on its own.
+    Muffin.on("history.changed", refreshRow);
+
     document.getElementById("a-retranscribe").addEventListener("click", function () { clickAction("retranscribe"); });
     document.getElementById("a-format").addEventListener("click", function () { clickAction("format"); });
     document.getElementById("a-summarize").addEventListener("click", function () { clickAction("summarize"); });

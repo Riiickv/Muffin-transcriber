@@ -110,8 +110,11 @@ public sealed partial class WebBridge
             // append the reply to the wrong conversation.
             ChatSession target = session;
             target.Messages.Add(new ChatMessage("user", text));
-            if (target.Title == AppStrings.Chat_NewChat || target.Title == "New chat")
+            bool unnamed = target.Title == AppStrings.Chat_NewChat || target.Title == "New chat";
+            if (unnamed)
             {
+                // The first message, trimmed, so the row is never blank while
+                // the real name is being worked out.
                 target.Title = text.Length > 40 ? text[..40] : text;
             }
 
@@ -127,6 +130,11 @@ public sealed partial class WebBridge
                 target.UpdatedAt = DateTime.Now;
 
                 List<Dictionary<string, object?>> actions = await ExecuteToolCalls(reply, target);
+
+                // Named from the exchange rather than from the question alone:
+                // "can you retranscribe the last one for me?" as a row title
+                // says nothing that the next twenty rows will not also say.
+                if (unnamed) _ = NameChatAsync(target, text, reply);
 
                 return new Dictionary<string, object?>
                 {
@@ -250,6 +258,30 @@ public sealed partial class WebBridge
     /// carries on as though every action succeeded, which is how "I renamed it"
     /// gets said about a rename the user cancelled.
     /// </summary>
+    /// <summary>
+    /// Names a chat in at most three words once it has something to name: the
+    /// first question and the answer to it. Not awaited, so the reply is never
+    /// held up by it, and skipped if the user renamed the chat in the meantime.
+    /// </summary>
+    private async Task NameChatAsync(ChatSession session, string question, string reply)
+    {
+        string firstTitle = session.Title;
+        try
+        {
+            string? title = await LLMFormatter.GenerateTitleAsync(question + "\n\n" + reply, FormatterKey());
+            if (string.IsNullOrWhiteSpace(title) || session.Title != firstTitle) return;
+
+            session.Title = title;
+            WinChatStore.Save(_sessions);
+            Emit("chat.sessionsChanged", null);
+        }
+        catch (Exception ex)
+        {
+            // The chat keeps the first line of the question as its name.
+            CrashLog.Write("Naming a chat", ex);
+        }
+    }
+
     private void Note(ChatSession session, string note)
     {
         session.Messages.Add(new ChatMessage("system", "[action result] " + note));
