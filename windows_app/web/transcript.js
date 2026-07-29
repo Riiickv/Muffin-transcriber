@@ -185,7 +185,12 @@ function createTranscript(root) {
     // the user asked for the typewriter.
     set: function (data, options) {
       options = options || {};
-      var wasRaw = !content.raw && data.raw;
+      // Whether the raw text is actually NEW, not merely whether there was none
+      // before. The old test was "raw was empty", which is true the first time
+      // a transcript arrives and false for a re-transcribe: the reveal simply
+      // never ran on the library screen. Comparing the text also means a state
+      // refresh carrying the same words does not replay the animation.
+      var rawChanged = !!data.raw && data.raw !== content.raw;
       content = { raw: data.raw || "", formatted: data.formatted || "", summary: data.summary || "" };
 
       // An action shows what IT produced. Re-transcribing used to land on the
@@ -196,7 +201,7 @@ function createTranscript(root) {
       else if (content.formatted && options.preferBest) active = "formatted";
       else if (!content[active]) active = "raw";
 
-      if (options.animate && wasRaw && active === "raw" && content.raw) {
+      if (options.animate && rawChanged && active === "raw") {
         tabs.forEach(function (tab) {
           tab.classList.toggle("active", tab.dataset.tab === "raw");
           tab.disabled = !content[tab.dataset.tab];
