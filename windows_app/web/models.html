@@ -37,6 +37,18 @@
 
         <div class="group-title" data-i18n="settings.embeddingModelsHeader">Helper models (mandatory for the chat to be helpful)</div>
         <div class="group" id="embedding"></div>
+
+        <!-- At the bottom, because it is a preference about this screen rather
+             than a model you can install. -->
+        <div class="group" style="margin-top: var(--sp-xl)">
+          <div class="srow">
+            <div class="s-label">
+              <div class="s-name" data-i18n="pc.models.showNames">Show model names</div>
+              <div class="s-desc" data-i18n="pc.models.showNamesDesc">List them by what they are called instead of what they do</div>
+            </div>
+            <div class="s-control"><button class="switch" data-setting="ShowModelNames" aria-pressed="false"></button></div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -60,6 +72,9 @@
       });
       load();
     });
+
+    // Every name on the screen changes with it, so the lists are rebuilt.
+    Muffin.on("settings.changed", function () { load(); });
 
     function load() {
       Muffin.invoke("models.list").then(function (models) {

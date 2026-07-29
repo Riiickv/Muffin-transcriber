@@ -1279,6 +1279,19 @@ body.booted { opacity: 1; transition: opacity 160ms var(--ease-rn); }
    Drawn INSIDE the row: the group clips its overflow to keep its rounded
    corners, so a ring outside the bounds is simply invisible. */
 .m-item.suggested { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+
+/* A paused download is stopped, not broken: the bar keeps its place and goes
+   quiet rather than disappearing. */
+.m-item.m-paused .m-track i { background: var(--text-subtle); }
+.m-item.m-paused .m-pct { color: var(--text-subtle); }
+.m-hold {
+  background: transparent; border: none; color: var(--text-muted);
+  cursor: pointer; padding: 2px; display: flex; border-radius: var(--r-sm);
+}
+.m-hold:hover { color: var(--text); background: var(--surface-strong); }
+/* Paused rings on the rail stop pulling the eye. */
+.dl-ring.paused .dl-bar { stroke: var(--text-subtle); }
+.dl-ring.paused .dl-pct { color: var(--text-subtle); }
 /* The reason, beside the name. The glow says "this one"; this says why. */
 .m-best {
   margin-left: var(--sp-sm);

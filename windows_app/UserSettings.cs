@@ -16,6 +16,14 @@ public sealed class UserSettings
     public string FormatLanguage { get; set; } = "Auto-Detect / Original";
     public bool NormalizeAudio { get; set; } = true;
     public bool AutoCopyTranscript { get; set; }
+
+    /// <summary>
+    /// Show models by their real names (Qwen 2.5 [14B]) rather than by what
+    /// they do for you (Very powerful). Off by default: the tier is the useful
+    /// answer to "which one do I want", and the model number only means
+    /// something once you already know.
+    /// </summary>
+    public bool ShowModelNames { get; set; }
     public double SidebarWidth { get; set; } = 320;
     public int WindowWidth { get; set; } = 1000;
     public int WindowHeight { get; set; } = 650;
