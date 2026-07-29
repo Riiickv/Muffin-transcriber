@@ -36,9 +36,14 @@ public sealed partial class MainWindow : Window
         }
         _ = CheckEngineHealthAsync();
 
-        // No SetTitleBar: there is no XAML title bar left to hand over. The
-        // page draws its own strip and tells us which parts of it drag.
-        ExtendsContentIntoTitleBar = true;
+        // No SetTitleBar and no ExtendsContentIntoTitleBar. Extending only moves
+        // the page UNDER a title bar that WinUI still draws, which is why the
+        // minimise, maximise and close glyphs appeared twice: the system's
+        // underneath and the page's on top of them. SetBorderAndTitleBar below
+        // removes the caption outright, so there is exactly one set left.
+        //
+        // Losing the caption also loses the Win7-looking system menu that used
+        // to open on right-clicking the strip, and the page puts its own there.
         AppWindow.SetIcon("Assets/AppIcon.ico");
         ThemeHelper.Apply(this, _settings.ThemeMode);
 
@@ -50,6 +55,11 @@ public sealed partial class MainWindow : Window
         {
             presenter.PreferredMinimumWidth = 760;
             presenter.PreferredMinimumHeight = 560;
+            // Border yes, title bar no: the resize frame is worth keeping, the
+            // caption is not. The corners have to be asked for separately once
+            // the caption is gone.
+            presenter.SetBorderAndTitleBar(true, false);
+            RoundCorners();
         }
 
         // The caption inset is only known once there is a window and a scale to
@@ -242,39 +252,70 @@ public sealed partial class MainWindow : Window
 
     public void CloseWindow() => Close();
 
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+    private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    private const int DWMWCP_ROUND = 2;
+
     /// <summary>
-    /// Which pixels drag the window.
-    ///
-    /// With the title bar drawn by the page there is nothing for Windows to
-    /// grab, so the strip has to be declared as caption. The page sends the
-    /// strip MINUS its buttons, already split into rectangles: a button inside
-    /// a caption region drags the window instead of being clicked. Coordinates
-    /// arrive in CSS pixels; Windows wants physical ones.
+    /// Windows 11 rounds a window's corners off the back of its caption, so
+    /// taking the caption away squared them off. Asked for explicitly, they
+    /// come back, and the app keeps the shape everything inside it has.
     /// </summary>
-    public void SetDragRegions(IReadOnlyList<(double X, double Y, double W, double H)> rects)
+    private void RoundCorners()
     {
         try
         {
-            var source = Microsoft.UI.Input.InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
-            double scale = RootGrid.XamlRoot?.RasterizationScale ?? 1.0;
-            if (scale <= 0) scale = 1.0;
+            IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            int preference = DWMWCP_ROUND;
+            DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref preference, sizeof(int));
+        }
+        catch (Exception ex)
+        {
+            // Square corners are ugly, not broken: worth a log, not a crash.
+            CrashLog.Write("Rounding the window corners", ex);
+        }
+    }
 
-            var native = rects
-                .Where(r => r.W > 0 && r.H > 0)
-                .Select(r => new Windows.Graphics.RectInt32(
-                    (int)Math.Round(r.X * scale),
-                    (int)Math.Round(r.Y * scale),
-                    (int)Math.Round(r.W * scale),
-                    (int)Math.Round(r.H * scale)))
-                .ToArray();
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ReleaseCapture();
 
-            source.SetRegionRects(Microsoft.UI.Input.NonClientRegionKind.Caption, native);
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    private const uint WM_NCLBUTTONDOWN = 0x00A1;
+    private const int HTCAPTION = 2;
+
+    /// <summary>
+    /// Starts an ordinary window drag from a press inside the page.
+    ///
+    /// Declaring the strip as a caption region was the other way to do this, and
+    /// it came with the caption: right-clicking a caption region opens Windows'
+    /// own Restore / Move / Size / Minimize menu, which is exactly the thing
+    /// being replaced. Handing the press to Windows as HTCAPTION instead gets
+    /// the real move loop, snapping and all, with no caption anywhere.
+    ///
+    /// A maximised window has nowhere to move, so it is restored first, the way
+    /// dragging a maximised title bar behaves.
+    /// </summary>
+    public void BeginDrag()
+    {
+        try
+        {
+            if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Maximized } p)
+            {
+                p.Restore();
+            }
+            IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            ReleaseCapture();
+            SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, IntPtr.Zero);
         }
         catch (Exception ex)
         {
             // Losing this makes the window immovable, which is worth a log
             // rather than silently living with.
-            CrashLog.Write("Setting the drag region", ex);
+            CrashLog.Write("Starting a window drag", ex);
         }
     }
 

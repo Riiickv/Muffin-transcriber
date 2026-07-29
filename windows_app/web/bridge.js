@@ -72,10 +72,13 @@
         var attr = bits[0].trim();
         var key = bits[1].trim();
         var store = "i18nFb" + attr;
-        if (el.dataset[store] === undefined) el.dataset[store] = el.getAttribute(attr) || "";
+        if (el.dataset[store] === undefined) el.dataset[store] = el.getAttribute(attr) || el.dataset.tip || "";
         el.setAttribute(attr, t(key, el.dataset[store]));
       });
     });
+    // The pass above happily writes a title back onto elements this already
+    // cleaned once, and Windows would draw its own tooltip from it again.
+    if (window.stripNativeTitles) window.stripNativeTitles(root);
   }
 
   // ---- theme -------------------------------------------------------------

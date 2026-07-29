@@ -111,5 +111,6 @@
   "pc.update.update": "¡Actualizar!",
   "pc.window.close": "Cerrar",
   "pc.window.maximize": "Maximizar",
-  "pc.window.minimize": "Minimizar"
+  "pc.window.minimize": "Minimizar",
+  "pc.window.restore": "Restaurar"
 }
