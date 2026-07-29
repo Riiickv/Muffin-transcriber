@@ -31,13 +31,15 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    // Google Sans Flex, cut to the three the app asks for. The desktop uses the
-    // variable font and moves along its width axis per role; React Native has
-    // neither a width axis nor font-variation-settings, so each (weight, width)
-    // pair is its own static file, instanced from the same source at the same
-    // numbers. ROND is 0 in all of them: the non-rounded cut.
+    // Google Sans Flex, cut to the four widths the app asks for. The desktop
+    // uses the variable font and moves along its width axis per role; React
+    // Native has neither a width axis nor font-variation-settings, so each
+    // (weight, width) pair is its own static file, instanced from the same
+    // source at the same numbers. ROND is 0 in all of them: the non-rounded
+    // cut. Themed.tsx picks between them; see the note there.
     'GoogleSansFlex-Body': require('../assets/fonts/GoogleSansFlex-Body.ttf'),
     'GoogleSansFlex-Medium': require('../assets/fonts/GoogleSansFlex-Medium.ttf'),
+    'GoogleSansFlex-Title': require('../assets/fonts/GoogleSansFlex-Title.ttf'),
     'GoogleSansFlex-Bold': require('../assets/fonts/GoogleSansFlex-Bold.ttf'),
     // Google's Material Symbols Rounded - Material 3 Expressive icon set.
     MaterialSymbolsRounded: require('../assets/fonts/MaterialSymbolsRounded.ttf'),
