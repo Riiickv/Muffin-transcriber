@@ -225,8 +225,12 @@
 
       var bubble = document.createElement("div");
       bubble.className = "bubble " + (role === "user" ? "user" : "assistant");
-      bubble.textContent = text;
-      bubble.hidden = !text;
+      // Replies are cleaned on the way in as well, or a conversation reopened
+      // later would show the tags that were filtered out while it was live.
+      // What the user typed is never touched.
+      var body = role === "user" ? text : cleanReply(text);
+      bubble.textContent = body;
+      bubble.hidden = !body;
       group.appendChild(bubble);
 
       renderActions(group, actions);
@@ -283,8 +287,12 @@
           streamBubble.textContent = result.error;
           streamBubble.hidden = false;
         } else {
-          streamBubble.textContent = result.text;
-          streamBubble.hidden = !result.text;
+          // Through the same cleaner as the stream, so the settled reply cannot
+          // differ from what was on screen a moment before it landed. The app
+          // strips the tags; the sentences that only talk about them are ours.
+          var settled = cleanReply(result.text);
+          streamBubble.textContent = settled;
+          streamBubble.hidden = !settled;
           renderActions(streamBubble._group, result.actions);
           sessions = result.sessions || sessions;
           renderSessions();
@@ -294,12 +302,51 @@
       });
     }
 
+    // Ported from the mobile chat's parseToolCalls, and for the same reason:
+    // small models write their tool calls out as text and narrate the plumbing
+    // while they are at it. Nothing cleaned the stream here, so the raw
+    // <tool_call>{"action": "SHOW_SETTING", ...} blocks were going straight into
+    // the bubble as they arrived.
+    //
+    // Whole sentences are dropped, not set phrases. Chasing exact wording is a
+    // losing game: a model has infinite ways to say "here is the tool_call",
+    // and each new one ships before anyone notices. What they all have in
+    // common is naming machinery nobody can see, so that is what is tested for.
+    var MECHANICS_TALK = /tool[ _-]?calls?|<tool|\bjson\b|\bemit\b|\bpayload\b|history_index|app_settings|transcript_id|variant_summary|new_name|\[action result\]|the user answered|\bdialog\b|\bconfirmation\b|the app (shows|will|asks)|\bthe user (will|can|cannot|sees|see)\b/i;
+
+    function cleanReply(text) {
+      if (!text) return "";
+      var out = String(text).replace(/<tool_call>[\s\S]*?<\/tool_call>/gi, "");
+      // Mid-stream a call has no closing tag yet, so everything from the
+      // opening one to the end is a call in progress rather than a sentence.
+      out = out.replace(/<tool_call>[\s\S]*$/i, "");
+      // Same for a bare {"action": ...} that has not finished arriving.
+      out = out.replace(/\{\s*"?action"?[\s\S]*$/i, "");
+      out = (out.match(/[^.!?]+[.!?]*/g) || [])
+        .filter(function (sentence) { return !MECHANICS_TALK.test(sentence); })
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
+      // A private note the model read and then recited back at the user.
+      return out.replace(/\[action result\][^\n]*/gi, "").trim();
+    }
+
+    // The raw stream is kept and re-cleaned on every token, because a tag is
+    // only recognisable once enough of it has arrived. Appending cleaned
+    // fragments would let the first half of a call through before the second
+    // half revealed what it was.
+    var streamRaw = "";
+
     // One listener for the whole page: registering it per send stacked a new
     // handler on every message and echoed the reply once per send.
     Muffin.on("chat.token", function (t) {
       if (!streamBubble) return;
-      if (firstToken) { streamBubble.textContent = ""; firstToken = false; }
-      streamBubble.textContent += t.text;
+      if (firstToken) { streamRaw = ""; firstToken = false; }
+      streamRaw += t.text;
+      // Nothing readable yet: keep saying "Thinking..." rather than emptying
+      // the bubble while a tool call is the only thing arriving.
+      var shown = cleanReply(streamRaw);
+      streamBubble.textContent = shown || Muffin.t("chat.thinking", "Thinking...");
       toBottom();
     });
 
