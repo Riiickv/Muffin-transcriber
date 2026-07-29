@@ -155,6 +155,48 @@ export function formatRuns(runs: PerfRun[]): string {
 }
 
 /**
+ * Average recorded seconds per model, from the runs already on this phone.
+ *
+ * This is what lets the Models screen show a real number instead of an estimate
+ * calibrated on somebody else's device: once you have transcribed twice with a
+ * model, your own average is strictly better information than any table.
+ *
+ * Keyed by model file name, which is what both engines record. Transcription and
+ * LLM runs are kept apart because they measure different things - a flat cost per
+ * recording versus a cost per minute of transcript - and a model only ever
+ * appears in one of them.
+ */
+export function averageSecondsByModel(runs: PerfRun[]): Record<string, number> {
+  const totals: Record<string, { sum: number; n: number }> = {};
+  for (const run of runs) {
+    // A run marked COLD paid for a model load the next one will not, so it
+    // would drag the average toward a cost most runs do not pay.
+    if (run.stages.some((s) => s.name.startsWith('COLD'))) continue;
+    if (run.totalMs <= 0) continue;
+
+    let seconds = run.totalMs / 1000;
+    if (run.kind !== 'transcribe') {
+      // LLM runs are quoted per minute of transcript. outputChars is the only
+      // length we kept; ~14 characters a second of speech, from the same
+      // session these estimates are calibrated against.
+      const minutes = (run.outputChars ?? 0) / 14 / 60;
+      if (minutes < 0.15) continue; // too short to divide by safely
+      seconds = seconds / minutes;
+    }
+
+    const bucket = (totals[run.model] ??= { sum: 0, n: 0 });
+    bucket.sum += seconds;
+    bucket.n += 1;
+  }
+
+  const out: Record<string, number> = {};
+  for (const [model, { sum, n }] of Object.entries(totals)) {
+    if (n > 0) out[model] = sum / n;
+  }
+  return out;
+}
+
+/**
  * llama.rn reports its own timings, which are better than anything measured
  * from JS: it separates PREFILL (reading the prompt) from GENERATION (writing
  * the answer), and reports cache_n - the tokens it skipped because they matched

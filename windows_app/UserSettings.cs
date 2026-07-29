@@ -44,6 +44,16 @@ public sealed class UserSettings
     /// pay on every visit, and most visits are to read the words.
     /// </summary>
     public bool ShowTranscriptTiming { get; set; } = true;
+
+    /// <summary>
+    /// Show an estimated time per model on the Models screen.
+    ///
+    /// Off by default, and for a reason particular to the desktop: the number is
+    /// derived from this machine's own recorded runs, so on a fresh install
+    /// there is nothing to derive it from and the line is absent. Defaulting it
+    /// on would mean shipping a switch that appears to do nothing.
+    /// </summary>
+    public bool ShowModelTimeEstimate { get; set; }
     public double SidebarWidth { get; set; } = 320;
     public int WindowWidth { get; set; } = 1000;
     public int WindowHeight { get; set; } = 650;

@@ -2,7 +2,9 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Stack } from 'expo-router';
 
 import { useTheme } from '@/components/ThemeProvider';
-import { SettingsGroup } from '@/components/SettingsGroup';
+import { SettingsGroup, SettingsRow } from '@/components/SettingsGroup';
+import ExpressiveSwitch from '@/components/ExpressiveSwitch';
+import { useSettings } from '@/utils/settingsStore';
 import { ModelDownloadList } from '@/components/ModelDownloadList';
 import { WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, ModelDef } from '@/utils/ModelManager';
 import { withRecommendedFirst, recommendedModelId, ModelGroup } from '@/utils/deviceTier';
@@ -26,6 +28,7 @@ import { t } from '@/utils/i18n';
 export default function ModelsScreen() {
   const { theme } = useTheme();
   const { contentWidth } = useResponsive();
+  const { settings, setSetting } = useSettings();
 
   // Suggested first, and glowing. Here you're choosing what to run on YOUR
   // phone, not browsing a catalog, so the one that fits should be the one you
@@ -48,6 +51,26 @@ export default function ModelsScreen() {
         {group(t('settings.formatterModelsHeader'), FORMATTER_MODELS, 'formatter', 1)}
         {group(t('settings.chatModelsHeader'), CHAT_MODELS, 'chat', 2)}
         {group(t('settings.embeddingModelsHeader'), EMBEDDING_MODELS, 'embedding', 3)}
+
+        {/* Last, because it changes how the lists above read rather than being
+            something you came here to do. */}
+        <SettingsGroup title={t('settings.modelListOptions') || 'List options'} index={4}>
+          <SettingsRow
+            label={t('settings.showTimeEstimate') || 'Show estimated time'}
+            description={
+              t('settings.showTimeEstimateDesc') ||
+              'Adds a line with how long each model is likely to take on this phone.'
+            }
+            right={
+              <ExpressiveSwitch
+                value={settings.showModelTimeEstimate}
+                onValueChange={(v) => setSetting('showModelTimeEstimate', v)}
+                activeColor={theme.tint}
+                thumbActiveColor="#000000"
+              />
+            }
+          />
+        </SettingsGroup>
       </ScrollView>
     </View>
   );

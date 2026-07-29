@@ -409,6 +409,9 @@ export const APP_STRINGS = {
     formatterModelsHeader: "Formatter models",
     chatModelsHeader: "Chat models",
     embeddingModelsHeader: "Helper models (mandatory for the chat to be helpful)",
+    modelListOptions: "List options",
+    showTimeEstimate: "Show estimated time",
+    showTimeEstimateDesc: "Adds a line with how long each model is likely to take on this phone.",
 
     // -- The button on each model card --
     get: "Get",
@@ -474,9 +477,13 @@ export const APP_STRINGS = {
     tierSmartSearch: "Smart search",
 
     // One-line blurb per model.
-    descWhisperFastest: "Roughest wording. Fine for short, clear notes, and done in seconds.",
-    descWhisperBalanced: "The sweet spot for most voice notes. A few seconds for a short one.",
-    descWhisperAccurate: "Best with accents and background noise. Costs at least half a minute per recording, however short.",
+    descWhisperFastest: "Roughest wording. Fine for short, clear notes.",
+    descWhisperBalanced: "The sweet spot for most voice notes.",
+    descWhisperAccurate: "Best with accents and background noise. Slowest.",
+    estimatePerRecording: "about {t} per recording",
+    estimatePerMinute: "about {t} per minute of recording",
+    measuredPerRecording: "{t} per recording on your phone",
+    measuredPerMinute: "{t} per minute of recording on your phone",
     descFmtFastest: "Tuned for newer phone chips.",
     descFmtFast: "Slightly better wording than Fastest.",
     descFmtBalanced: "Bigger, still quick on newer phones.",

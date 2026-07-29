@@ -208,12 +208,19 @@ public sealed partial class WebBridge
             ? models
             : models.Where(m => m.File == recommended).Concat(models.Where(m => m.File != recommended));
 
-        return ordered.Select(m => ModelMap(m, m.File == recommended)).ToList();
+        // Loaded ONCE for the whole group. The estimate is derived from every
+        // transcript on disk, and doing that per model would read history.json
+        // four times to answer four questions about the same file.
+        List<TranscriptionHistoryItem> history = TranscriptionHistory.Load();
+        return ordered.Select(m => ModelMap(m, m.File == recommended, history)).ToList();
     }
 
     // Names come from the shared catalog, so the desktop picker reads exactly
     // like the mobile one: a tier, not a model number.
-    private static Dictionary<string, object?> ModelMap(ModelInfo model, bool recommended = false) => new()
+    private static Dictionary<string, object?> ModelMap(
+        ModelInfo model,
+        bool recommended = false,
+        List<TranscriptionHistoryItem>? history = null) => new()
     {
         ["file"] = model.File,
         ["name"] = AppModel.DisplayName(model),
@@ -221,6 +228,10 @@ public sealed partial class WebBridge
         ["size"] = model.Size,
         ["installed"] = AppModel.IsValidModelFile(AppModel.ModelPath(model.File)),
         ["recommended"] = recommended,
+        // Null until this PC has timed something. See ModelTimeEstimate: there
+        // is no honest table for desktops, so the numbers come from the user's
+        // own runs and the line simply does not appear before there are any.
+        ["estimate"] = history is null ? null : ModelTimeEstimate.Line(model.File, history),
     };
 
     private static void TryDelete(string path)
