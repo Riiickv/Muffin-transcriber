@@ -122,6 +122,12 @@ public sealed partial class WebBridge
         await _view.EnsureCoreWebView2Async(environment);
         CoreWebView2 core = _view.CoreWebView2;
 
+        // Anything raised while this was still starting has been waiting rather
+        // than being binned. Delivered before the page loads, so the events sit
+        // in WebView2's own queue and arrive with the first document instead of
+        // waiting on a later message that may never be sent.
+        FlushQueued();
+
         // The UI is served from the install dir under a virtual host name.
         // file:// would put every page in an opaque origin, which breaks fetch
         // and localStorage; this keeps them on one ordinary https origin, still
@@ -333,6 +339,20 @@ public sealed partial class WebBridge
         }
     }
 
+    /// <summary>
+    /// Messages raised before the WebView existed, kept until it does.
+    ///
+    /// The update check runs at launch and routinely beats CoreWebView2 into
+    /// being, and every message sent in that window used to be thrown away with
+    /// a line in the log. The visible symptom was an update that finished and
+    /// then sat on "Downloading..." for ever, because the ONE message that said
+    /// otherwise was the one discarded. Holding them costs nothing: this window
+    /// is a second at startup, and the cap is there so a WebView that never
+    /// arrives cannot grow the list without limit.
+    /// </summary>
+    private readonly List<string> _queuedMessages = new();
+    private const int MaxQueuedMessages = 32;
+
     private void Send(string json)
     {
         // Losing a progress tick is fine; the next tick corrects it. Losing a
@@ -341,9 +361,19 @@ public sealed partial class WebBridge
         // said "downloading".
         if (_view.CoreWebView2 is null)
         {
-            CrashLog.Note("bridge: dropped a message, no CoreWebView2: " + Peek(json));
+            if (_queuedMessages.Count < MaxQueuedMessages)
+            {
+                _queuedMessages.Add(json);
+                CrashLog.Note("bridge: holding a message until the WebView is up: " + Peek(json));
+            }
+            else
+            {
+                CrashLog.Note("bridge: queue full, dropped: " + Peek(json));
+            }
             return;
         }
+
+        FlushQueued();
 
         try
         {
@@ -352,6 +382,28 @@ public sealed partial class WebBridge
         catch (Exception ex)
         {
             CrashLog.Note($"bridge: dropped a message ({ex.GetType().Name}: {ex.Message}): {Peek(json)}");
+        }
+    }
+
+    /// <summary>Delivers anything held while the WebView was still starting.</summary>
+    private void FlushQueued()
+    {
+        if (_queuedMessages.Count == 0) return;
+        // Copied and cleared FIRST: PostWebMessageAsString can re-enter through
+        // a handler, and draining a list being appended to is how one message
+        // gets delivered twice.
+        var pending = _queuedMessages.ToArray();
+        _queuedMessages.Clear();
+        foreach (string held in pending)
+        {
+            try
+            {
+                _view.CoreWebView2.PostWebMessageAsString(held);
+            }
+            catch (Exception ex)
+            {
+                CrashLog.Note($"bridge: a held message still failed ({ex.GetType().Name}): {Peek(held)}");
+            }
         }
     }
 

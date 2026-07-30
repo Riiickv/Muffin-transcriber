@@ -374,7 +374,7 @@
     if (!bar.hidden) bar.firstElementChild.style.width = percent + "%";
   }
 
-  Muffin.on("app.banner", function (b) { showBanner(b); watchBanner(); });
+  Muffin.on("app.banner", function (b) { showBanner(b, b && b.force); watchBanner(); });
   Muffin.on("app.bannerUpdate", function (b) {
     if (!b) return;
     bannerEl().querySelector(".b-message").textContent = b.message || "";

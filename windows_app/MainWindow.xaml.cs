@@ -681,13 +681,25 @@ public sealed partial class MainWindow : Window
     /// replays on every page load now carries the finished state too, so the
     /// next screen is right even if the message itself never arrived.
     /// </summary>
+    /// <summary>
+    /// The banner that says the installer is on disk and waiting.
+    ///
+    /// Marshalled, like ShowUpdateBanner beside it. This one used to post
+    /// straight from the continuation after the download await, which is the
+    /// ONE difference between it and the manual Check for updates path - and
+    /// the manual path is the one that reliably repainted the banner. Making
+    /// the two identical costs nothing and removes the difference as a
+    /// suspect. Forced, as well: this is a state change, so a banner the user
+    /// waved away earlier must not swallow the news that the wait is over.
+    /// </summary>
     private void ShowReadyToInstall()
     {
-        _bridge?.ShowBanner(
+        DispatcherQueue.TryEnqueue(() => _bridge?.ShowBanner(
             "success",
             AppStrings.Update_BannerTitle,
             AppStrings.Update_StatusReady,
             AppStrings.Update_BtnRestart,
-            StartUpdate);
+            StartUpdate,
+            force: true));
     }
 }
