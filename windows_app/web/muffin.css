@@ -526,12 +526,18 @@ body.has-titlebar .app { padding-top: 40px; }
 }
 
 /* ---- Card: constants/Card.tsx (surface fill + hairline, radius md) ---- */
+/* ONE padding for every card and every pane that holds them, equal on all four
+   sides. The history entry had drifted to 8px vertical against 12 horizontal
+   while the cards beside it sat at 16 all round, which is why it read as
+   squashed and riding higher than its neighbours. --sp-md is the compromise:
+   tighter than the 16 that wasted the pane's width, and the same number
+   everywhere so nothing has to be compared. */
 .card {
   background: var(--surface);
   border: 1px solid var(--card-border);
   border-radius: var(--r-md);
-  padding: var(--sp-lg);
-  margin-bottom: var(--sp-lg);
+  padding: var(--sp-md);
+  margin-bottom: var(--sp-md);
 }
 
 .row { display: flex; gap: var(--sp-md); }
@@ -754,8 +760,8 @@ textarea { resize: vertical; min-height: 72px; }
 /* Tightened throughout: from the pane edge to a card's text was 16px of pane
    plus 12px of card on each side, 56px of the width gone before a word of it
    was a transcript. */
-.hl-head { padding: var(--sp-md) var(--sp-sm) var(--sp-sm); flex-shrink: 0; }
-.hl-rows { flex: 1; overflow-y: auto; padding: 0 var(--sp-sm) var(--sp-sm); }
+.hl-head { padding: var(--sp-md); flex-shrink: 0; }
+.hl-rows { flex: 1; overflow-y: auto; padding: 0 var(--sp-md) var(--sp-md); }
 .hist-list h2 { font-size: 26px; font-weight: 700; margin: 0 0 var(--sp-sm); }
 .search {
   display: block;
@@ -779,7 +785,7 @@ textarea { resize: vertical; min-height: 72px; }
   background: var(--surface-strong);
   border: 1px solid var(--card-border);
   border-radius: var(--r-md);
-  padding: var(--sp-sm) var(--sp-md);
+  padding: var(--sp-md);
   margin-bottom: var(--sp-sm);
   cursor: pointer;
 }
@@ -844,7 +850,7 @@ textarea { resize: vertical; min-height: 72px; }
 .splitter { width: 6px; flex-shrink: 0; cursor: col-resize; }
 .splitter:hover { background: var(--accent-fill); }
 
-.hist-detail { flex: 1; overflow-y: auto; padding: var(--sp-lg); min-width: 0; }
+.hist-detail { flex: 1; overflow-y: auto; padding: var(--sp-md); min-width: 0; }
 .detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-md); }
 .detail-head h2 { font-size: 20px; font-weight: 700; margin: 0; }
 .detail-head .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
