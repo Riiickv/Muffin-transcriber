@@ -263,7 +263,7 @@ public sealed partial class WebBridge
     /// Held until a screen is listening: engine health and update checks finish
     /// before the first page has booted.
     /// </summary>
-    public void ShowBanner(string kind, string title, string message, string? actionLabel, Action? action)
+    public void ShowBanner(string kind, string title, string message, string? actionLabel, Action? action, bool force = false)
     {
         _bannerAction = action;
         var payload = new Dictionary<string, object?>
@@ -272,6 +272,11 @@ public sealed partial class WebBridge
             ["title"] = title,
             ["message"] = message,
             ["actionLabel"] = actionLabel,
+            // The page suppresses a banner whose exact wording the user has
+            // already dismissed this session. Right for a notice, wrong for a
+            // state change: waving away "update ready" once must not hide it
+            // for ever, on the one message that offers the way forward.
+            ["force"] = force,
         };
 
         _pendingBanner = payload;
