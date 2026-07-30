@@ -70,6 +70,10 @@
   --r-pill: 999px;
   /* One rounding for every rectangular button, a touch rounder than the cards. */
   --r-btn: 14px;
+  /* The window's own corner, drawn by the page. Twice --r-lg, and that is the
+     concentric answer rather than a preference: the rail sits 16px inside the
+     window and is itself 16px round, and outer = inner + gap. */
+  --r-window: 32px;
 
   /* The one brand constant. The accent itself is overridden at runtime by the
      accent picker; everything derived from it uses color-mix so it follows. */
@@ -350,7 +354,7 @@ html, body {
 html { background: transparent; }
 body {
   background: var(--bg);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-window);
 }
 
 /* ---- Title bar: the app's, not the system's ----
@@ -750,8 +754,8 @@ textarea { resize: vertical; min-height: 72px; }
 /* Tightened throughout: from the pane edge to a card's text was 16px of pane
    plus 12px of card on each side, 56px of the width gone before a word of it
    was a transcript. */
-.hl-head { padding: var(--sp-md) var(--sp-md) var(--sp-sm); flex-shrink: 0; }
-.hl-rows { flex: 1; overflow-y: auto; padding: 0 var(--sp-md) var(--sp-md); }
+.hl-head { padding: var(--sp-md) var(--sp-sm) var(--sp-sm); flex-shrink: 0; }
+.hl-rows { flex: 1; overflow-y: auto; padding: 0 var(--sp-sm) var(--sp-sm); }
 .hist-list h2 { font-size: 26px; font-weight: 700; margin: 0 0 var(--sp-sm); }
 .search {
   display: block;
