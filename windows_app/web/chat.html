@@ -22,42 +22,49 @@
       <button class="rail-item" data-nav="settings.html" data-i18n-attr="title:tabs.settings" title="Settings"><span class="msr">&#xE8B8;</span></button>
     </nav>
 
-    <aside class="chat-sessions" id="sessions-pane">
-      <div class="cs-head">
-        <h2 data-i18n="chat.chats">Chats</h2>
-        <button class="cs-new" id="new-chat" type="button" data-i18n-attr="title:chat.newChat" title="New Chat"><span class="msr">&#xE145;</span></button>
-      </div>
-      <div class="cs-list" id="sessions"></div>
-      <div class="empty" id="no-chats" hidden>
-        <span class="msr empty-icon">&#xE0B7;</span>
-        <div data-i18n="chat.noChats">No chats yet.</div>
-      </div>
-    </aside>
+    <main class="screen">
+      <h1 class="title" data-i18n="tabs.chat">Chat</h1>
+      <div class="two-pane">
+        <aside class="chat-sessions" id="sessions-pane">
+          <div class="cs-head">
+            <button class="cs-new" id="new-chat" type="button" data-i18n-attr="title:chat.newChat" title="New Chat"><span class="msr">&#xE145;</span></button>
+          </div>
+          <div class="cs-list" id="sessions"></div>
+          <div class="empty" id="no-chats" hidden>
+            <span class="msr empty-icon">&#xE0B7;</span>
+            <div data-i18n="chat.noChats">No chats yet.</div>
+          </div>
+        </aside>
 
-    <div class="splitter" data-min="180" data-max="420" data-persist="ChatSessionsWidth"></div>
+        <div class="splitter" data-min="180" data-max="420" data-persist="ChatSessionsWidth"></div>
 
-    <section class="chat-main">
-      <div class="chat-head">
-        <h2 id="chat-title" data-i18n="chat.header">Chat</h2>
-        <!-- Says up front that this part is still cooking, and says what it
-             means when you click it, the way the mobile header badge does. -->
-        <button class="beta-badge" id="beta" type="button" data-i18n="chat.beta">Beta</button>
-      </div>
+        <section class="chat-main">
+          <div class="chat-head">
+            <!-- The session's own name. No "Chat" fallback and no data-i18n: the tab
+                 is already titled Chat above this, and the language pass would put
+                 the word back over whatever session you had open. -->
+            <h2 id="chat-title"></h2>
+            <!-- Says up front that this part is still cooking, and says what it
+                 means when you click it, the way the mobile header badge does. -->
+            <button class="beta-badge" id="beta" type="button" data-i18n="chat.beta">Beta</button>
+          </div>
 
-      <div class="chat-scroll" id="scroll">
-        <div class="chat-empty">
-          <span class="msr ce-icon">&#xE0B7;</span>
-          <div class="ce-sub" data-i18n="chat.emptyState">You can ask me anything about your transcripts, just tell me what you need!</div>
-        </div>
-      </div>
+          <div class="chat-scroll" id="scroll">
+            <div class="chat-empty">
+              <span class="msr ce-icon">&#xE0B7;</span>
+              <div class="ce-sub" data-i18n="chat.emptyState">You can ask me anything about your transcripts, just tell me what you need!</div>
+            </div>
+          </div>
 
-      <div class="composer">
-        <div id="input" class="field" data-field contenteditable="plaintext-only"
-          data-i18n-attr="placeholder:chat.inputPlaceholder"
-          placeholder="Ask about your transcripts..."></div>
-        <button class="send-btn" id="send" data-i18n-attr="title:chat.sendButton" title="Send"><span class="msr fill" style="font-size:20px">&#xE5D8;</span></button>
+          <div class="composer">
+            <div id="input" class="field" data-field contenteditable="plaintext-only"
+              data-i18n-attr="placeholder:chat.inputPlaceholder"
+              placeholder="Ask about your transcripts..."></div>
+            <button class="send-btn" id="send" data-i18n-attr="title:chat.sendButton" title="Send"><span class="msr fill" style="font-size:20px">&#xE5D8;</span></button>
+          </div>
+        </section>
       </div>
-    </section>
+    </main>
   </div>
 
   <div class="toast" id="toast" hidden></div>
@@ -197,8 +204,7 @@
     }
 
     function setHeader(title) {
-      document.getElementById("chat-title").textContent =
-        title || Muffin.t("chat.header", "Chat");
+      document.getElementById("chat-title").textContent = title || "";
     }
 
     document.getElementById("new-chat").addEventListener("click", function () {

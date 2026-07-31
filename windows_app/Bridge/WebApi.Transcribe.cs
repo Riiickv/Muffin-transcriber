@@ -362,6 +362,41 @@ public sealed partial class WebBridge
         if (_transcribeCts is null) _ = RunTranscriptionAsync();
     }
 
+    /// <summary>
+    /// The history row the app is working on by itself, and what it is doing to
+    /// it. A recording transcribes without anybody pressing a button on the
+    /// History screen, so that screen heard nothing: it sat there with an idle
+    /// Transcribe button and an empty transcript while whisper ran, which is
+    /// indistinguishable from the app having decided to do nothing at all.
+    /// These are the same two events history.retranscribe raises, so the screen
+    /// needs no second way of listening.
+    /// </summary>
+    private string _jobHistoryId = "";
+
+    private void SetHistoryJob(string? id, string action)
+    {
+        if (_jobHistoryId.Length > 0 && (_jobHistoryId != id || _busyAction != action))
+        {
+            Emit("history.busy", new Dictionary<string, object?>
+            {
+                ["id"] = _jobHistoryId, ["action"] = _busyAction, ["busy"] = false,
+            });
+        }
+
+        _jobHistoryId = id ?? "";
+        _busyId = _jobHistoryId;
+        _busyAction = _jobHistoryId.Length > 0 ? action : "";
+        _busyPercent = 0;
+        if (_jobHistoryId.Length == 0) return;
+
+        Emit("history.busy", new Dictionary<string, object?>
+        {
+            ["id"] = _jobHistoryId, ["action"] = action, ["busy"] = true,
+        });
+    }
+
+    private void ClearHistoryJob() => SetHistoryJob(null, "");
+
     private async Task RunTranscriptionAsync()
     {
         if (_transcribeCts is not null || _queuedFiles.Count == 0) return;
@@ -394,6 +429,12 @@ public sealed partial class WebBridge
             // The bar right below already says this, once per percent.
             SetStatus(string.Format(AppStrings.Home_Status_TranscribingPercentFormat, pct), "info", quiet: true);
             EmitTranscribeState();
+            if (_jobHistoryId.Length == 0) return;
+            _busyPercent = pct;
+            Emit("history.progress", new Dictionary<string, object?>
+            {
+                ["id"] = _jobHistoryId, ["action"] = "retranscribe", ["percent"] = pct,
+            });
         });
 
         try
@@ -473,6 +514,10 @@ public sealed partial class WebBridge
                     await Task.Run(() => File.Copy(file, cachedPath, true), ct);
 
                     if (total == 1) SetStatus(AppStrings.Home_Status_TranscribingWhisper, "info");
+                    // A recording owns its row before a word of it exists; a
+                    // picked file gets one only at the end, and has nothing for
+                    // History to point at until then.
+                    SetHistoryJob(ExistingEntryFor(file)?.Id, "retranscribe");
                     string lang = _settings.DefaultLanguage;
                     var transcribeClock = System.Diagnostics.Stopwatch.StartNew();
                     TranscriptionResult tr = await TranscriptionService.TranscribeAsync(
@@ -509,6 +554,7 @@ public sealed partial class WebBridge
                     if (_settings.FormatByDefault)
                     {
                         if (total == 1) SetStatus(AppStrings.Home_Status_FormattingLLM, "info");
+                        SetHistoryJob(_jobHistoryId.Length > 0 ? _jobHistoryId : null, "format");
                         Action<string>? onPartial = total == 1
                             ? partial => { _formatted = partial; Emit("transcribe.partial", new Dictionary<string, object?> { ["tab"] = "formatted", ["text"] = partial }); }
                             : null;
@@ -535,6 +581,7 @@ public sealed partial class WebBridge
                     if (_settings.SummarizeByDefault)
                     {
                         if (total == 1) SetStatus(AppStrings.Home_Status_SummarizingLLM, "info");
+                        SetHistoryJob(_jobHistoryId.Length > 0 ? _jobHistoryId : null, "summarize");
                         string inputForSummary = !string.IsNullOrWhiteSpace(formatted) ? formatted : rawTranscript;
                         var summaryClock = System.Diagnostics.Stopwatch.StartNew();
                         summary = await LLMFormatter.SummarizeTranscriptAsync(
@@ -642,6 +689,7 @@ public sealed partial class WebBridge
         }
         finally
         {
+            ClearHistoryJob();
             _transcribeCts?.Dispose();
             _transcribeCts = null;
             _percent = 0;

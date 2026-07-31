@@ -86,15 +86,20 @@ public sealed partial class WebBridge
         // cancelled the job that was already running.
         Register("history.state", _ => (object?)new Dictionary<string, object?>
         {
-            ["busy"] = _historyCts is not null,
+            // _busyId covers the runs the app starts by itself after a
+            // recording, which have no _historyCts of their own.
+            ["busy"] = _historyCts is not null || _busyId.Length > 0,
             ["id"] = _busyId,
             ["action"] = _busyAction,
             ["percent"] = _busyPercent,
         });
 
+        // Stop has to reach whichever run is the one on screen. The button
+        // appears for both now, and only one of the two tokens exists at a time.
         Register("history.cancel", _ =>
         {
             _historyCts?.Cancel();
+            _transcribeCts?.Cancel();
             return (object?)null;
         });
 

@@ -2,6 +2,8 @@
   "downloads.pause": "Pause",
   "downloads.pausedSuffix": "(paused)",
   "downloads.resume": "Resume",
+  "historyDetail.transcribe": "Transcribe",
+  "historyDetail.transcribing": "Transcribing...",
   "pc.detail.improvedBy": "Improved by",
   "pc.detail.modelLine": "Transcribed by",
   "pc.detail.timingImprove": "improved in",

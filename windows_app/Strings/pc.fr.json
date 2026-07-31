@@ -2,6 +2,8 @@
   "downloads.pause": "Pause",
   "downloads.pausedSuffix": "(en pause)",
   "downloads.resume": "Reprendre",
+  "historyDetail.transcribe": "Transcrire",
+  "historyDetail.transcribing": "Transcription en cours...",
   "pc.accent.green": "Vert",
   "pc.accent.muffin": "Muffin",
   "pc.accent.purple": "Violet",
