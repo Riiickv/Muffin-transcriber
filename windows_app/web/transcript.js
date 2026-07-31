@@ -92,6 +92,54 @@ function createTranscript(root) {
     }, 20);
   }
 
+  var entities = [];
+
+  /**
+   * Marks the dates, times and places the model found, where they were said.
+   *
+   * Quote-based, not pattern-based: the model reports the exact words, so this
+   * only has to find them. Longest first, so "tomorrow at 5pm" wins over "5pm"
+   * and the shorter one cannot cut the longer in half. Everything is escaped -
+   * a transcript is text, and the one place text becomes HTML is here.
+   */
+  function markUp(text) {
+    if (!entities.length) return null;
+    var quotes = entities
+      .map(function (e) { return e && typeof e.quote === "string" ? e.quote : ""; })
+      .filter(function (q) { return q.length >= 3; })
+      .sort(function (a, b) { return b.length - a.length; });
+    if (!quotes.length) return null;
+
+    var marks = [];
+    var lower = text.toLowerCase();
+    quotes.forEach(function (q) {
+      var from = 0, at;
+      while ((at = lower.indexOf(q.toLowerCase(), from)) !== -1) {
+        var end = at + q.length;
+        // Skip anything already inside a longer mark.
+        var clash = marks.some(function (m) { return at < m.end && end > m.start; });
+        if (!clash) marks.push({ start: at, end: end });
+        from = at + q.length;
+      }
+    });
+    if (!marks.length) return null;
+
+    marks.sort(function (a, b) { return a.start - b.start; });
+    var html = "", cursor = 0;
+    marks.forEach(function (m) {
+      html += escapeHtml(text.slice(cursor, m.start));
+      html += '<mark class="ent">' + escapeHtml(text.slice(m.start, m.end)) + "</mark>";
+      cursor = m.end;
+    });
+    return html + escapeHtml(text.slice(cursor));
+  }
+
+  function escapeHtml(t) {
+    return t.replace(/[&<>]/g, function (c) {
+      return c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;";
+    });
+  }
+
   function paint() {
     var text = content[active] || "";
     stopReveal();
@@ -99,7 +147,11 @@ function createTranscript(root) {
     settledNode = null;
     tailSpans = [];
     if (text) {
-      box.textContent = text;
+      // Highlights only when the box is not being edited: innerHTML would move
+      // the caret, and this box is editable.
+      var marked = document.activeElement === box ? null : markUp(text);
+      if (marked) box.innerHTML = marked;
+      else box.textContent = text;
       box.classList.remove("placeholder");
     } else {
       box.textContent = root.dataset.placeholder || Muffin.t("transcribe.transcriptPlaceholder", "Transcript will appear here.");
@@ -247,6 +299,7 @@ function createTranscript(root) {
       // refresh carrying the same words does not replay the animation.
       var rawChanged = !!data.raw && data.raw !== content.raw;
       content = { raw: data.raw || "", formatted: data.formatted || "", summary: data.summary || "" };
+      entities = Array.isArray(data.entities) ? data.entities : [];
 
       // An action shows what IT produced. Re-transcribing used to land on the
       // Summary tab because one happened to exist, so the fresh transcript was
