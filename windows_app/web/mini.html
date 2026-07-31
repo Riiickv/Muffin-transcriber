@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Muffin Transcriber</title>
   <link rel="stylesheet" href="muffin.css" />
+  <script src="bridge.js"></script>
 </head>
 <body data-no-titlebar>
   <!--
@@ -28,10 +29,12 @@
         <!-- The donation button follows the app's, mask and all, because it is
              the same button: the title bar is gone but the reason for it is
              not. -->
-        <button class="tb-btn tb-support mini-support" type="button" id="support"><i class="tb-mark"></i></button>
-        <button class="icon-btn" id="open-app">
-          <span class="msr" style="font-size:20px">&#xE5CC;</span>
-        </button>
+        <div class="mini-acts">
+          <button class="tb-btn tb-support mini-support" type="button" id="support"><i class="tb-mark"></i></button>
+          <button class="icon-btn" id="open-app">
+            <span class="msr" style="font-size:20px">&#xE5CC;</span>
+          </button>
+        </div>
       </div>
 
       <!-- data-field, so it is the same editable surface as every other text
@@ -46,7 +49,6 @@
     </main>
   </div>
 
-  <script src="bridge.js" defer></script>
   <script src="muffin.js" defer></script>
   <script src="shell.js" defer></script>
   <script>
