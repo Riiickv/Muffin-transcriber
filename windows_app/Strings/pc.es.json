@@ -44,6 +44,7 @@
   "pc.history.noResults": "Sin resultados.",
   "pc.history.noSubtitles": "No hay datos de subtítulos para esta transcripción. Vuelve a transcribir el archivo.",
   "pc.history.search": "Buscar transcripciones",
+  "pc.historyDetail.optionsLabel": "Idiomas y calidad",
   "pc.menu.copy": "Copiar",
   "pc.menu.cut": "Cortar",
   "pc.menu.paste": "Pegar",

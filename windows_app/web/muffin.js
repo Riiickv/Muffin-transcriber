@@ -172,10 +172,18 @@ function wireCollapsibles() {
     var head = box.querySelector(".collapsible-head");
     if (!head || head.dataset.bound) return;
     head.dataset.bound = "1";
+
+    // Every screen is its own document, so opening one of these and switching
+    // tabs threw the choice away. data-persist names a setting to keep it in,
+    // the same way the splitters keep their widths.
+    var key = box.dataset.persist;
+    if (key && Muffin.get(key)) setCollapsible(box, true);
+
     head.addEventListener("click", function () {
       var open = !box.classList.contains("open");
       box.classList.toggle("open", open);
       head.setAttribute("aria-expanded", open);
+      if (key) Muffin.set(key, open);
     });
   });
 }

@@ -44,6 +44,7 @@
   "pc.history.noResults": "Sem resultados.",
   "pc.history.noSubtitles": "Nenhum dado de legendas para esta transcrição. Transcreve o ficheiro de novo.",
   "pc.history.search": "Pesquisar transcrições",
+  "pc.historyDetail.optionsLabel": "Idiomas e qualidade",
   "pc.menu.copy": "Copiar",
   "pc.menu.cut": "Cortar",
   "pc.menu.paste": "Colar",

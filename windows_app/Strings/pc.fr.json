@@ -44,6 +44,7 @@
   "pc.history.noResults": "Aucun résultat.",
   "pc.history.noSubtitles": "Aucune donnée de sous-titres pour cette transcription. Retranscrivez le fichier.",
   "pc.history.search": "Rechercher des transcriptions",
+  "pc.historyDetail.optionsLabel": "Langues et qualité",
   "pc.menu.copy": "Copier",
   "pc.menu.cut": "Couper",
   "pc.menu.paste": "Coller",

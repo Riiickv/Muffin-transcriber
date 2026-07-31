@@ -20,6 +20,14 @@ public sealed class UserSettings
     public double ChatSessionsWidth { get; set; } = 260;
 
     /// <summary>
+    /// Whether History's two folding sections are open. Each screen is its own
+    /// document, so a section opened on one transcript was shut again by the
+    /// next one; these are what the collapsibles' data-persist points at.
+    /// </summary>
+    public bool HistoryOptionsOpen { get; set; }
+    public bool HistoryPromptOpen { get; set; }
+
+    /// <summary>
     /// The "Transcribe with Muffin" entry on Explorer's right-click menu.
     ///
     /// On by default because the installer writes it, so the switch starts

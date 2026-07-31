@@ -44,6 +44,7 @@
   "pc.history.noResults": "Keine Treffer.",
   "pc.history.noSubtitles": "Keine Untertiteldaten für dieses Transkript. Transkribiere die Datei neu.",
   "pc.history.search": "Transkripte suchen",
+  "pc.historyDetail.optionsLabel": "Sprachen und Qualität",
   "pc.menu.copy": "Kopieren",
   "pc.menu.cut": "Ausschneiden",
   "pc.menu.paste": "Einfügen",
