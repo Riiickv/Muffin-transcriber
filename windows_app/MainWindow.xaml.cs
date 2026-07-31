@@ -231,8 +231,20 @@ public sealed partial class MainWindow : Window, IShellWindow
             }
 
             _bridge.NavigateToTranscript(entryId);
-            string? kept = _bridge.KeptPathFor(entryId);
-            if (kept is not null) _bridge.TranscribeSavedRecording(kept);
+
+            // The path the save just used, not a lookup that can miss. This is
+            // the step that decides whether a finished recording transcribes
+            // itself, so it must not depend on a dictionary hit.
+            string? kept = _bridge.LastSavedRecordingPath ?? _bridge.KeptPathFor(entryId);
+            if (kept is not null)
+            {
+                _bridge.TranscribeSavedRecording(kept);
+            }
+            else
+            {
+                CrashLog.Note("record: saved a row but had no path to transcribe");
+                _bridge.TranscribeRecording(wavPath);
+            }
         });
     }
 

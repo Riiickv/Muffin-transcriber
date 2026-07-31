@@ -175,6 +175,17 @@ public sealed partial class WebBridge
     /// until a transcription SUCCEEDED, so every failure path threw the audio
     /// away, and "no speech detected" threw it away without even an error.
     /// </summary>
+    /// <summary>
+    /// Where the last saved recording was kept.
+    ///
+    /// SaveRecordingAsync used to return only the row id and the caller looked
+    /// the path back up in _entryForFile. A miss there returned null and the
+    /// auto-transcribe simply did not happen, with nothing said - and "I
+    /// recorded and it never transcribed" is the worst way to find that out.
+    /// The path travels with the id now.
+    /// </summary>
+    public string? LastSavedRecordingPath { get; private set; }
+
     public async Task<string?> SaveRecordingAsync(string wavPath)
     {
         try
@@ -201,7 +212,9 @@ public sealed partial class WebBridge
             TranscriptionHistory.AddOrUpdate(item);
             _entryForFile[kept] = item.Id;
             _recordedFiles.Add(kept);
+            LastSavedRecordingPath = kept;
             Emit("history.changed", null);
+            CrashLog.Note($"record: saved {item.Id}, kept at {kept}");
             return item.Id;
         }
         catch (Exception ex)
@@ -298,11 +311,22 @@ public sealed partial class WebBridge
     /// <summary>Queues the audio a recording already has a row for.</summary>
     public void TranscribeSavedRecording(string keptPath)
     {
-        if (!File.Exists(keptPath)) return;
+        if (!File.Exists(keptPath))
+        {
+            CrashLog.Note($"record: NOT transcribing, no file at {keptPath}");
+            return;
+        }
         _queuedFiles.Clear();
         _queuedFiles.Add(keptPath);
         EmitTranscribeState();
-        if (_transcribeCts is null) _ = RunTranscriptionAsync();
+        if (_transcribeCts is not null)
+        {
+            // A run already in flight would have swallowed this one silently.
+            CrashLog.Note("record: a transcription was already running; queued instead");
+            return;
+        }
+        CrashLog.Note("record: starting transcription");
+        _ = RunTranscriptionAsync();
     }
 
     /// <summary>
@@ -345,6 +369,7 @@ public sealed partial class WebBridge
         ModelInfo? whisperModel = SelectedWhisperModel();
         if (whisperModel is null)
         {
+            CrashLog.Note("record: NOT transcribing, no whisper model selected or installed");
             SetStatus(AppStrings.Common_NoModelInstalled, "error");
             EmitTranscribeState();
             return;
@@ -395,8 +420,23 @@ public sealed partial class WebBridge
 
                     if (!string.IsNullOrEmpty(fileHash))
                     {
+                        // NOT the row this file already owns, and not a row with
+                        // nothing in it.
+                        //
+                        // A finished recording is saved to history BEFORE it is
+                        // transcribed, so the audio survives a crash. That row
+                        // carries the same hash as the file about to be
+                        // transcribed - so this search found it, decided the
+                        // recording was a duplicate of itself, loaded its empty
+                        // transcript and skipped whisper. Every recording did
+                        // this: a row appeared, the transcript stayed blank, and
+                        // because "loaded from history" is not an error, nothing
+                        // was ever said about it.
+                        string? ownId = ExistingEntryFor(file)?.Id;
                         TranscriptionHistoryItem? duplicate = TranscriptionHistory.Load()
-                            .FirstOrDefault(i => i.FileHash == fileHash);
+                            .FirstOrDefault(i => i.FileHash == fileHash
+                                             && i.Id != ownId
+                                             && !string.IsNullOrWhiteSpace(i.RawTranscript));
 
                         if (duplicate is not null)
                         {
@@ -658,6 +698,17 @@ public sealed partial class WebBridge
             ["kind"] = kind,
             ["quiet"] = quiet,
         });
+
+        // An ERROR also goes up as a banner, because this status line lives on
+        // the Home screen and a finished recording sends you to History - which
+        // listens for progress but not for status. So "No speech detected" was
+        // announced to a screen nobody was looking at, and what you saw was a
+        // recording that appeared and never transcribed, with no reason given.
+        // Banners are drawn by shell.js on every screen.
+        if (kind == "error" && !quiet)
+        {
+            ShowBanner("error", AppStrings.App_Title, message, null, null);
+        }
     }
 
     private static void CopyText(string text)
