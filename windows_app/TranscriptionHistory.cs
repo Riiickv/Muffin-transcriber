@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
+using System.Linq;
 using System.Text.Json;
 
 namespace MuffinTranscriber;
@@ -26,7 +28,14 @@ public sealed record TranscriptionHistoryItem(
     long? TranscribeMs = null,
     string? FormatterModel = null,
     long? ImproveMs = null,
-    long? SummarizeMs = null
+    long? SummarizeMs = null,
+    /// <summary>
+    /// Dates, times and places the model found, with the exact words they came
+    /// from, so the page can highlight them where they were said. The mobile
+    /// app has had this since its history screen existed; on the desktop
+    /// ExtractActionableEntitiesAsync was written and then called from nowhere.
+    /// </summary>
+    List<ActionableEntity>? ExtractedDates = null
 )
 {
     public string TimestampString => Timestamp.ToString("g");
@@ -34,6 +43,37 @@ public sealed record TranscriptionHistoryItem(
 
 public static class TranscriptionHistory
 {
+    /// <summary>
+    /// Replace a transcript's name with a short one the model writes.
+    ///
+    /// Lives here rather than on the bridge because BOTH windows need it: the
+    /// main app renamed everything it transcribed, and the share window renamed
+    /// nothing - so a file arriving from Explorer stayed
+    /// "WhatsApp Ptt 2026-07-28 at 2.14.00 PM.ogg" for ever while the same file
+    /// dropped into the app became three words.
+    ///
+    /// Never overwrites a name that changed while the model was thinking: if
+    /// the row was renamed by hand in the meantime, that wins.
+    /// </summary>
+    public static async Task RenameFromTextAsync(TranscriptionHistoryItem item, string text, string? formatterModel)
+    {
+        try
+        {
+            string? title = await LLMFormatter.GenerateTitleAsync(text, formatterModel);
+            if (string.IsNullOrWhiteSpace(title)) return;
+
+            TranscriptionHistoryItem? current = Load().FirstOrDefault(h => h.Id == item.Id);
+            if (current is null || current.SourceFileName != item.SourceFileName) return;
+
+            AddOrUpdate(current with { SourceFileName = title });
+        }
+        catch (Exception ex)
+        {
+            // A transcript keeps its old name; nothing the user asked for failed.
+            CrashLog.Write("Naming a transcript", ex);
+        }
+    }
+
     private static readonly string HistoryFile = Path.Combine(AppModel.AppDataDir, "history.json");
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

@@ -181,6 +181,14 @@ public sealed partial class WebBridge
                     ImproveMs = clock.ElapsedMilliseconds,
                 };
                 TranscriptionHistory.AddOrUpdate(updated);
+
+                // Improving is where mobile looks for dates and places too, and
+                // it is the moment a model is already warm. Against the RAW
+                // text so the quotes exist in both tabs.
+                if (updated.ExtractedDates is null || updated.ExtractedDates.Count == 0)
+                {
+                    _ = ExtractEntitiesForAsync(updated.Id, updated.RawTranscript);
+                }
                 return DetailMap(updated);
             });
         });
@@ -264,6 +272,24 @@ public sealed partial class WebBridge
         ["error"] = message,
     };
 
+    /// <summary>Entities for a saved row, found and stored after the fact.</summary>
+    private async Task ExtractEntitiesForAsync(string id, string text)
+    {
+        try
+        {
+            List<ActionableEntity> found = await LLMFormatter.ExtractActionableEntitiesAsync(text, FormatterKey());
+            if (found.Count == 0) return;
+            TranscriptionHistoryItem? row = TranscriptionHistory.Load().FirstOrDefault(h => h.Id == id);
+            if (row is null) return;
+            TranscriptionHistory.AddOrUpdate(row with { ExtractedDates = found });
+            Emit("history.changed", null);
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Extracting entities", ex);
+        }
+    }
+
     private static TranscriptionHistoryItem? Find(string id) =>
         TranscriptionHistory.Load().FirstOrDefault(i => i.Id == id);
 
@@ -304,6 +330,8 @@ public sealed partial class WebBridge
         ["formatted"] = Meaningful(item.FormattedTranscript),
         ["summary"] = Meaningful(item.Summary),
         ["srt"] = item.SrtTranscript ?? "",
+        // Quote plus what it is, so the page can find the words and mark them.
+        ["entities"] = item.ExtractedDates,
         // Nulls stay nulls: the page hides a line it has no number for, rather
         // than printing a confident "0s" for work that was never done.
         ["whisperModel"] = item.WhisperModel is null ? null : AppModel.DisplayModelName(item.WhisperModel),

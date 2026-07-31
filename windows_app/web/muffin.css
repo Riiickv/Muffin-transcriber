@@ -732,6 +732,16 @@ textarea { resize: vertical; min-height: 72px; }
    label, which would change width and make the row jump. */
 .mini-actions .btn.busy { opacity: 0.6; pointer-events: none; }
 
+/* A date, a time or a place the model found, marked where it was said. Tinted
+   rather than boxed: a transcript can carry a dozen of these and a dozen
+   outlined chips would read as a form, not as speech. */
+mark.ent {
+  background: var(--accent-fill);
+  color: inherit;
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
 /* ---- History: two-pane (list + detail), the desktop arrangement ---- */
 .two-pane { display: flex; flex: 1; min-width: 0; }
 /* A card, like the rail and the chat's session pane, not a column behind a

@@ -121,24 +121,39 @@ public sealed partial class WebBridge
     /// A rename the user typed themselves is never overwritten, which is why
     /// the item is re-read here rather than trusting the copy passed in.
     /// </summary>
-    private async Task NameTranscriptAsync(TranscriptionHistoryItem item, string text, string? formatterModel)
+    /// <summary>
+    /// Find the dates, times and places in a transcript and save them with it.
+    ///
+    /// Against the RAW text, the way the mobile app does it, so the quotes it
+    /// reports exist in the Raw tab as well as the improved one.
+    ///
+    /// Fire and forget: it runs after the transcript is already saved and on
+    /// screen, so a model that fails or is busy costs the highlights and
+    /// nothing else.
+    /// </summary>
+    private async Task ExtractEntitiesAsync(TranscriptionHistoryItem item, string text, string? formatterModel)
     {
         try
         {
-            string? title = await LLMFormatter.GenerateTitleAsync(text, formatterModel);
-            if (string.IsNullOrWhiteSpace(title)) return;
+            List<ActionableEntity> found = await LLMFormatter.ExtractActionableEntitiesAsync(text, formatterModel);
+            if (found.Count == 0) return;
 
             TranscriptionHistoryItem? current = TranscriptionHistory.Load().FirstOrDefault(h => h.Id == item.Id);
-            if (current is null || current.SourceFileName != item.SourceFileName) return;
+            if (current is null) return;
 
-            TranscriptionHistory.AddOrUpdate(current with { SourceFileName = title });
+            TranscriptionHistory.AddOrUpdate(current with { ExtractedDates = found });
             Emit("history.changed", null);
         }
         catch (Exception ex)
         {
-            // A transcript keeps its old name; nothing the user asked for failed.
-            CrashLog.Write("Naming a transcript", ex);
+            CrashLog.Write("Extracting entities", ex);
         }
+    }
+
+    private async Task NameTranscriptAsync(TranscriptionHistoryItem item, string text, string? formatterModel)
+    {
+        await TranscriptionHistory.RenameFromTextAsync(item, text, formatterModel);
+        Emit("history.changed", null);
     }
 
     /// <summary>
@@ -541,6 +556,7 @@ public sealed partial class WebBridge
 
                     _ = LLMFormatter.ExtractContextAsync(rawTranscript, formatterModel);
                     _ = NameTranscriptAsync(saved, formatted ?? rawTranscript, formatterModel);
+                    _ = ExtractEntitiesAsync(saved, rawTranscript, formatterModel);
                 }
                 catch (OperationCanceledException)
                 {

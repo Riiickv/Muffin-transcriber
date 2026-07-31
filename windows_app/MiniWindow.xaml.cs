@@ -347,6 +347,28 @@ public sealed partial class MiniWindow : Window, IShellWindow
                 srtTranscript
             ));
 
+            // The same two passes the app runs on anything it transcribes.
+            // Neither ran here, which is why a shared file kept its filename
+            // for ever and never got its dates and places picked up.
+            var saved = TranscriptionHistory.Load().FirstOrDefault(h => h.Id == newId);
+            if (saved is not null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    await TranscriptionHistory.RenameFromTextAsync(saved, _rawTranscript, settings.PreferredFormatterModel);
+                    try
+                    {
+                        var found = await LLMFormatter.ExtractActionableEntitiesAsync(_rawTranscript, settings.PreferredFormatterModel);
+                        if (found.Count > 0)
+                        {
+                            var row = TranscriptionHistory.Load().FirstOrDefault(h => h.Id == newId);
+                            if (row is not null) TranscriptionHistory.AddOrUpdate(row with { ExtractedDates = found });
+                        }
+                    }
+                    catch (Exception ex) { CrashLog.Write("Mini entity extraction", ex); }
+                });
+            }
+
             _ = LLMFormatter.ExtractContextAsync(_rawTranscript, settings.PreferredFormatterModel);
             success = true;
         }
