@@ -35,6 +35,9 @@ public sealed partial class WebBridge
 
     private UserSettings _settings = UserSettings.Load();
 
+    /// <summary>Set when this bridge is driving the share window's page.</summary>
+    public MiniWindow? MiniHost { get; set; }
+
     public WebBridge(Microsoft.UI.Xaml.Controls.WebView2 view, Window window)
     {
         _view = view;

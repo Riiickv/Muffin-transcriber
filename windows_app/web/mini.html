@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Muffin Transcriber</title>
+  <link rel="stylesheet" href="muffin.css" />
+</head>
+<body>
+  <!--
+    The share window, as a page.
+
+    It was WinUI: a system TextBox with Windows' own right-click menu and focus
+    underline, system buttons, system font, Mica behind it. Restyling those one
+    property at a time never converged, because the parts are not ours. Built
+    from muffin.css it inherits everything the rest of the app already has -
+    the title bar, the tooltips, our right-click menu, our selection and caret,
+    Google Sans Flex, the accent - and it inherits every future change too,
+    instead of needing its colours kept in step by hand.
+  -->
+  <div class="app mini-app">
+    <main class="page mini-page">
+      <div class="mini-head">
+        <span class="lbl" id="status">Loading</span>
+        <button class="icon-btn" id="open-app" data-i18n-attr="title:pc.mini.openApp" title="Open the app">
+          <span class="msr" style="font-size:20px">&#xE5CC;</span>
+        </button>
+      </div>
+
+      <!-- data-field, so it is the same editable surface as every other text
+           box in the app: our caret, our selection, our right-click menu. -->
+      <div class="transcript mini-text" id="text" data-field contenteditable="plaintext-only"
+           data-i18n-attr="placeholder:pc.mini.placeholder" placeholder="The transcript will appear here."></div>
+
+      <div class="mini-actions">
+        <button class="btn" id="copy" disabled data-i18n="historyDetail.copy">Copy</button>
+        <button class="btn primary" id="improve" disabled data-i18n="historyDetail.format">Improve</button>
+      </div>
+    </main>
+  </div>
+
+  <script src="bridge.js" defer></script>
+  <script src="muffin.js" defer></script>
+  <script src="shell.js" defer></script>
+  <script>
+    Muffin.ready(function () {
+      var statusEl = document.getElementById("status");
+      var textEl = document.getElementById("text");
+      var copyBtn = document.getElementById("copy");
+      var improveBtn = document.getElementById("improve");
+
+      // One message carries the whole state, so the app never has to send two
+      // things that could arrive out of order.
+      Muffin.on("mini.state", function (s) {
+        if (!s) return;
+        if (s.status !== undefined && s.status !== null) statusEl.textContent = s.status;
+        if (s.text !== undefined && s.text !== null && document.activeElement !== textEl) {
+          textEl.textContent = s.text;
+          textEl.classList.toggle("is-empty", textEl.textContent.length === 0);
+        }
+        copyBtn.disabled = !s.canCopy;
+        improveBtn.disabled = !s.canImprove;
+        improveBtn.classList.toggle("busy", !!s.busy);
+      });
+
+      copyBtn.addEventListener("click", function () {
+        Muffin.invoke("mini.copy", { text: textEl.textContent });
+      });
+
+      improveBtn.addEventListener("click", function () {
+        Muffin.invoke("mini.improve", { text: textEl.textContent });
+      });
+
+      document.getElementById("open-app").addEventListener("click", function () {
+        Muffin.invoke("mini.openApp");
+      });
+
+      // Edits in the box are the transcript, so the app keeps the latest.
+      textEl.addEventListener("input", function () {
+        Muffin.invoke("mini.setText", { text: textEl.textContent });
+      });
+
+      Muffin.invoke("mini.ready");
+    });
+  </script>
+</body>
+</html>
