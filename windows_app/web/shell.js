@@ -196,6 +196,10 @@
   var TITLEBAR_H = 40;
 
   function buildTitleBar() {
+    // A page can decline the strip. The share window is small and has no
+    // caption buttons to offer - it closes when you click away - so 40px of
+    // chrome would be most of its head for a title it can draw itself.
+    if (document.body.hasAttribute("data-no-titlebar")) return null;
     if (!Muffin.isHosted || document.getElementById("titlebar")) return null;
 
     var bar = document.createElement("div");

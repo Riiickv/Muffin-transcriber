@@ -6,7 +6,7 @@
   <title>Muffin Transcriber</title>
   <link rel="stylesheet" href="muffin.css" />
 </head>
-<body>
+<body data-no-titlebar>
   <!--
     The share window, as a page.
 
@@ -21,8 +21,15 @@
   <div class="app mini-app">
     <main class="page mini-page">
       <div class="mini-head">
-        <span class="lbl" id="status">Loading</span>
-        <button class="icon-btn" id="open-app" data-i18n-attr="title:pc.mini.openApp" title="Open the app">
+        <div class="mini-titles">
+          <h1 class="mini-title" data-i18n="pc.mini.title">Mini Muffin!</h1>
+          <span class="lbl mini-status" id="status">Loading</span>
+        </div>
+        <!-- The donation button follows the app's, mask and all, because it is
+             the same button: the title bar is gone but the reason for it is
+             not. -->
+        <button class="tb-btn tb-support mini-support" type="button" id="support"><i class="tb-mark"></i></button>
+        <button class="icon-btn" id="open-app">
           <span class="msr" style="font-size:20px">&#xE5CC;</span>
         </button>
       </div>
@@ -71,8 +78,17 @@
         Muffin.invoke("mini.improve", { text: textEl.textContent });
       });
 
-      document.getElementById("open-app").addEventListener("click", function () {
+      var openBtn = document.getElementById("open-app");
+      openBtn.dataset.tip = Muffin.t("pc.mini.openApp", "Open the app");
+      openBtn.addEventListener("click", function () {
         Muffin.invoke("mini.openApp");
+      });
+
+      var support = document.getElementById("support");
+      support.dataset.tip = Muffin.t("settings.supportTitle", "Support me!");
+      support.setAttribute("aria-label", support.dataset.tip);
+      support.addEventListener("click", function () {
+        if (window.showSupportDialog) window.showSupportDialog();
       });
 
       // Edits in the box are the transcript, so the app keeps the latest.

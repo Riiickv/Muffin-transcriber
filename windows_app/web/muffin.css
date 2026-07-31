@@ -740,7 +740,29 @@ textarea { resize: vertical; min-height: 72px; }
 .mini-app { height: 100vh; }
 .mini-page { display: flex; flex-direction: column; gap: var(--sp-md); }
 .mini-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-sm); }
-.mini-head .lbl { margin: 0; font-size: 14px; color: var(--text); }
+.mini-titles { min-width: 0; }
+.mini-title {
+  margin: 0; font-size: 20px; font-weight: 700;
+  font-stretch: var(--wd-title); letter-spacing: -0.01em;
+}
+.mini-head .mini-status { margin: 0; font-size: 12px; color: var(--text-muted); }
+/* The title bar's button, out of the title bar. Every .tb-* rule is scoped to
+   .titlebar, so lifted out of it the button kept none of them and fell back to
+   the browser's default - a white box. This is the same declaration set, not a
+   lookalike: same size, same mask, same danger colour, same accent hover. */
+.mini-support {
+  width: 32px; height: 32px; flex-shrink: 0;
+  background: transparent; border: none; padding: 0; cursor: pointer;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+}
+.mini-support:hover { background: var(--accent-fill); }
+.mini-support .tb-mark {
+  display: block; width: 17px; height: 13px;
+  background-color: var(--danger);
+  -webkit-mask: url("images/RickLogo.png") center / contain no-repeat;
+  mask: url("images/RickLogo.png") center / contain no-repeat;
+}
 /* Fills what is left, and scrolls inside itself rather than growing the
    window - this one cannot be resized. */
 .mini-text {
