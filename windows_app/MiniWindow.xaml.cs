@@ -1,5 +1,7 @@
 using Microsoft.UI.Xaml;
 using System;
+using System.Collections.Generic;
+using MuffinTranscriber.Web;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,10 +10,37 @@ using Windows.Storage;
 
 namespace MuffinTranscriber;
 
-public sealed partial class MiniWindow : Window
+public sealed partial class MiniWindow : Window, IShellWindow
 {
     private Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? _shareOperation;
     private string _rawTranscript = "";
+
+    // The page's state, pushed over the bridge. These replace StatusText,
+    // TranscriptBox and the two IsEnabled flags: the window no longer owns
+    // controls, it owns facts and mini.html renders them.
+    private WebBridge? _bridge;
+    private string _status = "";
+    private string _text = "";
+    private bool _canCopy;
+    private bool _canImprove;
+    private bool _busy;
+    private bool _pageReady;
+
+    private void PushState() => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (!_pageReady) return;
+        _bridge?.Emit("mini.state", new Dictionary<string, object?>
+        {
+            ["status"] = _status,
+            ["text"] = _text,
+            ["canCopy"] = _canCopy,
+            ["canImprove"] = _canImprove,
+            ["busy"] = _busy,
+        });
+    });
+
+    private void SetStatus(string value) { _status = value; PushState(); }
+    private void SetText(string value) { _text = value; PushState(); }
 
     // Lifecycle guards: don't tear down the dispatcher mid-processing, and settle the share op exactly once so the share sheet never hangs.
     private bool _isProcessing;
@@ -58,6 +87,14 @@ public sealed partial class MiniWindow : Window
 
         _shareOperation = shareOperation;
         _filePath = filePath;
+
+        // Rounded like the main window, since this one draws its own corners
+        // too now that Windows is not drawing a caption for it.
+        RoundCorners();
+
+        _bridge = new WebBridge(WebHost, this);
+        _bridge.MiniHost = this;
+        _ = _bridge.InitializeAsync("mini.html");
 
         this.Activated += MiniWindow_Activated;
         this.Closed += (s, e) => _isClosed = true;
@@ -159,7 +196,7 @@ public sealed partial class MiniWindow : Window
         try
         {
             _shareOperation?.ReportStarted();
-            StatusText.Text = AppStrings.Mini_Status_Loading;
+            SetStatus(AppStrings.Mini_Status_Loading);
 
             StorageFile? file;
             if (!string.IsNullOrEmpty(_filePath))
@@ -180,7 +217,7 @@ public sealed partial class MiniWindow : Window
                 return;
             }
 
-            StatusText.Text = AppStrings.Home_Status_CheckingDuplicate;
+            SetStatus(AppStrings.Home_Status_CheckingDuplicate);
             string fileHash = await AppModel.ComputeFileHashAsync(file.Path);
 
             var settings = UserSettings.Load();
@@ -194,11 +231,11 @@ public sealed partial class MiniWindow : Window
                 {
                     _historyItemId = duplicate.Id;
                     _rawTranscript = duplicate.RawTranscript;
-                    TranscriptBox.Text = _rawTranscript;
-                    StatusText.Text = AppStrings.Home_Status_LoadedFromHistory;
+                    SetText(_rawTranscript);
+                    SetStatus(AppStrings.Home_Status_LoadedFromHistory);
 
-                    CopyButton.IsEnabled = true;
-                    FormatButton.IsEnabled = true;
+                    _canCopy = true;
+                    _canImprove = true; PushState();
                     // Build the app now, while you are reading. Pressing the
                     // button then costs nothing; building it on the press cost
                     // seconds of staring at a window that had not appeared.
@@ -215,7 +252,7 @@ public sealed partial class MiniWindow : Window
                 }
             }
 
-            StatusText.Text = AppStrings.Mini_Status_Transcribing;
+            SetStatus(AppStrings.Mini_Status_Transcribing);
 
             string cachedPath = file.Path;
             try
@@ -236,7 +273,7 @@ public sealed partial class MiniWindow : Window
             var whisperModel = AppModel.PreferredOrActiveWhisperModel(settings);
             if (whisperModel == null)
             {
-                StatusText.Text = AppStrings.Mini_Status_NoWhisper;
+                SetStatus(AppStrings.Mini_Status_NoWhisper);
                 error = AppStrings.Mini_Status_NoWhisper;
                 return;
             }
@@ -265,17 +302,17 @@ public sealed partial class MiniWindow : Window
                 // No speech: surface a friendly message and don't persist an empty item.
                 System.Diagnostics.Debug.WriteLine($"Mini whisper empty. ExitCode={result.ExitCode}. Stderr:\n{result.Stderr}");
                 _rawTranscript = "";
-                TranscriptBox.Text = "";
-                StatusText.Text = AppStrings.Mini_Status_NoSpeech;
+                SetText("");
+                SetStatus(AppStrings.Mini_Status_NoSpeech);
                 success = true; // the share itself succeeded; there was just nothing to transcribe
                 return;
             }
 
-            TranscriptBox.Text = _rawTranscript;
-            StatusText.Text = AppStrings.Mini_Status_Done;
+            SetText(_rawTranscript);
+            SetStatus(AppStrings.Mini_Status_Done);
 
-            CopyButton.IsEnabled = true;
-            FormatButton.IsEnabled = true;
+            _canCopy = true;
+            _canImprove = true; PushState();
             PreloadMainWindow();
 
             if (settings.AutoCopyTranscript)
@@ -304,7 +341,7 @@ public sealed partial class MiniWindow : Window
         catch (Exception ex)
         {
             error = ex.Message;
-            if (!_isClosed) StatusText.Text = AppStrings.Mini_Status_Error + ex.Message;
+            if (!_isClosed) SetStatus(AppStrings.Mini_Status_Error + ex.Message);
         }
         finally
         {
@@ -318,21 +355,63 @@ public sealed partial class MiniWindow : Window
     private void CopyTranscriptToClipboard()
     {
         var package = new DataPackage();
-        package.SetText(TranscriptBox.Text);
+        package.SetText(_text);
         Clipboard.SetContent(package);
     }
+
+    /// <summary>The page has loaded and is listening; send it what we have.</summary>
+    public void PageReady()
+    {
+        _pageReady = true;
+        PushState();
+    }
+
+    /// <summary>Text edited in the page, kept so Copy and Improve use it.</summary>
+    public void SetTextFromPage(string text) => _text = text;
+
+    public void MinimizeWindow() { }
+    public bool ToggleMaximizeWindow() => false;
+    public bool IsMaximized => false;
+    public void CloseWindow() => Close();
+
+    public void SetDragRegions(IReadOnlyList<(double X, double Y, double W, double H)> rects)
+    {
+        // The whole window drags: it is small, has no caption, and there is no
+        // strip of chrome to aim at.
+    }
+
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
+    private void RoundCorners()
+    {
+        try
+        {
+            IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            int preference = 2; // DWMWCP_ROUND
+            DwmSetWindowAttribute(hwnd, 33, ref preference, sizeof(int));
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Rounding the mini window", ex);
+        }
+    }
+
+    public void CopyFromPage() => CopyButton_Click(this, new RoutedEventArgs());
+    public void ImproveFromPage() => FormatButton_Click(this, new RoutedEventArgs());
+    public void OpenAppFromPage() => OpenMainButton_Click(this, new RoutedEventArgs());
 
     private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
         CopyTranscriptToClipboard();
-        StatusText.Text = AppStrings.Mini_Status_Copied;
+        SetStatus(AppStrings.Mini_Status_Copied);
     }
 
     private async void FormatButton_Click(object sender, RoutedEventArgs e)
     {
         _isProcessing = true;
-        FormatButton.IsEnabled = false;
-        StatusText.Text = AppStrings.Mini_Status_Formatting;
+        _canImprove = false; _busy = true; PushState();
+        SetStatus(AppStrings.Mini_Status_Formatting);
         var settings = UserSettings.Load();
 
         try
@@ -342,8 +421,8 @@ public sealed partial class MiniWindow : Window
 
             if (!string.IsNullOrWhiteSpace(formatted))
             {
-                TranscriptBox.Text = formatted;
-                StatusText.Text = AppStrings.Mini_Status_Formatted;
+                SetText(formatted);
+                SetStatus(AppStrings.Mini_Status_Formatted);
                 if (settings.AutoCopyTranscript)
                 {
                     CopyTranscriptToClipboard();
@@ -361,13 +440,13 @@ public sealed partial class MiniWindow : Window
             }
             else
             {
-                StatusText.Text = AppStrings.Mini_Status_FormatFailed;
+                SetStatus(AppStrings.Mini_Status_FormatFailed);
             }
         }
         finally
         {
             _isProcessing = false;
-            if (!_isClosed) FormatButton.IsEnabled = true;
+            if (!_isClosed) { _canImprove = true; _busy = false; PushState(); }
             CloseIfDeferred();
         }
     }

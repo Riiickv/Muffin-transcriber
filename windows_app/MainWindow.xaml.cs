@@ -19,7 +19,7 @@ namespace MuffinTranscriber;
 /// does goes through <see cref="WebBridge"/> to the same C# services the native
 /// pages used to call directly.
 /// </summary>
-public sealed partial class MainWindow : Window
+public sealed partial class MainWindow : Window, IShellWindow
 {
     private readonly UserSettings _settings = UserSettings.Load();
     private WebBridge? _bridge;

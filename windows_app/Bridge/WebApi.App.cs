@@ -139,15 +139,24 @@ public sealed partial class WebBridge
 
         // The title bar is drawn by the page now, so the window controls have
         // to come back through here.
-        Register("window.minimize", _ => { (_window as MainWindow)?.MinimizeWindow(); return (object?)null; });
-        Register("window.close", _ => { (_window as MainWindow)?.CloseWindow(); return (object?)null; });
+        // ---- the share window's page ----------------------------------
+        // Registered for every page; only mini.html ever calls them, and a
+        // handler nobody invokes costs nothing.
+        Register("mini.ready", _ => { MiniHost?.PageReady(); return (object?)null; });
+        Register("mini.copy", args => { MiniHost?.SetTextFromPage(Str(args, "text")); MiniHost?.CopyFromPage(); return (object?)null; });
+        Register("mini.improve", args => { MiniHost?.SetTextFromPage(Str(args, "text")); MiniHost?.ImproveFromPage(); return (object?)null; });
+        Register("mini.setText", args => { MiniHost?.SetTextFromPage(Str(args, "text")); return (object?)null; });
+        Register("mini.openApp", _ => { MiniHost?.OpenAppFromPage(); return (object?)null; });
+
+        Register("window.minimize", _ => { (_window as IShellWindow)?.MinimizeWindow(); return (object?)null; });
+        Register("window.close", _ => { (_window as IShellWindow)?.CloseWindow(); return (object?)null; });
         Register("window.toggleMaximize", _ => (object?)new Dictionary<string, object?>
         {
-            ["maximized"] = (_window as MainWindow)?.ToggleMaximizeWindow() ?? false,
+            ["maximized"] = (_window as IShellWindow)?.ToggleMaximizeWindow() ?? false,
         });
         Register("window.state", _ => (object?)new Dictionary<string, object?>
         {
-            ["maximized"] = (_window as MainWindow)?.IsMaximized ?? false,
+            ["maximized"] = (_window as IShellWindow)?.IsMaximized ?? false,
         });
 
         // The strip minus its buttons: which pixels drag the window.
@@ -166,7 +175,7 @@ public sealed partial class WebBridge
                         r.TryGetProperty("h", out var h) ? h.GetDouble() : 0));
                 }
             }
-            (_window as MainWindow)?.SetDragRegions(rects);
+            (_window as IShellWindow)?.SetDragRegions(rects);
             return (object?)null;
         });
 

@@ -733,6 +733,27 @@ textarea { resize: vertical; min-height: 72px; }
 .prompt { min-height: 60px; max-height: 96px; }
 .transcript.placeholder { color: var(--text-subtle); }
 
+/* ---- The share window ---------------------------------------------------
+   Small, one job, no rail and no panes: a status line, the transcript, two
+   buttons. Everything it draws with is the app's own, which is the point of it
+   being a page at all. ---- */
+.mini-app { height: 100vh; }
+.mini-page { display: flex; flex-direction: column; gap: var(--sp-md); }
+.mini-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-sm); }
+.mini-head .lbl { margin: 0; font-size: 14px; color: var(--text); }
+/* Fills what is left, and scrolls inside itself rather than growing the
+   window - this one cannot be resized. */
+.mini-text {
+  flex: 1; min-height: 0; overflow-y: auto;
+  background: var(--surface); border: 1px solid var(--card-border);
+  border-radius: var(--r-md); padding: var(--sp-md);
+}
+.mini-actions { display: flex; justify-content: flex-end; gap: var(--sp-sm); }
+.mini-actions .btn { min-width: 96px; }
+/* Mid-improvement: the button says so by dimming rather than by swapping its
+   label, which would change width and make the row jump. */
+.mini-actions .btn.busy { opacity: 0.6; pointer-events: none; }
+
 /* ---- History: two-pane (list + detail), the desktop arrangement ---- */
 .two-pane { display: flex; flex: 1; min-width: 0; }
 /* A card, like the rail and the chat's session pane, not a column behind a
