@@ -74,6 +74,31 @@ public partial class App : Application
         }
     }
 
+    /// <summary>
+    /// Media paths passed on the command line, ignoring the executable itself
+    /// and anything that is not a file we can transcribe.
+    ///
+    /// Explorer quotes the path and passes it as a single argument, so no
+    /// re-joining is needed; a path with spaces arrives intact.
+    /// </summary>
+    private static List<string> FilesFromCommandLine()
+    {
+        try
+        {
+            return Environment.GetCommandLineArgs()
+                .Skip(1)
+                .Where(a => !a.StartsWith('-') && !a.StartsWith('/'))
+                .Where(System.IO.File.Exists)
+                .Where(a => AppModel.MediaExtensions.Contains(System.IO.Path.GetExtension(a)))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            CrashLog.Write("Reading files from the command line", ex);
+            return new List<string>();
+        }
+    }
+
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         _ = TranscriptionHistory.RunMigrationAsync();
@@ -99,14 +124,22 @@ public partial class App : Application
             }
         }
 
+        // Files handed over by Explorer's "Transcribe with Muffin" verb, or by
+        // Open with. The share-target path above cannot fire in the build we
+        // ship: Windows only registers a Share Target for an app with package
+        // identity, and this one installs unpackaged through Inno. The manifest
+        // declares one anyway, so it has been dead in every release.
+        List<string> openFiles = FilesFromCommandLine();
+
         if (shareOperation != null)
         {
             _window = new MiniWindow(shareOperation);
         }
         else
         {
-            _window = new MainWindow();
-            MainWindow = _window;
+            var main = new MainWindow(null, openFiles);
+            _window = main;
+            MainWindow = main;
         }
 
         _window.Activate();

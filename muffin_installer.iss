@@ -1,5 +1,5 @@
 #define MyAppName "Muffin Transcriber"
-#define MyAppVersion "1.12.16"
+#define MyAppVersion "1.12.17"
 #define MyAppPublisher "Muffin Open Source"
 #define MyAppExeName "MuffinTranscriber.exe"
 
@@ -30,11 +30,81 @@ PrivilegesRequired=lowest
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+[CustomMessages]
+TranscribeVerb=Transcribe with Muffin
+
 [Files]
 ; Never package a WebView2 browser profile: running the app from the publish
 ; folder leaves one there, its files churn while the compiler reads them, and
 ; it has no business in an installer.
 Source: "{#AppFilesDir}\*"; DestDir: "{app}"; Excludes: "*.WebView2,*.WebView2\*"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Registry]
+; "Transcribe with Muffin" on the right-click menu of every media type the app
+; accepts, plus an Open with entry.
+;
+; This is how a file reaches Muffin from Explorer. The Package.appxmanifest
+; declares a Windows Share Target, but Windows only registers one for an app
+; with package identity, and this installs unpackaged - so that path has never
+; fired in a shipped build. A shell verb needs no identity and no certificate.
+;
+; SystemFileAssociations, NOT the file type itself: this adds a verb without
+; touching which app owns the extension, so installing Muffin cannot take .mp3
+; away from whatever plays it. HKCU because PrivilegesRequired is lowest.
+; uninsdeletekey on the verb removes it cleanly at uninstall.
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp3\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.wav\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.ogg\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.opus\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mp4\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mkv\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.m4a\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.aac\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.aac\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.aac\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.flac\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.webm\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.mov\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\MuffinTranscribe"; ValueType: string; ValueName: ""; ValueData: "{cm:TranscribeVerb}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\MuffinTranscribe"; ValueType: string; ValueName: "Icon"; ValueData: "{app}\{#MyAppExeName},0"
+Root: HKCU; Subkey: "Software\Classes\SystemFileAssociations\.avi\shell\MuffinTranscribe\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""
+
+; Open with: registers the exe so Muffin appears in the list, again without
+; claiming any extension as its own.
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}"; ValueType: string; ValueName: "FriendlyAppName"; ValueData: "{#MyAppName}"
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".mp3"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".wav"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".ogg"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".opus"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".mp4"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".mkv"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".m4a"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".aac"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".flac"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".webm"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".mov"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\Applications\{#MyAppExeName}\SupportedTypes"; ValueType: string; ValueName: ".avi"; ValueData: ""
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

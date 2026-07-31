@@ -26,7 +26,9 @@ public sealed partial class MainWindow : Window
     private string _updateDownloadUrl = "";
     private string _installerPath = "";
 
-    public MainWindow(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation = null)
+    public MainWindow(
+        Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation = null,
+        List<string>? openFiles = null)
     {
         InitializeComponent();
         _ = Task.Run(AppModel.CleanCache);
@@ -78,10 +80,13 @@ public sealed partial class MainWindow : Window
             && !_settings.SetupCompleted
             && AppModel.ActiveWhisperModel() is null;
 
-        _ = StartAsync(needsSetup ? "setup.html" : "index.html", shareOperation);
+        _ = StartAsync(needsSetup ? "setup.html" : "index.html", shareOperation, openFiles);
     }
 
-    private async Task StartAsync(string startPage, Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation)
+    private async Task StartAsync(
+        string startPage,
+        Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation,
+        List<string>? openFiles = null)
     {
         _bridge = new WebBridge(WebHost, this);
         _bridge.ThemeApplied += mode => DispatcherQueue.TryEnqueue(() => PaintShell(mode));
@@ -108,6 +113,11 @@ public sealed partial class MainWindow : Window
 
         PaintShell(_bridge.ThemeMode);
         _ = WatchForABlankStartAsync();
+
+        if (openFiles is { Count: > 0 })
+        {
+            OpenFiles(openFiles);
+        }
 
         if (shareOperation is not null)
         {
@@ -318,6 +328,29 @@ public sealed partial class MainWindow : Window
         {
             CrashLog.Write("Share operation", ex);
         }
+    }
+
+    /// <summary>
+    /// Queue files handed over from outside the app: Explorer's context menu,
+    /// Open with, or a second copy of the app redirecting its arguments here.
+    ///
+    /// Marshalled, because a redirected activation arrives on whatever thread
+    /// the app-lifecycle callback runs on, and the bridge talks to a WebView.
+    /// </summary>
+    public void OpenFiles(List<string> paths)
+    {
+        var media = paths
+            .Where(p => !string.IsNullOrWhiteSpace(p)
+                     && System.IO.File.Exists(p)
+                     && AppModel.MediaExtensions.Contains(System.IO.Path.GetExtension(p)))
+            .ToList();
+        if (media.Count == 0) return;
+
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            _bridge?.Navigate("home");
+            _bridge?.AddFiles(media);
+        });
     }
 
     /// <summary>Called by the chat assistant's NAVIGATE_TO action.</summary>
