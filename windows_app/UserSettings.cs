@@ -11,6 +11,13 @@ public sealed class UserSettings
     public string PreferredWhisperModel { get; set; } = string.Empty;
     public string PreferredFormatterModel { get; set; } = string.Empty;
     public double HistoryListWidth { get; set; } = 350;
+
+    /// <summary>
+    /// Width of the Chat sessions pane. Its splitter carried no persist key at
+    /// all, so the pane forgot every drag the moment you left the tab - each
+    /// screen is its own document, and nothing was writing the number down.
+    /// </summary>
+    public double ChatSessionsWidth { get; set; } = 260;
     public bool FormatByDefault { get; set; }
     public bool SummarizeByDefault { get; set; }
     public string FormatLanguage { get; set; } = "Auto-Detect / Original";

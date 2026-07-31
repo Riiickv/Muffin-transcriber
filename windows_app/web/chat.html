@@ -34,7 +34,7 @@
       </div>
     </aside>
 
-    <div class="splitter" data-min="180" data-max="420"></div>
+    <div class="splitter" data-min="180" data-max="420" data-persist="ChatSessionsWidth"></div>
 
     <section class="chat-main">
       <div class="chat-head">
@@ -71,6 +71,7 @@
     var firstToken = true;
 
     Muffin.ready(function () {
+      restoreSessionsWidth();
       loadSessions(true);
       // A reply carries on generating while you are elsewhere. Without this the
       // composer looked ready and the send button did nothing.
@@ -101,6 +102,13 @@
         if (open) setHeader(open.title);
       });
     });
+
+    // The splitter writes the width; this reads it back. Without it the drag
+    // was saved and then ignored, which looks identical to not saving at all.
+    function restoreSessionsWidth() {
+      var width = Muffin.get("ChatSessionsWidth");
+      if (width) document.querySelector(".chat-sessions").style.width = Math.round(width) + "px";
+    }
 
     function loadSessions(openFirst) {
       Muffin.invoke("chat.sessions").then(function (list) {
