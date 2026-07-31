@@ -20,7 +20,33 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
+
     <Grid Padding="16" RowSpacing="12" PointerPressed="Grid_PointerPressed" Background="#121212">
+        <Grid.Resources>
+            <!-- The web layer's colour tokens, restated for XAML. The mini window
+                 is the one screen not drawn by the page, so this is the only place
+                 these values have to exist twice. Keep them in step with the
+                 matching custom properties at the top of web/muffin.css. -->
+            <SolidColorBrush x:Key="MuffinBg" Color="#121212" />
+            <SolidColorBrush x:Key="MuffinSurface" Color="#1C1C1C" />
+            <SolidColorBrush x:Key="MuffinSurfaceStrong" Color="#262626" />
+            <SolidColorBrush x:Key="MuffinBorder" Color="#2E2E2E" />
+            <SolidColorBrush x:Key="MuffinText" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="MuffinTextMuted" Color="#999999" />
+
+            <!-- Flat, no WinUI gradient, no pointer-over lightening that the rest
+                 of the app never does. Same corner as the buttons in the page. -->
+            <Style x:Key="MuffinButton" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource MuffinSurfaceStrong}" />
+                <Setter Property="Foreground" Value="{StaticResource MuffinText}" />
+                <Setter Property="BorderBrush" Value="{StaticResource MuffinBorder}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="14" />
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -28,7 +54,7 @@
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0">
-            <TextBlock x:Name="StatusText" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Foreground="#FFFFFF" />
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource MuffinText}" />
             <Button x:Name="OpenMainButton" Click="OpenMainButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
                     Background="Transparent" BorderThickness="0" CornerRadius="12" Padding="8"
                     ToolTipService.ToolTip="{x:Bind local:AppStrings.Mini_Tooltip_OpenApp}">
@@ -37,14 +63,15 @@
         </Grid>
 
         <TextBox x:Name="TranscriptBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="False"
-                 Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#2E2E2E" BorderThickness="1"
+                 Background="{StaticResource MuffinSurface}" Foreground="{StaticResource MuffinText}"
+                 BorderBrush="{StaticResource MuffinBorder}" BorderThickness="1"
                  CornerRadius="12" Padding="12" FontSize="13" SelectionHighlightColor="{ThemeResource MuffinAccentBrush}" />
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
             <Button x:Name="CopyButton" Content="{x:Bind local:AppStrings.Mini_Tooltip_Copy}" Click="CopyButton_Click" IsEnabled="False"
-                    Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#2E2E2E" BorderThickness="1" CornerRadius="14" Padding="14,7" />
+                    Style="{StaticResource MuffinButton}" />
             <Button x:Name="FormatButton" Content="{x:Bind local:AppStrings.Mini_Tooltip_Format}" Click="FormatButton_Click" IsEnabled="False"
-                    Background="{ThemeResource MuffinAccentBrush}" Foreground="#121212" BorderThickness="0" CornerRadius="14" Padding="14,7" />
+                    Style="{StaticResource MuffinButton}" Background="{ThemeResource MuffinAccentBrush}" Foreground="#121212" BorderThickness="0" />
         </StackPanel>
     </Grid>
 </Window>
