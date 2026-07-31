@@ -760,12 +760,12 @@ textarea { resize: vertical; min-height: 72px; }
 /* Tightened throughout: from the pane edge to a card's text was 16px of pane
    plus 12px of card on each side, 56px of the width gone before a word of it
    was a transcript. */
-.hl-head { padding: var(--sp-md) var(--sp-md) var(--sp-sm); flex-shrink: 0; }
-/* No horizontal padding: the cards carry their own, and two insets stacked put
-   a transcript's first letter 24px from the pane edge - a fifth of the width
-   at the narrow end of the splitter's range. Flush, the card's own 12px is
-   the only inset and the pane's border is the edge. */
-.hl-rows { flex: 1; overflow-y: auto; padding: 0 0 var(--sp-md); }
+.hl-head { padding: var(--sp-md) var(--sp-sm) var(--sp-sm); flex-shrink: 0; }
+/* The SAME horizontal inset as .hl-head above. Flush cards read tighter, but
+   they left the search field standing 12px in from a row of cards at 0, and
+   two things that start in different places is worse than either starting
+   further in. 8px, so the pane is still tighter than it was. */
+.hl-rows { flex: 1; overflow-y: auto; padding: 0 var(--sp-sm) var(--sp-sm); }
 .hist-list h2 { font-size: 26px; font-weight: 700; margin: 0 0 var(--sp-sm); }
 .search {
   display: block;
@@ -854,7 +854,11 @@ textarea { resize: vertical; min-height: 72px; }
 .splitter { width: 6px; flex-shrink: 0; cursor: col-resize; }
 .splitter:hover { background: var(--accent-fill); }
 
-.hist-detail { flex: 1; overflow-y: auto; padding: var(--sp-md); min-width: 0; }
+/* --sp-lg vertically, matching the MARGIN the rail and the list pane use to
+   stand off the window. At --sp-md this pane's first card sat 4px higher
+   than the two panels beside it, which is exactly the sort of thing you
+   cannot un-see once noticed. */
+.hist-detail { flex: 1; overflow-y: auto; padding: var(--sp-lg); min-width: 0; }
 .detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-md); }
 .detail-head h2 { font-size: 20px; font-weight: 700; margin: 0; }
 .detail-head .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
@@ -959,7 +963,10 @@ textarea { resize: vertical; min-height: 72px; }
 }
 .cs-head {
   display: flex; align-items: center; gap: var(--sp-sm);
-  padding: var(--sp-md) var(--sp-md) var(--sp-sm) var(--sp-lg);
+  /* Sides match .cs-list below, or the heading starts 8px further in than
+     every session under it. This was 16 on the left and 12 on the right,
+     which did not agree with the list OR with itself. */
+  padding: var(--sp-md) var(--sp-sm) var(--sp-sm);
 }
 .cs-head h2 { flex: 1; font-size: 18px; font-weight: 700; margin: 0; }
 /* A rail-sized square in the header, the way the mobile drawer keeps its one
@@ -1185,11 +1192,21 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 @media (max-width: 900px) {
-  .page { padding: var(--sp-md) var(--sp-md) 32px; }
+  /* Top stays --sp-lg. At --sp-md the first card sat 4px above the rail,
+     which stands off with a 16px MARGIN and does not follow this rule. */
+  .page { padding: var(--sp-lg) var(--sp-md) 32px; }
   .card { padding: var(--sp-md); margin-bottom: var(--sp-md); }
   .title { font-size: 22px; margin-bottom: var(--sp-md); }
-  .hist-list { width: 300px; padding: var(--sp-md); }
-  .hist-detail { padding: var(--sp-md); }
+  /* Width only, like .chat-sessions below it. The padding here was an inset
+     the chat pane never had, so the two list panes disagreed at the same
+     window size - and it stacked on .hl-rows' own inset besides. Safe to
+     drop: box-sizing is border-box globally, so it never contributed width. */
+  .hist-list { width: 300px; }
+  /* Vertical stays --sp-lg at every width, because it is not padding in the
+     ordinary sense - it is what holds this pane's first card level with the
+     rail and the list beside it, and those stand off with a 16px MARGIN. Set
+     flat to --sp-md here, the card sat 4px high of its neighbours. */
+  .hist-detail { padding: var(--sp-lg) var(--sp-md); }
   .chat-sessions { width: 190px; }
   .srow { padding: var(--sp-sm) var(--sp-md); gap: var(--sp-md); }
   .srow .s-control .dropdown { width: 180px; }
