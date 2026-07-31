@@ -501,7 +501,10 @@ body.has-titlebar .app { padding-top: 40px; }
 .page {
   flex: 1;
   overflow-y: auto;
-  padding: var(--sp-lg) var(--sp-lg) 40px;
+  /* Margin for the same reason as .hist-detail: this scrolls, and padding
+     would let a scrolled card run past the rail's top and bottom. */
+  margin: var(--sp-lg) 0;
+  padding: 0 var(--sp-lg) var(--sp-lg);
 }
 .page-inner { max-width: 720px; margin: 0 auto; }
 
@@ -844,7 +847,13 @@ textarea { resize: vertical; min-height: 72px; }
    stand off the window. At --sp-md this pane's first card sat 4px higher
    than the two panels beside it, which is exactly the sort of thing you
    cannot un-see once noticed. */
-.hist-detail { flex: 1; overflow-y: auto; padding: var(--sp-lg); min-width: 0; }
+/* Vertical inset is a MARGIN, not padding, because this scrolls. Padding
+   scrolls away with the content, so a scrolled transcript ran to the very
+   top and bottom of the window while the list pane beside it stayed inset
+   16px - the two stopped agreeing the moment you touched the wheel. As a
+   margin the viewport itself is inset, so content clips exactly where the
+   pane next to it ends. Resting position is unchanged. */
+.hist-detail { flex: 1; overflow-y: auto; margin: var(--sp-lg) 0; padding: 0 var(--sp-lg) var(--sp-lg); min-width: 0; }
 .detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-md); }
 .detail-head h2 { font-size: 20px; font-weight: 700; margin: 0; }
 .detail-head .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
@@ -1186,9 +1195,9 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 @media (max-width: 900px) {
-  /* Top stays --sp-lg. At --sp-md the first card sat 4px above the rail,
-     which stands off with a 16px MARGIN and does not follow this rule. */
-  .page { padding: var(--sp-lg) var(--sp-md) 32px; }
+  /* Vertical margin holds at --sp-lg so the first card stays level with the
+     rail, which stands off by the same amount; only the sides tighten. */
+  .page { margin: var(--sp-lg) 0; padding: 0 var(--sp-md) var(--sp-md); }
   .card { padding: var(--sp-md); margin-bottom: var(--sp-md); }
   .title { font-size: 22px; margin-bottom: var(--sp-md); }
   /* Width only, like .chat-sessions below it. The padding here was an inset
@@ -1200,7 +1209,7 @@ textarea { resize: vertical; min-height: 72px; }
      ordinary sense - it is what holds this pane's first card level with the
      rail and the list beside it, and those stand off with a 16px MARGIN. Set
      flat to --sp-md here, the card sat 4px high of its neighbours. */
-  .hist-detail { padding: var(--sp-lg) var(--sp-md); }
+  .hist-detail { margin: var(--sp-lg) 0; padding: 0 var(--sp-md) var(--sp-md); }
   .chat-sessions { width: 190px; }
   .srow { padding: var(--sp-sm) var(--sp-md); gap: var(--sp-md); }
   .srow .s-control .dropdown { width: 180px; }
