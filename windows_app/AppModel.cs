@@ -227,6 +227,19 @@ public static class AppModel
             ?? models.FirstOrDefault(m => CompactName(m) == key);
     }
 
+    /// <summary>
+    /// The model the user actually chose, falling back to the best installed.
+    ///
+    /// The mini window used ActiveWhisperModel directly, which only knows a
+    /// hardcoded quality order and never reads the preference - so a file
+    /// shared from Explorer was transcribed by a different model than the same
+    /// file dropped into the app. Same rule for both now.
+    /// </summary>
+    public static ModelInfo? PreferredOrActiveWhisperModel(UserSettings settings) =>
+        WhisperModels.FirstOrDefault(m =>
+            m.File == settings.PreferredWhisperModel && IsValidModelFile(ModelPath(m.File)))
+        ?? ActiveWhisperModel();
+
     public static ModelInfo? ActiveWhisperModel()
     {
         string[] qualityOrder = ["ggml-large-v3.bin", "ggml-large-v3-turbo.bin", "ggml-small.bin", "ggml-base.bin", "ggml-tiny.bin"];

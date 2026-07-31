@@ -199,6 +199,10 @@ public sealed partial class MiniWindow : Window
 
                     CopyButton.IsEnabled = true;
                     FormatButton.IsEnabled = true;
+                    // Build the app now, while you are reading. Pressing the
+                    // button then costs nothing; building it on the press cost
+                    // seconds of staring at a window that had not appeared.
+                    PreloadMainWindow();
 
                     if (settings.AutoCopyTranscript)
                     {
@@ -229,7 +233,7 @@ public sealed partial class MiniWindow : Window
 
             await LLMFormatter.RunProcessAsync(AppModel.FfmpegExe, ffmpegArgs);
 
-            var whisperModel = AppModel.ActiveWhisperModel();
+            var whisperModel = AppModel.PreferredOrActiveWhisperModel(settings);
             if (whisperModel == null)
             {
                 StatusText.Text = AppStrings.Mini_Status_NoWhisper;
@@ -272,6 +276,7 @@ public sealed partial class MiniWindow : Window
 
             CopyButton.IsEnabled = true;
             FormatButton.IsEnabled = true;
+            PreloadMainWindow();
 
             if (settings.AutoCopyTranscript)
             {
@@ -367,11 +372,46 @@ public sealed partial class MiniWindow : Window
         }
     }
 
+    /// <summary>
+    /// The main window, built the moment the transcript exists rather than when
+    /// the button is pressed.
+    ///
+    /// Constructing it starts a WebView2, which is seconds of work - so pressing
+    /// the button used to sit there doing nothing visible. Built ahead and kept
+    /// hidden, the press is just an Activate.
+    /// </summary>
+    private MainWindow? _preloadedMain;
+
+    private void PreloadMainWindow()
+    {
+        if (_preloadedMain is not null) return;
+        try
+        {
+            _preloadedMain = new MainWindow();
+            App.SetMainWindow(_preloadedMain);
+        }
+        catch (Exception ex)
+        {
+            // Losing the head start is not losing the button; it builds one on
+            // demand below.
+            CrashLog.Write("Preloading the main window", ex);
+        }
+    }
+
     private void OpenMainButton_Click(object sender, RoutedEventArgs e)
     {
-        var mainWindow = new MainWindow();
-        App.SetMainWindow(mainWindow);
-        mainWindow.Activate();
+        MainWindow main = _preloadedMain ?? new MainWindow();
+        _preloadedMain = null;
+        App.SetMainWindow(main);
+        main.Activate();
+
+        // Straight to the transcript that was just made. Landing on Muffin!
+        // means hunting for the thing you were already looking at.
+        if (!string.IsNullOrEmpty(_historyItemId))
+        {
+            main.ShowTranscript(_historyItemId!);
+        }
+
         this.Close();
     }
 }

@@ -353,6 +353,21 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    /// <summary>
+    /// Open a saved transcript, from outside this window.
+    ///
+    /// The mini window hands over the entry it just created, so pressing "open
+    /// the app" lands on that transcript rather than on Muffin! with the thing
+    /// you were reading a tab away. Queued on the dispatcher and after the page
+    /// exists, because the caller is another window and may be ahead of the
+    /// WebView.
+    /// </summary>
+    public void ShowTranscript(string entryId)
+    {
+        if (string.IsNullOrEmpty(entryId)) return;
+        DispatcherQueue.TryEnqueue(() => _bridge?.NavigateToTranscript(entryId));
+    }
+
     /// <summary>Called by the chat assistant's NAVIGATE_TO action.</summary>
     public void NavigateTo(string tag) => DispatcherQueue.TryEnqueue(() => _bridge?.Navigate(tag));
 
