@@ -8,11 +8,19 @@
     xmlns:local="using:MuffinTranscriber"
     mc:Ignorable="d"
     Title="{x:Bind local:AppStrings.App_Title}">
+    <!--
+        The backdrop stays. Taking it out to paint our own flat surface left the
+        window rendering as nothing at all - 400x500 of see-through, with the
+        desktop showing where the UI should be - because a WinUI window with no
+        backdrop composites transparent and a Background on the root grid did
+        not cover it. Mica is more system-looking than the rest of the app, and
+        an invisible window is worse.
+    -->
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid Padding="16" RowSpacing="12" PointerPressed="Grid_PointerPressed" Background="Transparent">
+    <Grid Padding="16" RowSpacing="12" PointerPressed="Grid_PointerPressed" Background="#121212">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -20,17 +28,23 @@
         </Grid.RowDefinitions>
 
         <Grid Grid.Row="0">
-            <TextBlock x:Name="StatusText" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
-            <Button x:Name="OpenMainButton" Click="OpenMainButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind local:AppStrings.Mini_Tooltip_OpenApp}">
-                <FontIcon Glyph="&#xE8A7;" FontSize="16" />
+            <TextBlock x:Name="StatusText" VerticalAlignment="Center" FontSize="15" FontWeight="SemiBold" Foreground="#FFFFFF" />
+            <Button x:Name="OpenMainButton" Click="OpenMainButton_Click" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Background="Transparent" BorderThickness="0" CornerRadius="12" Padding="8"
+                    ToolTipService.ToolTip="{x:Bind local:AppStrings.Mini_Tooltip_OpenApp}">
+                <FontIcon Glyph="&#xE8A7;" FontSize="16" Foreground="{ThemeResource MuffinAccentBrush}" />
             </Button>
         </Grid>
 
-        <TextBox x:Name="TranscriptBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="False" />
+        <TextBox x:Name="TranscriptBox" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="False"
+                 Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#2E2E2E" BorderThickness="1"
+                 CornerRadius="12" Padding="12" FontSize="13" SelectionHighlightColor="{ThemeResource MuffinAccentBrush}" />
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-            <Button x:Name="CopyButton" Content="{x:Bind local:AppStrings.Mini_Tooltip_Copy}" Click="CopyButton_Click" IsEnabled="False" />
-            <Button x:Name="FormatButton" Content="{x:Bind local:AppStrings.Mini_Tooltip_Format}" Click="FormatButton_Click" IsEnabled="False" />
+            <Button x:Name="CopyButton" Content="{x:Bind local:AppStrings.Mini_Tooltip_Copy}" Click="CopyButton_Click" IsEnabled="False"
+                    Background="#1E1E1E" Foreground="#FFFFFF" BorderBrush="#2E2E2E" BorderThickness="1" CornerRadius="14" Padding="14,7" />
+            <Button x:Name="FormatButton" Content="{x:Bind local:AppStrings.Mini_Tooltip_Format}" Click="FormatButton_Click" IsEnabled="False"
+                    Background="{ThemeResource MuffinAccentBrush}" Foreground="#121212" BorderThickness="0" CornerRadius="14" Padding="14,7" />
         </StackPanel>
     </Grid>
 </Window>

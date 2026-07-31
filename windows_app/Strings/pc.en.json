@@ -25,8 +25,11 @@
   "pc.models.tierPowerful": "Powerful",
   "pc.models.tierTurbo": "Fast and accurate",
   "pc.models.tierVeryPowerful": "Very powerful",
+  "pc.settings.shellMenu": "Add to the right-click menu",
+  "pc.settings.shellMenuDesc": "Puts “Transcribe with Muffin” on audio and video files in Explorer",
   "pc.settings.showTranscriptModel": "Show which model made it",
   "pc.settings.showTranscriptModelDesc": "Names the model under a transcript's date.",
   "pc.settings.showTranscriptTiming": "Show how long it took",
-  "pc.settings.showTranscriptTimingDesc": "Adds a line with the time each step took."
+  "pc.settings.showTranscriptTimingDesc": "Adds a line with the time each step took.",
+  "pc.shell.transcribeVerb": "Transcribe with Muffin"
 }

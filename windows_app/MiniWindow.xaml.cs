@@ -20,7 +20,18 @@ public sealed partial class MiniWindow : Window
     private bool _reported;
     private string? _historyItemId;
 
-    public MiniWindow(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation shareOperation)
+    /// <summary>Path handed over by Explorer, when there is no ShareOperation.</summary>
+    private string? _filePath;
+
+    /// <summary>
+    /// Opened from Explorer's "Transcribe with Muffin" verb.
+    ///
+    /// Same window and same work as a share; only the way the file arrives
+    /// differs, so everything below treats them as one path.
+    /// </summary>
+    public MiniWindow(string filePath) : this(null, filePath) { }
+
+    public MiniWindow(Windows.ApplicationModel.DataTransfer.ShareTarget.ShareOperation? shareOperation, string? filePath = null)
     {
         InitializeComponent();
 
@@ -46,6 +57,7 @@ public sealed partial class MiniWindow : Window
         }
 
         _shareOperation = shareOperation;
+        _filePath = filePath;
 
         this.Activated += MiniWindow_Activated;
         this.Closed += (s, e) => _isClosed = true;
@@ -135,7 +147,7 @@ public sealed partial class MiniWindow : Window
 
     private async Task ProcessShareOperation()
     {
-        if (_shareOperation == null) return;
+        if (_shareOperation is null && string.IsNullOrEmpty(_filePath)) return;
 
         _isProcessing = true;
         bool success = false;
@@ -146,11 +158,23 @@ public sealed partial class MiniWindow : Window
 
         try
         {
-            _shareOperation.ReportStarted();
+            _shareOperation?.ReportStarted();
             StatusText.Text = AppStrings.Mini_Status_Loading;
 
-            var items = await _shareOperation.Data.GetStorageItemsAsync();
-            if (items.Count == 0 || items[0] is not StorageFile file)
+            StorageFile? file;
+            if (!string.IsNullOrEmpty(_filePath))
+            {
+                // Straight from Explorer: the path is already on disk and ours
+                // to read, so there is nothing to unpack from a data package.
+                file = await StorageFile.GetFileFromPathAsync(_filePath);
+            }
+            else
+            {
+                var items = await _shareOperation!.Data.GetStorageItemsAsync();
+                file = items.Count > 0 ? items[0] as StorageFile : null;
+            }
+
+            if (file is null)
             {
                 error = AppStrings.Mini_Status_NoFile;
                 return;
