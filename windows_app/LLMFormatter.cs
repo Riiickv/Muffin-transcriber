@@ -430,7 +430,57 @@ public static class LLMFormatter
         return suspiciousMarkers.Any(lower.Contains) || formatted.Length > Math.Max(3000, raw.Length * 3);
     }
 
+    /// <summary>
+    /// One llama process at a time. Ever.
+    ///
+    /// A finished transcription fires several background passes - improve,
+    /// summarise, name it, find the dates, learn the vocabulary - and every one
+    /// of them starts its own llama, which LOADS THE WHOLE MODEL. Three at once
+    /// on a 14B is about 25 GB, plus whisper's own. Ricky's machine hit 99% RAM
+    /// and stopped responding; he had to hold the power button.
+    ///
+    /// There was no limit of any kind before this. Not a small one - none. The
+    /// gate is on the process launch rather than on the five public methods
+    /// above, so a pass added later cannot forget to take it.
+    ///
+    /// Whisper is deliberately NOT behind this gate: it is a different binary
+    /// with its own queue, and blocking a transcription behind a title being
+    /// written would be a worse app.
+    /// </summary>
+    private static readonly System.Threading.SemaphoreSlim EngineGate = new(1, 1);
+
     public static async Task<ProcessResult> RunProcessAsync(
+        string fileName,
+        string arguments,
+        TimeSpan? timeout = null,
+        IReadOnlyCollection<int>? allowedExitCodes = null,
+        System.Threading.CancellationToken ct = default,
+        Action<string>? onStderrLine = null)
+    {
+        // Only llama waits. ffmpeg and whisper are cheap or already serialized,
+        // and making a transcription queue behind a title would be worse.
+        if (!IsLlama(fileName))
+        {
+            return await RunProcessCoreAsync(fileName, arguments, timeout, allowedExitCodes, ct, onStderrLine);
+        }
+
+        await EngineGate.WaitAsync(ct);
+        try
+        {
+            return await RunProcessCoreAsync(fileName, arguments, timeout, allowedExitCodes, ct, onStderrLine);
+        }
+        finally
+        {
+            EngineGate.Release();
+        }
+    }
+
+    /// <summary>True for the binaries that load a multi-GB model.</summary>
+    private static bool IsLlama(string fileName) =>
+        !string.IsNullOrEmpty(fileName)
+        && Path.GetFileName(fileName).StartsWith("llama", StringComparison.OrdinalIgnoreCase);
+
+    private static async Task<ProcessResult> RunProcessCoreAsync(
         string fileName,
         string arguments,
         TimeSpan? timeout = null,
@@ -508,6 +558,30 @@ public static class LLMFormatter
     // transcripts are small and tokens arrive slowly). Returns stdout+stderr
     // combined, so the same ExtractFormatterOutput can parse the final text.
     private static async Task<string> RunStreamingProcessAsync(
+        string fileName,
+        string arguments,
+        TimeSpan? timeout,
+        IReadOnlyCollection<int>? allowedExitCodes,
+        System.Threading.CancellationToken ct,
+        Action<string> onAccumulated)
+    {
+        if (!IsLlama(fileName))
+        {
+            return await RunStreamingProcessCoreAsync(fileName, arguments, timeout, allowedExitCodes, ct, onAccumulated);
+        }
+
+        await EngineGate.WaitAsync(ct);
+        try
+        {
+            return await RunStreamingProcessCoreAsync(fileName, arguments, timeout, allowedExitCodes, ct, onAccumulated);
+        }
+        finally
+        {
+            EngineGate.Release();
+        }
+    }
+
+    private static async Task<string> RunStreamingProcessCoreAsync(
         string fileName,
         string arguments,
         TimeSpan? timeout,
