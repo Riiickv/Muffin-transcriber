@@ -968,7 +968,10 @@ textarea { resize: vertical; min-height: 72px; }
      which did not agree with the list OR with itself. */
   padding: var(--sp-md) var(--sp-sm) var(--sp-sm);
 }
-.cs-head h2 { flex: 1; font-size: 18px; font-weight: 700; margin: 0; }
+/* 26px, the same as History's. These two panes sit in the same place, do the
+   same job and are one click apart; a heading eight points smaller in one of
+   them reads as a different app. */
+.cs-head h2 { flex: 1; font-size: 26px; font-weight: 700; margin: 0; }
 /* A rail-sized square in the header, the way the mobile drawer keeps its one
    action up there, instead of a bar across the whole pane. */
 .cs-new {
@@ -990,19 +993,24 @@ textarea { resize: vertical; min-height: 72px; }
 .empty-icon { font-size: 32px; color: var(--text-subtle); opacity: 0.8; }
 /* Session row: title + relative time, with rename/delete on the right and
    inline renaming, like the mobile ChatDrawer row. */
+/* Built to match .hist-card, because a session and a transcript are the same
+   kind of thing in the same kind of pane. It had no background, no border,
+   2px between rows and uneven padding, so the two lists looked unrelated. */
 .session {
   display: flex; align-items: center; gap: var(--sp-sm);
-  padding: 8px var(--sp-md); border-radius: var(--r-md); cursor: pointer;
-  margin-bottom: 2px; color: var(--text);
+  padding: var(--sp-md); border-radius: var(--r-md); cursor: pointer;
+  margin-bottom: var(--sp-sm); color: var(--text);
+  background: var(--surface-strong);
+  border: 1px solid var(--card-border);
 }
 .session .s-main { flex: 1; min-width: 0; }
-.session .s-title { font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.session .s-time { font-size: 12px; color: var(--text-subtle); }
-/* --surface-strong: the pane itself is --surface now, so a hover in that same
-   colour was no hover at all. */
-.session:hover { background: var(--surface-strong); }
-.session.active { background: var(--accent-fill); }
-.session.active .s-title { color: var(--accent); font-weight: 700; }
+.session .s-title { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session .s-time { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+/* Hover and selection exactly as .hist-card does them: the border lifts on
+   hover, and the open one takes the accent fill. The title used to turn pink
+   when selected, which no transcript does - the fill already says which. */
+.session:hover { border-color: var(--text-subtle); }
+.session.active { background: var(--accent-fill); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 
 .session .s-acts { display: flex; gap: 2px; opacity: 0; }
 .session:hover .s-acts, .session.active .s-acts { opacity: 1; }
