@@ -1,5 +1,5 @@
 #define MyAppName "Muffin Transcriber"
-#define MyAppVersion "1.12.18"
+#define MyAppVersion "1.12.19"
 #define MyAppPublisher "Muffin Open Source"
 #define MyAppExeName "MuffinTranscriber.exe"
 
@@ -38,6 +38,17 @@ TranscribeVerb=Transcribe with Muffin
 ; folder leaves one there, its files churn while the compiler reads them, and
 ; it has no business in an installer.
 Source: "{#AppFilesDir}\*"; DestDir: "{app}"; Excludes: "*.WebView2,*.WebView2\*"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+; What it takes to register the app as a package, which is what puts Muffin in
+; Windows' Share sheet. An unpackaged app cannot be a Share Target; a loose
+; folder registration gives it the identity it needs. These two lines are the
+; whole payload for that: the manifest, and the tile logos it names.
+;
+; Registration itself is NOT automatic - Windows only accepts an unsigned one
+; when Developer Mode is on, so it is a deliberate step, not something an
+; installer should do behind a user's back. See pc.settings.shareRegister.
+Source: "windows_app\PackageRegistration.AppxManifest.xml"; DestDir: "{app}"; DestName: "AppxManifest.xml"; Flags: ignoreversion
+Source: "windows_app\Assets\*.png"; DestDir: "{app}\Assets"; Flags: ignoreversion
 
 [Registry]
 ; "Transcribe with Muffin" on the right-click menu of every media type the app
