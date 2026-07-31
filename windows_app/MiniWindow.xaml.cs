@@ -286,9 +286,12 @@ public sealed partial class MiniWindow : Window, IShellWindow
             string lang = settings.DefaultLanguage;
             string languageArg = AppModel.LanguageCode(lang);
             string modelPath = AppModel.ModelPath(whisperModel.File);
-            string args = languageArg == "auto"
-                ? $"-m \"{modelPath}\" -f \"{wavPath}\" -nt -osrt"
-                : $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
+            // ALWAYS pass -l, "auto" included. whisper-cli's default language is
+            // "en", not detection, so dropping the flag for Auto-Detect made
+            // Auto-Detect mean English - Italian speech came back in English.
+            // TranscriptionService has carried this comment for a while; this
+            // window still had the old conditional.
+            string args = $"-m \"{modelPath}\" -f \"{wavPath}\" -l {languageArg} -nt -osrt";
 
             ProcessResult result = await LLMFormatter.RunProcessAsync(AppModel.WhisperExe, args);
 
@@ -330,7 +333,11 @@ public sealed partial class MiniWindow : Window, IShellWindow
             TranscriptionHistory.AddOrUpdate(new TranscriptionHistoryItem(
                 newId,
                 DateTime.Now,
-                Path.GetFileName(cachedPath),
+                // The file's REAL name. cachedPath is our own copy, named with
+                // a Guid so two shares cannot collide, and using it made every
+                // shared transcript show up in the library as
+                // "56fa0989-8793-4a9f-874a-5c3d14d8be32.ogg".
+                file.Name,
                 lang,
                 _rawTranscript,
                 null,

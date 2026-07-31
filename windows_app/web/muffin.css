@@ -95,7 +95,7 @@
      wide because they are meant to be looked at; body is neutral because it is
      meant to be read; numbers are slightly narrow so a timer or a percentage
      does not shift its own layout as the digits change. */
-  --wd-display: 112%;   /* page titles */
+  --wd-display: 122%;   /* page titles */
   --wd-header: 118%;    /* the small uppercase section headers */
   --wd-title: 106%;     /* the name on a card, a row, a model */
   --wd-body: 100%;      /* prose, descriptions, transcripts */
@@ -1685,10 +1685,16 @@ input, textarea, [contenteditable] {
    deliberate is being overridden.
    -------------------------------------------------------------------------- */
 
-/* Display: the page's own name. */
+/* Display: the page's own name. Wider and heavier than the rest by a clear
+   margin - a screen title should not look like a bold paragraph. The weight
+   belongs here rather than on each rule, now that this block runs last: the
+   individual headings all say 700 and this is what makes them agree. Google
+   Sans Flex carries wght to 1000 and wdth to 151%, so 800 and 122% are well
+   inside the axes and stay a single variable instance. */
 .title, h1,
 .hist-list h2, .chat-head h2, .cs-head h2, .dialog-title, .detail-head h2 {
   font-stretch: var(--wd-display);
+  font-weight: 800;
   letter-spacing: -0.01em;
 }
 
