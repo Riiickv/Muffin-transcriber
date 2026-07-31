@@ -158,50 +158,6 @@ button, input, textarea, select, [contenteditable] { font-family: inherit; }
 /* Fields say it with their border instead; a ring around a ring is noise. */
 [data-field]:focus-visible, .transcript.editable:focus-visible { outline: none; }
 
-/* ---- Applying the hierarchy ----
-   One place, so a role's width lives beside the rules that already set its size
-   and weight instead of being scattered through the file. */
-
-/* Display: the page's own name. */
-.title, h1,
-.hist-list h2, .chat-head h2, .cs-head h2, .dialog-title, .detail-head h2 {
-  font-stretch: var(--wd-display);
-  letter-spacing: -0.01em;
-}
-
-/* Section headers: small, uppercase, already tracked out. Widening them as well
-   is what stops caps at 13px reading as a cramped smudge. */
-.group-title {
-  font-stretch: var(--wd-header);
-}
-
-/* The name on a card, a row, a model, a chat, a setting. */
-.hist-card .h-title, .m-name, .srow .s-name, .session .s-title,
-.setting-card .sc-label, .waiting-card .w-title, .app-banner .b-title,
-.titlebar .tb-title, .m-best {
-  font-stretch: var(--wd-title);
-}
-
-/* Controls. */
-.btn, .icon-btn, .action-btn, .segment, .m-get, .setup-btn, .back-link,
-.ctx-item, .tooltip, .toast, .beta-badge {
-  font-stretch: var(--wd-control);
-}
-
-/* Anything whose digits change while you watch. Narrower, so the layout does
-   not breathe every time a second ticks or a percentage rolls over, and
-   tabular figures for the same reason. */
-.mic-timer, .dl-ring .dl-pct, .m-pct, .player .time, .m-sub {
-  font-stretch: var(--wd-numeric);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Reading text stays at the neutral width: prose is not a place for a stylistic
-   width, and a transcript can be two hours long. */
-.transcript, .bubble, .chat-empty .ce-sub, .s-desc, .empty, .hist-card .h-snippet {
-  font-stretch: var(--wd-body);
-}
-
 /* ---- Selection and caret: the app's, not the OS's ----
    Windows paints selection in its own blue and the caret in the system colour,
    which is the last place the desktop shows through. Both follow the accent
@@ -741,10 +697,7 @@ textarea { resize: vertical; min-height: 72px; }
 .mini-page { display: flex; flex-direction: column; gap: var(--sp-md); }
 .mini-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-sm); }
 .mini-titles { min-width: 0; }
-.mini-title {
-  margin: 0; font-size: 20px; font-weight: 700;
-  font-stretch: var(--wd-title); letter-spacing: -0.01em;
-}
+.mini-title { margin: 0; font-size: 20px; font-weight: 700; }
 .mini-head .mini-status { margin: 0; font-size: 12px; color: var(--text-muted); }
 /* The title bar's button, out of the title bar. Every .tb-* rule is scoped to
    .titlebar, so lifted out of it the button kept none of them and fell back to
@@ -1712,4 +1665,59 @@ body { user-select: none; -webkit-user-select: none; }
 .transcript, .bubble, .prompt, .search, .s-edit,
 input, textarea, [contenteditable] {
   user-select: text; -webkit-user-select: text;
+}
+
+/* ---- Applying the hierarchy: LAST IN THE FILE, ON PURPOSE ----------------
+   This used to sit near the top, where it lost every argument it had.
+
+   Seventeen rules below say `font: inherit`, and the font SHORTHAND resets
+   every sub-property it does not name - font-stretch included, back to normal.
+   Each one came after this block, so buttons, fields, menu items, the search
+   box and the composer all quietly threw their width away and rendered at
+   100%: the control, title and body cuts were being computed and then
+   discarded. Ricky spotted it on a heading; it was the whole app.
+
+   Last in the file, the widths hold. Only two font-stretch declarations exist
+   outside this block and neither element appears in a list here, so nothing
+   deliberate is being overridden.
+   -------------------------------------------------------------------------- */
+
+/* Display: the page's own name. */
+.title, h1,
+.hist-list h2, .chat-head h2, .cs-head h2, .dialog-title, .detail-head h2 {
+  font-stretch: var(--wd-display);
+  letter-spacing: -0.01em;
+}
+
+/* Section headers: small, uppercase, already tracked out. Widening them as well
+   is what stops caps at 13px reading as a cramped smudge. */
+.group-title {
+  font-stretch: var(--wd-header);
+}
+
+/* The name on a card, a row, a model, a chat, a setting. */
+.hist-card .h-title, .m-name, .srow .s-name, .session .s-title,
+.setting-card .sc-label, .waiting-card .w-title, .app-banner .b-title,
+.titlebar .tb-title, .m-best, .mini-status {
+  font-stretch: var(--wd-title);
+}
+
+/* Controls. */
+.btn, .icon-btn, .action-btn, .segment, .m-get, .setup-btn, .back-link,
+.ctx-item, .tooltip, .toast, .beta-badge {
+  font-stretch: var(--wd-control);
+}
+
+/* Anything whose digits change while you watch. Narrower, so the layout does
+   not breathe every time a second ticks or a percentage rolls over, and
+   tabular figures for the same reason. */
+.mic-timer, .dl-ring .dl-pct, .m-pct, .player .time, .m-sub {
+  font-stretch: var(--wd-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reading text stays at the neutral width: prose is not a place for a stylistic
+   width, and a transcript can be two hours long. */
+.transcript, .bubble, .chat-empty .ce-sub, .s-desc, .empty, .hist-card .h-snippet {
+  font-stretch: var(--wd-body);
 }
