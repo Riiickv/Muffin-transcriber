@@ -73,9 +73,14 @@ public sealed partial class MiniWindow : Window, IShellWindow
             presenter.IsResizable = false;
         }
 
-        int width = 400;
-        int height = 500;
+        // Smaller: it holds a status line, a transcript and two buttons, and it
+        // appears under the pointer - a big panel there is in the way.
+        int width = 340;
+        int height = 400;
 
+        // Read HERE, in the constructor, which is the first moment this process
+        // gets after the click that shared or right-clicked the file. Anything
+        // later and the pointer has already moved on.
         if (GetCursorPos(out POINT pt))
         {
             AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(pt.X - width / 2, pt.Y - height / 2, width, height));
