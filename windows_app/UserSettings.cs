@@ -18,6 +18,15 @@ public sealed class UserSettings
     /// screen is its own document, and nothing was writing the number down.
     /// </summary>
     public double ChatSessionsWidth { get; set; } = 260;
+
+    /// <summary>
+    /// The "Transcribe with Muffin" entry on Explorer's right-click menu.
+    ///
+    /// On by default because the installer writes it, so the switch starts
+    /// agreeing with what is actually on disk. Turning it off removes the keys
+    /// rather than just remembering a preference.
+    /// </summary>
+    public bool ShellContextMenu { get; set; } = true;
     public bool FormatByDefault { get; set; }
     public bool SummarizeByDefault { get; set; }
     public string FormatLanguage { get; set; } = "Auto-Detect / Original";

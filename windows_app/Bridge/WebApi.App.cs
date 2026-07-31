@@ -370,6 +370,12 @@ public sealed partial class WebBridge
                 MuffinTheme.Apply(_settings.AccentColor);
                 Emit("theme.changed", ThemeMap());
                 break;
+
+            // Not a preference the app reads later: the switch IS the registry
+            // key, so flipping it has to write or clear it there and then.
+            case nameof(UserSettings.ShellContextMenu):
+                ShellIntegration.Apply(_settings.ShellContextMenu);
+                break;
         }
 
         Emit("settings.changed", SettingsMap());

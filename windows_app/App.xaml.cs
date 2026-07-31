@@ -135,9 +135,16 @@ public partial class App : Application
         {
             _window = new MiniWindow(shareOperation);
         }
+        else if (openFiles.Count > 0)
+        {
+            // Explorer's verb opens the small window, the way sharing does.
+            // Handing a single file to the whole app was the wrong shape: you
+            // asked one file to be transcribed, not for the app to be opened.
+            _window = new MiniWindow(openFiles[0]);
+        }
         else
         {
-            var main = new MainWindow(null, openFiles);
+            var main = new MainWindow();
             _window = main;
             MainWindow = main;
         }
