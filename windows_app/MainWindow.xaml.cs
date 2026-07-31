@@ -60,7 +60,6 @@ public sealed partial class MainWindow : Window
             // the caption is gone.
             presenter.SetBorderAndTitleBar(true, false);
             RoundCorners();
-            MakeCornersOurs();
             SuppressSystemMenu();
         }
 
@@ -363,35 +362,6 @@ public sealed partial class MainWindow : Window
     /// taking the caption away squared them off. Asked for explicitly, they
     /// come back, and the app keeps the shape everything inside it has.
     /// </summary>
-    /// <summary>
-    /// Lets the page draw the window's corner instead of Windows.
-    ///
-    /// Windows will not round a window past 8px - DWMWA_WINDOW_CORNER_PREFERENCE
-    /// takes four settings and no radius - so a 16px panel inside an 8px frame
-    /// always looked wrong. The way out is to stop the frame being what you see:
-    /// the WebView and the Grid behind it paint nothing, the page rounds its own
-    /// body to 16px, and the desktop shows through the difference.
-    ///
-    /// DWM's own rounding STAYS on. A 16px corner is a bigger bite than an 8px
-    /// one, so ours sits entirely inside the clip and is what you see - and if
-    /// transparency is refused on some machine, the fallback is the window
-    /// exactly as it is today rather than a square one.
-    /// </summary>
-    private void MakeCornersOurs()
-    {
-        try
-        {
-            RootGrid.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
-                Microsoft.UI.Colors.Transparent);
-            WebHost.DefaultBackgroundColor = Microsoft.UI.Colors.Transparent;
-        }
-        catch (Exception ex)
-        {
-            // A square-ish corner is a blemish, not a failure.
-            CrashLog.Write("Making the window corners ours", ex);
-        }
-    }
-
     private void RoundCorners()
     {
         try

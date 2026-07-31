@@ -70,10 +70,6 @@
   --r-pill: 999px;
   /* One rounding for every rectangular button, a touch rounder than the cards. */
   --r-btn: 14px;
-  /* The window's own corner, drawn by the page. Twice --r-lg, and that is the
-     concentric answer rather than a preference: the rail sits 16px inside the
-     window and is itself 16px round, and outer = inner + gap. */
-  --r-window: 32px;
 
   /* The one brand constant. The accent itself is overridden at runtime by the
      accent picker; everything derived from it uses color-mix so it follows. */
@@ -342,19 +338,9 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  background: var(--bg);
   color: var(--text);
   overflow: hidden;
-}
-/* The window's shape, drawn here because Windows will not draw it. html stays
-   transparent so the desktop shows through outside the curve; body is the app,
-   rounded to the same 16px as the panels inside it, and clipping them to it.
-   See MakeCornersOurs in MainWindow.xaml.cs - without the WebView and the Grid
-   behind it being transparent too, this just rounds one dark rectangle against
-   another. */
-html { background: transparent; }
-body {
-  background: var(--bg);
-  border-radius: var(--r-window);
 }
 
 /* ---- Title bar: the app's, not the system's ----
