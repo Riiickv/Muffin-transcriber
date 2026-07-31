@@ -697,6 +697,9 @@ textarea { resize: vertical; min-height: 72px; }
 .mini-page { display: flex; flex-direction: column; gap: var(--sp-md); }
 .mini-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-sm); }
 .mini-titles { min-width: 0; }
+/* The two buttons sit together. Left as siblings of the title in a
+   space-between row, the head pushed them to opposite ends of the window. */
+.mini-acts { display: flex; align-items: center; gap: var(--sp-xs); flex-shrink: 0; }
 .mini-title { margin: 0; font-size: 20px; font-weight: 700; }
 .mini-head .mini-status { margin: 0; font-size: 12px; color: var(--text-muted); }
 /* The title bar's button, out of the title bar. Every .tb-* rule is scoped to
