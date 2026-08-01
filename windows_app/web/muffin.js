@@ -980,6 +980,85 @@ function wireSelection() {
   window.addEventListener("resize", scheduleSelection);
 }
 
+// ---- Cursor -----------------------------------------------------------------
+// Two effects, both driven off where the pointer actually is inside a control.
+//
+// A spotlight: a soft highlight under the cursor, so a button lights up where
+// you are rather than all over at once. Every hoverable thing gets it.
+//
+// A magnetic pull: the button leans a few pixels toward the cursor. Only on the
+// round and accent ones, where it reads as weight rather than as drift.
+//
+// One listener for the whole document, coalesced to a frame. Per-element
+// listeners on a History list of a hundred rows is a hundred subscriptions and
+// a hundred chances to leak one.
+var CURSOR_SEL = ".btn, .action-btn, .icon-btn, .rail-item, .hist-card, .session," +
+                 " .segment, .srow.clickable, .dropdown-field, .mic-fab, .send-btn," +
+                 " .play-btn, .cs-new, .setup-btn, .m-get, .swatch";
+var MAGNET_SEL = ".btn-accent, .mic-fab, .send-btn, .play-btn, .cs-new";
+var MAGNET_PX = 3;
+
+function wireCursor() {
+  // The reduced-motion block below turns durations to 1ms, which stops
+  // transitions but would leave a button sitting wherever the pull last put
+  // it. Cheaper and more honest to not run at all.
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  var el = null;
+  var pending = null;
+
+  function paint() {
+    pending = null;
+    if (!el) return;
+    var r = el.rect;
+    var node = el.node;
+    node.style.setProperty("--mx", (((el.x - r.left) / r.width) * 100).toFixed(1) + "%");
+    node.style.setProperty("--my", (((el.y - r.top) / r.height) * 100).toFixed(1) + "%");
+    if (!el.magnetic) return;
+    // Offset from the centre, as a fraction, times the cap. A wide button
+    // pulls the same 3px at its edge as a small round one does.
+    var dx = (el.x - (r.left + r.width / 2)) / (r.width / 2);
+    var dy = (el.y - (r.top + r.height / 2)) / (r.height / 2);
+    node.style.setProperty("--pull-x", (dx * MAGNET_PX).toFixed(2) + "px");
+    node.style.setProperty("--pull-y", (dy * MAGNET_PX).toFixed(2) + "px");
+  }
+
+  function release() {
+    if (!el) return;
+    var node = el.node;
+    node.classList.remove("cursor-lit");
+    node.style.removeProperty("--pull-x");
+    node.style.removeProperty("--pull-y");
+    el = null;
+  }
+
+  document.addEventListener("pointermove", function (e) {
+    // Pen and touch have no hover to speak of; a tap should not leave a
+    // spotlight stuck under a finger that has gone.
+    if (e.pointerType !== "mouse") { release(); return; }
+
+    var node = e.target instanceof Element ? e.target.closest(CURSOR_SEL) : null;
+    if (!node || node.disabled) { release(); return; }
+
+    if (!el || el.node !== node) {
+      release();
+      el = { node: node, rect: node.getBoundingClientRect(), magnetic: node.matches(MAGNET_SEL) };
+      node.classList.add("cursor-lit");
+    }
+    el.x = e.clientX;
+    el.y = e.clientY;
+    if (pending === null) pending = requestAnimationFrame(paint);
+  }, { passive: true });
+
+  // Leaving through a gap between elements, and the cases pointermove never
+  // reports: the window losing focus, a dialog opening over the top, a click
+  // that navigates.
+  document.addEventListener("pointerleave", release);
+  document.addEventListener("pointercancel", release);
+  window.addEventListener("blur", release);
+  document.addEventListener("scroll", release, true);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   enhanceSelects();
   wireToggles();
@@ -993,4 +1072,5 @@ document.addEventListener("DOMContentLoaded", function () {
   wireTooltips();
   wireContextMenu();
   wireSelection();
+  wireCursor();
 });
