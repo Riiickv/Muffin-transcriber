@@ -26,6 +26,7 @@ public sealed class UserSettings
     /// </summary>
     public bool HistoryOptionsOpen { get; set; }
     public bool HistoryPromptOpen { get; set; }
+    public bool TranscribeOptionsOpen { get; set; }
 
     /// <summary>
     /// The "Transcribe with Muffin" entry on Explorer's right-click menu.

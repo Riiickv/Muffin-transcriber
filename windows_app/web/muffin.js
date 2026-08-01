@@ -160,9 +160,21 @@ function wireSegments() {
 // starts closed rather than taking up room on every screen.
 function setCollapsible(box, open) {
   if (!box) return;
+  var wasOpen = box.classList.contains("open");
   box.classList.toggle("open", open);
   var head = box.querySelector(".collapsible-head");
   if (head) head.setAttribute("aria-expanded", open);
+  // Only when it actually opens, and never when a section is simply restored
+  // to open at startup, which goes through the branch in wireCollapsibles.
+  if (open && !wasOpen) bounce(box);
+}
+
+// Retriggering a CSS animation needs the class off, a reflow, and the class
+// back on; without the reflow the browser coalesces the two and nothing plays.
+function bounce(box) {
+  box.classList.remove("bounce");
+  void box.offsetWidth;
+  box.classList.add("bounce");
 }
 
 function openCollapsible(box) { setCollapsible(box, true); }
@@ -177,12 +189,20 @@ function wireCollapsibles() {
     // tabs threw the choice away. data-persist names a setting to keep it in,
     // the same way the splitters keep their widths.
     var key = box.dataset.persist;
-    if (key && Muffin.get(key)) setCollapsible(box, true);
+    if (key && Muffin.get(key)) {
+      // Straight to open, deliberately not through setCollapsible: this is a
+      // section you already had open, being put back the way you left it, and
+      // it should be open when the screen arrives rather than springing at you
+      // a moment later.
+      box.classList.add("open");
+      head.setAttribute("aria-expanded", true);
+    }
 
     head.addEventListener("click", function () {
       var open = !box.classList.contains("open");
       box.classList.toggle("open", open);
       head.setAttribute("aria-expanded", open);
+      if (open) bounce(box);
       if (key) Muffin.set(key, open);
     });
   });

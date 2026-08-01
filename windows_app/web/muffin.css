@@ -1141,6 +1141,11 @@ mark.ent {
   --spring-settle: linear(0.0, 0.0201, 0.0724, 0.1462, 0.233, 0.326, 0.4199, 0.5109, 0.5964, 0.6745, 0.7442, 0.805, 0.8571, 0.9007, 0.9365, 0.9652, 0.9875, 1.0044, 1.0165, 1.0248, 1.03, 1.0326, 1.0332, 1.0325, 1.0306, 1.0281, 1.0252, 1.0221, 1.019, 1.016, 1.0132, 1.0106, 1.0083, 1.0063, 1.0046, 1.0032, 1.002, 1.0011, 1.0004, 0.9998, 0.9994);
 
   /* RN Animated.timing's default easing, and the two MOTION durations. */
+  /* Overshoots to about 1.07 and comes back. Short enough for a fold: the
+     springs above run 620-780ms, which is right for a screen arriving and far
+     too long for a section opening under your cursor. */
+  --t-fold: 320ms;
+  --ease-bounce: cubic-bezier(0.32, 1.28, 0.5, 1);
   --ease-rn: cubic-bezier(0.42, 0, 0.58, 1);
   --t-quick: 180ms;
   --t-base: 250ms;
@@ -1689,7 +1694,6 @@ body.has-titlebar .app-banner { top: calc(40px + var(--sp-md)); }
   font-size: 20px; color: var(--text-muted);
   transition: transform var(--t-quick) var(--ease-rn);
 }
-.collapsible.open .collapsible-head .chev { transform: rotate(180deg); }
 .collapsible-body {
   display: grid; grid-template-rows: 0fr; opacity: 0;
   transition: grid-template-rows var(--t-quick) var(--ease-rn),
@@ -1697,6 +1701,32 @@ body.has-titlebar .app-banner { top: calc(40px + var(--sp-md)); }
               margin-top var(--t-quick) var(--ease-rn);
 }
 .collapsible.open .collapsible-body { grid-template-rows: 1fr; opacity: 1; margin-top: var(--sp-sm); }
+
+/* The bounce.
+   Not on the row: grid-template-rows is in fr, and a single fr track fills its
+   free space whatever the multiplier, so 1.07fr and 1fr are the same height.
+   An overshoot easing there is real in the computed value and worth exactly
+   zero pixels - measured, peak equal to settled to the decimal. So the height
+   opens on the plain curve and the CONTENT carries the motion: it arrives from
+   above, passes its resting place by 3px and comes back.
+
+   A class rather than :not() on load, because .open is also set at startup to
+   restore a section you left open, and something already open has no business
+   bouncing at you. */
+@keyframes muffin-fold-in {
+  0%   { transform: translateY(-9px); }
+  55%  { transform: translateY(3px); }
+  100% { transform: translateY(0); }
+}
+.collapsible.open.bounce .collapsible-inner {
+  animation: muffin-fold-in var(--t-fold) var(--ease-out-cubic) both;
+}
+/* Rotation is a transform, so here the overshoot IS visible: the chevron turns
+   a little past 180 and settles back. */
+.collapsible.open .collapsible-head .chev {
+  transform: rotate(180deg);
+  transition: transform var(--t-fold) var(--ease-bounce);
+}
 /* The row must be allowed to collapse to nothing. A textarea cannot: it has an
    automatic minimum size of its own, so the track never closed past ~26px.
    A plain wrapper CAN collapse, and it clips the textarea inside it. */

@@ -62,14 +62,28 @@
 
         <!-- File and engine. -->
         <section class="card" id="file-card">
-          <div class="row">
-            <div class="col">
-              <span class="lbl" data-i18n="transcribe.languageLabel">Language</span>
-              <select id="language" data-setting="DefaultLanguage"></select>
-            </div>
-            <div class="col">
-              <span class="lbl" data-i18n="transcribe.whisperModelLabel">Transcription quality</span>
-              <select id="whisper-model" data-setting="PreferredWhisperModel"></select>
+          <!-- Folded, like History's. You pick a language and a quality once and
+               then look past them every time; Pick file and Go! are what this
+               card is for. No data-persist on the prompt below, which the
+               Summarize switch opens and closes on its own. -->
+          <div class="collapsible" data-persist="TranscribeOptionsOpen">
+            <button class="collapsible-head" type="button" aria-expanded="false">
+              <span class="lbl" data-i18n="pc.optionsLabel">Language and quality</span>
+              <span class="msr chev">&#xE5CF;</span>
+            </button>
+            <div class="collapsible-body">
+              <div class="collapsible-inner">
+                <div class="row">
+                  <div class="col">
+                    <span class="lbl" data-i18n="transcribe.languageLabel">Language</span>
+                    <select id="language" data-setting="DefaultLanguage"></select>
+                  </div>
+                  <div class="col">
+                    <span class="lbl" data-i18n="transcribe.whisperModelLabel">Transcription quality</span>
+                    <select id="whisper-model" data-setting="PreferredWhisperModel"></select>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="row" style="margin-top: var(--sp-lg);">
