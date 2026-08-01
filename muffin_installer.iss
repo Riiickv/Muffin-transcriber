@@ -162,9 +162,22 @@ begin
   Result := True;
   
   if CurPageID = wpReady then begin
-    if FileExists(ExpandConstant('{app}\ffmpeg_bin\ffmpeg.exe')) then begin
+    { avcodec, not ffmpeg.exe. The engines used to carry a 217 MB static ffmpeg
+      built with --enable-gpl --enable-version3; they now carry an LGPL shared
+      build, which is ffmpeg.exe plus its libraries. Testing for ffmpeg.exe
+      alone was true of both, so every machine that already had the GPL one
+      would have kept it for ever, reinstalls included. avcodec-62.dll exists
+      only in the new set, so it is what "already up to date" means. }
+    if FileExists(ExpandConstant('{app}\ffmpeg_bin\avcodec-62.dll')) then begin
       Log('Engines already exist, skipping download.');
       Exit;
+    end;
+
+    { The old single-file build is not overwritten by anything in the new set,
+      so it would sit there at 217 MB next to the one actually being used. }
+    if FileExists(ExpandConstant('{app}\ffmpeg_bin\ffmpeg.exe')) then begin
+      Log('Replacing the previous ffmpeg build.');
+      DeleteFile(ExpandConstant('{app}\ffmpeg_bin\ffmpeg.exe'));
     end;
 
     DownloadPage.Clear;
