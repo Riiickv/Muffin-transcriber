@@ -599,7 +599,6 @@ textarea { resize: vertical; min-height: 72px; }
   color: var(--text);
   background: var(--surface-strong);
 }
-.btn:hover { filter: brightness(1.15); }
 .btn-accent { background: var(--accent); color: var(--on-accent); }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
@@ -679,7 +678,7 @@ textarea { resize: vertical; min-height: 72px; }
   border-radius: var(--r-btn); padding: 7px 12px; cursor: pointer; font: inherit; font-size: 13px;
   display: inline-flex; align-items: center; gap: 6px;
 }
-.icon-btn:hover { color: var(--text); border-color: var(--text-muted); }
+.icon-btn:hover { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 .transcript {
   width: 100%; min-height: 180px; background: var(--surface);
   border: 1px solid var(--divider); border-radius: var(--r-sm);
@@ -823,7 +822,7 @@ mark.ent {
   margin-bottom: var(--sp-sm);
   cursor: pointer;
 }
-.hist-card:hover { border-color: var(--text-subtle); }
+.hist-card:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .hist-card.active { background: var(--accent-fill); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .hist-card { position: relative; }
 .hist-card .h-head { display: flex; align-items: center; }
@@ -918,7 +917,6 @@ mark.ent {
   padding: var(--sp-md) var(--sp-sm); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .action-btn .msr { font-size: 24px; color: var(--accent); }
-.action-btn:hover { filter: brightness(1.2); }
 
 .hr { height: 1px; background: var(--divider); border: none; margin: var(--sp-lg) 0; }
 
@@ -1041,7 +1039,7 @@ mark.ent {
 /* Hover and selection exactly as .hist-card does them: the border lifts on
    hover, and the open one takes the accent fill. The title used to turn pink
    when selected, which no transcript does - the fill already says which. */
-.session:hover { border-color: var(--text-subtle); }
+.session:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .session.active { background: var(--accent-fill); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 
 .session .s-acts { display: flex; gap: 2px; opacity: 0; }
@@ -1208,6 +1206,54 @@ mark.ent {
   transform: scale(0.97);
   transition-duration: var(--t-quick), var(--t-quick), var(--t-quick), var(--t-quick), var(--t-quick);
 }
+
+/* ---- Interaction states -----------------------------------------------------
+   A state layer: an overlay of the control's OWN text colour at a fixed
+   opacity, painted over its background and under its label. Material's model,
+   and the reason it is worth having is that it lands correctly everywhere
+   without a value written per button - on a grey button the text is light, so
+   hovering lifts it; on an accent button the text is black, so the pink
+   deepens. Both themes, and any accent the picker is set to, for free.
+
+   It replaces filter: brightness(), which was doing this job on .btn and
+   .action-btn and brightened the LABEL along with the background, so a hovered
+   button quietly lost the contrast it was drawn with.
+
+   linear-gradient layered over background-color, not a ::before, so nothing new
+   is stacked inside a control and no child has to be lifted above it. The
+   colour lives in a registered property so it can actually animate; an
+   unregistered custom property would snap. */
+@property --state {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+.btn, .action-btn, .icon-btn, .cs-new, .m-get, .setup-btn {
+  background-image: linear-gradient(var(--state), var(--state));
+  /* 200ms, and no overshoot: Material separates spatial springs, which bounce,
+     from effects springs for colour and opacity, which must not. */
+  transition: --state 200ms var(--ease-out-cubic);
+}
+/* 8% hover and 12% pressed are the spec's own numbers. */
+.btn:hover:not(:disabled), .action-btn:hover:not(:disabled),
+.icon-btn:hover:not(:disabled), .cs-new:hover, .m-get:hover, .setup-btn:hover {
+  --state: color-mix(in srgb, currentColor 8%, transparent);
+}
+.btn:active:not(:disabled), .action-btn:active:not(:disabled),
+.icon-btn:active:not(:disabled), .cs-new:active {
+  --state: color-mix(in srgb, currentColor 12%, transparent);
+  /* Pressing should land now, not ease in over a fifth of a second. */
+  transition: --state 60ms linear;
+}
+
+/* The one thing that moves, and it is the glyph rather than the button: the
+   icon rises a pixel as you arrive. Independent translate, so it composes with
+   the press scale instead of replacing it. */
+.action-btn .msr, .icon-btn .msr {
+  transition: translate var(--spring-standard-ms) var(--spring-standard);
+}
+.action-btn:hover:not(:disabled) .msr, .icon-btn:hover:not(:disabled) .msr { translate: 0 -1px; }
 
 /* The segmented pill moves on its own timing; the swatch ring follows the
    standard spring like the switch. */
