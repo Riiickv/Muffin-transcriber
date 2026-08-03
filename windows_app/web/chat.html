@@ -23,12 +23,20 @@
     </nav>
 
     <main class="screen">
-      <h1 class="title" data-i18n="tabs.chat">Chat</h1>
+      <!-- The tab's name, what it is, and the one thing you do here, on one
+           line. The head is exactly as wide as the sessions pane below it, so
+           New Chat stays over the pane's right edge where it used to live. -->
+      <div class="screen-head">
+        <div class="sh-pane" id="sh-pane">
+          <h1 class="title" data-i18n="tabs.chat">Chat</h1>
+          <!-- Says up front that this part is still cooking, and says what it
+               means when you click it, the way the mobile header badge does. -->
+          <button class="beta-badge" id="beta" type="button" data-i18n="chat.beta">Beta</button>
+          <button class="cs-new" id="new-chat" type="button" data-i18n-attr="title:chat.newChat" title="New Chat"><span class="msr">&#xE145;</span></button>
+        </div>
+      </div>
       <div class="two-pane">
         <aside class="chat-sessions" id="sessions-pane">
-          <div class="cs-head">
-            <button class="cs-new" id="new-chat" type="button" data-i18n-attr="title:chat.newChat" title="New Chat"><span class="msr">&#xE145;</span></button>
-          </div>
           <div class="cs-list" id="sessions"></div>
           <div class="empty" id="no-chats" hidden>
             <span class="msr empty-icon">&#xE0B7;</span>
@@ -44,9 +52,6 @@
                  is already titled Chat above this, and the language pass would put
                  the word back over whatever session you had open. -->
             <h2 id="chat-title"></h2>
-            <!-- Says up front that this part is still cooking, and says what it
-                 means when you click it, the way the mobile header badge does. -->
-            <button class="beta-badge" id="beta" type="button" data-i18n="chat.beta">Beta</button>
           </div>
 
           <div class="chat-scroll" id="scroll">
@@ -113,8 +118,24 @@
     // The splitter writes the width; this reads it back. Without it the drag
     // was saved and then ignored, which looks identical to not saving at all.
     function restoreSessionsWidth() {
+      var pane = document.querySelector(".chat-sessions");
       var width = Muffin.get("ChatSessionsWidth");
-      if (width) document.querySelector(".chat-sessions").style.width = Math.round(width) + "px";
+      if (width) pane.style.width = Math.round(width) + "px";
+
+      // A ResizeObserver rather than mirroring the number wherever it is set:
+      // the pane's width comes from three places - this restore, a splitter
+      // drag, and the responsive rules that narrow it at 1100 and 900px - and
+      // only the element itself knows about all three.
+      var head = document.getElementById("sh-pane");
+      new ResizeObserver(function () {
+        var w = pane.getBoundingClientRect().width;
+        // Under 560px the pane is display:none and measures 0. Matching that
+        // would take the title and New Chat away with it, and New Chat is the
+        // one control on this screen you cannot do without - it used to live
+        // inside the pane, so at this width it was unreachable entirely.
+        if (w > 0) head.style.width = w + "px";
+        else head.style.removeProperty("width");
+      }).observe(pane);
     }
 
     function loadSessions(openFirst) {
@@ -137,30 +158,28 @@
         var row = document.createElement("div");
         row.className = "session" + (session.id === activeId ? " active" : "");
         row.innerHTML =
-          '<div class="s-main"><div class="s-title"></div><div class="s-time"></div></div>' +
-          '<div class="s-acts">' +
-            '<button data-rename><span class="msr">&#xE3C9;</span></button>' +
-            '<button data-delete><span class="msr">&#xE872;</span></button>' +
-          '</div>';
+          '<div class="s-main"><div class="s-title"></div><div class="s-time"></div></div>';
 
         row.querySelector(".s-title").textContent = session.title;
         row.querySelector(".s-time").textContent = formatRelativeTime(session.updatedAt);
-        row.querySelector("[data-rename]").title = Muffin.t("chat.renameChat", "Rename chat");
-        row.querySelector("[data-delete]").title = Muffin.t("chat.deleteChat", "Delete chat");
-
+        row.dataset.id = session.id;
         row.addEventListener("click", function () { openSession(session.id); });
-        row.querySelector("[data-rename]").addEventListener("click", function (e) {
-          e.stopPropagation();
-          renameInline(row, session);
-        });
-        row.querySelector("[data-delete]").addEventListener("click", function (e) {
-          e.stopPropagation();
-          askDelete(session);
-        });
-
         host.appendChild(row);
       });
     }
+
+    addContextItems(function (target) {
+      var row = target.closest && target.closest(".session");
+      if (!row) return null;
+      var session = sessions.filter(function (s) { return s.id === row.dataset.id; })[0];
+      if (!session) return null;
+      return [
+        { label: Muffin.t("chat.renameChat", "Rename chat"), enabled: true,
+          run: function () { renameInline(row, session); } },
+        { label: Muffin.t("chat.deleteChat", "Delete chat"), enabled: true,
+          run: function () { askDelete(session); } },
+      ];
+    });
 
     function renameInline(row, session) {
       var main = row.querySelector(".s-main");

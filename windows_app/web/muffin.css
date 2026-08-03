@@ -762,15 +762,34 @@ mark.ent {
 /* Left edge of the panes below it, not of .page: this title's neighbour is the
    list under it. --sp-xs on top is .title's own, so the four agree to the
    pixel. */
-.screen > .title { margin: var(--sp-xs) 0 var(--sp-md); }
+.screen > .title, .screen-head .title { margin: var(--sp-xs) 0 var(--sp-md); }
+
+/* Chat puts its Beta badge and its New Chat button on the title's line. The
+   inner box is kept exactly as wide as the sessions pane by a ResizeObserver,
+   so New Chat sits over that pane's right edge - the corner it used to live
+   in - and stays there when the splitter moves. */
+.screen-head { display: flex; }
+.sh-pane {
+  display: flex; align-items: center; gap: var(--sp-sm);
+  /* 0 0 auto, not the default: as a shrinkable flex item this collapsed to
+     nothing in a narrow window and the title, the badge and the button spilled
+     out of it. It is told its width by the observer and should hold it. */
+  flex: 0 0 auto;
+  width: 260px;
+}
+.sh-pane .title { flex-shrink: 0; }
+.sh-pane .beta-badge { margin-left: 0; }
+.sh-pane .cs-new { margin-left: auto; }
 .screen > .two-pane { min-height: 0; }
 /* The title holds them off the top now, so their own top margin would be
    counted twice. Set on .screen so the responsive rules below, which restate
    the shorthand, cannot bring it back. */
 .screen .hist-list, .screen .chat-sessions, .screen .hist-detail { margin-top: 0; }
-/* Level with .cs-head across the divider, so the chat's name and the New Chat
-   button sit on one line. Same 12px above, and the name given the button's own
-   32px line box, or a 20px heading and a 32px square centre 3px apart. */
+/* The session's name, level with the first row of the list across the divider.
+   New Chat used to sit here and is up on the title line now, so this is 12px
+   like the list's own top padding rather than matched to a button. Height is
+   held whether or not a session is open, so opening one does not shove the
+   conversation down a line. */
 .screen .chat-head { padding-top: var(--sp-md); }
 .screen .chat-head h2 { line-height: 32px; }
 
@@ -852,32 +871,9 @@ mark.ent {
    pane. They now sit over the row's right edge, on the row's own background so
    the title can run under them, and appear on hover, on the open entry, and on
    keyboard focus - which is what keeps them reachable without a mouse. */
-.hist-card .acts {
-  position: absolute; top: var(--sp-md); right: var(--sp-md);
-  display: flex; align-items: center; gap: var(--sp-xs);
-  opacity: 0; pointer-events: none;
-  transition: opacity var(--t-quick) var(--ease-rn);
-}
-.hist-card:hover .acts,
-.hist-card.active .acts,
-.hist-card:focus-within .acts { opacity: 1; pointer-events: auto; }
-
-/* The buttons float over the row, and the row is TRANSLUCENT - every card is
-   white at 12% over the pane - so no background behind them can hide the text
-   they cover. The text gets out of the way instead, fading out under them.
-   A mask paints nothing and moves nothing, so the title does not re-ellipsize
-   and jump a word shorter the moment the pointer arrives. */
-.hist-card:hover .h-title, .hist-card:hover .h-date,
-.hist-card.active .h-title, .hist-card.active .h-date,
-.hist-card:focus-within .h-title, .hist-card:focus-within .h-date {
-  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 68px), transparent 100%);
-  mask-image: linear-gradient(to right, #000 calc(100% - 68px), transparent 100%);
-}
-.hist-card .acts button {
-  background: transparent; border: none; color: var(--text-muted);
-  padding: 6px; border-radius: var(--r-sm); cursor: pointer; display: flex;
-}
-.hist-card .acts button:hover { background: var(--surface-strong); color: var(--text); }
+/* The card's rename and delete are on the right-click now. With nothing
+   floating over the row, the title gets the full width back: the mask that
+   used to fade it out under the buttons is gone with them. */
 
 /* Draggable divider between the list and the detail. */
 .splitter { width: 6px; flex-shrink: 0; cursor: col-resize; }
@@ -995,13 +991,6 @@ mark.ent {
   border-radius: var(--r-lg);
   overflow: hidden;
 }
-.cs-head {
-  display: flex; align-items: center; gap: var(--sp-sm);
-  /* Sides match .cs-list below, or the heading starts 8px further in than
-     every session under it. This was 16 on the left and 12 on the right,
-     which did not agree with the list OR with itself. */
-  padding: var(--sp-md) var(--sp-sm) var(--sp-sm);
-}
 /* A rail-sized square in the header, the way the mobile drawer keeps its one
    action up there, instead of a bar across the whole pane. */
 .cs-new {
@@ -1012,7 +1001,7 @@ mark.ent {
 }
 .cs-new:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
 .cs-new .msr { font-size: 20px; }
-.cs-list { flex: 1; overflow-y: auto; padding: 0 var(--sp-sm) var(--sp-sm); }
+.cs-list { flex: 1; overflow-y: auto; padding: var(--sp-sm); }
 /* Centred in what is left of the pane. Left in the flow it sat on the floor,
    under an empty list, as if it had fallen there. */
 .chat-sessions .empty {
@@ -1042,14 +1031,6 @@ mark.ent {
 .session:hover { border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 .session.active { background: var(--accent-fill); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
 
-.session .s-acts { display: flex; gap: 2px; opacity: 0; }
-.session:hover .s-acts, .session.active .s-acts { opacity: 1; }
-.session .s-acts button {
-  background: transparent; border: none; color: var(--text-muted);
-  padding: 5px; border-radius: var(--r-sm); cursor: pointer; display: flex;
-}
-.session .s-acts button:hover { background: var(--surface-strong); color: var(--text); }
-.session .s-acts .msr { font-size: 17px; }
 .session .s-edit {
   width: 100%; background: var(--surface); color: var(--text);
   border: 1px solid var(--accent); border-radius: var(--r-sm);

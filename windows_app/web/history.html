@@ -314,10 +314,6 @@
               '<div class="h-title"></div>' +
               '<div class="h-date"></div>' +
             '</div>' +
-            '<div class="acts">' +
-              '<button data-rename><span class="msr" style="font-size:18px">&#xE3C9;</span></button>' +
-              '<button data-delete><span class="msr" style="font-size:18px">&#xE872;</span></button>' +
-            '</div>' +
           '</div>' +
           '<div class="h-snippet"></div>';
 
@@ -327,22 +323,29 @@
         snippet.textContent = item.snippet;
         // No preview, no empty line reserving room for one.
         snippet.hidden = !item.snippet;
-        card.querySelector("[data-rename]").title = Muffin.t("history.renameAction", "Rename transcript");
-        card.querySelector("[data-delete]").title = Muffin.t("history.deleteAction", "Delete transcript");
-
         card.addEventListener("click", function () { open(item.id); });
-        card.querySelector("[data-rename]").addEventListener("click", function (e) {
-          e.stopPropagation();
-          askRename(item);
-        });
-        card.querySelector("[data-delete]").addEventListener("click", function (e) {
-          e.stopPropagation();
-          askDelete(item);
-        });
-
+        // Rename and delete are on the right-click now; the open transcript
+        // still carries both as buttons in its header.
+        card.dataset.id = item.id;
         rows.appendChild(card);
       });
     }
+
+    // The card's own menu. Registered once, and it looks the row up by id at the
+    // moment of the click rather than closing over an item that a refresh has
+    // since replaced.
+    addContextItems(function (target) {
+      var card = target.closest && target.closest(".hist-card");
+      if (!card) return null;
+      var item = items.filter(function (i) { return i.id === card.dataset.id; })[0];
+      if (!item) return null;
+      return [
+        { label: Muffin.t("history.renameAction", "Rename transcript"), enabled: true,
+          run: function () { askRename(item); } },
+        { label: Muffin.t("history.deleteAction", "Delete transcript"), enabled: true,
+          run: function () { askDelete(item); } },
+      ];
+    });
 
     // Renaming happens where the title is, the way the mobile list does it:
     // commit on Enter or blur, cancel on Escape.

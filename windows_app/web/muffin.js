@@ -345,6 +345,14 @@ var ctxEl = null;
 // all" before this, which selects a nav button.
 var SELECTABLE = ".transcript, .bubble, .prompt, .search, .dialog-input, input, textarea, [contenteditable]";
 
+// A page's own rows are its own business: History and Chat both have list items
+// whose rename and delete used to be buttons that faded in on hover, and now
+// live on the right-click instead. Registered rather than hard-coded here, so
+// this file does not have to know what a transcript or a chat session is.
+var ctxProviders = [];
+function addContextItems(fn) { ctxProviders.push(fn); }
+window.addContextItems = addContextItems;
+
 function contextItems(target) {
   // The strip used to be a caption region, so this right-click never reached
   // the page: Windows answered it with Restore / Move / Size / Minimize /
@@ -367,6 +375,13 @@ function contextItems(target) {
       { label: Muffin.t("pc.window.minimize", "Minimize"), enabled: true, run: function () { Muffin.invoke("window.minimize"); } },
       { label: Muffin.t("pc.window.close", "Close"), enabled: true, run: function () { Muffin.invoke("window.close"); } },
     ];
+  }
+
+  // Before the text items, and instead of them: a card is a thing you act on,
+  // not a paragraph you select words out of.
+  for (var i = 0; i < ctxProviders.length; i++) {
+    var own = ctxProviders[i](target);
+    if (own && own.length) return own;
   }
 
   var field = target.closest("input, textarea, [contenteditable]");
