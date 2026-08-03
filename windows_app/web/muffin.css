@@ -25,18 +25,30 @@
    one axis is enough to stop font-optical-sizing working in Chromium. So the
    whole hierarchy below is expressed as font-weight, font-stretch and
    font-optical-sizing, which inherit properly and cannot fight each other. */
+/* woff2, and three of the six axes pinned.
+   Every screen is its own document, so every tab switch paid for this font
+   again: it shipped as a 3.96 MB uncompressed TTF, of which 3.5 MB was the
+   gvar table - the variation deltas for six axes. The app varies exactly
+   three. GRAD and ROND are never named on this family (the GRAD in .msr below
+   belongs to Material Symbols, which is a different font), and slnt was only
+   implied by an oblique range that nothing italic ever used. Pinning those
+   three at their defaults and compressing leaves 0.43 MB, with all 682 glyphs,
+   all 535 codepoints and the full wdth/wght/opsz ranges the hierarchy needs.
+
+   font-display: swap so a page is never holding its text back on a font. */
 @font-face {
   font-family: "Google Sans Flex";
-  font-style: oblique 0deg 10deg;
+  font-style: normal;
   font-weight: 1 1000;
   font-stretch: 25% 151%;
-  src: url("fonts/GoogleSansFlex-Variable.ttf") format("truetype-variations");
+  font-display: swap;
+  src: url("fonts/GoogleSansFlex-Variable.woff2") format("woff2");
 }
 
-@font-face { font-family: "Nunito"; font-weight: 400; font-style: normal; src: url("fonts/Nunito_400Regular.ttf") format("truetype"); }
-@font-face { font-family: "Nunito"; font-weight: 600; font-style: normal; src: url("fonts/Nunito_600SemiBold.ttf") format("truetype"); }
-@font-face { font-family: "Nunito"; font-weight: 700; font-style: normal; src: url("fonts/Nunito_700Bold.ttf") format("truetype"); }
-@font-face { font-family: "Material Symbols Rounded"; font-style: normal; src: url("fonts/MaterialSymbolsRounded.ttf") format("truetype"); }
+@font-face { font-family: "Nunito"; font-weight: 400; font-style: normal; font-display: swap; src: url("fonts/Nunito_400Regular.woff2") format("woff2"); }
+@font-face { font-family: "Nunito"; font-weight: 600; font-style: normal; font-display: swap; src: url("fonts/Nunito_600SemiBold.woff2") format("woff2"); }
+@font-face { font-family: "Nunito"; font-weight: 700; font-style: normal; font-display: swap; src: url("fonts/Nunito_700Bold.woff2") format("woff2"); }
+@font-face { font-family: "Material Symbols Rounded"; font-style: normal; font-display: block; src: url("fonts/MaterialSymbolsRounded.woff2") format("woff2"); }
 
 /* Icon glyphs, same font + codepoints as the mobile Icon component. */
 .msr {
