@@ -762,13 +762,18 @@ mark.ent {
 /* Left edge of the panes below it, not of .page: this title's neighbour is the
    list under it. --sp-xs on top is .title's own, so the four agree to the
    pixel. */
-.screen > .title, .screen-head .title { margin: var(--sp-xs) 0 var(--sp-md); }
+.screen > .title { margin: var(--sp-xs) 0 var(--sp-md); }
 
 /* Chat puts its Beta badge and its New Chat button on the title's line. The
    inner box is kept exactly as wide as the sessions pane by a ResizeObserver,
    so New Chat sits over that pane's right edge - the corner it used to live
    in - and stays there when the splitter moves. */
-.screen-head { display: flex; }
+/* The spacing lives on the row, not on the title inside it. align-items
+   centres a flex item's MARGIN box, and .title carries 4px above and 12px
+   below, so centring it against a 32px button sat the word 4px high of the
+   badge next to it. */
+.screen-head { display: flex; margin: var(--sp-xs) 0 var(--sp-md); }
+.screen-head .title { margin: 0; }
 .sh-pane {
   display: flex; align-items: center; gap: var(--sp-sm);
   /* 0 0 auto, not the default: as a shrinkable flex item this collapsed to

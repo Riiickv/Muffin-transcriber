@@ -334,7 +334,14 @@
     // The card's own menu. Registered once, and it looks the row up by id at the
     // moment of the click rather than closing over an item that a refresh has
     // since replaced.
-    addContextItems(function (target) {
+    // Inside Muffin.ready, and it has to be: this inline script is NOT deferred,
+    // so it runs while the document is still parsing, and muffin.js IS
+    // deferred, so addContextItems does not exist yet. Called at the top level
+    // it threw a ReferenceError and took every statement below it in this
+    // script with it - the event handlers, the player, all of it. Muffin.ready
+    // fires from a DOMContentLoaded handler, which is after deferred scripts
+    // have run.
+    Muffin.ready(function () { addContextItems(function (target) {
       var card = target.closest && target.closest(".hist-card");
       if (!card) return null;
       var item = items.filter(function (i) { return i.id === card.dataset.id; })[0];
@@ -345,7 +352,7 @@
         { label: Muffin.t("history.deleteAction", "Delete transcript"), enabled: true,
           run: function () { askDelete(item); } },
       ];
-    });
+    }); });
 
     // Renaming happens where the title is, the way the mobile list does it:
     // commit on Enter or blur, cancel on Escape.

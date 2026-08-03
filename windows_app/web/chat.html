@@ -168,7 +168,14 @@
       });
     }
 
-    addContextItems(function (target) {
+    // Inside Muffin.ready, and it has to be: this inline script is NOT deferred,
+    // so it runs while the document is still parsing, and muffin.js IS
+    // deferred, so addContextItems does not exist yet. Called at the top level
+    // it threw a ReferenceError and took every statement below it in this
+    // script with it - the event handlers, the player, all of it. Muffin.ready
+    // fires from a DOMContentLoaded handler, which is after deferred scripts
+    // have run.
+    Muffin.ready(function () { addContextItems(function (target) {
       var row = target.closest && target.closest(".session");
       if (!row) return null;
       var session = sessions.filter(function (s) { return s.id === row.dataset.id; })[0];
@@ -179,7 +186,7 @@
         { label: Muffin.t("chat.deleteChat", "Delete chat"), enabled: true,
           run: function () { askDelete(session); } },
       ];
-    });
+    }); });
 
     function renameInline(row, session) {
       var main = row.querySelector(".s-main");
