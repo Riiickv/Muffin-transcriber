@@ -35,6 +35,7 @@ public sealed partial class MainWindow : Window, IShellWindow
         if (_settings.EnableAutoUpdateCheck)
         {
             _ = CheckForUpdatesAsync();
+            _ = WatchForUpdatesAsync();
         }
         _ = CheckEngineHealthAsync();
 
@@ -578,6 +579,7 @@ public sealed partial class MainWindow : Window, IShellWindow
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
         // Never leave the mic open behind a closed window.
+        _updateTimer?.Dispose();
         LocalizationManager.LanguageChanged -= OnLanguageChanged;
         RecordingController.RecordingFinished -= OnRecordingFinished;
         RecordingController.StateChanged -= OnRecordingStateChanged;
@@ -599,6 +601,40 @@ public sealed partial class MainWindow : Window, IShellWindow
         if (available)
         {
             ShowUpdateBanner(latestVersion, url, size);
+        }
+    }
+
+    /// <summary>How often to look again while the app stays open.</summary>
+    private static readonly TimeSpan UpdateCheckEvery = TimeSpan.FromHours(6);
+    private PeriodicTimer? _updateTimer;
+
+    /// <summary>
+    /// Keep looking, not just once at startup.
+    ///
+    /// The check ran exactly once, from the constructor, so a release published
+    /// while Muffin was open was never noticed. The only ways to hear about it
+    /// were to restart the app or to press the button in settings, which made
+    /// that button look like it was doing the work when all it did was ask
+    /// sooner. On a tool people leave running for hours, "once at startup" is
+    /// almost never.
+    ///
+    /// It stops as soon as something is found: the banner is already up, and
+    /// asking again would only replace it with itself.
+    /// </summary>
+    private async Task WatchForUpdatesAsync()
+    {
+        _updateTimer = new PeriodicTimer(UpdateCheckEvery);
+        try
+        {
+            while (await _updateTimer.WaitForNextTickAsync())
+            {
+                if (!string.IsNullOrEmpty(_updateDownloadUrl)) return;
+                await CheckForUpdatesAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The window closed. Nothing to clean up beyond the timer itself.
         }
     }
 
