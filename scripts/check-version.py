@@ -65,13 +65,22 @@ def main() -> int:
     print("they agree")
 
     if "--tag" in sys.argv:
-        tag = sys.argv[sys.argv.index("--tag") + 1]
-        ok = is_newer(app, tag)
-        print("\ntag %s offered to an install of %s: %s" % (tag, app, ok))
-        if not ok:
-            print("\nThat tag is NOT newer than this build, so publishing it would")
-            print("reach nobody running this version. Pick a higher one.")
-            return 1
+        tag = sys.argv[sys.argv.index("--tag") + 1].lstrip("v")
+        # Equal is the normal case: this is the release OF this build, so it is
+        # not supposed to offer itself anything. Only a tag BELOW the app
+        # version is the mistake, because then no future release in that range
+        # can ever reach the people running it.
+        if tag == app:
+            print("\ntag v%s matches this build. Correct for releasing it." % tag)
+            return 0
+        if is_newer(app, tag):
+            print("\ntag v%s is newer than this build (%s)." % (tag, app))
+            print("Fine, but odd: you are tagging a version the source does not claim.")
+            return 0
+        print("\ntag v%s is OLDER than this build (%s)." % (tag, app))
+        print("Nobody running %s would ever be offered it, because the updater" % app)
+        print("compares these numerically. Pick %s or higher." % app)
+        return 1
     return 0
 
 
