@@ -9,8 +9,8 @@
  */
 export const IT = {
   welcome: {
-    welcomeTitle: "Benvenuto su Muffin!",
-    welcomeBody: "Muffin trascrive sul tuo telefono e da nessun’altra parte. Nessun account, nessun server, niente esce dal tuo dispositivo. Se lo trovi utile, dimmi cosa cambieresti, aggiungeresti o correggeresti. Grazie!",
+    welcomeTitle: "Muffin è USCITO!",
+    welcomeBody: "Continuerò a migliorare Muffin finché non sarò soddisfatto di quello che abbiamo!\nSe lo trovi utile, dimmi pure cosa ne pensi, cosa cambieresti, aggiungeresti o correggeresti.\nGrazie!",
     welcomeOk: "Ho capito",
   },
 

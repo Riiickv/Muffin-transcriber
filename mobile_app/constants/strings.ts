@@ -30,8 +30,8 @@ export const APP_STRINGS = {
   //  WELCOME - one-time popup on first launch
   // ==========================================================================
   welcome: {
-    welcomeTitle: "Welcome to Muffin!",
-    welcomeBody: "Muffin transcribes on your phone and nowhere else. No account, no server, nothing leaves your device. If you find it useful, tell me what you'd change, add or fix. Thank you!",
+    welcomeTitle: "Muffin is OUT!",
+    welcomeBody: "I will keep improving Muffin until I'm satisfied with what we got!\nIf you find it useful, feel free to tell me what you think about it, what you'd change, add or fix.\nThank you!",
     welcomeOk: "Got it",
   },
 

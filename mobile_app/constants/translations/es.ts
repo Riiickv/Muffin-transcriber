@@ -1,8 +1,8 @@
 /** ESPAÑOL - traducción de constants/strings.ts. Si falta una clave, la app muestra el inglés. */
 export const ES = {
   welcome: {
-    welcomeTitle: "¡Bienvenido a Muffin!",
-    welcomeBody: "Muffin transcribe en tu teléfono y en ningún otro sitio. Sin cuenta, sin servidor, nada sale de tu dispositivo. Si te resulta útil, dime qué cambiarías, añadirías o arreglarías. ¡Gracias!",
+    welcomeTitle: "¡Muffin ya está AQUÍ!",
+    welcomeBody: "Voy a seguir mejorando Muffin hasta estar contento con lo que tenemos.\nSi te resulta útil, dime qué te parece, qué cambiarías, añadirías o arreglarías.\n¡Gracias!",
     welcomeOk: "Entendido",
   },
 
