@@ -33,7 +33,7 @@ export interface Settings {
   appLanguage: AppLanguage;
   /** One-time tester feedback popup. False until dismissed; a new key, so
    *  existing testers see it once after updating (hydrate fills the default). */
-  seenTesterWelcome: boolean;
+  seenWelcome: boolean;
   /**
    * Show an estimated time per model on the Models screen.
    *
@@ -78,7 +78,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // a setting. Existing installs hydrate over these defaults, so they get
   // 'auto' too rather than being pinned to English.
   appLanguage: 'auto',
-  seenTesterWelcome: false,
+  seenWelcome: false,
   showModelTimeEstimate: false,
   showModelNames: false,
 };

@@ -1,8 +1,8 @@
 /** FRANÇAIS - traduction de constants/strings.ts. Si une clé manque, l'app affiche l'anglais. */
 export const FR = {
-  tester: {
-    welcomeTitle: "Tu es un testeur !",
-    welcomeBody: "Muffin est encore en développement et tu es un testeur ! S'il t'est utile, dis-moi ce que tu en penses, surtout ce que tu changerais, ajouterais ou corrigerais. Merci !",
+  welcome: {
+    welcomeTitle: "Bienvenue sur Muffin !",
+    welcomeBody: "Muffin transcrit sur ton téléphone et nulle part ailleurs. Pas de compte, pas de serveur, rien ne quitte ton appareil. Si ça t’est utile, dis-moi ce que tu changerais, ajouterais ou corrigerais. Merci !",
     welcomeOk: "Compris",
   },
 

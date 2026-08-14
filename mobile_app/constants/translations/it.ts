@@ -8,9 +8,9 @@
  * riga senza rompere niente.
  */
 export const IT = {
-  tester: {
-    welcomeTitle: "Sei un tester!",
-    welcomeBody: "Muffin è ancora in sviluppo e sei un tester! Se lo trovi utile, dimmi pure cosa ne pensi, in particolare cosa cambieresti, aggiungeresti o correggeresti. Grazie!",
+  welcome: {
+    welcomeTitle: "Benvenuto su Muffin!",
+    welcomeBody: "Muffin trascrive sul tuo telefono e da nessun’altra parte. Nessun account, nessun server, niente esce dal tuo dispositivo. Se lo trovi utile, dimmi cosa cambieresti, aggiungeresti o correggeresti. Grazie!",
     welcomeOk: "Ho capito",
   },
 

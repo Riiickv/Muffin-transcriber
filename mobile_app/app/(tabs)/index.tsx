@@ -91,24 +91,27 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setSetting is a new function every render; the effect keys on the values it reads
   }, [isEnglishOnly, settings.defaultLanguage]);
 
-  // One-time tester feedback popup. seenTesterWelcome is a new setting defaulting
-  // to false, so BOTH fresh installs and existing testers (who just updated) see
-  // it exactly once, on the first functional Home. The ref guards a double-show
-  // while the saved flag is still being written.
-  const testerShownRef = useRef(false);
+  // One-time welcome. seenWelcome is a NEW key rather than a reuse of
+  // seenTesterWelcome, and deliberately: everyone who was on the closed track
+  // has that old flag set to true, and they are exactly the people who should
+  // not be told they are still testing something. A new key means the people
+  // who tested this for months get the new message once, alongside every fresh
+  // install. The ref guards a double-show while the saved flag is being
+  // written.
+  const welcomeShownRef = useRef(false);
   useEffect(() => {
-    if (testerShownRef.current) return;
-    if (modelsChecked && downloadedIds.length > 0 && !settings.seenTesterWelcome) {
-      testerShownRef.current = true;
-      setSetting('seenTesterWelcome', true);
+    if (welcomeShownRef.current) return;
+    if (modelsChecked && downloadedIds.length > 0 && !settings.seenWelcome) {
+      welcomeShownRef.current = true;
+      setSetting('seenWelcome', true);
       dialog.show({
-        title: t('tester.welcomeTitle'),
-        message: t('tester.welcomeBody'),
-        buttons: [{ label: t('tester.welcomeOk') || 'Got it', variant: 'primary' }],
+        title: t('welcome.welcomeTitle'),
+        message: t('welcome.welcomeBody'),
+        buttons: [{ label: t('welcome.welcomeOk') || 'Got it', variant: 'primary' }],
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- dialog/setSetting are recreated per render; the ref guard makes this fire once
-  }, [modelsChecked, downloadedIds.length, settings.seenTesterWelcome]);
+  }, [modelsChecked, downloadedIds.length, settings.seenWelcome]);
 
   // Share intent target - copy the file into cache with the legacy API,
   // because the new expo-file-system module has no `cacheDirectory`.

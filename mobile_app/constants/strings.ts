@@ -27,11 +27,11 @@
 
 export const APP_STRINGS = {
   // ==========================================================================
-  //  TESTER WELCOME - one-time popup shown to closed-testing users
+  //  WELCOME - one-time popup on first launch
   // ==========================================================================
-  tester: {
-    welcomeTitle: "You're a tester!",
-    welcomeBody: "Muffin is still in development and you're a tester! If you find it useful, feel free to tell me what you think, especially what you'd change, add, or fix. Thank you!",
+  welcome: {
+    welcomeTitle: "Welcome to Muffin!",
+    welcomeBody: "Muffin transcribes on your phone and nowhere else. No account, no server, nothing leaves your device. If you find it useful, tell me what you'd change, add or fix. Thank you!",
     welcomeOk: "Got it",
   },
 
