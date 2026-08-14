@@ -18,14 +18,15 @@
       "allowBackup": false,
       "versionCode": 92,
       "blockedPermissions": [
-        "android.permission.SYSTEM_ALERT_WINDOW"
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
       ],
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.VIBRATE",
-        "android.permission.FOREGROUND_SERVICE",
-        "com.android.alarm.permission.SET_ALARM"
+        "android.permission.FOREGROUND_SERVICE"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#1E1A1E",
