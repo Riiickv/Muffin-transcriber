@@ -4,7 +4,8 @@ import { loadSettings } from './settingsStore';
 import { loadMemories } from './memoryStore';
 import { createSegmentAccumulator } from './segmentAccumulator';
 import { getOptimalThreads } from './cpuThreads';
-import { trimSilence, discardTrim } from './speechTrim';
+import { ensureVadModel } from './speechTrim';
+import { readAudioInfo, describeAudio } from './audioInfo';
 import { startRun, noteModelLoad } from './perfLog';
 
 export { createSegmentAccumulator };
@@ -243,48 +244,131 @@ export async function transcribeFile(
   // no queue in whisper.rn, and the call sites are easy to miss - Re-transcribe
   // on a history entry, an imported file, and the recorder all land here - so
   // the guard lives at the engine where nothing can route around it.
-  // Cut the silence out first. Whisper spends as long on a silent window as a
-  // full one, and silence is where it hallucinates: with nothing to transcribe
-  // it emits whatever its language model likes, which is where invented
-  // sentences come from. So this is faster AND cleaner, unlike shrinking the
-  // encoder context, which was faster and wrong.
+  // Cut the silence out, but let WHISPER do it.
   //
-  // Every failure inside returns null and we transcribe the original, so the
-  // worst case is exactly today's behaviour.
-  // Timed end to end, because the performance plan's gate was "measure, then
-  // decide" and nothing ever measured. Two stages: how long the silence trim
-  // costs, and how long whisper itself takes.
+  // Silence is worth removing twice over: whisper spends as long on a silent
+  // 30s window as a full one, and silence is where it hallucinates, because
+  // with nothing to transcribe it emits whatever its language model likes.
+  //
+  // This used to be done in JS, and the cost of doing it there was absurd. The
+  // file was read off disk by detectSpeech in C++, read a SECOND time in JS as
+  // base64, decoded character by character into bytes, cut, re-encoded to
+  // base64, written back out as a new WAV, and then read a THIRD time by
+  // transcribe. Around 30 MB of transient allocation crossed the Hermes heap
+  // per recording, and the whole thing showed up as a flat 3 to 5 seconds on
+  // every single run: on the Fastest model that was more than half the wait.
+  //
+  // whisper.cpp has always been able to do this itself. whisper_full_params
+  // carries `vad`, `vad_model_path` and `vad_params` (whisper.h:588-591), and
+  // whisper_full acts on them (whisper.cpp:7769) against the samples already in
+  // memory. whisper.rn simply never read those fields, so the binding is
+  // patched to pass them through. As a bonus it fixes a real defect: whisper
+  // builds a mapping table so segment timestamps still point at the ORIGINAL
+  // recording, where the JS trim silently shifted every timestamp by however
+  // much silence it had cut out.
+  //
+  // The tuning below is deliberately the same as the JS path used, so this is a
+  // change of where the work happens and not of what it does.
   const perf = startRun('transcribe', currentModelPath.split('/').pop() || 'whisper');
 
-  const trimmed = await trimSilence(audioPath);
-  perf.mark('vad');
-  const inputPath = trimmed?.path ?? audioPath;
+  // Header only, a few hundred bytes rather than the whole recording. Gives the
+  // Speed report the true duration and the actual format, both of which it
+  // previously had to guess at.
+  const audio = await readAudioInfo(audioPath);
+
+  // Null when the 0.8 MB Silero model has not been fetched yet, which is the
+  // offline first-run case. Then whisper simply transcribes everything, which
+  // is what it did before any of this existed.
+  const vadModelPath = await ensureVadModel();
+  perf.mark('probe');
 
   return whisperQueue(async () => {
-    const { promise, stop } = whisperContext!.transcribe(inputPath, options);
-    stopCurrentTranscription = stop;
+    const attempt = (useVad: boolean) => {
+      const opts = useVad
+        ? {
+            ...options,
+            vadModelPath,
+            // Whisper wants a moment of lead-in or it clips the first word, and
+            // a gap shorter than this is a breath rather than the end of a
+            // sentence. Both carried over from the JS implementation; whisper's
+            // own defaults are 30ms and 100ms, which cut too close.
+            vadSpeechPadMs: 200,
+            vadMinSilenceDurationMs: 300,
+          }
+        : options;
+      const { promise, stop } = whisperContext!.transcribe(audioPath, opts);
+      stopCurrentTranscription = stop;
+      return promise;
+    };
+
+    let usedVad = !!vadModelPath;
     try {
-      const result = await promise;
+      let result;
+      try {
+        result = await attempt(usedVad);
+      } catch (e) {
+        // whisper_full returns -1 outright when the VAD model cannot be
+        // loaded, and whisper.rn turns a non-zero code into a thrown
+        // "Transcription failed". Without VAD the recording still transcribes
+        // perfectly well, it just keeps its silence, so a broken 0.8 MB helper
+        // model must never cost somebody their transcription.
+        //
+        // A user-cancelled run does NOT come through here: whisper.rn checks
+        // is_aborted before throwing, so an abort resolves normally with
+        // isAborted set. Anything caught here is a genuine failure.
+        if (!usedVad) throw e;
+        usedVad = false;
+        result = await attempt(false);
+      }
+
+      // Two ways VAD can cost someone their transcription, and the old JS path
+      // survived both by construction: it returned null on any problem and the
+      // original audio was transcribed. Native VAD is not so forgiving.
+      // whisper_full returns -1 outright if the VAD model fails to load, and
+      // returns an EMPTY result if the detector finds no speech at all. The
+      // second case is the dangerous one, because "no speech found" also means
+      // "the detector was wrong", and a blank transcript is indistinguishable
+      // from a broken app.
+      //
+      // So on an empty result, run it once more with VAD off. That costs a
+      // repeat of a transcription that produced nothing, and it restores
+      // exactly the old behaviour: hand back whatever whisper makes of the
+      // untouched recording.
+      if (usedVad && !(result.result || '').trim() && !(result as any).isAborted) {
+        usedVad = false;
+        result = await attempt(false);
+      }
+
       perf.mark('transcribe');
-      // The length of the RECORDING, so the realtime factor answers the
-      // question the person waiting is actually asking: how long was my voice
-      // message against how long did I wait.
-      //
-      // This used to be the trimmed length, on the reasoning that it is what
-      // whisper chewed on. That measures the engine rather than the wait, and
-      // it silently changed meaning depending on whether the trim went ahead.
-      // Worse was the fallback: the trim declines on most continuous speech and
-      // returned nothing at all, so this fell through to endOfLastSegment, the
-      // time whisper stopped emitting words. Trailing silence or a decode that
-      // finished early made a recording look shorter than it was, which makes
-      // the realtime factor look worse than it was.
-      //
-      // That fallback is still here, and it is still a guess, but it is now
-      // reached only when the trim could not run at all: a non-WAV input, or
-      // the Silero model not downloaded yet.
       void perf.finish({
-        audioSeconds: trimmed?.totalSeconds ?? endOfLastSegment(result.segments),
+        // The length of the RECORDING, read from its own header, so the
+        // realtime factor answers the question the person waiting is actually
+        // asking: how long was my voice message against how long did I wait.
+        //
+        // It used to be the trimmed length when the trim ran and the end of
+        // whisper's last segment when it declined, so it silently changed
+        // meaning between runs and, in the declined case, reported where
+        // whisper stopped talking rather than where the audio stopped.
+        // endOfLastSegment survives only for formats with no header this can
+        // read.
+        audioSeconds: audio?.durationSeconds ?? endOfLastSegment(result.segments),
         outputChars: (result.result || '').length,
+        audioFormat: describeAudio(audio),
+        notes: [
+          usedVad
+            ? 'silence trimmed by whisper'
+            : vadModelPath
+              ? 'VAD produced nothing, retried on the full recording'
+              : 'no silence trim, Silero not downloaded yet',
+          // What whisper decided the language was. Free, already in hand, and
+          // the only way to tell from a pasted report whether a bad
+          // transcription was a slow model or auto-detect picking the wrong
+          // language, which has happened here before.
+          (result as any).language ? `heard ${(result as any).language}` : '',
+          `${(result.segments || []).length} segments`,
+        ]
+          .filter(Boolean)
+          .join(', '),
       });
       return {
         text: result.result,
@@ -296,9 +380,6 @@ export async function transcribeFile(
       };
     } finally {
       stopCurrentTranscription = null;
-      // Only a real copy gets deleted. A declined trim now reports its
-      // duration with a null path and there is no temp file behind it.
-      if (trimmed?.path) await discardTrim(trimmed.path);
     }
   });
 }

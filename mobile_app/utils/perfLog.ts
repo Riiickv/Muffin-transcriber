@@ -58,6 +58,16 @@ export type PerfRun = {
   model: string;
   /** Length of the audio in seconds, when there was audio. */
   audioSeconds?: number;
+  /**
+   * What the file actually was: "wav 16 kHz mono 16-bit, 3.3 MB".
+   *
+   * A slow run used to have no explanation in the report. A long recording, a
+   * stereo file, and a 48 kHz file being resampled all looked identical, and
+   * the audio length itself was a guess. Read from the file's own header.
+   */
+  audioFormat?: string;
+  /** One short phrase on what the app did with it, e.g. how it was trimmed. */
+  notes?: string;
   /** Characters produced, a cheap stand-in for token count. */
   outputChars?: number;
   totalMs: number;
@@ -82,7 +92,12 @@ export function startRun(kind: string, model: string) {
       stages.push({ name, ms: now - last });
       last = now;
     },
-    async finish(extra?: { audioSeconds?: number; outputChars?: number }) {
+    async finish(extra?: {
+      audioSeconds?: number;
+      outputChars?: number;
+      audioFormat?: string;
+      notes?: string;
+    }) {
       const loadMs = takePendingLoad();
       if (loadMs > 0) stages.push({ name: 'COLD - model loaded this run', ms: loadMs });
       const run: PerfRun = {
@@ -154,7 +169,11 @@ export function formatRuns(runs: PerfRun[]): string {
           ? `  ${Math.round((r.outputChars / r.totalMs) * 1000)} chars/s`
           : '';
       const parts = r.stages.map((s) => `${s.name} ${(s.ms / 1000).toFixed(1)}s`).join(', ');
-      return `${head}\n  ${total}${rtf}${rate}\n  ${parts}`;
+      // The input line only exists when there was an input to describe, so
+      // LLM runs stay two lines and transcriptions gain one.
+      const detail = [r.audioFormat, r.notes].filter(Boolean).join('  |  ');
+      const input = detail ? `\n  ${detail}` : '';
+      return `${head}\n  ${total}${rtf}${rate}\n  ${parts}${input}`;
     })
     .join('\n\n');
 }

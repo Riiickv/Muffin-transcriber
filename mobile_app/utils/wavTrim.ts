@@ -33,8 +33,15 @@ const tag = (b: Uint8Array, at: number) => String.fromCharCode(b[at], b[at + 1],
  * routinely insert LIST/fact chunks before the data, and a fixed offset would
  * splice metadata into the audio.
  */
-export function parseWav(bytes: Uint8Array): WavInfo | null {
+/**
+ * @param totalFileBytes  The real size of the file on disk, when `bytes` is
+ *   only its first few KB. Without it the data chunk is clamped to the slice
+ *   and a header-only read reports a few milliseconds of audio. Omit it when
+ *   `bytes` really is the whole file.
+ */
+export function parseWav(bytes: Uint8Array, totalFileBytes?: number): WavInfo | null {
   if (bytes.length < 44 || tag(bytes, 0) !== 'RIFF' || tag(bytes, 8) !== 'WAVE') return null;
+  const fileBytes = totalFileBytes && totalFileBytes > 0 ? totalFileBytes : bytes.length;
 
   let sampleRate = 0;
   let channels = 0;
@@ -56,7 +63,7 @@ export function parseWav(bytes: Uint8Array): WavInfo | null {
     } else if (id === 'data') {
       dataOffset = body;
       // A truncated recording can claim more than it holds.
-      dataLength = Math.min(size, bytes.length - body);
+      dataLength = Math.min(size, fileBytes - body);
       break;
     }
     at = body + size + (size % 2); // chunks are word-aligned

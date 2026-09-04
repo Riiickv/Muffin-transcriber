@@ -5,6 +5,27 @@ import { ModelManager } from './ModelManager';
 import { trimToSpeech, durationSeconds } from './wavTrim';
 
 /**
+ * SUPERSEDED, AND DELIBERATELY STILL HERE.
+ *
+ * whisper.cpp runs Silero itself now, on the samples it has already decoded
+ * into memory, via the vad fields in whisper_full_params that the whisper.rn
+ * binding was patched to pass through. See the comment in WhisperEngine's
+ * transcribeFile. That removes this module's entire reason to exist: the second
+ * file read, the base64 round trip in both directions, the rewritten WAV, and
+ * the third read of that rewrite.
+ *
+ * Everything below except ensureVadModel is therefore unused. It is kept for
+ * exactly one build, because native VAD has not yet run on a real phone and
+ * there is no emulator here to run it on. If the Speed report from a device
+ * shows "silence trimmed by whisper", delete trimSilence, discardTrim, the
+ * base64 helpers, and trimToSpeech/speechRanges/framesIn in wavTrim, keeping
+ * parseWav, which audioInfo uses to read durations.
+ *
+ * ensureVadModel stays whatever happens: getting the 0.8 MB Silero file onto
+ * the phone is still this module's job, and whisper only wants the path.
+ *
+ * ---
+ *
  * Removes the silence from a recording before whisper ever sees it.
  *
  * Strictly additive: every failure path here returns null and the caller
@@ -28,8 +49,14 @@ function getInitVad(): any {
   }
 }
 
-/** 0.8 MB, fetched once. Offline just means no trimming until it has been. */
-async function ensureVadModel(): Promise<string | null> {
+/**
+ * 0.8 MB, fetched once. Offline just means no trimming until it has been.
+ *
+ * Exported because whisper.cpp now runs this model ITSELF, on the samples it
+ * has already decoded, and only needs to be told where the file is. Getting the
+ * file onto the phone is still this module's job.
+ */
+export async function ensureVadModel(): Promise<string | null> {
   const path = ModelManager.getModelPath(VAD_MODEL);
   try {
     const info = await FileSystem.getInfoAsync(path);

@@ -119066,14 +119066,65 @@ diff --git a/node_modules/whisper.rn/cpp/jsi/RNWhisperJSI.cpp b/node_modules/whi
 index 4db7591..44d2e58 100644
 --- a/node_modules/whisper.rn/cpp/jsi/RNWhisperJSI.cpp
 +++ b/node_modules/whisper.rn/cpp/jsi/RNWhisperJSI.cpp
-@@ -737,6 +737,10 @@ TranscribeConfig createTranscribeConfig(
+@@ -703,6 +703,11 @@
+     whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+     std::string prompt;
+     std::string language;
++    // Owns the storage that params.vad_model_path points at. whisper_full_params
++    // holds a bare const char*, and job_new copies the struct without copying
++    // what the pointer targets, so this must outlive the whisper_full call.
++    // Same contract `language` above already relies on.
++    std::string vadModelPath;
+     int nProcessors = 1;
+     int jobId = 0;
+     bool tdrzEnable = false;
+@@ -736,7 +741,48 @@
+     config.params.offset_ms =
          getIntProperty(runtime, options, "offset", config.params.offset_ms);
      config.params.duration_ms =
-         getIntProperty(runtime, options, "duration", config.params.duration_ms);
+-        getIntProperty(runtime, options, "duration", config.params.duration_ms);    config.params.thold_pt =
++        getIntProperty(runtime, options, "duration", config.params.duration_ms);
 +    // Encoder context override (0 = whisper default of 1500). Shrinking it
 +    // proportionally for short clips skips encoding the silent padding.
 +    config.params.audio_ctx =
 +        getIntProperty(runtime, options, "audioCtx", config.params.audio_ctx);
-     config.params.thold_pt =
++
++    // Voice Activity Detection, run by whisper itself on the samples it has
++    // already decoded into memory.
++    //
++    // whisper.cpp has carried this since the vad_model_path field landed in
++    // whisper_full_params, and this binding simply never read it, so every
++    // caller wanting silence removal had to do it in JS: read the file a second
++    // time, decode it, cut it, write a new WAV, hand back a path whisper then
++    // reads a THIRD time. Setting these lets whisper_full do it on the samples
++    // in hand, and it builds a mapping table so segment timestamps still refer
++    // to positions in the original recording rather than the trimmed copy.
++    //
++    // Opt-in by path: absent or empty means the old behaviour exactly.
++    config.vadModelPath = getStringProperty(runtime, options, "vadModelPath");
++    if (!config.vadModelPath.empty()) {
++        config.params.vad = true;
++        config.params.vad_model_path = config.vadModelPath.c_str();
++        config.params.vad_params.threshold =
++            getFloatProperty(runtime, options, "vadThreshold",
++                             config.params.vad_params.threshold);
++        config.params.vad_params.min_speech_duration_ms =
++            getIntProperty(runtime, options, "vadMinSpeechDurationMs",
++                           config.params.vad_params.min_speech_duration_ms);
++        config.params.vad_params.min_silence_duration_ms =
++            getIntProperty(runtime, options, "vadMinSilenceDurationMs",
++                           config.params.vad_params.min_silence_duration_ms);
++        config.params.vad_params.max_speech_duration_s =
++            getFloatProperty(runtime, options, "vadMaxSpeechDurationS",
++                             config.params.vad_params.max_speech_duration_s);
++        config.params.vad_params.speech_pad_ms =
++            getIntProperty(runtime, options, "vadSpeechPadMs",
++                           config.params.vad_params.speech_pad_ms);
++        config.params.vad_params.samples_overlap =
++            getFloatProperty(runtime, options, "vadSamplesOverlap",
++                             config.params.vad_params.samples_overlap);
++    }
++    config.params.thold_pt =
          getFloatProperty(runtime, options, "wordThold", config.params.thold_pt);
      config.params.temperature =
+         getFloatProperty(runtime, options, "temperature", config.params.temperature);
