@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { parseWav, speechRanges, framesIn, trimToSpeech } from '../utils/wavTrim.ts';
+import { parseWav, speechRanges, framesIn, trimToSpeech, durationSeconds } from '../utils/wavTrim.ts';
 
 const RATE = 16000;
 
@@ -98,4 +98,26 @@ test('a clip that is mostly silence is cut down to its speech', () => {
   // The kept audio is the second second, so it starts at sample 16000.
   const first = out!.wav[44] | (out!.wav[45] << 8);
   assert.equal(first, 16000 & 0xffff);
+});
+
+// The Speed report used to fall back to the end of whisper's last segment
+// whenever the trim declined, which is the normal outcome for continuous
+// speech. That reported a recording as shorter than it is, and a run in this
+// repo's own history was quoted at "45s audio" on that basis and then used to
+// argue that short clips cost more than long ones.
+test('durationSeconds reads the true length from the header', () => {
+  const wav = makeWav(16000); // one second at 16 kHz mono
+  assert.equal(durationSeconds(wav), 1);
+});
+
+test('durationSeconds is available on exactly the clips the trim declines', () => {
+  const wav = makeWav(16000);
+  // Almost all speech, so the trim refuses to rewrite it.
+  assert.equal(trimToSpeech(wav, [{ t0: 0, t1: 1000 }]), null);
+  // The duration must still be knowable, which is the entire point.
+  assert.equal(durationSeconds(wav), 1);
+});
+
+test('durationSeconds refuses rather than guessing on an unparseable file', () => {
+  assert.equal(durationSeconds(new Uint8Array(8)), null);
 });

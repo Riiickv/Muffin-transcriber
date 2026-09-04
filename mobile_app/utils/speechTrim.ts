@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { ModelManager } from './ModelManager';
-import { trimToSpeech } from './wavTrim';
+import { trimToSpeech, durationSeconds } from './wavTrim';
 
 /**
  * Removes the silence from a recording before whisper ever sees it.
@@ -85,7 +85,17 @@ const bytesToB64 = (bytes: Uint8Array): string => {
   return btoa(bin);
 };
 
-export type TrimResult = { path: string; keptSeconds: number; totalSeconds: number };
+export type TrimResult = {
+  /**
+   * The speech-only copy to transcribe, or NULL meaning "use the original".
+   *
+   * Nullable so a declined trim can still report the duration it measured. The
+   * caller must not try to delete a null path.
+   */
+  path: string | null;
+  keptSeconds: number;
+  totalSeconds: number;
+};
 
 /**
  * Returns a path to a speech-only copy, or null to use the original.
@@ -107,8 +117,21 @@ export async function trimSilence(wavPath: string): Promise<TrimResult | null> {
     if (!Array.isArray(spans) || spans.length === 0) return null;
 
     const b64 = await FileSystem.readAsStringAsync(wavPath, { encoding: 'base64' as any });
-    const trimmed = trimToSpeech(b64ToBytes(b64), spans);
-    if (!trimmed) return null;
+    const bytes = b64ToBytes(b64);
+    const trimmed = trimToSpeech(bytes, spans);
+    if (!trimmed) {
+      // The trim DECLINED, which for continuous speech is the normal outcome:
+      // it does nothing when it would save under 15%. That used to return null
+      // and the transcription carried on with the original, which is right.
+      //
+      // What was wrong is that it also threw away the duration, and the Speed
+      // report then fell back to the end of whisper's last segment. Report the
+      // real length instead, so a declined trim stops being a silently
+      // different measurement from an accepted one.
+      const seconds = durationSeconds(bytes);
+      if (seconds === null) return null;
+      return { path: null, keptSeconds: seconds, totalSeconds: seconds };
+    }
 
     const out = `${FileSystem.cacheDirectory}muffin-speech-${Date.now()}.wav`;
     await FileSystem.writeAsStringAsync(out, bytesToB64(trimmed.wav), { encoding: 'base64' as any });

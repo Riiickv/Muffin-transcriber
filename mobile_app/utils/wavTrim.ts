@@ -105,6 +105,30 @@ export function framesIn(ranges: SampleRange[]): number {
  * `minSavingRatio` is how much of the file has to be silence before it is worth
  * rewriting: below that the copy costs more than the skipped audio saves.
  */
+/**
+ * How long the recording is, straight from its own header.
+ *
+ * Exists because the Speed report was quoting a length it had guessed. When the
+ * trim declines, which is the common case for continuous speech, trimToSpeech
+ * returns null and the caller fell back to the end of whisper's LAST SEGMENT.
+ * That is where whisper stopped emitting words, not where the audio stops, so
+ * any trailing silence or an early-finishing decode made the recording look
+ * shorter than it was and the realtime factor look worse than it was. One run
+ * was reported as 45 seconds of audio and used, in this repo, to argue that
+ * short clips cost more than long ones.
+ *
+ * trimToSpeech already computes this and throws it away on every decline path.
+ * This is the same arithmetic, kept.
+ */
+export function durationSeconds(bytes: Uint8Array): number | null {
+  const info = parseWav(bytes);
+  if (!info) return null;
+  const bytesPerFrame = info.channels * 2;
+  if (bytesPerFrame <= 0 || info.sampleRate <= 0) return null;
+  const frames = Math.floor(info.dataLength / bytesPerFrame);
+  return frames > 0 ? frames / info.sampleRate : null;
+}
+
 export function trimToSpeech(
   bytes: Uint8Array,
   spans: VadSpan[],

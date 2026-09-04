@@ -204,9 +204,19 @@ export async function transcribeFile(
     language: languageCode || 'auto',
     // Keep transcription in the source language (don't translate to English).
     translate: false,
-    // Greedy decoding: ~3-5x faster than beam search with negligible quality
-    // loss for speech transcription. Token timestamps stay off - nothing in
-    // the app consumes them and they add per-token cost.
+    // NOT greedy, whatever this comment used to claim. whisper.rn switches the
+    // strategy to WHISPER_SAMPLING_BEAM_SEARCH whenever beamSize is above zero
+    // (cpp/jsi/RNWhisperJSI.cpp:762-765), so beamSize 1 is a beam search with a
+    // beam of one. That is near enough to greedy in what it PRODUCES, and it is
+    // left alone because changing it changes decoding on every recording and
+    // there is no device here to check it on. It is written down because the
+    // old comment would have misled the next person measuring this.
+    //
+    // DO NOT separate these two lines. Under beam search, whisper.cpp resets
+    // the decoder count to greedy.best_of for every temperature-fallback retry
+    // past the first (whisper.cpp:7057-7062), and best_of defaults to 5. Drop
+    // bestOf on its own, thinking it is a greedy-only knob, and each retry
+    // quietly becomes five parallel decoders.
     beamSize: 1,
     bestOf: 1,
     // Temperature fallback stays at whisper.cpp's default. Turning it off
@@ -248,7 +258,7 @@ export async function transcribeFile(
 
   const trimmed = await trimSilence(audioPath);
   perf.mark('vad');
-  const inputPath = trimmed ? trimmed.path : audioPath;
+  const inputPath = trimmed?.path ?? audioPath;
 
   return whisperQueue(async () => {
     const { promise, stop } = whisperContext!.transcribe(inputPath, options);
@@ -256,18 +266,24 @@ export async function transcribeFile(
     try {
       const result = await promise;
       perf.mark('transcribe');
-      // The TRIMMED length, since that is what whisper actually chewed on; a
-      // realtime factor against the original would flatter the VAD.
+      // The length of the RECORDING, so the realtime factor answers the
+      // question the person waiting is actually asking: how long was my voice
+      // message against how long did I wait.
       //
-      // But the trim is allowed to decline - it does nothing when it would save
-      // under 15%, which is most continuous speech - and this used to read
-      // `trimmed?.keptSeconds` alone. So on every clip worth keeping whole the
-      // length came back undefined and the report printed no realtime factor at
-      // all, which is the one number that says whether transcription is fast.
-      // Whisper's own segment ends give it for free, in centiseconds, and they
-      // are measured against whatever audio it was actually handed.
+      // This used to be the trimmed length, on the reasoning that it is what
+      // whisper chewed on. That measures the engine rather than the wait, and
+      // it silently changed meaning depending on whether the trim went ahead.
+      // Worse was the fallback: the trim declines on most continuous speech and
+      // returned nothing at all, so this fell through to endOfLastSegment, the
+      // time whisper stopped emitting words. Trailing silence or a decode that
+      // finished early made a recording look shorter than it was, which makes
+      // the realtime factor look worse than it was.
+      //
+      // That fallback is still here, and it is still a guess, but it is now
+      // reached only when the trim could not run at all: a non-WAV input, or
+      // the Silero model not downloaded yet.
       void perf.finish({
-        audioSeconds: trimmed?.keptSeconds ?? endOfLastSegment(result.segments),
+        audioSeconds: trimmed?.totalSeconds ?? endOfLastSegment(result.segments),
         outputChars: (result.result || '').length,
       });
       return {
@@ -280,7 +296,9 @@ export async function transcribeFile(
       };
     } finally {
       stopCurrentTranscription = null;
-      if (trimmed) await discardTrim(trimmed.path);
+      // Only a real copy gets deleted. A declined trim now reports its
+      // duration with a null path and there is no temp file behind it.
+      if (trimmed?.path) await discardTrim(trimmed.path);
     }
   });
 }
