@@ -61,3 +61,22 @@ test('unknown length drafts, because that is the shared voice message case', () 
   assert.equal(shouldDraft(undefined), true);
   assert.equal(shouldDraft(0), true);
 });
+
+// Whisper identifies the language from the first window, and Tiny's is weak
+// enough to call Italian English. A draft in the wrong language, replaced a
+// minute later, reads as a broken app rather than a refinement.
+test('on Auto-Detect, tiny is skipped and the next model drafts instead', () => {
+  assert.equal(pickDraftModel(TURBO, [TINY, SMALL, TURBO], ORDER, true), SMALL);
+});
+
+test('with a language chosen, tiny is fine to draft with', () => {
+  assert.equal(pickDraftModel(TURBO, [TINY, SMALL, TURBO], ORDER, false), TINY);
+});
+
+test('on Auto-Detect with only tiny available, there is no draft at all', () => {
+  assert.equal(pickDraftModel(TURBO, [TINY, TURBO], ORDER, true), null);
+});
+
+test('the language flag defaults to trusting the model, so old callers are unchanged', () => {
+  assert.equal(pickDraftModel(TURBO, [TINY, SMALL, TURBO], ORDER), TINY);
+});

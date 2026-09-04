@@ -60,6 +60,7 @@ export async function transcribeProgressive(
       chosenModelId,
       downloaded,
       WHISPER_MODELS.map((m) => m.id),
+      !languageCode || languageCode === 'auto',
     );
   }
 

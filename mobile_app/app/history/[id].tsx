@@ -279,7 +279,16 @@ export default function HistoryDetailScreen() {
       }
       const whisperPath = ModelManager.getModelPath(settings.preferredWhisperModel);
       await loadWhisper(whisperPath);
-      const langCode = toLanguageCode(settings.defaultLanguage);
+      // Reuse what a previous pass already worked out. On Auto-Detect this
+      // used to ask the model to guess from scratch every time, which threw
+      // away a correct answer the app had already stored: Turbo detects
+      // Italian, and re-transcribing with a smaller model asks IT to guess,
+      // and small models have weak language ID - so a Re-Transcribe on the
+      // fast tier came back in English. An explicit choice still wins over a
+      // remembered guess.
+      const chosenLang = toLanguageCode(settings.defaultLanguage);
+      const langCode =
+        chosenLang === 'auto' && item.detectedLanguage ? item.detectedLanguage : chosenLang;
       // transcribeAudio, not transcribeFile: sourceFilePath is whatever format
       // the recording is in, and handing that straight to whisper is what made
       // Re-transcribe fail with "Invalid WAV file" on anything recorded before
