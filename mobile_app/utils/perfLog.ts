@@ -181,13 +181,33 @@ const AVG_KEY = 'muffin.perf.modelAvg';
 /**
  * What one run contributes, or null when it should not count.
  *
- * A cold run paid for a model load the next one will not, so folding it in would
- * pull the average toward a cost most runs never pay.
+ * It used to DISCARD every cold run, and for transcription that meant discarding
+ * all of them. Whisper's context does not survive between sessions and
+ * progressive transcription swaps models mid-run on purpose, so in real use
+ * essentially every transcribe run is cold: a user's log showed five
+ * transcriptions over two hours, every one marked COLD, contributing nothing.
+ * The Models screen is built to prefer a measurement from this phone over the
+ * shipped table, and the measurement it was waiting for could never arrive.
+ * Meanwhile the table was quoting a number five times too optimistic with
+ * nothing able to correct it.
+ *
+ * The reason given for discarding them does not hold for transcription, and the
+ * arithmetic in any Speed report says so: `total 132.2s / vad 3.1s, transcribe
+ * 129.1s, COLD 1.8s`. The stages that SUM to the total are vad and transcribe;
+ * the load sits outside it, because startRun begins after loadWhisper has
+ * already returned. There was never any load cost in the number to remove.
+ *
+ * The LLM is genuinely different and still opts out. Its weights are mmapped, so
+ * a cold run pages them in from flash DURING prefill rather than before it, and
+ * a cold prefill was measured at a quarter of the speed of the warm one right
+ * after. That inflation is inside totalMs and cannot be subtracted out, so those
+ * runs stay excluded.
  */
 function contributionOf(run: PerfRun): number | null {
-  if (run.stages.some((s) => s.name.startsWith('COLD'))) return null;
   if (run.totalMs <= 0) return null;
   if (run.kind === 'transcribe') return run.totalMs / 1000;
+
+  if (run.stages.some((s) => s.name.startsWith('COLD'))) return null;
 
   // LLM runs are quoted per minute of transcript, since their cost scales with
   // length where transcription's does not. outputChars is the only length kept;

@@ -47,7 +47,33 @@ export const RECOMMENDED: Record<DeviceTier, Record<ModelGroup, string | null>> 
     embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',
   },
   high: {
-    whisper: 'ggml-large-v3-turbo-q8_0.bin',
+    // Small, NOT turbo, and this is a speed decision on a table that otherwise
+    // only weighs RAM.
+    //
+    // Measured on a Pixel 9 Pro XL (16 GB, Tensor G4, 4 threads, i8mm kernels),
+    // 2026-09-04. Same 107s voice message, three runs of turbo: 132.2s, 158.4s
+    // and 284.6s, i.e. 0.81x, 0.68x and 0.38x realtime. Tiny on a comparable
+    // 111s clip: 3.1s of transcribe, about 36x realtime. Turbo is roughly 40x
+    // the cost of tiny and never once finished faster than the audio was long.
+    //
+    // That phone is close to the ceiling of what Android hardware does, and it
+    // was the tier's own recommendation that put turbo there: a voice note cost
+    // two to five minutes and left the phone hot. Recommending it by RAM alone
+    // gave the best devices the worst experience, which is the exact opposite of
+    // what a tier table is for.
+    //
+    // Turbo stays in the catalog and stays selectable - it is genuinely the most
+    // accurate, and someone transcribing a lecture they will read later is right
+    // to choose it. It is just not what an unattended default should hand to
+    // someone waiting on a voice message.
+    //
+    // NOT YET MEASURED: small on this hardware. Its encoder is about 7x lighter
+    // than turbo's (12 layers x 768 wide against 32 x 1280), and the tiny/turbo
+    // ratio came in about half what that kind of arithmetic predicts, so the
+    // honest expectation is 3-4x realtime, roughly half a minute for a two
+    // minute message. That is an estimate from architecture, not a measurement,
+    // and it should be replaced with a real number from a Speed report.
+    whisper: 'ggml-small-q8_0.bin',
     formatter: 'qwen2.5-1.5b-instruct-q4_k_m.gguf',
     chat: 'Phi-3-mini-4k-instruct-q4.gguf',
     embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',

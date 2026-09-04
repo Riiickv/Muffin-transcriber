@@ -11,16 +11,42 @@ import type { DeviceTier } from './deviceTierData';
  * WHAT THESE NUMBERS ARE, AND WHAT THEY ARE NOT
  *
  * There is exactly ONE device these were measured on: a Pixel 9 Pro XL (Tensor
- * G4, 4 performance cores, both engines on their dotprod+i8mm builds). On it,
- * ggml-large-v3-turbo-q8_0 cost ~26s for a 9 second clip, of which 1.9s was
- * loading the model. 37 seconds of audio cost 41s and 6 seconds cost 34s - six
- * times the audio for 22% more time - so the dominant term is FIXED per
- * recording, not per minute. That fixed term is the encoder, which always
- * processes a padded 30 second window whatever it was handed.
+ * G4, 4 performance cores, both engines on their dotprod+i8mm builds).
  *
- * So the whisper estimate is a per-recording constant, scaled between models by
- * encoder depth (which is a real, published ratio) and between devices by tier
- * (which is a guess, and the weakest link here).
+ * The FIRST calibration, from clips of 6 to 37 seconds, concluded the cost was a
+ * flat per-recording toll: six times the audio for 22% more time. That is true
+ * only while the whole clip fits in one or two of whisper's padded 30 second
+ * windows, and it was measured entirely inside that range. Longer recordings
+ * scale with the number of windows, and the flat reading understated them badly:
+ * it predicted 26s for large-v3-turbo, which on a 107 second voice message
+ * actually cost between 132s and 285s.
+ *
+ * RE-CALIBRATED 2026-09-04 against runs on real voice messages. The shape that
+ * fits both ends is per WINDOW, not per recording:
+ *
+ *     total ~= vad + ceil(seconds / 30) * ENCODER_WEIGHT * k
+ *
+ *   tiny,  111s (4 windows), 6.7s total, 3.6s vad   ->  k = 0.78
+ *   turbo, 107s (4 windows), 132.2s,     3.1s vad   ->  k = 1.01
+ *   turbo, 107s (4 windows), 158.4s,     3.7s vad   ->  k = 1.21
+ *   turbo, 107s (4 windows), 284.6s,     5.4s vad   ->  k = 2.18   (outlier)
+ *   turbo,  45s (2 windows), 165.7s,     3.9s vad   ->  k = 2.53   (outlier)
+ *
+ * A 40x span of model sizes agreeing on k within about 1.5x is a real fit. The
+ * two outliers are NOT explained: both are late in a session on a phone the user
+ * reported as hot, and whisper's temperature fallback can also decode a bad
+ * window up to six times. Thermal throttling and fallback retries both predict
+ * exactly this and this log cannot separate them. Treat k as 1.2 with a long
+ * tail rather than a constant.
+ *
+ * This file still reports per RECORDING, because the Models screen shows the
+ * estimate before any recording exists and has no length to scale by. So the
+ * anchor is a TYPICAL voice message, about one minute, i.e. two windows:
+ * k = 1.2 x 2 windows = 2.4 seconds per unit of encoder weight. Anything much
+ * longer scales roughly linearly in windows on top of that.
+ *
+ * Between models it scales by encoder depth (a real, published ratio) and
+ * between devices by tier (a guess, and the weakest link here).
  *
  * Everything derived from that one anchor is an ESTIMATE and must be shown as
  * one. Where the user's own history has a real measurement for a model, prefer
@@ -48,8 +74,13 @@ const ENCODER_WEIGHT: Record<string, number> = {
   'ggml-large-v3.bin': 32,
 };
 
-/** Seconds per unit of encoder weight, from the measured anchor: 26s / 32. */
-const SECONDS_PER_WEIGHT = 26 / 32;
+/**
+ * Seconds per unit of encoder weight for a typical one minute recording, from
+ * the per-window fit above: k = 1.2, two windows. The old value was 26/32 =
+ * 0.81, calibrated on a 9 second clip, and it promised 26s where turbo really
+ * took two to five minutes.
+ */
+const SECONDS_PER_WEIGHT = 2.4;
 
 /**
  * How much slower a tier is than the phone the anchor came from.

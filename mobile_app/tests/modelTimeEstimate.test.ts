@@ -63,11 +63,27 @@ test('a weaker device is estimated slower, never faster', () => {
 });
 
 test('the anchor still matches what was measured', () => {
-  // 26s for Large v3 Turbo on the phone this was calibrated against. If a
-  // refactor moves this, every number in the UI moved with it.
+  // 76.8s for Large v3 Turbo on the phone this was calibrated against: encoder
+  // weight 32 x 2.4s, being k=1.2 over the two windows of a one minute voice
+  // message. If a refactor moves this, every number in the UI moved with it.
   const e = estimateFor('ggml-large-v3-turbo-q8_0.bin', 'high')!;
-  assert.ok(Math.abs(e.seconds - 26) < 0.5, `anchor drifted to ${e.seconds}`);
+  assert.ok(Math.abs(e.seconds - 76.8) < 0.5, `anchor drifted to ${e.seconds}`);
   assert.equal(e.measured, false);
+});
+
+// The old anchor said 26s. Measured runs on a real voice message came back
+// between 132s and 285s, so the screen where people CHOOSE this model was
+// promising a fifth of the true wait, on the tier that had it as the default.
+// A too-slow estimate costs a shrug; a too-fast one costs trust.
+test('the whisper estimate is not wildly optimistic any more', () => {
+  const turbo = estimateFor('ggml-large-v3-turbo-q8_0.bin', 'high')!.seconds;
+  assert.ok(turbo > 60, `turbo quoted at ${turbo}s, which no measured run came close to`);
+
+  // Small is the high tier's recommendation now, so its estimate is the one
+  // most people will read. It must stay in "worth waiting for" territory.
+  const small = estimateFor('ggml-small-q8_0.bin', 'high')!.seconds;
+  assert.ok(small < 30, `small quoted at ${small}s`);
+  assert.ok(small < turbo / 3, 'small must read as dramatically cheaper than turbo');
 });
 
 test('a real measurement wins over the table and says so', () => {
