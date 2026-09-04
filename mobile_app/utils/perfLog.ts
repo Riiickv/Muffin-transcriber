@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
+import Constants from 'expo-constants';
 
 /**
  * Wall-clock timings for the two things that make people wait: transcription
@@ -91,6 +92,16 @@ export type PerfRun = {
   /** One short phrase on what the app did with it, e.g. how it was trimmed. */
   notes?: string;
   /**
+   * Set while the run is IN FLIGHT, cleared when it finishes.
+   *
+   * A row that still has one is a run that started and never came back. That
+   * used to be invisible: the record was only written on completion, so every
+   * stalled or killed transcription left no trace at all and the report showed
+   * nothing but successes. Somebody reporting "it just stops" then had no way
+   * to show it, and neither did the log.
+   */
+  pendingId?: string;
+  /**
    * How much of this run happened while the app was NOT in the foreground.
    *
    * totalMs is wall clock, so when Android suspends a backgrounded app the
@@ -124,6 +135,19 @@ export function startRun(kind: string, model: string) {
   // again and nothing remembers that it ever was not.
   let backgroundMs = 0;
   let leftAt: number | null = AppState.currentState === 'active' ? null : began;
+  // Written NOW, not at the end, so a run that never finishes still leaves a
+  // row. Fire and forget: a placeholder that fails to save must not delay the
+  // work it is describing.
+  const pendingId = `${began}-${kind}`;
+  void record({
+    at: new Date(began).toISOString(),
+    kind,
+    model,
+    totalMs: 0,
+    stages: [],
+    pendingId,
+  });
+
   let sub: { remove: () => void } | null = AppState.addEventListener('change', (next) => {
     if (next === 'active') {
       if (leftAt !== null) {
@@ -174,6 +198,9 @@ export function startRun(kind: string, model: string) {
         model,
         totalMs: Date.now() - began,
         backgroundMs: backgroundMs > 0 ? backgroundMs : undefined,
+        // Carried so record() knows to REPLACE the placeholder rather than add
+        // a second row. Stripped there once it has served that purpose.
+        pendingId,
         stages: allStages,
         ...extra,
       };
@@ -186,7 +213,15 @@ export function startRun(kind: string, model: string) {
 async function record(run: PerfRun): Promise<void> {
   try {
     const runs = await loadRuns();
-    runs.unshift(run);
+    // A finished run REPLACES its own placeholder in place. Only a row with a
+    // pendingId still set is genuinely unfinished.
+    const at = run.pendingId ? runs.findIndex((r) => r.pendingId === run.pendingId) : -1;
+    const settled = run.totalMs > 0 ? { ...run, pendingId: undefined } : run;
+    if (at >= 0) {
+      runs[at] = settled;
+    } else {
+      runs.unshift(settled);
+    }
     await AsyncStorage.setItem(KEY, JSON.stringify(runs.slice(0, MAX_RUNS)));
   } catch {
     // A timing that cannot be stored must never break the thing it was timing.
@@ -222,11 +257,40 @@ export async function clearRuns(): Promise<void> {
  * many seconds of audio get done per second of waiting. A 2-hour lecture at
  * 4x is half an hour; at 0.8x it is longer than the lecture.
  */
-export function formatRuns(runs: PerfRun[]): string {
-  if (runs.length === 0) return 'No runs recorded yet.';
+/**
+ * Which build produced this report.
+ *
+ * Printed because a report was once pasted to show a fix had not worked, and
+ * it was in fact the PREVIOUS build's report: nothing in it, and nothing
+ * anywhere in the app, said which version it came from. versionCode is the one
+ * number that moves on every build, so it is the one worth showing.
+ */
+export function buildLabel(): string {
+  try {
+    const code =
+      (Constants.expoConfig as any)?.android?.versionCode ??
+      (Constants as any)?.manifest?.android?.versionCode;
+    const name = (Constants.expoConfig as any)?.version;
+    if (code) return `Muffin ${name ?? '?'} (build ${code})`;
+  } catch {
+    // Never worth failing a report over.
+  }
+  return 'Muffin (build unknown)';
+}
 
-  return runs
+export function formatRuns(runs: PerfRun[]): string {
+  if (runs.length === 0) return `${buildLabel()}\n\nNo runs recorded yet.`;
+
+  const body = runs
     .map((r) => {
+      // A run that started and never came back. It has no timings to print
+      // because it never got any, and that absence IS the finding.
+      if (r.pendingId) {
+        return (
+          `${r.at.slice(0, 19).replace('T', ' ')}  ${r.kind}  ${r.model}\n` +
+          '  NEVER FINISHED - started and did not come back (stalled, killed, or still running)'
+        );
+      }
       const head = `${r.at.slice(0, 19).replace('T', ' ')}  ${r.kind}  ${r.model}`;
       const total = `total ${(r.totalMs / 1000).toFixed(1)}s`;
       const rtf =
@@ -251,6 +315,8 @@ export function formatRuns(runs: PerfRun[]): string {
       return `${head}\n  ${total}${rtf}${rate}\n  ${parts}${input}`;
     })
     .join('\n\n');
+
+  return `${buildLabel()}\n\n${body}`;
 }
 
 /**
