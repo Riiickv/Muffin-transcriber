@@ -32,12 +32,25 @@ import type { DeviceTier } from './deviceTierData';
  *   turbo, 107s (4 windows), 284.6s,     5.4s vad   ->  k = 2.18   (outlier)
  *   turbo,  45s (2 windows), 165.7s,     3.9s vad   ->  k = 2.53   (outlier)
  *
- * A 40x span of model sizes agreeing on k within about 1.5x is a real fit. The
- * two outliers are NOT explained: both are late in a session on a phone the user
- * reported as hot, and whisper's temperature fallback can also decode a bad
- * window up to six times. Thermal throttling and fallback retries both predict
- * exactly this and this log cannot separate them. Treat k as 1.2 with a long
- * tail rather than a constant.
+ * A 40x span of model sizes agreeing on k within about 1.5x is a real fit, and
+ * k = 1.2 comes from those three rows alone. The two outliers were excluded and
+ * remain unexplained.
+ *
+ * THE 45s ROW IS NOT TRUSTWORTHY AND ITS WINDOW COUNT MAY BE WRONG. When these
+ * were taken, audioSeconds fell back to the end of whisper's last segment
+ * whenever the silence trim declined, which is the normal outcome for
+ * continuous speech. That is where whisper stopped emitting words, not where
+ * the audio stops, so the recording may have been considerably longer than 45
+ * seconds and the row may not be an outlier at all. Fixed since, in the same
+ * change that added this note: audioSeconds is now the real duration. Re-take
+ * these measurements before trusting the fit any further than it is trusted
+ * here, and do not add more rows from before that fix.
+ *
+ * The remaining candidates for the outliers, neither confirmed: thermal
+ * throttling (the COLD column, which is close to pure I/O, degraded 2.6x across
+ * the same session, which no decode explanation covers) and whisper's
+ * temperature fallback, which can decode a bad window up to six times. Treat k
+ * as 1.2 with a long tail rather than a constant.
  *
  * This file still reports per RECORDING, because the Models screen shows the
  * estimate before any recording exists and has no length to scale by. So the
