@@ -150,6 +150,66 @@ function endOfLastSegment(segments?: Array<{ t1: number }>): number | undefined 
   return Number.isFinite(t1) && t1 > 0 ? t1 / 100 : undefined;
 }
 
+/**
+ * What whisper's own VAD decided, captured from its native log.
+ *
+ * The report can say "silence trimmed by whisper" but not how much was trimmed,
+ * and without that number the interesting question is unanswerable: Tiny got
+ * SLOWER once VAD started working (9.1s untrimmed against 17.7s and 45.0s
+ * trimmed), which should be impossible if trimming removes work. Either VAD is
+ * keeping nearly everything, or it is inflating the audio, or the difference is
+ * something else entirely and VAD is innocent. Guessing between those is how
+ * this session already lost a build.
+ *
+ * whisper.cpp prints both numbers at INFO (whisper.cpp:6683 and :6708) and the
+ * macro is compiled in, so nothing needs patching. whisper.rn just has to be
+ * asked to forward them.
+ */
+let vadKeptSeconds: number | null = null;
+let vadSegmentCount: number | null = null;
+let nativeLogArmed = false;
+
+function armNativeLog(): void {
+  if (nativeLogArmed) return;
+  nativeLogArmed = true;
+  try {
+    const w = require('whisper.rn');
+    void w.toggleNativeLog(true);
+    w.addNativeLogListener((_level: string, text: string) => {
+      // Cheap on purpose: this sees every native log line, including the noisy
+      // ones during a model load, so it must do almost nothing for a non-match.
+      if (typeof text !== 'string' || text.indexOf('speech segments') < 0) return;
+      const kept = /total duration of speech segments:\s*([\d.]+)/.exec(text);
+      if (kept) vadKeptSeconds = parseFloat(kept[1]);
+      const count = /detected (\d+) speech segments/.exec(text);
+      if (count) vadSegmentCount = parseInt(count[1], 10);
+    });
+  } catch {
+    // Diagnostics are never worth failing a transcription over.
+  }
+}
+
+/** The one phrase describing what happened to the silence, for the report. */
+function vadNote(usedVad: boolean, reading: string, failure: string): string {
+  if (usedVad) {
+    return reading ? `silence trimmed by whisper: ${reading}` : 'silence trimmed by whisper';
+  }
+  return failure || 'no silence trim, Silero not downloaded yet';
+}
+
+/** Reads and clears, so one run's numbers can never be reported by the next. */
+function takeVadReading(): string {
+  const kept = vadKeptSeconds;
+  const count = vadSegmentCount;
+  vadKeptSeconds = null;
+  vadSegmentCount = null;
+  if (kept === null && count === null) return '';
+  const parts: string[] = [];
+  if (kept !== null) parts.push(`${kept.toFixed(1)}s of speech kept`);
+  if (count !== null) parts.push(`${count} speech spans`);
+  return parts.join(' in ');
+}
+
 export async function transcribeFile(
   audioPath: string,
   languageCode: string = 'auto',
@@ -289,6 +349,7 @@ export async function transcribeFile(
   // context failed to initialise, whisper_full returned -1, and the fallback
   // below quietly transcribed everything untrimmed. Every run on build 100
   // reported "VAD produced nothing" for this reason.
+  armNativeLog();
   const vadModelUri = await ensureVadModel();
   const vadModelPath = vadModelUri?.startsWith('file://')
     ? vadModelUri.slice('file://'.length)
@@ -375,9 +436,9 @@ export async function transcribeFile(
         outputChars: (result.result || '').length,
         audioFormat: describeAudio(audio),
         notes: [
-          usedVad
-            ? 'silence trimmed by whisper'
-            : vadFailure || 'no silence trim, Silero not downloaded yet',
+          // Read unconditionally, so a run that fell back cannot inherit the
+          // previous run's numbers and report them as its own.
+          vadNote(usedVad, takeVadReading(), vadFailure),
           // What whisper decided the language was. Free, already in hand, and
           // the only way to tell from a pasted report whether a bad
           // transcription was a slow model or auto-detect picking the wrong
