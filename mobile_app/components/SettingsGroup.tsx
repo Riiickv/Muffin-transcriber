@@ -69,6 +69,8 @@ interface SettingsRowProps {
   /** Show a > affordance. Implied when `onPress` is set and there's no `right`. */
   chevron?: boolean;
   onPress?: () => void;
+  /** Held, not tapped. Used for developer-only affordances. */
+  onLongPress?: () => void;
   tone?: RowTone;
   disabled?: boolean;
 }
@@ -87,6 +89,7 @@ export const SettingsRow = ({
   value,
   chevron,
   onPress,
+  onLongPress,
   tone = 'default',
   disabled,
 }: SettingsRowProps) => {
@@ -132,7 +135,7 @@ export const SettingsRow = ({
 
   if (!onPress || disabled) return body;
   return (
-    <AnimatedPressable onPress={onPress} scaleTo={0.99} style={{ borderRadius: RADIUS.sm }}>
+    <AnimatedPressable onPress={onPress} onLongPress={onLongPress} scaleTo={0.99} style={{ borderRadius: RADIUS.sm }}>
       {body}
     </AnimatedPressable>
   );

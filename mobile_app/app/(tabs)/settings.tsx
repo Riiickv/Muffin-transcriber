@@ -23,6 +23,10 @@ import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { getLanguageOptions } from '@/utils/languages';
 import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import { useDialog } from '@/components/Dialog';
+// THROWAWAY, with utils/chunkSpike.ts. Remove both together.
+import { runChunkSpike, formatSpike } from '@/utils/chunkSpike';
+import { loadHistory } from '@/utils/historyStore';
+import { unloadWhisper } from '@/utils/WhisperEngine';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t, APP_LANGUAGE_OPTIONS, AppLanguage } from '@/utils/i18n';
 import { openPrivacyPolicy } from '@/utils/support';
@@ -93,6 +97,66 @@ export default function SettingsScreen() {
   // The numbers behind "is it fast?". Every transcription and every LLM task
   // records how long it took; this reads them back. Nothing is uploaded - it is
   // the same on-device storage as everything else in the app.
+  // THROWAWAY, paired with utils/chunkSpike.ts. Hold "Speed report" to run it.
+  // Answers one question before any chunking work starts: does splitting a file
+  // across several whisper contexts beat one context on the whole file, or is
+  // the phone memory-bandwidth bound and the whole idea worthless? Deliberately
+  // picks the SMALLEST installed model, because three copies of large-v3-turbo
+  // is roughly 2.5GB of native memory and would take the phone down the way
+  // three llama processes took the PC down.
+  const runChunkSpikeNow = async () => {
+    haptics.tap();
+    const history = await loadHistory();
+    // The LONGEST recording, not the newest: chunking a ten second clip
+    // measures nothing, because each slice would be shorter than whisper's own
+    // 30s window and the parallel run would just be overhead.
+    const item = history
+      .filter((h) => h.sourceFilePath)
+      .sort((a, b) => (b.audioDurationMs || 0) - (a.audioDurationMs || 0))[0];
+    if (!item?.sourceFilePath) {
+      dialog.show({ title: 'Spike', message: 'No history entry with audio to test on.', buttons: [{ label: 'Ok' }] });
+      return;
+    }
+    const installed: string[] = [];
+    for (const m of WHISPER_MODELS) {
+      if (await ModelManager.isModelDownloaded(m.id)) installed.push(m.id);
+    }
+    const smallest = installed.find((id) => id.includes('tiny')) || installed[0];
+    if (!smallest) {
+      dialog.show({ title: 'Spike', message: 'No whisper model installed.', buttons: [{ label: 'Ok' }] });
+      return;
+    }
+    dialog.show({
+      title: 'Chunk spike',
+      message:
+        'Runs the same audio three ways and times each: whole file, sliced sequentially, sliced in parallel.\n\n' +
+        'Audio: ' + item.sourceFileName + ' (' + Math.round((item.audioDurationMs || 0) / 1000) + 's)' + '\nModel: ' + smallest + '\n\n' +
+        'Takes a few minutes and the phone will get warm.',
+      buttons: [
+        { label: 'Cancel', variant: 'secondary' },
+        {
+          label: 'Run',
+          variant: 'primary',
+          onPress: async () => {
+            // The app's own context would double the resident memory.
+            await unloadWhisper();
+            const res = await runChunkSpike(item.sourceFilePath!, ModelManager.getModelPath(smallest), 2);
+            const report = formatSpike(res);
+            dialog.show({
+              title: 'Chunk spike',
+              message: report,
+              messageAlign: 'left' as const,
+              buttons: [
+                { label: 'Copy', variant: 'secondary', onPress: () => { void Clipboard.setStringAsync(report); } },
+                { label: 'Ok' },
+              ],
+            });
+          },
+        },
+      ],
+    });
+  };
+
   const showSpeedReport = async () => {
     haptics.tap();
     // The timings mean nothing without knowing which engine build produced
@@ -380,6 +444,7 @@ export default function SettingsScreen() {
           icon="waveform"
           label={t('settings.speedReport') || 'Speed report'}
           onPress={showSpeedReport}
+          onLongPress={runChunkSpikeNow}
         />
       </SettingsGroup>
 
