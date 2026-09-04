@@ -71,7 +71,13 @@ export function StreamingText({ text, style }: { text: string; style?: StyleProp
   }, [tail, theme.text, theme.tintString]);
 
   return (
-    <Text style={style}>
+    // selectable, because this is real output arriving, not an animation of
+    // text that already exists. Decoding is autoregressive so the END cannot
+    // come sooner, but there is no reason to withhold the beginning: someone
+    // reading a voice message can copy the first two sentences and act on them
+    // while the rest is still being decoded. React Native's Text is not
+    // selectable by default, which is the only reason it was not.
+    <Text style={style} selectable>
       {blocks.map((b, i) => (
         <FrozenBlock key={i} text={b} />
       ))}

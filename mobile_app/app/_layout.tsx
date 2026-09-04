@@ -16,6 +16,7 @@ import { DialogProvider } from '@/components/Dialog';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useShareIntent } from 'expo-share-intent';
 import { useSettings } from '@/utils/settingsStore';
+import { warmWhisperIfReady } from '@/hooks/useWhisperPreload';
 import { setAppLanguage } from '@/utils/i18n';
 import { setShowModelNames } from '@/utils/ModelManager';
 
@@ -115,12 +116,20 @@ function RootLayoutNav() {
     if (hasShareIntent && shareIntent?.files && shareIntent.files.length > 0) {
       const fileUri = shareIntent.files[0].path;
       if (fileUri) {
+        // Warm here, for the same reason RecordingProvider warms when you press
+        // record: a share IS the moment transcription becomes guaranteed. Doing
+        // it only from the Muffin! tab's useWhisperPreload meant the load did
+        // not begin until after the navigation, the mount and the param read,
+        // so someone sharing a voice message watched a spinner for the whole
+        // model load before a single word appeared. It now overlaps with work
+        // that has to happen anyway.
+        warmWhisperIfReady(settings.preferredWhisperModel);
         router.push({ pathname: '/' as any, params: { uri: encodeURIComponent(fileUri) } });
       }
       resetShareIntent();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- router is a stable singleton from expo-router
-  }, [hasShareIntent, shareIntent, resetShareIntent]);
+  }, [hasShareIntent, shareIntent, resetShareIntent, settings.preferredWhisperModel]);
 
   return (
     <ThemeProvider value={customNavigationTheme} key={settings.appLanguage}>
