@@ -33,6 +33,27 @@ export function noteModelLoad(ms: number): void {
 }
 
 /**
+ * Work that happened BEFORE the run it belongs to started timing itself.
+ *
+ * Same trick as pendingLoadMs, and for the same reason. Converting a recording
+ * to the 16 kHz mono WAV whisper insists on happens in transcribeAudio, which
+ * calls transcribeFile, which is where startRun lives. So the conversion was
+ * never in any stage, never in totalMs, and completely invisible in the report
+ * despite being real time somebody spent waiting at a screen that said nothing.
+ */
+let pendingStages: PerfStage[] = [];
+
+export function noteStage(name: string, ms: number): void {
+  if (ms > 0) pendingStages.push({ name, ms });
+}
+
+function takePendingStages(): PerfStage[] {
+  const s = pendingStages;
+  pendingStages = [];
+  return s;
+}
+
+/**
  * Reads the pending load and clears it, so exactly one run is marked cold.
  *
  * Whichever run finishes next claims it. The engines are serialized, so that is
@@ -100,12 +121,16 @@ export function startRun(kind: string, model: string) {
     }) {
       const loadMs = takePendingLoad();
       if (loadMs > 0) stages.push({ name: 'COLD - model loaded this run', ms: loadMs });
+      // Prepended, because they really did happen first. They sit outside
+      // totalMs for the same reason the model load does: this run had not
+      // started timing when they ran.
+      const allStages = [...takePendingStages(), ...stages];
       const run: PerfRun = {
         at: new Date().toISOString(),
         kind,
         model,
         totalMs: Date.now() - began,
-        stages,
+        stages: allStages,
         ...extra,
       };
       await record(run);

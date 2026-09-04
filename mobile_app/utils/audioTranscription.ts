@@ -2,6 +2,7 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 
 import { convertToWav } from '@/modules/audio-converter';
 import { transcribeFile, TranscribeCallbacks } from './WhisperEngine';
+import { noteStage } from './perfLog';
 
 /**
  * Transcribe an audio file in whatever format it happens to be.
@@ -26,7 +27,13 @@ export async function transcribeAudio(
   const tmpWav = `${FileSystemLegacy.cacheDirectory}muffin_tmp_${Date.now()}.wav`;
   try {
     try {
+      // Timed, because it was invisible. This runs before transcribeFile calls
+      // startRun, so on the Re-transcribe path a source that is not already a
+      // 16 kHz mono WAV pays a full decode and re-encode that appeared in no
+      // stage and in no total.
+      const startedConverting = Date.now();
       await convertToWav(sourcePath, tmpWav);
+      noteStage('convert', Date.now() - startedConverting);
     } catch {
       // The converter couldn't read it. The one case where that's recoverable
       // is a file that's ALREADY the PCM WAV whisper wants, so let whisper look

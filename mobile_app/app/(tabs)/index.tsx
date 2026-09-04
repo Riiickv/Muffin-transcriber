@@ -76,7 +76,7 @@ export default function HomeScreen() {
   // Compact spacing preset on short/display-zoomed windows - see useResponsive.
   const { isShort } = useResponsive();
   // Once a file is picked, transcription is imminent - warm the model.
-  useWhisperPreload(!!selectedFileUri);
+  useWhisperPreload(!!selectedFileUri, { progressive: true });
 
   const selectedWhisperDef = WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel);
   const isEnglishOnly = selectedWhisperDef?.isEnglishOnly ?? false;

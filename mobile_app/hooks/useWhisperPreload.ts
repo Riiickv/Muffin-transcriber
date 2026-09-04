@@ -19,14 +19,30 @@ import { toLanguageCode } from '@/utils/languages';
  * preloadWhisper is a no-op once something is loaded or loading, so calling
  * this repeatedly is free.
  */
-export async function warmWhisperIfReady(modelId: string): Promise<void> {
+export async function warmWhisperIfReady(
+  modelId: string,
+  /**
+   * Does the caller go through transcribeProgressive?
+   *
+   * It MATTERS, and getting it wrong is worse than not warming at all. Only
+   * the Muffin! tab runs a draft pass; Record and History Re-transcribe call
+   * loadWhisper with the chosen model directly. Warming a draft model for
+   * those meant loadWhisper found the wrong context resident, and because it
+   * coalesces with any load in flight, the user's tap first WAITED for a model
+   * it did not want to finish loading, then unloaded it, then loaded the right
+   * one. Reported as "it takes ages to mount the model, and even if it's
+   * mounted already, sometimes it stops and resumes ages later", which is
+   * exactly what that looks like from the outside.
+   */
+  opts: { progressive?: boolean } = {},
+): Promise<void> {
   if (!modelId) return;
   try {
     if (!(await ModelManager.isModelDownloaded(modelId))) return;
 
     let first = modelId;
     const settings = await loadSettings();
-    if (settings.progressiveTranscription) {
+    if (opts.progressive && settings.progressiveTranscription) {
       const downloaded: string[] = [];
       for (const m of WHISPER_MODELS) {
         if (await ModelManager.isModelDownloaded(m.id)) downloaded.push(m.id);
@@ -59,13 +75,17 @@ export async function warmWhisperIfReady(modelId: string): Promise<void> {
 // Screen hook: warm on focus, but only where a transcription is clearly
 // imminent (gate with `active`) - a resident large model is ~600MB of native
 // RAM, so mere tab visits shouldn't commit it.
-export function useWhisperPreload(active: boolean = true) {
+export function useWhisperPreload(
+  active: boolean = true,
+  opts: { progressive?: boolean } = {},
+) {
   const { settings } = useSettings();
   const modelId = settings.preferredWhisperModel;
+  const progressive = !!opts.progressive;
 
   useFocusEffect(
     useCallback(() => {
-      if (active) void warmWhisperIfReady(modelId);
-    }, [active, modelId])
+      if (active) void warmWhisperIfReady(modelId, { progressive });
+    }, [active, modelId, progressive])
   );
 }
