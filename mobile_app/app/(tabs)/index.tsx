@@ -16,7 +16,7 @@ import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
 import { transcribeProgressive } from '@/utils/progressiveTranscribe';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
-import { createProgressTracker } from '@/utils/transcribeProgress';
+import { createProgressTracker, describeProgress } from '@/utils/transcribeProgress';
 import { usePacedReveal } from '@/hooks/usePacedReveal';
 import { TranscriptFullscreen } from '@/components/TranscriptFullscreen';
 import { TranscriptPanel, type TranscriptTab } from '@/components/TranscriptPanel';
@@ -229,6 +229,17 @@ export default function HomeScreen() {
             if (now - lastPush < 500 && reading.percent < 100) return;
             lastPush = now;
             setTranscribePercent(reading.percent);
+            // The WaitingCard's status line, which rawText feeds, was set once
+            // to "Transcribing..." and then never moved again. On the most
+            // accurate model that is a static string for two to five minutes,
+            // with the progress bar unable to help: it renders inside the
+            // STREAMING branch, so it does not exist until there is text, and
+            // without a draft there is no text until whisper finishes its first
+            // 30s window. The honest report of "is this thing working" was a
+            // word that never changed. describeProgress adds the percentage and
+            // the measured time remaining, and returns the bare label until
+            // there is enough signal to say either honestly.
+            setRawText(describeProgress(transcribingLabel, reading));
           },
           // Never let the visible text get SHORTER. The accurate pass starts
           // from nothing, so without this the finished draft would be replaced
