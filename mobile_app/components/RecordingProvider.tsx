@@ -139,7 +139,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
       recorder.record();
       setIsRecording(true);
       // Transcription is now guaranteed - warm the model while they speak.
-      warmWhisperIfReady(settings.preferredWhisperModel);
+      void warmWhisperIfReady(settings.preferredWhisperModel);
     } catch (e) {
       console.error('recorder.record failed:', e);
       dialog.show({

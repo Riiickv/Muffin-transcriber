@@ -76,6 +76,17 @@ export async function loadWhisper(modelPath: string): Promise<void> {
 // still looking at the screen, so tapping Transcribe doesn't pay it. Only when
 // nothing is loaded or loading - never swaps a live context out from under a
 // running transcription.
+/**
+ * Is this exact model already resident?
+ *
+ * Needed because swapping models is not cheap: loadWhisper unloads whatever is
+ * there first, so asking for a small model while a large one is warm throws the
+ * large one away and pays for it twice. Anything that might swap should check.
+ */
+export function isWhisperLoaded(modelPath: string): boolean {
+  return !!whisperContext && currentModelPath === modelPath;
+}
+
 export function preloadWhisper(modelPath: string): void {
   if (whisperContext || loadPromise) return;
   loadWhisper(modelPath).catch(() => {});

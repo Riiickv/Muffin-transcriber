@@ -1,5 +1,5 @@
 import { ModelManager, WHISPER_MODELS } from './ModelManager';
-import { loadWhisper, transcribeFile, TranscribeCallbacks } from './WhisperEngine';
+import { loadWhisper, transcribeFile, isWhisperLoaded, TranscribeCallbacks } from './WhisperEngine';
 import { pickDraftModel, shouldDraft } from './progressiveDraft';
 
 export type TranscribeResult = { text: string; segments: any[]; language?: string };
@@ -44,7 +44,14 @@ export async function transcribeProgressive(
   const chosenPath = ModelManager.getModelPath(chosenModelId);
 
   let draftId: string | null = null;
-  if (enabled && shouldDraft(audioMs)) {
+  // If the accurate model is ALREADY resident, drafting is a net loss and a
+  // large one: loadWhisper unloads before it loads, so a draft would throw away
+  // a warm 850MB context, load a small one, then pay for the large one a second
+  // time. That is exactly what the share-intent warm-up caused - it loaded the
+  // chosen model, and this function immediately discarded it. A draft is only
+  // worth it when the accurate model has not been paid for yet.
+  const chosenAlreadyWarm = isWhisperLoaded(chosenPath);
+  if (enabled && !chosenAlreadyWarm && shouldDraft(audioMs)) {
     const downloaded: string[] = [];
     for (const m of WHISPER_MODELS) {
       if (await ModelManager.isModelDownloaded(m.id)) downloaded.push(m.id);

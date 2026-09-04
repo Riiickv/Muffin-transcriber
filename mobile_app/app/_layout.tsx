@@ -123,7 +123,7 @@ function RootLayoutNav() {
         // so someone sharing a voice message watched a spinner for the whole
         // model load before a single word appeared. It now overlaps with work
         // that has to happen anyway.
-        warmWhisperIfReady(settings.preferredWhisperModel);
+        void warmWhisperIfReady(settings.preferredWhisperModel);
         router.push({ pathname: '/' as any, params: { uri: encodeURIComponent(fileUri) } });
       }
       resetShareIntent();
