@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 
 /**
  * Wall-clock timings for the two things that make people wait: transcription
@@ -89,6 +90,17 @@ export type PerfRun = {
   audioFormat?: string;
   /** One short phrase on what the app did with it, e.g. how it was trimmed. */
   notes?: string;
+  /**
+   * How much of this run happened while the app was NOT in the foreground.
+   *
+   * totalMs is wall clock, so when Android suspends a backgrounded app the
+   * suspension is measured as though it were work. Runs of the same file on the
+   * same model came back 132.2s and 284.6s, and that was read here as thermal
+   * throttling. It may simply be this. Reported separately so the two can never
+   * again be confused, and so a realtime factor can be read as meaningless when
+   * this is large.
+   */
+  backgroundMs?: number;
   /** Characters produced, a cheap stand-in for token count. */
   outputChars?: number;
   totalMs: number;
@@ -107,7 +119,37 @@ export function startRun(kind: string, model: string) {
   let last = began;
   const stages: PerfStage[] = [];
 
+  // Time spent out of the foreground, accumulated as it happens. It cannot be
+  // reconstructed afterwards: by the time the run finishes the app is active
+  // again and nothing remembers that it ever was not.
+  let backgroundMs = 0;
+  let leftAt: number | null = AppState.currentState === 'active' ? null : began;
+  let sub: { remove: () => void } | null = AppState.addEventListener('change', (next) => {
+    if (next === 'active') {
+      if (leftAt !== null) {
+        backgroundMs += Date.now() - leftAt;
+        leftAt = null;
+      }
+    } else if (leftAt === null) {
+      leftAt = Date.now();
+    }
+  });
+
+  // Idempotent, and called from BOTH finish and the caller's finally. A run
+  // that throws never reaches finish, and a listener left behind would keep
+  // counting against a run that is already over.
+  const release = () => {
+    sub?.remove();
+    sub = null;
+    if (leftAt !== null) {
+      backgroundMs += Date.now() - leftAt;
+      leftAt = null;
+    }
+  };
+
   return {
+    /** Drop the run without recording it, releasing the AppState listener. */
+    discard: release,
     mark(name: string) {
       const now = Date.now();
       stages.push({ name, ms: now - last });
@@ -119,6 +161,7 @@ export function startRun(kind: string, model: string) {
       audioFormat?: string;
       notes?: string;
     }) {
+      release();
       const loadMs = takePendingLoad();
       if (loadMs > 0) stages.push({ name: 'COLD - model loaded this run', ms: loadMs });
       // Prepended, because they really did happen first. They sit outside
@@ -130,6 +173,7 @@ export function startRun(kind: string, model: string) {
         kind,
         model,
         totalMs: Date.now() - began,
+        backgroundMs: backgroundMs > 0 ? backgroundMs : undefined,
         stages: allStages,
         ...extra,
       };
@@ -196,7 +240,13 @@ export function formatRuns(runs: PerfRun[]): string {
       const parts = r.stages.map((s) => `${s.name} ${(s.ms / 1000).toFixed(1)}s`).join(', ');
       // The input line only exists when there was an input to describe, so
       // LLM runs stay two lines and transcriptions gain one.
-      const detail = [r.audioFormat, r.notes].filter(Boolean).join('  |  ');
+      // Loud on purpose. A run that was suspended halfway is not a slow run,
+      // and reading it as one sent this project chasing thermal throttling.
+      const bg =
+        r.backgroundMs && r.backgroundMs > 1000
+          ? `BACKGROUNDED ${(r.backgroundMs / 1000).toFixed(1)}s of this - timings below are not comparable`
+          : '';
+      const detail = [r.audioFormat, r.notes, bg].filter(Boolean).join('  |  ');
       const input = detail ? `\n  ${detail}` : '';
       return `${head}\n  ${total}${rtf}${rate}\n  ${parts}${input}`;
     })

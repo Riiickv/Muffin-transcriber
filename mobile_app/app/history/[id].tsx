@@ -23,6 +23,7 @@ import { useRecording } from '@/components/RecordingProvider';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
 import { formatTranscript, summarizeTranscript, extractMemories, extractActionableEntities, findHighlights, stopLlamaWork, isStopped } from '@/utils/LLMEngine';
 import { generateEmbedding } from '@/utils/EmbeddingEngine';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { loadWhisper, stopWhisperWork } from '@/utils/WhisperEngine';
 import { transcribeAudio } from '@/utils/audioTranscription';
 import { createProgressTracker, describeProgress } from '@/utils/transcribeProgress';
@@ -277,6 +278,14 @@ export default function HistoryDetailScreen() {
         dialog.show({ title: t('dialog.modelNotDownloaded.title') || 'Model not downloaded', message: t('dialog.modelNotDownloaded.messageWhisper') || 'Go to Settings → Models to download the Whisper model.', icon: 'download' });
         return;
       }
+      // The OTHER two transcription paths hold the screen awake for the length
+      // of the run and this one never did. A re-transcribe on the accurate
+      // model is minutes long, so the display would sleep partway through,
+      // Android would suspend the app, and the work stopped dead until the
+      // phone was woken again. From the outside: "it just stops after a while,
+      // waits, and then resumes", on every model, because it has nothing to do
+      // with the model.
+      await activateKeepAwakeAsync('history-retranscribe');
       const whisperPath = ModelManager.getModelPath(settings.preferredWhisperModel);
       await loadWhisper(whisperPath);
       // Reuse what a previous pass already worked out. On Auto-Detect this
@@ -321,6 +330,7 @@ export default function HistoryDetailScreen() {
       haptics.error();
       dialog.show({ title: t('dialog.reTranscribeFailed.title') || 'Re-transcribe failed', message: errorToMessage(e), icon: 'warning', iconTone: 'danger' });
     } finally {
+      deactivateKeepAwake('history-retranscribe');
       endAiJob(jobToken);
     }
   };

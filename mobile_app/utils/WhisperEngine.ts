@@ -380,6 +380,10 @@ export async function transcribeFile(
       };
     } finally {
       stopCurrentTranscription = null;
+      // A run that threw never reached finish, so the AppState listener it
+      // opened would otherwise keep counting forever against a dead run.
+      // Idempotent: harmless when finish already released it.
+      perf.discard();
     }
   });
 }
