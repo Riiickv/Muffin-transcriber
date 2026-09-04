@@ -13,6 +13,7 @@ import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
+import { transcribeProgressive } from '@/utils/progressiveTranscribe';
 import { transcribeFile, loadWhisper } from '@/utils/WhisperEngine';
 import { createProgressTracker } from '@/utils/transcribeProgress';
 import { usePacedReveal } from '@/hooks/usePacedReveal';
@@ -177,8 +178,6 @@ export default function HomeScreen() {
         setIsTranscribing(false);
         return;
       }
-      const whisperPath = ModelManager.getModelPath(settings.preferredWhisperModel);
-      await loadWhisper(whisperPath);
       const langCode = toLanguageCode(settings.defaultLanguage);
 
       // 1. Resolve content:// URIs to a local file (DocumentPicker / share
@@ -215,16 +214,33 @@ export default function HomeScreen() {
       // Kept OUT of rawText: rawText feeds the WaitingCard's status line, so
       // streaming into it rendered the whole transcript as a centred, muted
       // status message stacked above the support button.
-      const result = await transcribeFile(wavPath, langCode, {
-        onProgress: (raw) => {
-          const reading = tracker.update(raw);
-          const now = Date.now();
-          if (now - lastPush < 500 && reading.percent < 100) return;
-          lastPush = now;
-          setTranscribePercent(reading.percent);
+      const result = await transcribeProgressive(
+        wavPath,
+        langCode,
+        settings.preferredWhisperModel,
+        // Length is not known before transcription here, and unknown means
+        // draft: the unknown case IS the shared voice message.
+        undefined,
+        {
+          onProgress: (raw) => {
+            const reading = tracker.update(raw);
+            const now = Date.now();
+            if (now - lastPush < 500 && reading.percent < 100) return;
+            lastPush = now;
+            setTranscribePercent(reading.percent);
+          },
+          // Never let the visible text get SHORTER. The accurate pass starts
+          // from nothing, so without this the finished draft would be replaced
+          // by the accurate model's first three words and the reader would
+          // watch the transcript go backwards. Instead the draft stays up,
+          // being read, until the accurate pass overtakes it and quietly takes
+          // over.
+          onPartialText: (text) =>
+            setStreamingText((prev) => (text.length >= prev.length ? text : prev)),
+          onDraft: (draft) => setStreamingText(draft.text.trim()),
         },
-        onPartialText: setStreamingText,
-      });
+        settings.progressiveTranscription,
+      );
       setStreamingText('');
       setTranscribePercent(0);
       const cleanText = result.text.trim();

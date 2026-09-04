@@ -212,6 +212,8 @@ export const FR = {
 
     normalizeAudio: "Normaliser l'audio",
     normalizeAudioDesc: "Monte le volume faible pour une transcription plus nette.",
+    progressive: "Brouillon rapide d’abord",
+    progressiveDesc: "Affiche tout de suite une transcription approximative, puis la remplace par la version précise. Consomme plus de batterie.",
     autoCopy: "Copier la transcription automatiquement",
     autoCopyDesc: "Copie dans le presse-papiers une fois terminé",
     typewriter: "Effet machine à écrire",

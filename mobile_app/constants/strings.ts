@@ -334,6 +334,8 @@ export const APP_STRINGS = {
 
     normalizeAudio: "Normalize audio",
     normalizeAudioDesc: "Boosts low volume for a cleaner transcription.",
+    progressive: "Fast draft first",
+    progressiveDesc: "Show a quick rough transcript straight away, then replace it with the accurate one. Uses more battery.",
     autoCopy: "Auto-copy transcript",
     autoCopyDesc: "Copies to clipboard when done",
     typewriter: "Typewriter effect",

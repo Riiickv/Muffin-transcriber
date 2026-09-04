@@ -250,6 +250,11 @@ export default function SettingsScreen() {
           right={<Switch value={settings.normalizeAudio} onChange={(v) => setSetting('normalizeAudio', v)} />}
         />
         <SettingsRow
+          label={t('settings.progressive')}
+          description={t('settings.progressiveDesc')}
+          right={<Switch value={settings.progressiveTranscription} onChange={(v) => setSetting('progressiveTranscription', v)} />}
+        />
+        <SettingsRow
           label={t('settings.autoCopy')}
           description={t('settings.autoCopyDesc')}
           right={<Switch value={settings.autoCopyTranscript} onChange={(v) => setSetting('autoCopyTranscript', v)} />}

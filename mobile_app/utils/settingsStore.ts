@@ -33,6 +33,13 @@ export interface Settings {
   appLanguage: AppLanguage;
   /** One-time tester feedback popup. False until dismissed; a new key, so
    *  existing testers see it once after updating (hydrate fills the default). */
+  /**
+   * Transcribe twice: a rough pass from a small model shown at once, then the
+   * chosen model's version replacing it. Costs more battery for less waiting,
+   * which is the right default for reading a voice message and the wrong one
+   * for someone on 4%, hence a switch.
+   */
+  progressiveTranscription: boolean;
   seenWelcome: boolean;
   /**
    * Show an estimated time per model on the Models screen.
@@ -78,6 +85,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // a setting. Existing installs hydrate over these defaults, so they get
   // 'auto' too rather than being pinned to English.
   appLanguage: 'auto',
+  progressiveTranscription: true,
   seenWelcome: false,
   showModelTimeEstimate: false,
   showModelNames: false,
