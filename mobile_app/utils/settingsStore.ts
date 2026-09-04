@@ -103,6 +103,9 @@ const MODEL_RENAMES: Record<string, string> = {
   // rather than leaving both on disk.
   'ggml-tiny.bin': 'ggml-tiny-q8_0.bin',
   'ggml-small.bin': 'ggml-small-q8_0.bin',
+  // Qwen 2.5 0.5B -> Qwen 3 0.6B, same 409 MB, same Fastest tier, two
+  // generations newer at instruction following, which is the whole job here.
+  'qwen2.5-0.5b-instruct-q4_0.gguf': 'Qwen3-0.6B-Q4_0.gguf',
 };
 
 // hydrate spreads over defaults so settings added in later versions are present
@@ -110,8 +113,13 @@ const MODEL_RENAMES: Record<string, string> = {
 const store = createPersistentStore<Settings>(SETTINGS_KEY, { ...DEFAULT_SETTINGS }, {
   hydrate: (parsed) => {
     const s = { ...DEFAULT_SETTINGS, ...parsed };
-    if (MODEL_RENAMES[s.preferredWhisperModel]) {
-      s.preferredWhisperModel = MODEL_RENAMES[s.preferredWhisperModel];
+    // All three model settings, not just whisper. The table was whisper-only
+    // when every rename happened to be a whisper one; a formatter rename would
+    // otherwise leave the setting pointing at a model the catalog no longer
+    // lists, which the picker renders as nothing selected.
+    for (const key of ['preferredWhisperModel', 'preferredFormatterModel', 'preferredChatModel'] as const) {
+      const renamed = MODEL_RENAMES[s[key]];
+      if (renamed) s[key] = renamed;
     }
     return s;
   },

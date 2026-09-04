@@ -120,10 +120,15 @@ export const FORMATTER_MODELS: readonly ModelDef[] = [
   // load time - noticeably faster prompt processing than Q4_K_M on most
   // modern phones, at slightly lower output quality.
   {
-    id: 'qwen2.5-0.5b-instruct-q4_0.gguf',
+    // Qwen 3, not 2.5. Identical 409 MB and the same tier, two generations
+    // newer at following an instruction, which is the entire job here: every
+    // repair function below this file exists because a small model ignored a
+    // format rule. Mirrored by ggml-org, which is llama.cpp's own org.
+    // settingsStore's MODEL_RENAMES moves anyone who had the old one.
+    id: 'Qwen3-0.6B-Q4_0.gguf',
     name: 'Fastest',
-    technicalName: 'Qwen 2.5 0.5B (Q4_0)',
-    url: 'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_0.gguf',
+    technicalName: 'Qwen 3 0.6B (Q4_0)',
+    url: 'https://huggingface.co/ggml-org/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_0.gguf',
     size: '409 MB',
     description: 'Tuned for newer phone chips.',
     nameKey: 'models.tierFastest',

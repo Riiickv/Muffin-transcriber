@@ -169,6 +169,15 @@ export async function unloadLLM(): Promise<void> {
 
 function buildChatPrompt(modelFile: string, systemPrompt: string, userPrompt: string): string {
   const lower = modelFile.toLowerCase();
+  // Qwen 3 reasons by DEFAULT and wraps that reasoning in <think> blocks. Its
+  // own chat template suppresses this via enable_thinking=false, but these
+  // prompts are hand-built ChatML strings rather than the model's template, so
+  // that switch is not reachable from here. /no_think is the documented soft
+  // switch that works inside the prompt itself. Without it a summary arrives
+  // with the model's deliberations in front of it.
+  if (lower.includes('qwen3')) {
+    userPrompt = `${userPrompt}\n\n/no_think`;
+  }
   if (lower.includes('llama-3')) {
     return `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|><|start_header_id|>user<|end_header_id|>\n\n${userPrompt}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n`;
   }
