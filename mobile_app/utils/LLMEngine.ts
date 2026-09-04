@@ -30,6 +30,23 @@ export { echoesPrompt, ensureBasicPunctuation } from './textCleanup';
 
 // Strips the markdown code fences an LLM may wrap JSON in, then parses. Returns
 // null on any failure so callers can fall back gracefully.
+/**
+ * Every place the model is asked for a list of plain strings.
+ *
+ * Given to llama.cpp as response_format, this is compiled to a grammar and the
+ * sampler stops offering any token that would break it. The model cannot open
+ * a markdown fence, write "Here is the list:", or stop halfway through a
+ * string, because those are not reachable states rather than merely
+ * discouraged ones.
+ */
+const STRING_ARRAY_SCHEMA = {
+  type: 'json_schema' as const,
+  json_schema: {
+    strict: true,
+    schema: { type: 'array', items: { type: 'string' } },
+  },
+};
+
 export function parseModelJson<T = any>(raw: string): T | null {
   const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
   try {
@@ -498,6 +515,7 @@ export async function extractMemories(transcript: string, modelPath: string, mod
       prompt,
       n_predict: 256,
       temperature: 0.0,
+      response_format: STRING_ARRAY_SCHEMA,
     });
     
     const output = extractFormatterOutput(result.text);
@@ -589,8 +607,42 @@ export async function extractActionableEntities(
       // it runs out of tokens, which also truncates the JSON.
       penalty_repeat: 1.15,
       penalty_last_n: 256,
+      // The prompt above ASKS for a JSON array. This makes it the only thing
+      // the model is able to produce: llama.cpp compiles the schema to a
+      // grammar and the sampler never offers a token that would break it. A
+      // 0.5B model cannot open a markdown fence, prefix "Here is the JSON:",
+      // invent a fourth key or stop halfway through a string, because none of
+      // those are reachable states.
+      //
+      // The instructions stay in the prompt on purpose. The schema constrains
+      // the SHAPE; the words are what tell the model what a "quote" is meant to
+      // contain, and a grammar cannot express that.
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          strict: true,
+          schema: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                quote: { type: 'string' },
+                name: { type: 'string' },
+                type: { type: 'string', enum: ['date', 'time'] },
+              },
+              required: ['quote', 'name', 'type'],
+              additionalProperties: false,
+            },
+          },
+        },
+      },
     });
 
+    // parseModelJson and extractFormatterOutput stay. The schema should make
+    // both redundant, and if it does they cost nothing; but this path already
+    // silently returns no highlights when it fails, so it is not the place to
+    // find out the hard way that some model or model version ignores the
+    // grammar.
     const output = extractFormatterOutput(result.text);
     const parsed = parseModelJson<any[]>(output);
     return mergeEntities(sanitiseEntities(parsed, transcript), transcript);
@@ -679,6 +731,10 @@ CRITICAL RULES:
       prompt,
       n_predict: 1024,
       temperature: 0.1,
+      // This one matters most: a successful parse REPLACES every memory the
+      // user approved. Malformed output is not a missing feature here, it is
+      // the difference between rewriting their profile and mangling it.
+      response_format: STRING_ARRAY_SCHEMA,
     });
     
     const output = extractFormatterOutput(result.text);
