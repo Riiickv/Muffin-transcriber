@@ -1,5 +1,6 @@
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { TextInput } from '@/components/Themed';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { useState, useEffect, useRef } from 'react';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '@/components/Themed';
@@ -535,6 +536,22 @@ export default function HomeScreen() {
               placeholderTextColor={theme.textSubtle}
               multiline
             />
+            {/* Picked, not typed. "Use bullet points" in the box above is a
+                request a small model can ignore; this is a grammar it cannot,
+                and being an explicit choice it can never misread "don't use
+                bullet points" as a request for bullet points. */}
+            <Text style={[styles.shapeLabel, { color: theme.textMuted }]}>
+              {t('transcribe.outputShapeLabel') || 'Answer as'}
+            </Text>
+            <SegmentedControl
+              segments={[
+                { key: 'auto', label: t('transcribe.shapeAuto') || 'Auto' },
+                { key: 'bullets', label: t('transcribe.shapeBullets') || 'Bullets' },
+                { key: 'paragraph', label: t('transcribe.shapeParagraph') || 'Paragraph' },
+              ]}
+              value={settings.outputShape}
+              onChange={(v) => setSetting('outputShape', v as 'auto' | 'bullets' | 'paragraph')}
+            />
           </Collapsible>
         </View>
       </Card>
@@ -686,6 +703,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs + 2,
     opacity: 0.8,
   },
+  shapeLabel: { fontSize: 12, marginTop: SPACING.md, marginBottom: SPACING.xs },
   input: {
     borderWidth: 1,
     borderRadius: RADIUS.sm,

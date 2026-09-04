@@ -23,6 +23,10 @@ export const PT = {
     formatterModelLabel: "Qualidade da melhoria",
     formatLanguageLabel: "Idioma da melhoria",
     customPromptLabel: "Sê específico",
+    outputShapeLabel: "Responder como",
+    shapeAuto: "Auto",
+    shapeBullets: "Lista",
+    shapeParagraph: "Parágrafo",
     customPromptPlaceholder: "Usa tópicos, máximo 100 palavras, etc.",
 
     languageLabel: "Idioma",

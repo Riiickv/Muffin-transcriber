@@ -78,6 +78,10 @@ export const APP_STRINGS = {
     formatterModelLabel: "Improvement quality",
     formatLanguageLabel: "Improvement language",
     customPromptLabel: "Be specific",
+    outputShapeLabel: "Answer as",
+    shapeAuto: "Auto",
+    shapeBullets: "Bullets",
+    shapeParagraph: "Paragraph",
     customPromptPlaceholder: "Use bullet points, max 100 words, etc.",
 
     // -- The file / engine card --

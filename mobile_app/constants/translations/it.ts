@@ -44,6 +44,10 @@ export const IT = {
     formatterModelLabel: "Qualità miglioramento",
     formatLanguageLabel: "Lingua miglioramento",
     customPromptLabel: "Sii specifico",
+    outputShapeLabel: "Rispondi come",
+    shapeAuto: "Auto",
+    shapeBullets: "Elenco",
+    shapeParagraph: "Paragrafo",
     customPromptPlaceholder: "Usa elenchi puntati, massimo 100 parole, ecc.",
 
     languageLabel: "Lingua",

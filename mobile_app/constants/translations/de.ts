@@ -23,6 +23,10 @@ export const DE = {
     formatterModelLabel: "Verbesserungsqualität",
     formatLanguageLabel: "Verbesserungssprache",
     customPromptLabel: "Sei genau",
+    outputShapeLabel: "Antworten als",
+    shapeAuto: "Auto",
+    shapeBullets: "Liste",
+    shapeParagraph: "Absatz",
     customPromptPlaceholder: "Nutze Stichpunkte, maximal 100 Wörter, usw.",
 
     languageLabel: "Sprache",

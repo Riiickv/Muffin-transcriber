@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { recordLlm, noteModelLoad } from './perfLog';
+import { grammarFor, instructionFor } from './outputShape';
 import { getOptimalThreads } from './cpuThreads';
 import type { LlamaContext } from 'llama.rn';
 import { loadSettings } from './settingsStore';
@@ -336,7 +337,11 @@ export async function formatTranscript(
   //
   // So the small tier gets one job in one sentence. A smaller improvement than
   // the big models make, and one that actually survives.
-  const isSmallModel = /0[._]5b/i.test(modelFile);
+  // Any sub-1B model, not just 0.5B. This read /0[._]5b/ when Qwen 2.5 0.5B was
+  // the only tier this small; swapping Fastest to Qwen 3 0.6B silently moved it
+  // to the long instruction below, which is the exact failure the comment above
+  // describes and which shows up as "Improve does nothing on the Fast tier".
+  const isSmallModel = /0[._][0-9]\s*b/i.test(modelFile);
   const taskInstruction =
     customFormat ||
     (isSmallModel
@@ -354,13 +359,22 @@ export async function formatTranscript(
     }
   }
 
-  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${GROUNDING_RULE}\n\nYou must reply ${languageInstruction}. Process the transcript now.`;
+  // The grammar makes the shape unavoidable; this is what makes it INTENDED.
+  // Constrained but not asked, the model writes prose and the grammar chops it
+  // into bullet-shaped fragments, which is compliant and unreadable.
+  const shapeRule = instructionFor(settings.outputShape);
+  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${GROUNDING_RULE}${shapeRule ? ' ' + shapeRule : ''}\n\nYou must reply ${languageInstruction}. Process the transcript now.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
   
   const result = await llamaContext.completion(
     {
       prompt,
       n_predict: Math.max(512, Math.min(3072, Math.floor(transcript.length / 3) + 256)),
+      // The shape the user picked, enforced rather than requested.
+      // undefined on Auto, which leaves sampling exactly as it was.
+      ...(grammarFor(settings.outputShape)
+        ? { grammar: grammarFor(settings.outputShape) }
+        : null),
       // NOT 0.0. Greedy decoding on a rewrite task makes a small model lazy: the
       // single likeliest continuation of "rewrite this" is to reproduce the
       // input, so it copied the transcript back and only ensureBasicPunctuation
@@ -467,7 +481,11 @@ export async function summarizeTranscript(
     }
   }
 
-  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${rules}\n\nYou must reply ${languageInstruction}. Summarize the transcript now.`;
+  // The grammar makes the shape unavoidable; this is what makes it INTENDED.
+  // Constrained but not asked, the model writes prose and the grammar chops it
+  // into bullet-shaped fragments, which is compliant and unreadable.
+  const shapeRule = instructionFor(settings.outputShape);
+  const task = `TASK: ${taskInstruction}${memoryContext}\n\n${rules}${shapeRule ? ' ' + shapeRule : ''}\n\nYou must reply ${languageInstruction}. Summarize the transcript now.`;
   const prompt = buildTaskPrompt(modelFile, transcript, task);
 
   const result = await llamaContext.completion(
@@ -477,6 +495,11 @@ export async function summarizeTranscript(
       // budget is an invitation to pad, which is how a 20-second voice memo came
       // back longer than itself with invented advice about Thanksgiving.
       n_predict: Math.max(128, Math.min(1024, Math.floor(transcript.length / 3))),
+      // The shape the user picked, enforced rather than requested.
+      // undefined on Auto, which leaves sampling exactly as it was.
+      ...(grammarFor(settings.outputShape)
+        ? { grammar: grammarFor(settings.outputShape) }
+        : null),
       temperature: 0.3,
       // A summary is where the loop showed up worst ("- I have eaten breakfast for
       // lunch." x200). Stronger penalty than formatting - a summary shouldn't repeat.

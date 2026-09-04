@@ -14,6 +14,12 @@ export interface Settings {
   normalizeAudio: boolean;
   autoCopyTranscript: boolean;
   autoDeleteCacheDuration: 'Never' | '1 Week' | '1 Month';
+  /**
+   * The shape Improve and Summarize must take. 'auto' leaves the model alone;
+   * the others are enforced with a grammar rather than requested in words,
+   * because a 0.6B model treats "use bullet points" as a suggestion.
+   */
+  outputShape: 'auto' | 'bullets' | 'paragraph';
   customFormatSystemPrompt: string;
   customSummarySystemPrompt: string;
   enableContextLearning: boolean;
@@ -72,6 +78,7 @@ export const DEFAULT_SETTINGS: Settings = {
   normalizeAudio: true,
   autoCopyTranscript: false,
   autoDeleteCacheDuration: 'Never',
+  outputShape: 'auto',
   customFormatSystemPrompt: '',
   customSummarySystemPrompt: '',
   enableContextLearning: false,
