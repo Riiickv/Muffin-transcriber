@@ -119078,7 +119078,45 @@ index 4db7591..44d2e58 100644
      int nProcessors = 1;
      int jobId = 0;
      bool tdrzEnable = false;
-@@ -736,7 +741,48 @@
+@@ -710,6 +715,37 @@
+     JsiFunctionPtr onNewSegments;
+ };
+ 
++/**
++ * Re-point params at THIS object's own string storage.
++ *
++ * whisper_full_params keeps bare const char* for language, initial_prompt and
++ * vad_model_path, and createTranscribeConfig sets them from the strings on the
++ * config it is building. Both transcribe entry points then capture that config
++ * BY VALUE into the lambda they hand to the thread pool. The copy gets its own
++ * std::string members, but the copied params still point at the ORIGINAL's
++ * buffers, and the original dies when the enclosing scope returns. By the time
++ * the lambda actually runs, those pointers dangle.
++ *
++ * It went unnoticed because a language code like "it" lives in the string's
++ * inline SSO buffer on a stack frame nobody had reused yet. A model path is far
++ * too long for SSO, so it is a heap allocation that gets handed out again
++ * quickly: VAD worked on one model and failed on the next in the same session,
++ * which is what a use-after-free looks like from the outside.
++ *
++ * Called at the top of each task, where config is the lambda's own copy.
++ */
++void rebindConfigStrings(TranscribeConfig &config) {
++    if (!config.language.empty()) {
++        config.params.language = config.language.c_str();
++    }
++    if (!config.prompt.empty()) {
++        config.params.initial_prompt = config.prompt.c_str();
++    }
++    if (!config.vadModelPath.empty()) {
++        config.params.vad_model_path = config.vadModelPath.c_str();
++    }
++}
++
+ TranscribeConfig createTranscribeConfig(
+     jsi::Runtime &runtime,
+     const jsi::Object &options,
+@@ -736,7 +772,48 @@
      config.params.offset_ms =
          getIntProperty(runtime, options, "offset", config.params.offset_ms);
      config.params.duration_ms =
@@ -119128,3 +119166,25 @@ index 4db7591..44d2e58 100644
          getFloatProperty(runtime, options, "wordThold", config.params.thold_pt);
      config.params.temperature =
          getFloatProperty(runtime, options, "temperature", config.params.temperature);
+@@ -1649,6 +1726,10 @@
+                 return createPromiseTask(runtime, callInvoker, [holder, config, input, callInvoker, runtimePtr]() mutable -> PromiseResultGenerator {
+                     PromiseScopeGuard taskGuard([holder]() { holder->releaseTask(); });
+                     PromiseScopeGuard exclusiveGuard([holder]() { holder->endExclusiveOperation(); });
++                    // Before anything reads config.params: its pointers still aim
++                    // at the string buffers of the config this lambda was copied
++                    // FROM, which is already gone.
++                    rebindConfigStrings(config);
+ 
+                     auto audio = readWaveAudio(input);
+                     if (audio.empty()) {
+@@ -1770,6 +1851,10 @@
+                 return createPromiseTask(runtime, callInvoker, [holder, config, audio, callInvoker, runtimePtr]() mutable -> PromiseResultGenerator {
+                     PromiseScopeGuard taskGuard([holder]() { holder->releaseTask(); });
+                     PromiseScopeGuard exclusiveGuard([holder]() { holder->endExclusiveOperation(); });
++                    // Before anything reads config.params: its pointers still aim
++                    // at the string buffers of the config this lambda was copied
++                    // FROM, which is already gone.
++                    rebindConfigStrings(config);
+ 
+                     auto progressState = std::make_shared<JsiCallbackState>();
+                     progressState->callInvoker = callInvoker;
