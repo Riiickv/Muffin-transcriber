@@ -102,6 +102,8 @@ REM     Windows LongPathsEnabled=1. 1.12+ handles long paths.
 REM ---------------------------------------------------------------------------
 echo [3/6] Checking ninja version...
 set "NINJA=%ANDROID_HOME%\cmake\3.22.1\bin\ninja.exe"
+REM  Outside the SDK on purpose: an SDK update cannot reach it.
+set "NINJA_KEEP=%LOCALAPPDATA%\Android\ninja-1.13.2\ninja.exe"
 if not exist "%NINJA%" (
   echo       WARN: ninja not found at expected path - skipping check.
   echo             If the build dies on "Filename longer than 260 characters",
@@ -115,13 +117,28 @@ if not exist "%NINJA%" (
   if !NJ_MAJOR! GTR 1 set "NJ_OK=1"
   if !NJ_MAJOR! EQU 1 if !NJ_MINOR! GEQ 12 set "NJ_OK=1"
   if not defined NJ_OK (
-    echo       ERROR: ninja is !NJ_MAJOR!.!NJ_MINOR! - need 1.12 or newer.
-    echo       Fix: copy ninja.exe 1.12+ from Visual Studio over
-    echo            %NINJA%
-    echo       ^(VS ships it at: C:\Program Files\Microsoft Visual Studio\2022\
-    echo        Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\^)
-    set "FAILED=1"
-    goto :summary
+    REM  The SDK ships 1.10.2 and PUTS IT BACK whenever its cmake package is
+    REM  updated, silently, which turns a working machine into a failing one
+    REM  overnight. A known-good copy is kept OUTSIDE the SDK for exactly that
+    REM  reason, so this repairs itself instead of costing an evening.
+    if exist "%NINJA_KEEP%" (
+      echo       ninja is !NJ_MAJOR!.!NJ_MINOR! - restoring the kept copy...
+      copy /Y "%NINJA_KEEP%" "%NINJA%" >nul
+      if errorlevel 1 (
+        echo       ERROR: could not overwrite %NINJA%
+        set "FAILED=1"
+        goto :summary
+      )
+      echo       OK: restored ninja from %NINJA_KEEP%
+    ) else (
+      echo       ERROR: ninja is !NJ_MAJOR!.!NJ_MINOR! - need 1.12 or newer.
+      echo       No kept copy at %NINJA_KEEP%
+      echo       Fix: get ninja-win.zip from
+      echo            https://github.com/ninja-build/ninja/releases
+      echo       and put ninja.exe at that path.
+      set "FAILED=1"
+      goto :summary
+    )
   )
   echo       OK: ninja !NJ_MAJOR!.!NJ_MINOR!
 )
