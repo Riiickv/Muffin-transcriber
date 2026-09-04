@@ -279,7 +279,20 @@ export async function transcribeFile(
   // Null when the 0.8 MB Silero model has not been fetched yet, which is the
   // offline first-run case. Then whisper simply transcribes everything, which
   // is what it did before any of this existed.
-  const vadModelPath = await ensureVadModel();
+  // stripped of its file:// scheme, which is NOT cosmetic.
+  //
+  // ModelManager builds every path from FileSystem.documentDirectory, so they
+  // all arrive as file:///data/user/0/... URIs. whisper.rn strips that prefix
+  // for the paths IT knows about (stripFileScheme, src/index.ts:105), but
+  // vadModelPath is an option this app added, so nothing stripped it and the
+  // C++ side handed "file:///data/..." to fopen, which cannot open it. The VAD
+  // context failed to initialise, whisper_full returned -1, and the fallback
+  // below quietly transcribed everything untrimmed. Every run on build 100
+  // reported "VAD produced nothing" for this reason.
+  const vadModelUri = await ensureVadModel();
+  const vadModelPath = vadModelUri?.startsWith('file://')
+    ? vadModelUri.slice('file://'.length)
+    : vadModelUri;
   perf.mark('probe');
 
   return whisperQueue(async () => {
@@ -302,6 +315,11 @@ export async function transcribeFile(
     };
 
     let usedVad = !!vadModelPath;
+    // WHICH fallback fired, not merely that one did. Both paths used to write
+    // the same sentence, so a report saying "VAD produced nothing" could mean
+    // the model would not load OR that it genuinely heard silence. Those need
+    // completely different fixes and it cost a build to tell them apart.
+    let vadFailure = '';
     try {
       let result;
       try {
@@ -318,6 +336,7 @@ export async function transcribeFile(
         // isAborted set. Anything caught here is a genuine failure.
         if (!usedVad) throw e;
         usedVad = false;
+        vadFailure = 'VAD could not start, retried without it';
         result = await attempt(false);
       }
 
@@ -336,6 +355,7 @@ export async function transcribeFile(
       // untouched recording.
       if (usedVad && !(result.result || '').trim() && !(result as any).isAborted) {
         usedVad = false;
+        vadFailure = 'VAD found no speech, retried on the full recording';
         result = await attempt(false);
       }
 
@@ -357,9 +377,7 @@ export async function transcribeFile(
         notes: [
           usedVad
             ? 'silence trimmed by whisper'
-            : vadModelPath
-              ? 'VAD produced nothing, retried on the full recording'
-              : 'no silence trim, Silero not downloaded yet',
+            : vadFailure || 'no silence trim, Silero not downloaded yet',
           // What whisper decided the language was. Free, already in hand, and
           // the only way to tell from a pasted report whether a bad
           // transcription was a slow model or auto-detect picking the wrong
