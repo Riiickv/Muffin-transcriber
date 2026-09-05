@@ -190,6 +190,31 @@ function armNativeLog(): void {
   }
 }
 
+/**
+ * The per-window gaps, as one line: how many, the typical one, and the worst.
+ *
+ * The RATIO is the point. Near 1 means every window cost the same and the whole
+ * run was uniformly slow, which is a clocks-and-cores story. Much above 1 means
+ * most windows were fine and something specific stalled, which is a different
+ * bug entirely.
+ *
+ * The first gap is dropped: it spans from the start of the call to the first
+ * callback, so it carries the audio decode and any VAD pass rather than a
+ * window's own cost.
+ */
+function describeWindows(ms: number[]): string | undefined {
+  const gaps = ms.slice(1).filter((n) => n > 0);
+  if (gaps.length < 2) return undefined;
+  const sorted = [...gaps].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const max = sorted[sorted.length - 1];
+  const ratio = median > 0 ? max / median : 1;
+  return (
+    `${gaps.length + 1} windows, median ${(median / 1000).toFixed(1)}s, ` +
+    `slowest ${(max / 1000).toFixed(1)}s (${ratio.toFixed(1)}x)`
+  );
+}
+
 /** The one phrase describing what happened to the silence, for the report. */
 function vadNote(
   usedVad: boolean,
@@ -262,6 +287,34 @@ export async function transcribeFile(
 
   const handleNewSegments = createSegmentAccumulator((text) => callbacks?.onPartialText?.(text));
 
+  // PER-WINDOW TIMING, always installed, whether or not the caller wants
+  // progress.
+  //
+  // Because the totals cannot answer the question that matters. The same 107s
+  // recording on Balanced took 38.4s once and then 210.9s, 250.2s, 278.8s and
+  // 364.5s, with the same audio, the same trim, the same 7 segments and the
+  // same output length. Identical work, five times the time. Resting the phone
+  // for half an hour did not restore the fast number, so it is not heat, and
+  // the identical output rules out whisper's temperature fallback, which would
+  // have changed what came back.
+  //
+  // whisper.cpp calls the progress callback exactly once per 30s window, before
+  // encoding it, so the gaps between calls ARE the per-window costs. Their
+  // shape tells the two remaining families of explanation apart:
+  //
+  //   every window uniformly slower  ->  the cores this ran on, or their clocks
+  //   one or two windows enormous    ->  something stalling mid-run
+  //
+  // A total can never distinguish those. This is four numbers per run.
+  const windowMs: number[] = [];
+  let lastTick = Date.now();
+  const trackProgress = (p: number) => {
+    const now = Date.now();
+    windowMs.push(now - lastTick);
+    lastTick = now;
+    callbacks?.onProgress?.(p);
+  };
+
   const options: any = {
     // Must be the literal string 'auto' - NOT undefined. whisper.rn's
     // docstring claims undefined means auto-detect, but the implementation
@@ -306,7 +359,7 @@ export async function transcribeFile(
     // Bias Whisper toward user-taught vocabulary; undefined when empty so we
     // don't prime the decoder with an empty string.
     prompt: initialPrompt,
-    ...(callbacks?.onProgress ? { onProgress: callbacks.onProgress } : null),
+    onProgress: trackProgress,
     ...(callbacks?.onPartialText ? { onNewSegments: handleNewSegments } : null),
   };
 
@@ -455,6 +508,7 @@ export async function transcribeFile(
           // Read unconditionally, so a run that fell back cannot inherit the
           // previous run's numbers and report them as its own.
           vadNote(usedVad, takeVadReading(), vadFailure, !shouldRunVad(modelId)),
+          describeWindows(windowMs) || '',
           // What whisper decided the language was. Free, already in hand, and
           // the only way to tell from a pasted report whether a bad
           // transcription was a slow model or auto-detect picking the wrong
