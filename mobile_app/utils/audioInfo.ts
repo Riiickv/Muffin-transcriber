@@ -1,6 +1,6 @@
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 
-import { parseWav } from './wavTrim';
+import { parseWav } from './wavHeader';
 
 /**
  * Required lazily, and this is not stylistic.

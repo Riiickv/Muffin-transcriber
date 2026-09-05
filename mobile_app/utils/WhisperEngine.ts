@@ -4,7 +4,7 @@ import { loadSettings } from './settingsStore';
 import { loadMemories } from './memoryStore';
 import { createSegmentAccumulator } from './segmentAccumulator';
 import { getOptimalThreads } from './cpuThreads';
-import { ensureVadModel } from './speechTrim';
+import { ensureVadModel } from './vadModel';
 import { shouldRunVad } from './vadPolicy';
 import { readAudioInfo, describeAudio } from './audioInfo';
 import { startRun, noteModelLoad } from './perfLog';
