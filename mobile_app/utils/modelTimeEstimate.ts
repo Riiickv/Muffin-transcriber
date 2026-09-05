@@ -88,12 +88,33 @@ const ENCODER_WEIGHT: Record<string, number> = {
 };
 
 /**
- * Seconds per unit of encoder weight for a typical one minute recording, from
- * the per-window fit above: k = 1.2, two windows. The old value was 26/32 =
- * 0.81, calibrated on a 9 second clip, and it promised 26s where turbo really
- * took two to five minutes.
+ * Seconds per unit of encoder weight for a typical one minute recording.
+ *
+ * RE-ANCHORED 2026-09-05 on the first measurement of this whole exercise taken
+ * with nothing else wrong: build 104, Pixel 9 Pro XL, a 107s voice message on
+ * Balanced, run FIRST on a rested phone with the model freshly loaded.
+ *
+ *   Balanced (weight 6), 107s, VAD keeping 97.5s  ->  38.4s, 2.80x realtime
+ *   Fastest  (weight 1), 107s, no VAD             ->   8.4s, 12.8x realtime
+ *
+ * Measured ratio between the two tiers is 4.6x against the table's 6x, so the
+ * relative weights are about right and only the constant needed moving. Four
+ * windows at weight 6 puts k near 1.6, and a one minute recording is two
+ * windows, so 6 x 1.6 x 2 / 6 = 3.2 seconds per unit.
+ *
+ * WHAT THIS IS ANCHORED ON: exactly one clean run per tier. Every other
+ * measurement from that session is unusable, and not for subtle reasons - the
+ * three Balanced runs that followed this one took 250s, 279s and 365s, warm,
+ * degrading monotonically under nineteen minutes of unbroken CPU load. That is
+ * a real effect users will meet on long recordings, and it is deliberately NOT
+ * in this number: an estimate should describe the normal case, which is one
+ * voice message on a phone that has been idle.
+ *
+ * The previous value, 2.4, came from a fit across runs that are now known to
+ * have been polluted by a stalled screen, a double model load and a
+ * use-after-free in the VAD path. It underestimated Balanced by about a third.
  */
-const SECONDS_PER_WEIGHT = 2.4;
+const SECONDS_PER_WEIGHT = 3.2;
 
 /**
  * How much slower a tier is than the phone the anchor came from.

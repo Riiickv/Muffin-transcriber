@@ -63,11 +63,11 @@ test('a weaker device is estimated slower, never faster', () => {
 });
 
 test('the anchor still matches what was measured', () => {
-  // 76.8s for Large v3 Turbo on the phone this was calibrated against: encoder
-  // weight 32 x 2.4s, being k=1.2 over the two windows of a one minute voice
-  // message. If a refactor moves this, every number in the UI moved with it.
+  // 102.4s for Large v3 Turbo: encoder weight 32 x 3.2s, re-anchored on the
+  // first clean Balanced measurement (38.4s for a 107s message on a rested
+  // phone). If a refactor moves this, every number in the UI moved with it.
   const e = estimateFor('ggml-large-v3-turbo-q8_0.bin', 'high')!;
-  assert.ok(Math.abs(e.seconds - 76.8) < 0.5, `anchor drifted to ${e.seconds}`);
+  assert.ok(Math.abs(e.seconds - 102.4) < 0.5, `anchor drifted to ${e.seconds}`);
   assert.equal(e.measured, false);
 });
 
@@ -82,7 +82,9 @@ test('the whisper estimate is not wildly optimistic any more', () => {
   // Small is the high tier's recommendation now, so its estimate is the one
   // most people will read. It must stay in "worth waiting for" territory.
   const small = estimateFor('ggml-small-q8_0.bin', 'high')!.seconds;
-  assert.ok(small < 30, `small quoted at ${small}s`);
+  // A one minute message on Balanced measured about 19s (38.4s for 107s), so
+  // the quote must stay in that neighbourhood rather than drift optimistic.
+  assert.ok(small > 12 && small < 30, `small quoted at ${small}s`);
   assert.ok(small < turbo / 3, 'small must read as dramatically cheaper than turbo');
 });
 
