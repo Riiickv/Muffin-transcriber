@@ -67,7 +67,7 @@ test('the anchor still matches what was measured', () => {
   // first clean Balanced measurement (38.4s for a 107s message on a rested
   // phone). If a refactor moves this, every number in the UI moved with it.
   const e = estimateFor('ggml-large-v3-turbo-q8_0.bin', 'high')!;
-  assert.ok(Math.abs(e.seconds - 102.4) < 0.5, `anchor drifted to ${e.seconds}`);
+  assert.ok(Math.abs(e.seconds - 155.2) < 0.5, `anchor drifted to ${e.seconds}`);
   assert.equal(e.measured, false);
 });
 
@@ -81,11 +81,12 @@ test('the whisper estimate is not wildly optimistic any more', () => {
 
   // Small is the high tier's recommendation now, so its estimate is the one
   // most people will read. It must stay in "worth waiting for" territory.
+  // Balanced measured 29.2s PER WINDOW, so a one minute recording (two windows)
+  // is about 58s. The estimate must not drift back toward the optimistic
+  // numbers that made 165s and 210s runs look inexplicable.
   const small = estimateFor('ggml-small-q8_0.bin', 'high')!.seconds;
-  // A one minute message on Balanced measured about 19s (38.4s for 107s), so
-  // the quote must stay in that neighbourhood rather than drift optimistic.
-  assert.ok(small > 12 && small < 30, `small quoted at ${small}s`);
-  assert.ok(small < turbo / 3, 'small must read as dramatically cheaper than turbo');
+  assert.ok(small > 45 && small < 70, `small quoted at ${small}s`);
+  assert.ok(small < turbo, 'small must still read as cheaper than turbo');
 });
 
 test('a real measurement wins over the table and says so', () => {

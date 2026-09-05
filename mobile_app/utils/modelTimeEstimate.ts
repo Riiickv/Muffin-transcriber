@@ -81,8 +81,23 @@ const ENCODER_WEIGHT: Record<string, number> = {
   'ggml-tiny-q8_0.bin': 1,
   'ggml-tiny.bin': 1,
   'ggml-base.bin': 2,
-  'ggml-small-q8_0.bin': 6,
-  'ggml-small.bin': 6,
+  // 12, not 6. MEASURED 2026-09-05 from per-window timings on one 107s file:
+  // Fastest 2.4s a window, Balanced 29.2s a window, a ratio of 12.2x. The
+  // encoder arithmetic agrees exactly - 12 layers at 768 wide against 4 at 384
+  // is 12x the work - so the old 6 was simply wrong, and it was wrong in the
+  // direction that made every slow Balanced run look mysterious. Runs of
+  // 165s and 210s were called unexplained for most of a day because this line
+  // predicted half of them.
+  'ggml-small-q8_0.bin': 12,
+  'ggml-small.bin': 12,
+  // UNVERIFIED, and now known to be inconsistent with the two weights above.
+  // The same arithmetic that gives Small 12 gives Large 89: 32 layers at 1280
+  // wide. But the only Turbo timings on record are from before the audio-length
+  // metric was fixed, on a file that cannot be confirmed as the same one, and
+  // they came in at roughly Small's speed rather than seven times it. One of
+  // those two things is wrong and no measurement here can say which, so this is
+  // left alone rather than moved on arithmetic that the Turbo data contradicts.
+  // Re-measure with a per-window line before touching it.
   'ggml-large-v3-turbo-q8_0.bin': 32,
   'ggml-large-v3.bin': 32,
 };
@@ -97,10 +112,17 @@ const ENCODER_WEIGHT: Record<string, number> = {
  *   Balanced (weight 6), 107s, VAD keeping 97.5s  ->  38.4s, 2.80x realtime
  *   Fastest  (weight 1), 107s, no VAD             ->   8.4s, 12.8x realtime
  *
- * Measured ratio between the two tiers is 4.6x against the table's 6x, so the
- * relative weights are about right and only the constant needed moving. Four
- * windows at weight 6 puts k near 1.6, and a one minute recording is two
- * windows, so 6 x 1.6 x 2 / 6 = 3.2 seconds per unit.
+ * RE-ANCHORED AGAIN 2026-09-05, on per-window timings rather than totals, which
+ * is the first evidence good enough to fix the WEIGHTS rather than just the
+ * constant:
+ *
+ *   Fastest,  weight  1  ->  2.4s a window
+ *   Balanced, weight 12  -> 29.2s a window
+ *
+ * Both give the same answer for a one minute recording, which is two windows:
+ * 2 x 2.4 / 1 = 4.8, and 2 x 29.2 / 12 = 4.87. Two tiers a dozen times apart
+ * agreeing to within 2% is a real fit, where every previous version of this
+ * number was one tier's total divided by a guess.
  *
  * WHAT THIS IS ANCHORED ON: exactly one clean run per tier. Every other
  * measurement from that session is unusable, and not for subtle reasons - the
@@ -114,7 +136,7 @@ const ENCODER_WEIGHT: Record<string, number> = {
  * have been polluted by a stalled screen, a double model load and a
  * use-after-free in the VAD path. It underestimated Balanced by about a third.
  */
-const SECONDS_PER_WEIGHT = 3.2;
+const SECONDS_PER_WEIGHT = 4.85;
 
 /**
  * How much slower a tier is than the phone the anchor came from.
