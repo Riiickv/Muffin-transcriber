@@ -5,6 +5,7 @@ import { loadMemories } from './memoryStore';
 import { createSegmentAccumulator } from './segmentAccumulator';
 import { getOptimalThreads } from './cpuThreads';
 import { ensureVadModel } from './speechTrim';
+import { shouldRunVad } from './vadPolicy';
 import { readAudioInfo, describeAudio } from './audioInfo';
 import { startRun, noteModelLoad } from './perfLog';
 
@@ -190,11 +191,21 @@ function armNativeLog(): void {
 }
 
 /** The one phrase describing what happened to the silence, for the report. */
-function vadNote(usedVad: boolean, reading: string, failure: string): string {
+function vadNote(
+  usedVad: boolean,
+  reading: string,
+  failure: string,
+  skippedByPolicy: boolean,
+): string {
   if (usedVad) {
     return reading ? `silence trimmed by whisper: ${reading}` : 'silence trimmed by whisper';
   }
-  return failure || 'no silence trim, Silero not downloaded yet';
+  if (failure) return failure;
+  // Two very different reasons not to have trimmed, and a report that conflated
+  // them would send the next person looking for a bug that is not there.
+  return skippedByPolicy
+    ? 'no trim: Silero costs this model more than it saves'
+    : 'no silence trim, Silero not downloaded yet';
 }
 
 /** Reads and clears, so one run's numbers can never be reported by the next. */
@@ -350,7 +361,12 @@ export async function transcribeFile(
   // below quietly transcribed everything untrimmed. Every run on build 100
   // reported "VAD produced nothing" for this reason.
   armNativeLog();
-  const vadModelUri = await ensureVadModel();
+  // Not every model earns the trim. Silero is a fixed pass over the audio, but
+  // what it saves is priced at the transcribing model's own speed, so on the
+  // fastest tier it costs several seconds to save a fraction of one. Measured,
+  // with the numbers, in vadPolicy.
+  const modelId = currentModelPath.split('/').pop() || '';
+  const vadModelUri = shouldRunVad(modelId) ? await ensureVadModel() : null;
   const vadModelPath = vadModelUri?.startsWith('file://')
     ? vadModelUri.slice('file://'.length)
     : vadModelUri;
@@ -438,7 +454,7 @@ export async function transcribeFile(
         notes: [
           // Read unconditionally, so a run that fell back cannot inherit the
           // previous run's numbers and report them as its own.
-          vadNote(usedVad, takeVadReading(), vadFailure),
+          vadNote(usedVad, takeVadReading(), vadFailure, !shouldRunVad(modelId)),
           // What whisper decided the language was. Free, already in hand, and
           // the only way to tell from a pasted report whether a bad
           // transcription was a slow model or auto-detect picking the wrong
