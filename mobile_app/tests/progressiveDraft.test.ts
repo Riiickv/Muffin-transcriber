@@ -2,7 +2,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { pickDraftModel, shouldDraft } from '../utils/progressiveDraft.ts';
+import { pickDraftModel as pick, shouldDraft } from '../utils/progressiveDraft.ts';
+import { relativeCost } from '../utils/modelTimeEstimate.ts';
+
+/** Every test here means the production call, which supplies real costs. */
+const pickDraftModel = (
+  chosen: string,
+  downloaded: readonly string[],
+  ordered: readonly string[],
+  languageIsAuto: boolean = false,
+) => pick(chosen, downloaded, ordered, languageIsAuto, relativeCost);
 
 // The catalog cannot be IMPORTED here: ModelManager pulls in expo modules and
 // resolves '@/utils/...', neither of which exists in plain Node. Read its ids
@@ -29,8 +38,17 @@ test('drafts the fastest model the user actually has', () => {
   assert.equal(pickDraftModel(TURBO, [TINY, SMALL, TURBO], ORDER), TINY);
 });
 
-test('falls back to the next fastest when tiny is not downloaded', () => {
-  assert.equal(pickDraftModel(TURBO, [SMALL, TURBO], ORDER), SMALL);
+// Was: "falls back to the next fastest when tiny is not downloaded", expecting
+// SMALL. Measurement inverted it. Balanced runs at 29.2s a window against
+// Turbo's 13.6s, so offering Balanced as the draft for a Turbo run would put a
+// 165 second preview in front of a 76 second job.
+test('never drafts with something slower than the model actually chosen', () => {
+  assert.equal(pickDraftModel(TURBO, [SMALL, TURBO], ORDER), null);
+});
+
+test('still drafts with Fastest, which really is cheaper than both', () => {
+  assert.equal(pickDraftModel(TURBO, [TINY, SMALL, TURBO], ORDER), TINY);
+  assert.equal(pickDraftModel(SMALL, [TINY, SMALL], ORDER), TINY);
 });
 
 test('no draft when the user already chose the fastest', () => {
@@ -65,8 +83,19 @@ test('unknown length drafts, because that is the shared voice message case', () 
 // Whisper identifies the language from the first window, and Tiny's is weak
 // enough to call Italian English. A draft in the wrong language, replaced a
 // minute later, reads as a broken app rather than a refinement.
-test('on Auto-Detect, tiny is skipped and the next model drafts instead', () => {
-  assert.equal(pickDraftModel(TURBO, [TINY, SMALL, TURBO], ORDER, true), SMALL);
+// Was: "tiny is skipped and the next model drafts instead", expecting SMALL.
+// Two rules now have to agree and they rule everything out. Tiny is skipped on
+// Auto-Detect because its language ID is weak enough to draft in the wrong
+// language, and Balanced no longer qualifies as a draft for Most accurate at
+// all, because it measures 12.2x Fastest against Turbo's 5.7x. Nothing is both
+// rougher and cheaper, so nothing drafts, which is the correct answer rather
+// than a gap.
+test('on Auto-Detect there is no draft for Most accurate, and that is right', () => {
+  assert.equal(pickDraftModel(TURBO, [TINY, SMALL, TURBO], ORDER, true), null);
+});
+
+test('with a language chosen, Fastest drafts for Most accurate as before', () => {
+  assert.equal(pickDraftModel(TURBO, [TINY, SMALL, TURBO], ORDER, false), TINY);
 });
 
 test('with a language chosen, tiny is fine to draft with', () => {

@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { preloadWhisper } from '@/utils/WhisperEngine';
 import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
 import { useSettings, loadSettings } from '@/utils/settingsStore';
+import { relativeCost } from '@/utils/modelTimeEstimate';
 import { pickDraftModel } from '@/utils/progressiveDraft';
 import { toLanguageCode } from '@/utils/languages';
 
@@ -61,6 +62,7 @@ export async function warmWhisperIfReady(
         downloaded,
         WHISPER_MODELS.map((m) => m.id),
         toLanguageCode(settings.defaultLanguage) === 'auto',
+        relativeCost,
       );
       if (draft) first = draft;
     }

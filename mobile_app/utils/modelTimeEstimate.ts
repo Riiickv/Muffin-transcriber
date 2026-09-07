@@ -68,14 +68,39 @@ import type { DeviceTier } from './deviceTierData';
  */
 
 /**
- * Encoder cost relative to tiny, from the layer counts whisper ships: tiny 4,
- * base 6, small 12, medium 24, large 32. Not linear in layers alone, because
- * width grows with depth, so these follow the published relative speeds rather
- * than a layer ratio.
+ * MEASURED per-window cost relative to Tiny. Not encoder depth, which is what
+ * this used to be and what made it wrong twice.
  *
- * large-v3-turbo carries the FULL large-v3 encoder and only trims the decoder
- * to 4 layers, which is exactly why it is nearly as slow as large here while
- * being much faster on long audio.
+ * From per-window timings on one 107s file, build 105/106, same recording:
+ *
+ *   Fastest        2.4s a window   ->   1
+ *   Most accurate 13.6s a window   ->   5.7
+ *   Balanced      29.2s a window   ->  12.2
+ *
+ * Balanced is the SLOWEST of the three, by more than a factor of two over the
+ * model that is supposed to be the heavy one. Encoder arithmetic says the
+ * opposite in the strongest terms: Turbo carries the full large-v3 encoder, 32
+ * layers at 1280 wide, against Small's 12 at 768. On paper Turbo is seven times
+ * the work.
+ *
+ * The measurement that explains it is the SPREAD between windows in the same
+ * run. Balanced came in at 1.9x slowest-over-median, Turbo at 1.1x. That is
+ * whisper's temperature fallback: a window whose decode fails the compression
+ * or logprob thresholds is decoded again at a higher temperature, up to six
+ * times. Turbo trims the decoder to 4 layers but keeps the full encoder, so it
+ * is confident first time and almost never retries. Small retries constantly on
+ * this audio and pays for its own uncertainty.
+ *
+ * So being more accurate makes Turbo FASTER here, because it stops doing the
+ * work repeatedly. That is not a conclusion any amount of layer-counting would
+ * have reached, and the two previous versions of this table were both derived
+ * by layer-counting.
+ *
+ * NOT ESTABLISHED: whether this ordering holds on other recordings. Fallback
+ * rate depends on the audio, so a clean studio recording might not trigger it
+ * and would put the tiers back in their architectural order. This is one file,
+ * one device. It is enough to stop recommending Balanced over Turbo, which is
+ * what it is used for, and not enough to treat as a general law.
  */
 const ENCODER_WEIGHT: Record<string, number> = {
   'ggml-tiny-q8_0.bin': 1,
@@ -90,15 +115,12 @@ const ENCODER_WEIGHT: Record<string, number> = {
   // predicted half of them.
   'ggml-small-q8_0.bin': 12,
   'ggml-small.bin': 12,
-  // UNVERIFIED, and now known to be inconsistent with the two weights above.
-  // The same arithmetic that gives Small 12 gives Large 89: 32 layers at 1280
-  // wide. But the only Turbo timings on record are from before the audio-length
-  // metric was fixed, on a file that cannot be confirmed as the same one, and
-  // they came in at roughly Small's speed rather than seven times it. One of
-  // those two things is wrong and no measurement here can say which, so this is
-  // left alone rather than moved on arithmetic that the Turbo data contradicts.
-  // Re-measure with a per-window line before touching it.
-  'ggml-large-v3-turbo-q8_0.bin': 32,
+  // MEASURED at 13.6s a window against Fastest's 2.4s. Was 32, from layer
+  // counting, which had it four times slower than it is and ranked it below
+  // Balanced when it is twice as fast.
+  'ggml-large-v3-turbo-q8_0.bin': 6,
+  // Full large-v3, 32 decoder layers rather than Turbo's 4, so it does NOT get
+  // Turbo's cheap decoding and is left where layer counting put it. Unmeasured.
   'ggml-large-v3.bin': 32,
 };
 
@@ -136,6 +158,19 @@ const ENCODER_WEIGHT: Record<string, number> = {
  * have been polluted by a stalled screen, a double model load and a
  * use-after-free in the VAD path. It underestimated Balanced by about a third.
  */
+/**
+ * How expensive a model is per window, relative to Fastest, or null if unknown.
+ *
+ * Exported so the progressive draft picker can rank by MEASURED cost instead of
+ * catalog position. Those used to be the same thing and are not any more: Turbo
+ * measures 5.7 against Balanced's 12.2, so the catalog's quality order and its
+ * speed order now disagree.
+ */
+export function relativeCost(modelId: string): number | null {
+  const w = ENCODER_WEIGHT[modelId];
+  return w === undefined ? null : w;
+}
+
 const SECONDS_PER_WEIGHT = 4.85;
 
 /**

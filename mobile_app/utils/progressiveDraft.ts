@@ -11,6 +11,7 @@
  * tests for. Same reason modelTimeEstimate is split this way.
  */
 
+
 /**
  * Models whose language identification is not to be trusted.
  *
@@ -39,6 +40,19 @@ export function pickDraftModel(
   orderedIds: readonly string[],
   /** True when the user left Language on Auto-Detect and nothing is known. */
   languageIsAuto: boolean = false,
+  /**
+   * Measured per-window cost of a model relative to the fastest, or null when
+   * unknown. Passed IN rather than imported, for the same reason orderedIds is:
+   * this module stays pure and testable in plain Node, and the caller owns the
+   * measurements. relativeCost in modelTimeEstimate is what production passes.
+   *
+   * Omitted, nothing drafts. That is deliberate. Without costs the only
+   * available ranking is catalog position, and catalog position is exactly the
+   * proxy that turned out to be wrong: Most accurate measures 5.7x Fastest
+   * while Balanced measures 12.2x, so position would offer Balanced as the
+   * draft for a Most accurate run and make it slower, not faster.
+   */
+  costOf?: (id: string) => number | null,
 ): string | null {
   const chosenIndex = orderedIds.indexOf(chosenId);
   // A model the catalog does not know about. Refuse rather than guess which
@@ -47,12 +61,26 @@ export function pickDraftModel(
 
   const downloaded = new Set(downloadedIds);
 
-  // Everything faster than what the user chose, fastest first. If the user
-  // already picked the fastest model there is nothing to draft WITH, and
-  // drafting with the same model would just do the work twice.
+  // A draft has to be BOTH rougher and genuinely cheaper, and those two used to
+  // be the same test.
+  //
+  // The catalog is ordered by quality, and that was taken as an order by speed
+  // as well. Measured per-window costs say otherwise: Most accurate is 5.7x
+  // Fastest while Balanced is 12.2x, because Balanced keeps tripping whisper's
+  // temperature fallback and decoding the same window several times over.
+  // Ranking by position alone would have offered Balanced as the "draft" for a
+  // Most accurate run, putting a 165 second preview in front of a 76 second
+  // job.
+  const chosenCost = costOf ? costOf(chosenId) : null;
+
   for (let i = 0; i < chosenIndex; i++) {
     const id = orderedIds[i];
     if (!downloaded.has(id)) continue;
+    // Cheaper by measurement, not by position. An unknown cost on either side
+    // means no draft: a draft that might be slower than the real thing is
+    // worse than no draft.
+    const cost = costOf ? costOf(id) : null;
+    if (chosenCost === null || cost === null || cost >= chosenCost) continue;
     // Skipped rather than returned: a faster model that guesses the language
     // wrong produces a draft in the wrong language, and showing that first is
     // worse than showing nothing.

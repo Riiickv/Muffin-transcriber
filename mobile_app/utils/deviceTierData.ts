@@ -47,33 +47,33 @@ export const RECOMMENDED: Record<DeviceTier, Record<ModelGroup, string | null>> 
     embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',
   },
   high: {
-    // Small, NOT turbo, and this is a speed decision on a table that otherwise
-    // only weighs RAM.
+    // Back to Turbo, and this reverses a change made earlier the same day on
+    // arithmetic that measurement then contradicted.
     //
-    // Measured on a Pixel 9 Pro XL (16 GB, Tensor G4, 4 threads, i8mm kernels),
-    // 2026-09-04. Same 107s voice message, three runs of turbo: 132.2s, 158.4s
-    // and 284.6s, i.e. 0.81x, 0.68x and 0.38x realtime. Tiny on a comparable
-    // 111s clip: 3.1s of transcribe, about 36x realtime. Turbo is roughly 40x
-    // the cost of tiny and never once finished faster than the audio was long.
+    // MEASURED per window on one 107s recording, Pixel 9 Pro XL, build 105/106:
     //
-    // That phone is close to the ceiling of what Android hardware does, and it
-    // was the tier's own recommendation that put turbo there: a voice note cost
-    // two to five minutes and left the phone hot. Recommending it by RAM alone
-    // gave the best devices the worst experience, which is the exact opposite of
-    // what a tier table is for.
+    //   Fastest        2.4s a window,  1.9x spread,  11.2s total
+    //   Most accurate 13.6s a window,  1.1x spread,  76.3s total
+    //   Balanced      29.2s a window,  1.9x spread, 164.9s total
     //
-    // Turbo stays in the catalog and stays selectable - it is genuinely the most
-    // accurate, and someone transcribing a lecture they will read later is right
-    // to choose it. It is just not what an unattended default should hand to
-    // someone waiting on a voice message.
+    // Most accurate is more than twice as fast as Balanced. Every piece of
+    // reasoning available beforehand said the opposite: Turbo carries the full
+    // large-v3 encoder, 32 layers at 1280 wide, against Small's 12 at 768, so on
+    // paper it is seven times the work.
     //
-    // NOT YET MEASURED: small on this hardware. Its encoder is about 7x lighter
-    // than turbo's (12 layers x 768 wide against 32 x 1280), and the tiny/turbo
-    // ratio came in about half what that kind of arithmetic predicts, so the
-    // honest expectation is 3-4x realtime, roughly half a minute for a two
-    // minute message. That is an estimate from architecture, not a measurement,
-    // and it should be replaced with a real number from a Speed report.
-    whisper: 'ggml-small-q8_0.bin',
+    // The spread column is what explains it. Balanced sits at 1.9x
+    // slowest-over-median and Turbo at 1.1x, which is whisper's temperature
+    // fallback: a window failing the compression or logprob thresholds gets
+    // decoded again at a higher temperature, up to six times. Turbo trims the
+    // DECODER to 4 layers while keeping the full encoder, so it is confident
+    // first time and almost never retries. Small pays repeatedly for its own
+    // uncertainty. Being more accurate makes Turbo faster here.
+    //
+    // NOT ESTABLISHED: whether this holds for other recordings. The fallback
+    // rate depends on the audio, so a cleaner clip might put the tiers back in
+    // their architectural order. One file, one device. Enough to stop
+    // recommending the slower model to everyone; not a general law.
+    whisper: 'ggml-large-v3-turbo-q8_0.bin',
     formatter: 'qwen2.5-1.5b-instruct-q4_k_m.gguf',
     chat: 'Phi-3-mini-4k-instruct-q4.gguf',
     embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',

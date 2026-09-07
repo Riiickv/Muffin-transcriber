@@ -45,12 +45,16 @@ test('every formatter and chat model gets an estimate', () => {
   }
 });
 
-test('the order matches the quality ladder', () => {
-  // The catalog is ordered fastest to best, so estimates must rise with it.
+// This test used to assert that estimates rise with catalog position, on the
+// reasoning that the catalog runs fastest to best. Measurement killed it: Most
+// accurate is 13.6s a window and Balanced is 29.2s, so the quality order and
+// the speed order genuinely disagree. What is still true, and worth pinning, is
+// that every model has an estimate and Fastest is the fastest of them.
+test('every tier is estimated, and Fastest really is the fastest', () => {
   const seconds = WHISPER_IDS.map((id) => estimateFor(id, 'high')!.seconds);
-  for (let i = 1; i < seconds.length; i++) {
-    assert.ok(seconds[i] >= seconds[i - 1], `${WHISPER_IDS[i]} is not slower than the one before`);
-  }
+  assert.ok(seconds.every((n) => n > 0), 'a tier has no estimate');
+  const fastest = estimateFor('ggml-tiny-q8_0.bin', 'high')!.seconds;
+  assert.equal(Math.min(...seconds), fastest, 'something is quoted below Fastest');
 });
 
 test('a weaker device is estimated slower, never faster', () => {
@@ -67,7 +71,7 @@ test('the anchor still matches what was measured', () => {
   // first clean Balanced measurement (38.4s for a 107s message on a rested
   // phone). If a refactor moves this, every number in the UI moved with it.
   const e = estimateFor('ggml-large-v3-turbo-q8_0.bin', 'high')!;
-  assert.ok(Math.abs(e.seconds - 155.2) < 0.5, `anchor drifted to ${e.seconds}`);
+  assert.ok(Math.abs(e.seconds - 29.1) < 0.5, `anchor drifted to ${e.seconds}`);
   assert.equal(e.measured, false);
 });
 
@@ -77,7 +81,10 @@ test('the anchor still matches what was measured', () => {
 // A too-slow estimate costs a shrug; a too-fast one costs trust.
 test('the whisper estimate is not wildly optimistic any more', () => {
   const turbo = estimateFor('ggml-large-v3-turbo-q8_0.bin', 'high')!.seconds;
-  assert.ok(turbo > 60, `turbo quoted at ${turbo}s, which no measured run came close to`);
+  // Turbo measured 13.6s a window, so a one minute recording (two windows) is
+  // about 27s. The bound used to be "> 60" from when this was thought to be the
+  // slowest tier; it is in fact the middle one.
+  assert.ok(turbo > 20 && turbo < 40, `turbo quoted at ${turbo}s`);
 
   // Small is the high tier's recommendation now, so its estimate is the one
   // most people will read. It must stay in "worth waiting for" territory.
@@ -86,7 +93,11 @@ test('the whisper estimate is not wildly optimistic any more', () => {
   // numbers that made 165s and 210s runs look inexplicable.
   const small = estimateFor('ggml-small-q8_0.bin', 'high')!.seconds;
   assert.ok(small > 45 && small < 70, `small quoted at ${small}s`);
-  assert.ok(small < turbo, 'small must still read as cheaper than turbo');
+  // Deliberately inverted, and measured: Balanced is 29.2s a window against
+  // Turbo's 13.6s, because Turbo barely triggers whisper's temperature fallback
+  // and Balanced retries constantly. Layer counting says the opposite, which is
+  // why this assertion exists.
+  assert.ok(turbo < small, 'Turbo measured FASTER than Balanced on this audio');
 });
 
 test('a real measurement wins over the table and says so', () => {

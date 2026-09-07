@@ -1,5 +1,6 @@
 import { ModelManager, WHISPER_MODELS } from './ModelManager';
 import { loadWhisper, transcribeFile, isWhisperLoaded, TranscribeCallbacks } from './WhisperEngine';
+import { relativeCost } from '@/utils/modelTimeEstimate';
 import { pickDraftModel, shouldDraft } from './progressiveDraft';
 
 export type TranscribeResult = { text: string; segments: any[]; language?: string };
@@ -61,6 +62,7 @@ export async function transcribeProgressive(
       downloaded,
       WHISPER_MODELS.map((m) => m.id),
       !languageCode || languageCode === 'auto',
+      relativeCost,
     );
   }
 
