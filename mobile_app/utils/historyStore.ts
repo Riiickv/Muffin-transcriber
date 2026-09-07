@@ -1,6 +1,7 @@
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { loadSettings } from './settingsStore';
 import { createPersistentStore } from './persistentStore';
+import { refreshBackup } from './transcriptBackup';
 
 const HISTORY_KEY = 'muffin.history.v1';
 
@@ -26,6 +27,29 @@ const store = createPersistentStore<HistoryItem[]>(HISTORY_KEY, [], {
     if (items.length > 0) pruneHistoryAudio(items);
   },
 });
+
+/**
+ * Save, then mirror to the user's folder if they asked for that.
+ *
+ * Every write goes through here rather than store.save directly, so a backup
+ * cannot fall out of date because one code path forgot. Fire and forget on
+ * purpose: writing to a SAF folder is somebody else's filesystem and can be
+ * slow or refused, and none of that is a reason to make saving a transcript
+ * wait, or fail.
+ */
+async function saveHistory(next: HistoryItem[]): Promise<void> {
+  await store.save(next);
+  void (async () => {
+    try {
+      const s = await loadSettings();
+      if (s.keepTranscriptsAfterUninstall && s.backupFolderUri) {
+        await refreshBackup(s.backupFolderUri, next);
+      }
+    } catch {
+      // A backup that cannot be written must never break the save it followed.
+    }
+  })();
+}
 
 export const loadHistory = () => store.load();
 
@@ -60,7 +84,7 @@ async function pruneHistoryAudio(history: HistoryItem[]) {
       const next = current.map((h) =>
         cleared.has(h.id) ? { ...h, sourceFilePath: undefined } : h
       );
-      await store.save(next);
+      await saveHistory(next);
     }
   } catch (e) {
     console.error('Failed to prune history audio', e);
@@ -77,7 +101,7 @@ export async function updateHistoryItem(id: string, patch: Partial<HistoryItem>)
   const index = current.findIndex((h) => h.id === id);
   if (index < 0) return false;
   const next = current.map((h, i) => (i === index ? { ...h, ...patch } : h));
-  await store.save(next);
+  await saveHistory(next);
   return true;
 }
 
@@ -91,7 +115,7 @@ export function useHistory() {
       index >= 0
         ? current.map((h, i) => (i === index ? item : h))
         : [item, ...current];
-    await store.save(next);
+    await saveHistory(next);
   };
 
   const deleteItem = async (id: string) => {
@@ -100,7 +124,7 @@ export function useHistory() {
     if (itemToDelete?.sourceFilePath) {
       FileSystemLegacy.deleteAsync(itemToDelete.sourceFilePath, { idempotent: true }).catch(() => {});
     }
-    await store.save(current.filter((h) => h.id !== id));
+    await saveHistory(current.filter((h) => h.id !== id));
   };
 
   return { items, addOrUpdate, deleteItem };

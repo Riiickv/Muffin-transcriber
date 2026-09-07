@@ -317,6 +317,14 @@ export const APP_STRINGS = {
   //  "SETTINGS" TAB
   // ==========================================================================
   settings: {
+    exportTranscripts: "Export transcriptions",
+    exportTranscriptsDesc: "Save every transcription to a folder you choose. Nothing is uploaded.",
+    exportEmpty: "There is nothing to export yet.",
+    exportDone: "Exported",
+    exportDoneDesc: "Saved {count} transcriptions.",
+    exportFailed: "Export failed",
+    keepAfterUninstall: "Keep transcriptions after uninstalling",
+    keepAfterUninstallDesc: "Off, uninstalling Muffin deletes everything. On, a copy is kept in a folder you pick, which stays on your phone.",
     speedReport: "Speed report",
     copyReport: "Copy",
     clearReport: "Clear",

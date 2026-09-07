@@ -197,6 +197,14 @@ export const DE = {
   },
 
   settings: {
+    exportTranscripts: "Transkriptionen exportieren",
+    exportTranscriptsDesc: "Speichert alle Transkriptionen in einem Ordner deiner Wahl. Es wird nichts hochgeladen.",
+    exportEmpty: "Es gibt noch nichts zu exportieren.",
+    exportDone: "Exportiert",
+    exportDoneDesc: "{count} Transkriptionen gespeichert.",
+    exportFailed: "Export fehlgeschlagen",
+    keepAfterUninstall: "Transkriptionen nach dem Deinstallieren behalten",
+    keepAfterUninstallDesc: "Aus wird beim Deinstallieren von Muffin alles gelöscht. An bleibt eine Kopie in einem Ordner deiner Wahl, der auf dem Handy bleibt.",
     speedReport: "Geschwindigkeitsbericht",
     copyReport: "Kopieren",
     clearReport: "Löschen",

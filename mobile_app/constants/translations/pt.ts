@@ -197,6 +197,14 @@ export const PT = {
   },
 
   settings: {
+    exportTranscripts: "Exportar transcrições",
+    exportTranscriptsDesc: "Guarda todas as transcrições numa pasta à tua escolha. Não é enviado nada.",
+    exportEmpty: "Ainda não há nada para exportar.",
+    exportDone: "Exportadas",
+    exportDoneDesc: "Guardadas {count} transcrições.",
+    exportFailed: "Falha ao exportar",
+    keepAfterUninstall: "Manter as transcrições depois de desinstalar",
+    keepAfterUninstallDesc: "Desligado, desinstalar o Muffin apaga tudo. Ligado, fica uma cópia numa pasta à tua escolha, que permanece no telemóvel.",
     speedReport: "Relatório de velocidade",
     copyReport: "Copiar",
     clearReport: "Limpar",

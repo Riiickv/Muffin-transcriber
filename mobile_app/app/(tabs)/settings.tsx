@@ -1,6 +1,8 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { loadRuns, clearRuns, formatRuns } from '@/utils/perfLog';
+import { pickFolder, exportReadable, writeBackup } from '@/utils/transcriptBackup';
+import { errorToMessage } from '@/utils/errors';
 import { getDeviceProfile, describeProfile } from '@/utils/deviceProfile';
 import { TextInput } from '@/components/Themed';
 import { useState, useCallback } from 'react';
@@ -155,6 +157,83 @@ export default function SettingsScreen() {
         },
       ],
     });
+  };
+
+  /**
+   * Write every transcription to a folder the user picks.
+   *
+   * Muffin keeps everything in app-private storage with allowBackup off, which
+   * is what makes "it never leaves your phone" true and also means an uninstall
+   * destroys the lot. Until this existed the only way out was copying
+   * transcripts to the clipboard one at a time.
+   */
+  const exportTranscripts = async () => {
+    haptics.tap();
+    const items = await loadHistory();
+    if (items.length === 0) {
+      dialog.show({
+        title: t('settings.exportTranscripts') || 'Export transcriptions',
+        message: t('settings.exportEmpty') || 'There is nothing to export yet.',
+        icon: 'warning',
+      });
+      return;
+    }
+    const dir = await pickFolder();
+    if (!dir) return; // Backed out of the picker. Not an error, so say nothing.
+    try {
+      const { count } = await exportReadable(dir, items);
+      haptics.success();
+      dialog.show({
+        title: t('settings.exportDone') || 'Exported',
+        message: (t('settings.exportDoneDesc') || 'Saved {count} transcriptions.').replace(
+          '{count}',
+          String(count),
+        ),
+        icon: 'check',
+        iconTone: 'primary',
+      });
+    } catch (e) {
+      haptics.error();
+      dialog.show({
+        title: t('settings.exportFailed') || 'Export failed',
+        message: errorToMessage(e),
+        icon: 'warning',
+        iconTone: 'danger',
+      });
+    }
+  };
+
+  /**
+   * Turning the switch ON asks for a folder and writes immediately, so the
+   * promise on the label is true from the moment it is made rather than at some
+   * unspecified later point.
+   *
+   * Turning it OFF keeps the folder in settings and leaves the file where it
+   * is. Deleting somebody's file because they flipped a switch is not ours to
+   * do, and keeping the folder means turning it back on costs nothing.
+   */
+  const toggleKeepAfterUninstall = async (on: boolean) => {
+    if (!on) {
+      setSetting('keepTranscriptsAfterUninstall', false);
+      return;
+    }
+    const dir = settings.backupFolderUri || (await pickFolder());
+    if (!dir) return; // No folder, no promise. Leave the switch off.
+    try {
+      const items = await loadHistory();
+      await writeBackup(dir, items);
+      setSetting('backupFolderUri', dir);
+      setSetting('keepTranscriptsAfterUninstall', true);
+      haptics.success();
+    } catch (e) {
+      haptics.error();
+      dialog.show({
+        title: t('settings.exportFailed') || 'Export failed',
+        message: errorToMessage(e),
+        icon: 'warning',
+        iconTone: 'danger',
+      });
+    }
   };
 
   const showSpeedReport = async () => {
@@ -444,6 +523,22 @@ export default function SettingsScreen() {
           icon="library"
           label={t('settings.privacyPolicy')}
           onPress={() => { haptics.tap(); openPrivacyPolicy(); }}
+        />
+        <SettingsRow
+          icon="library"
+          label={t('settings.exportTranscripts') || 'Export transcriptions'}
+          description={t('settings.exportTranscriptsDesc')}
+          onPress={exportTranscripts}
+        />
+        <SettingsRow
+          label={t('settings.keepAfterUninstall') || 'Keep transcriptions after uninstalling'}
+          description={t('settings.keepAfterUninstallDesc')}
+          right={
+            <Switch
+              value={settings.keepTranscriptsAfterUninstall}
+              onChange={(v) => { void toggleKeepAfterUninstall(v); }}
+            />
+          }
         />
         <SettingsRow
           icon="waveform"

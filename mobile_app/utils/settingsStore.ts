@@ -66,6 +66,28 @@ export interface Settings {
    * means something once you already know.
    */
   showModelNames: boolean;
+  /**
+   * Mirror every transcription into a folder the user picked, so it survives
+   * uninstalling the app.
+   *
+   * Off by default, and that default is the honest one: everything Muffin
+   * stores lives in app-private storage with allowBackup false, which is what
+   * makes the privacy promise true, and which is also why Android deletes all
+   * of it on uninstall. Turning this ON is the user choosing to put a copy
+   * somewhere the app does not control. It should never happen without them
+   * asking, because a file appearing in someone's Documents folder unbidden is
+   * exactly the behaviour this app exists not to have.
+   */
+  keepTranscriptsAfterUninstall: boolean;
+  /**
+   * The SAF folder the backup is written to, empty when none was chosen.
+   *
+   * Kept separate from the switch above so turning the switch off does not
+   * throw away the folder: turning it back on then costs nothing, and the file
+   * already there is left alone. Deleting somebody's file because they flipped
+   * a switch is not ours to do.
+   */
+  backupFolderUri: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -96,6 +118,8 @@ export const DEFAULT_SETTINGS: Settings = {
   seenWelcome: false,
   showModelTimeEstimate: false,
   showModelNames: false,
+  keepTranscriptsAfterUninstall: false,
+  backupFolderUri: '',
 };
 
 // Model ids that changed in the catalog (e.g. quant swaps) - remap stale

@@ -222,6 +222,14 @@ export const IT = {
   },
 
   settings: {
+    exportTranscripts: "Esporta le trascrizioni",
+    exportTranscriptsDesc: "Salva tutte le trascrizioni in una cartella che scegli tu. Non viene caricato nulla.",
+    exportEmpty: "Non c'è ancora niente da esportare.",
+    exportDone: "Esportate",
+    exportDoneDesc: "Salvate {count} trascrizioni.",
+    exportFailed: "Esportazione non riuscita",
+    keepAfterUninstall: "Conserva le trascrizioni dopo la disinstallazione",
+    keepAfterUninstallDesc: "Se disattivato, disinstallando Muffin si cancella tutto. Se attivo, una copia resta in una cartella scelta da te, che rimane sul telefono.",
     speedReport: "Report velocità",
     copyReport: "Copia",
     clearReport: "Cancella",
