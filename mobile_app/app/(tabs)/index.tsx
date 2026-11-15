@@ -32,6 +32,7 @@ import { useSettings } from '@/utils/settingsStore';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
 import { ModelManager, WHISPER_MODELS, isParakeetModel } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
+import { useDownloads } from '@/utils/downloadManager';
 import { useWhisperPreload } from '@/hooks/useWhisperPreload';
 import { useResponsive } from '@/hooks/useResponsive';
 import { errorToMessage } from '@/utils/errors';
@@ -80,7 +81,10 @@ export default function HomeScreen() {
   const [formattedText, setFormattedText] = useState('');
   const [summaryText, setSummaryText] = useState('');
 
-  const { whisperOptions, downloadedIds, ready: modelsChecked } = useModelOptions();
+  const downloadTasks = Object.values(useDownloads());
+  // Re-read the disk when the last download ends, so the screen below gives
+  // way to the record screen without leaving the tab.
+  const { whisperOptions, downloadedIds, ready: modelsChecked } = useModelOptions(downloadTasks.length === 0);
   // The welcome hides BOTH the header and the tab bar, so this screen is on its
   // own for the notch and the gesture bar - normally the navigator handles them.
   const insets = useSafeAreaInsets();
@@ -438,6 +442,36 @@ export default function HomeScreen() {
   // the app is ready to do. This is also the only screen a Play reviewer sees on
   // a fresh install. `modelsChecked` gates it so existing users never see it
   // flash while the disk is being read.
+  //
+  // A first model still downloading gets its progress here, not the welcome:
+  // the welcome after finishing setup read as the setup starting over.
+  if (modelsChecked && downloadedIds.length === 0 && downloadTasks.length > 0) {
+    const pct = Math.round(
+      (100 * downloadTasks.reduce((sum, d) => sum + d.progress, 0)) / downloadTasks.length
+    );
+    return (
+      <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>
+        <ScrollView
+          style={styles.root}
+          contentContainerStyle={[
+            styles.welcome,
+            { paddingTop: insets.top + SPACING.xl, paddingBottom: insets.bottom + SPACING.xl },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <Image
+            source={require('@/assets/images/splash-icon.png')}
+            style={{ width: 132, height: 132 }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
+          <Text style={styles.welcomeTitle}>{t('transcribe.downloadingTitle')}</Text>
+          <Text style={[styles.welcomeBody, { color: theme.textMuted }]}>{`${pct}%`}</Text>
+        </ScrollView>
+      </FadeInView>
+    );
+  }
+
   if (modelsChecked && downloadedIds.length === 0) {
     return (
       <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>

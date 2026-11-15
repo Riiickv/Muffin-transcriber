@@ -8,7 +8,9 @@ import { useTheme } from '@/components/ThemeProvider';
 import { Button } from '@/components/Button';
 import { FadeInView } from '@/components/FadeInView';
 import { ModelDownloadList } from '@/components/ModelDownloadList';
-import { FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, speechModels } from '@/utils/ModelManager';
+import { FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, ModelManager, speechModels } from '@/utils/ModelManager';
+import { useDialog } from '@/components/Dialog';
+import { useDownloads } from '@/utils/downloadManager';
 import { withRecommendedFirst, recommendedModelId } from '@/utils/deviceTier';
 import { SPACING, RADIUS } from '@/constants/tokens';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -38,6 +40,8 @@ export default function SetupScreen() {
   // notch or off the gesture bar - the navigator's header normally does that.
   const insets = useSafeAreaInsets();
   const [page, setPage] = useState(0);
+  const dialog = useDialog();
+  const downloads = useDownloads();
 
   const chatSuggestion = recommendedModelId('chat');
 
@@ -105,12 +109,33 @@ export default function SetupScreen() {
   const goNext = () => {
     haptics.tap();
     if (isLast) {
-      // Done - into the app. replace(), not push(): setup is not somewhere you
-      // should be able to land back on with the system Back button.
-      router.replace('/(tabs)' as any);
+      finish();
       return;
     }
     setPage((p) => p + 1);
+  };
+
+  // replace(), not push(): setup is not somewhere you should be able to land
+  // back on with the system Back button.
+  const enter = () => router.replace('/(tabs)' as any);
+
+  // Only the transcriber counts: without a formatter the app still transcribes.
+  // A transcriber still downloading goes straight in, and Home shows the
+  // download instead of the welcome. Before this, Start with nothing installed
+  // landed on the welcome again, which read as the setup looping.
+  const finish = async () => {
+    const speechIds = new Set(speechModels().map((m) => m.id));
+    if (Object.keys(downloads).some((id) => speechIds.has(id))) return enter();
+    const ids = await ModelManager.getDownloadedModelIds().catch(() => [] as string[]);
+    if (ids.some((id) => speechIds.has(id))) return enter();
+    dialog.show({
+      title: t('setup.noModelTitle'),
+      message: t('setup.noModelBody'),
+      buttons: [
+        { label: t('setup.back'), variant: 'secondary' },
+        { label: t('setup.letMeIn'), variant: 'primary', onPress: enter },
+      ],
+    });
   };
 
   const goBack = () => {

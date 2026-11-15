@@ -71,6 +71,7 @@ export const APP_STRINGS = {
     welcomeBody: "Muffin is a transcriber that uses AI to improve the text output. It can even learn from you and help you when the audio is unclear!",
     welcomeStep: "You can share your files with Muffin or record in the app, and it will do all the work for you!",
     welcomeButton: "Setup!",
+    downloadingTitle: "Downloading models",
 
     // -- The Improve / Summarize card at the top --
     formatToggle: "Improve",
@@ -503,6 +504,9 @@ export const APP_STRINGS = {
     back: "Back",
     next: "Next!",
     finish: "Start!",
+    noModelTitle: "No model is installed",
+    noModelBody: "Are you sure you want to continue? You can still download them in Settings.",
+    letMeIn: "Let me in",
   },
 
   models: {

@@ -1,9 +1,9 @@
-# Release notes, versionCode 119 (version 2.0)
+# Release notes, versionCode 120 (version 2.0)
 
 Paste each block into the matching language in Play Console under
 Release > Production > Release notes. Play's limit is 500 characters.
 
-Play currently holds 108, so these cover everything from 109 to 119.
+Play currently holds 108, so these cover everything from 109 to 120.
 Chat is hidden since 118 (`utils/features.ts`), so it is not mentioned.
 Names are copied from `constants/strings.ts` ("Fast, high quality"). The Black
 theme and accent colors were already in 108 (only their labels became

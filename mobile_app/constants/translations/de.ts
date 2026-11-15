@@ -18,6 +18,7 @@ export const DE = {
     welcomeBody: "Muffin ist ein Transkribierer, der KI nutzt, um den Text zu verbessern. Er kann sogar von dir lernen und dir helfen, wenn das Audio undeutlich ist!",
     welcomeStep: "Du kannst deine Dateien mit Muffin teilen oder in der App aufnehmen, und er macht die ganze Arbeit für dich!",
     welcomeButton: "Einrichten!",
+    downloadingTitle: "Modelle werden geladen",
     formatToggle: "Verbessern",
     summarizeToggle: "Zusammenfassen",
     formatterModelLabel: "Verbesserungsqualität",
@@ -361,6 +362,9 @@ export const DE = {
     back: "Zurück",
     next: "Weiter!",
     finish: "Los!",
+    noModelTitle: "Kein Modell installiert",
+    noModelBody: "Möchtest du wirklich fortfahren? Du kannst sie später in den Einstellungen herunterladen.",
+    letMeIn: "Lass mich rein",
   },
 
   models: {

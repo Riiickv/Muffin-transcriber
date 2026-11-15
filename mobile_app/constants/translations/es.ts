@@ -18,6 +18,7 @@ export const ES = {
     welcomeBody: "Muffin es un transcriptor que usa IA para mejorar el texto. ¡Incluso puede aprender de ti y ayudarte cuando el audio no se entiende bien!",
     welcomeStep: "¡Puedes compartir tus archivos con Muffin o grabar en la app, y él hará todo el trabajo por ti!",
     welcomeButton: "¡Configurar!",
+    downloadingTitle: "Descargando modelos",
     formatToggle: "Mejorar",
     summarizeToggle: "Resumir",
     formatterModelLabel: "Calidad de la mejora",
@@ -361,6 +362,9 @@ export const ES = {
     back: "Atrás",
     next: "¡Siguiente!",
     finish: "¡Empezar!",
+    noModelTitle: "No hay ningún modelo instalado",
+    noModelBody: "¿Seguro que quieres continuar? Puedes descargarlos en Ajustes.",
+    letMeIn: "Déjame entrar",
   },
 
   models: {
