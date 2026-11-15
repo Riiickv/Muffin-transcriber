@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { CHAT_SHIPPED } from '@/utils/features';
 import { loadRuns, clearRuns, formatRuns } from '@/utils/perfLog';
 import { pickFolder, exportReadable, writeBackup } from '@/utils/transcriptBackup';
 import { errorToMessage } from '@/utils/errors';
@@ -18,36 +19,36 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { Icon } from '@/components/Icon';
 import { SettingsGroup, SettingsRow } from '@/components/SettingsGroup';
 import { haptics } from '@/utils/haptics';
-import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, modelName } from '@/utils/ModelManager';
+import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, modelName, speechModels } from '@/utils/ModelManager';
 import { rollupMemories } from '@/utils/LLMEngine';
 import { clearAllChats } from '@/utils/chatStore';
 import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
-import { getLanguageOptions } from '@/utils/languages';
+import { getLanguageOptionsForModel } from '@/utils/languages';
 import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
 import { useDialog } from '@/components/Dialog';
 // THROWAWAY, with utils/chunkSpike.ts. Remove both together.
 import { runChunkSpike, formatSpike } from '@/utils/chunkSpike';
-import { loadHistory } from '@/utils/historyStore';
+import { historyIsComplete, loadHistory } from '@/utils/historyStore';
 import { unloadWhisper } from '@/utils/WhisperEngine';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { t, APP_LANGUAGE_OPTIONS, AppLanguage } from '@/utils/i18n';
 import { openPrivacyPolicy } from '@/utils/support';
 import Constants from 'expo-constants';
 const THEME_SEGMENTS = [
-  { key: 'system' as const, label: 'Auto' },
-  { key: 'light' as const, label: 'Light' },
-  { key: 'dark' as const, label: 'Dark' },
-  { key: 'amoled' as const, label: 'Black' },
-] as const satisfies readonly { key: ThemeMode; label: string }[];
+  { key: 'system' as const, labelKey: 'settings.themeAuto', label: 'Auto' },
+  { key: 'light' as const, labelKey: 'settings.themeLight', label: 'Light' },
+  { key: 'dark' as const, labelKey: 'settings.themeDark', label: 'Dark' },
+  { key: 'amoled' as const, labelKey: 'settings.themeBlack', label: 'Black' },
+] as const satisfies readonly { key: ThemeMode; labelKey: string; label: string }[];
 
 // Mirrors ACCENT_COLORS in ThemeProvider. 'system' has no fixed colour - it's
 // pulled from the wallpaper at runtime - so it renders as an outlined dot.
-const ACCENT_SWATCHES: { key: AccentColor; color: string | null; label: string }[] = [
-  { key: 'system', color: null, label: 'System' },
-  { key: 'muffin', color: '#FF9EBB', label: 'Muffin' },
-  { key: 'green', color: '#65D28A', label: 'Green' },
-  { key: 'purple', color: '#A975C2', label: 'Purple' },
-  { key: 'red', color: '#ED6F62', label: 'Red' },
+const ACCENT_SWATCHES: { key: AccentColor; color: string | null; labelKey: string; label: string }[] = [
+  { key: 'system', color: null, labelKey: 'settings.accentSystem', label: 'System' },
+  { key: 'muffin', color: '#FF9EBB', labelKey: 'settings.accentMuffin', label: 'Muffin' },
+  { key: 'green', color: '#65D28A', labelKey: 'settings.accentGreen', label: 'Green' },
+  { key: 'purple', color: '#A975C2', labelKey: 'settings.accentPurple', label: 'Purple' },
+  { key: 'red', color: '#ED6F62', labelKey: 'settings.accentRed', label: 'Red' },
 ];
 
 // Read from the build, never hand-typed: a hardcoded string here silently rots
@@ -75,7 +76,7 @@ export default function SettingsScreen() {
       const check = async () => {
         await ModelManager.init();
         const status: Record<string, boolean> = {};
-        for (const m of [...WHISPER_MODELS, ...FORMATTER_MODELS, ...CHAT_MODELS, ...EMBEDDING_MODELS]) {
+        for (const m of [...speechModels(true), ...FORMATTER_MODELS, ...CHAT_MODELS, ...EMBEDDING_MODELS]) {
           status[m.id] = await ModelManager.isModelDownloaded(m.id);
         }
         setDownloadedModels(status);
@@ -221,6 +222,9 @@ export default function SettingsScreen() {
     if (!dir) return; // No folder, no promise. Leave the switch off.
     try {
       const items = await loadHistory();
+      // The backup replaces the file already in that folder. A list that is
+      // missing notes it could not read must not replace a whole one.
+      if (!historyIsComplete()) throw new Error(t('history.unreadable') || 'Some transcripts could not be read.');
       await writeBackup(dir, items);
       setSetting('backupFolderUri', dir);
       setSetting('keepTranscriptsAfterUninstall', true);
@@ -318,7 +322,8 @@ export default function SettingsScreen() {
       <SettingsGroup title={t('settings.transcription')} index={1}>
         <SelectDropdown
           rowLabel={t('settings.defaultLanguage')}
-          options={getLanguageOptions()}
+          rowDescription={t('settings.defaultLanguageDesc')}
+          options={getLanguageOptionsForModel(settings.preferredWhisperModel)}
           value={settings.defaultLanguage}
           onSelect={(val) => setSetting('defaultLanguage', val)}
           placeholder="Auto-Detect"
@@ -349,21 +354,20 @@ export default function SettingsScreen() {
           }
         />
         {settings.enableTypewriter && (
-          <SettingsRow
-            label={t('settings.typewriterSpeed')}
-            right={
-              <SegmentedControl
-                style={{ minWidth: 190 }}
-                segments={[
-                  { key: 'slow', label: t('settings.speedSlow') || 'Slow' },
-                  { key: 'balanced', label: t('settings.speedBalanced') || 'Balanced' },
-                  { key: 'fast', label: t('settings.speedFast') || 'Fast' },
-                ]}
-                value={settings.typewriterSpeed}
-                onChange={(v) => setSetting('typewriterSpeed', v as 'slow' | 'balanced' | 'fast')}
-              />
-            }
-          />
+          // Label above, control across the full width, like Theme below. NOT a
+          // SettingsRow with the control on the right: see SegmentedControl.
+          <View style={styles.pickerBlock}>
+            <Text style={styles.pickerLabel}>{t('settings.typewriterSpeed')}</Text>
+            <SegmentedControl
+              segments={[
+                { key: 'slow', label: t('settings.speedSlow') || 'Slow' },
+                { key: 'balanced', label: t('settings.speedBalanced') || 'Balanced' },
+                { key: 'fast', label: t('settings.speedFast') || 'Fast' },
+              ]}
+              value={settings.typewriterSpeed}
+              onChange={(v) => setSetting('typewriterSpeed', v as 'slow' | 'balanced' | 'fast')}
+            />
+          </View>
         )}
       </SettingsGroup>
 
@@ -380,6 +384,7 @@ export default function SettingsScreen() {
         />
         <SelectDropdown
           rowLabel={t('settings.preferredFormatter')}
+          rowDescription={t('settings.preferredFormatterDesc')}
           options={downloadedFormatterOptions}
           value={settings.preferredFormatterModel}
           onSelect={(val) => setSetting('preferredFormatterModel', val)}
@@ -388,8 +393,10 @@ export default function SettingsScreen() {
         {/* Chat is opt-in while it's beta: the tab stays hidden until this is on,
             so nobody meets a half-finished feature without choosing to. Turning
             it ON explains exactly what does and doesn't work yet. */}
+        {CHAT_SHIPPED && (
         <SettingsRow
           label={t('settings.chatBetaLabel')}
+          description={t('settings.chatBetaDesc')}
           badge={
             <View style={[styles.betaPill, { backgroundColor: theme.tintFill }]}>
               <Text style={[styles.betaPillText, { color: theme.tint }]}>{t('chat.beta') || 'Beta'}</Text>
@@ -411,9 +418,11 @@ export default function SettingsScreen() {
             />
           }
         />
-        {settings.enableChatBeta && (
+        )}
+        {CHAT_SHIPPED && settings.enableChatBeta && (
           <SelectDropdown
             rowLabel={t('settings.preferredChat')}
+            rowDescription={t('settings.preferredChatDesc')}
             options={[...downloadedFormatterOptions, ...downloadedChatOptions]}
             value={settings.preferredChatModel}
             onSelect={(val) => setSetting('preferredChatModel', val)}
@@ -436,7 +445,7 @@ export default function SettingsScreen() {
         {settings.enableContextLearning && (
           <SettingsRow
             label={t('settings.compressProfile')}
-            description={t('settings.compressingDesc')}
+            description={t('settings.compressProfileDesc')}
             icon="compress"
             onPress={handleCompress}
             chevron={false}
@@ -463,7 +472,7 @@ export default function SettingsScreen() {
         <View style={styles.pickerBlock}>
           <Text style={styles.pickerLabel}>{t('settings.themeMode')}</Text>
           <SegmentedControl
-            segments={THEME_SEGMENTS}
+            segments={THEME_SEGMENTS.map((s) => ({ key: s.key, label: t(s.labelKey) || s.label }))}
             value={themeMode}
             onChange={(m: ThemeMode) => setThemeMode(m)}
           />
@@ -478,7 +487,7 @@ export default function SettingsScreen() {
         <View style={styles.promptBlock}>
           <Text style={[styles.promptLabel, { color: theme.text }]}>{t('settings.formatSystemPrompt')}</Text>
           <TextInput
-            style={[styles.input, { color: theme.text, borderColor: theme.divider, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, backgroundColor: theme.surfaceStrong }]}
             value={formatPrompt}
             onChangeText={setFormatPrompt}
             placeholder={t('settings.formatSystemPromptPlaceholder')}
@@ -489,7 +498,7 @@ export default function SettingsScreen() {
         <View style={styles.promptBlock}>
           <Text style={[styles.promptLabel, { color: theme.text }]}>{t('settings.summarySystemPrompt')}</Text>
           <TextInput
-            style={[styles.input, { color: theme.text, borderColor: theme.divider, backgroundColor: theme.background }]}
+            style={[styles.input, { color: theme.text, backgroundColor: theme.surfaceStrong }]}
             value={summaryPrompt}
             onChangeText={setSummaryPrompt}
             placeholder={t('settings.summarySystemPromptPlaceholder')}
@@ -502,30 +511,16 @@ export default function SettingsScreen() {
       <SettingsGroup title={t('settings.storageHeader')} index={6}>
         <SelectDropdown
           rowLabel={t('settings.autoDeleteLabel')}
+          rowDescription={t('settings.autoDeleteDesc')}
           options={AUTO_DELETE_OPTIONS}
           value={settings.autoDeleteCacheDuration}
           onSelect={(val) => setSetting('autoDeleteCacheDuration', val as 'Never' | '1 Week' | '1 Month')}
           placeholder={t('settings.autoDeleteNever')}
         />
-        {/* Destructive, so it lives alone at the bottom instead of sitting a
-            thumb's width from Normalize Audio. */}
+        {/* Export and keep-after-uninstall are about where your transcripts
+            live, which is this group. They were filed under About, between the
+            privacy policy and the speed report. */}
         <SettingsRow
-          label={t('settings.clearChat')}
-          icon="delete"
-          tone="danger"
-          onPress={handleClearChat}
-          chevron={false}
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title={t('settings.aboutHeader')} index={7}>
-        <SettingsRow
-          icon="library"
-          label={t('settings.privacyPolicy')}
-          onPress={() => { haptics.tap(); openPrivacyPolicy(); }}
-        />
-        <SettingsRow
-          icon="library"
           label={t('settings.exportTranscripts') || 'Export transcriptions'}
           description={t('settings.exportTranscriptsDesc')}
           onPress={exportTranscripts}
@@ -540,16 +535,49 @@ export default function SettingsScreen() {
             />
           }
         />
+        {/* Destructive, so it lives alone at the bottom instead of sitting a
+            thumb's width from Normalize Audio. Only when Chat is on: with the
+            beta off there is no chat, and a red row offering to clear one
+            reads as if something were stored that the user never made. */}
+        {CHAT_SHIPPED && settings.enableChatBeta && (
+          <SettingsRow
+            label={t('settings.clearChat')}
+            icon="delete"
+            tone="danger"
+            onPress={handleClearChat}
+            chevron={false}
+          />
+        )}
+      </SettingsGroup>
+
+      <SettingsGroup title={t('settings.aboutHeader')} index={7}>
+        <SettingsRow
+          icon="library"
+          label={t('settings.privacyPolicy')}
+          onPress={() => { haptics.tap(); openPrivacyPolicy(); }}
+        />
         <SettingsRow
           icon="waveform"
           label={t('settings.speedReport') || 'Speed report'}
+          description={t('settings.speedReportDesc')}
           onPress={showSpeedReport}
           onLongPress={runChunkSpikeNow}
         />
       </SettingsGroup>
 
-      <Text style={[styles.versionText, { color: theme.textSubtle }]}>
+      {/* Held, it turns the speech models under test on or off (they then
+          show on the Models screen). The mark after the version is the
+          only sign it is on. */}
+      <Text
+        style={[styles.versionText, { color: theme.textSubtle }]}
+        suppressHighlighting
+        onLongPress={() => {
+          haptics.toggle(!settings.showTestModels);
+          setSetting('showTestModels', !settings.showTestModels);
+        }}
+      >
         {t('settings.version').replace('{version}', APP_VERSION)}
+        {settings.showTestModels ? ' +' : ''}
       </Text>
     </>
   );
@@ -572,7 +600,7 @@ export default function SettingsScreen() {
 const Switch = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => {
   const { theme } = useTheme();
   return (
-    <ExpressiveSwitch value={value} onValueChange={onChange} activeColor={theme.tint} thumbActiveColor="#000000" />
+    <ExpressiveSwitch value={value} onValueChange={onChange} activeColor={theme.tint} thumbActiveColor={theme.tintForeground} />
   );
 };
 
@@ -643,13 +671,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     padding: SPACING.md,
     minHeight: 92,
     textAlignVertical: 'top',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   betaPill: {
     paddingHorizontal: 8,
@@ -732,7 +759,7 @@ const SwatchRow = ({ active, onPick }: { active: string; onPick: (v: AccentColor
             }}
             accessibilityRole="button"
             accessibilityState={{ selected: isActive }}
-            accessibilityLabel={s.label}
+            accessibilityLabel={t(s.labelKey) || s.label}
             style={[
               styles.swatchRing,
               { borderColor: isActive ? theme.tint : 'transparent' },

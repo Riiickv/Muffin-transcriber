@@ -3,7 +3,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { Text } from './Themed';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, usePathname } from 'expo-router';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
 import { useTheme } from './ThemeProvider';
 import { ProgressCircle } from './ProgressCircle';
@@ -17,12 +17,12 @@ import {
 } from '@/utils/downloadManager';
 import { Icon } from './Icon';
 import { useBannerExpanded, setBannerExpanded } from '@/utils/downloadBanner';
-import { WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, modelName } from '@/utils/ModelManager';
+import { FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, speechModels, modelName } from '@/utils/ModelManager';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
-import { SPACING, RADIUS } from '@/constants/tokens';
+import { MOTION, SPACING, RADIUS } from '@/constants/tokens';
 
-const ALL_MODELS = [...WHISPER_MODELS, ...FORMATTER_MODELS, ...CHAT_MODELS, ...EMBEDDING_MODELS];
+const ALL_MODELS = [...speechModels(true), ...FORMATTER_MODELS, ...CHAT_MODELS, ...EMBEDDING_MODELS];
 
 const labelFor = (id: string): string => {
   const def = ALL_MODELS.find((m) => m.id === id);
@@ -116,12 +116,12 @@ export function DownloadBanner() {
 
   const open = useSharedValue(0);
   useEffect(() => {
-    open.value = withTiming(expanded ? 1 : 0, { duration: 240 });
+    open.value = expanded ? withSpring(1, MOTION.drop) : withTiming(0, { duration: 200 });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open is a stable shared value
   }, [expanded]);
 
   const animStyle = useAnimatedStyle(() => ({
-    opacity: open.value,
+    opacity: Math.min(1, open.value),
     transform: [
       { translateY: (1 - open.value) * -12 },
       // bias the shrink toward the top-right, where the ring sits

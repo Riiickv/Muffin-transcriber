@@ -38,11 +38,11 @@ export const IconButton = ({
   const s = SIZE_STYLES[size];
 
   const palette: Record<IconButtonVariant, { bg: string; fg: string }> = {
-    tint: { bg: theme.tintFill, fg: theme.tint },
+    tint: { bg: theme.tintFill, fg: theme.tintText },
     ghost: { bg: 'transparent', fg: theme.text },
     // Matches a ghost Button (transparent, tint-coloured) so an icon-only
     // action sits in a row of ghost buttons without looking like a new control.
-    'ghost-tint': { bg: 'transparent', fg: theme.tint },
+    'ghost-tint': { bg: 'transparent', fg: theme.tintText },
     danger: { bg: theme.dangerSurface, fg: theme.danger },
     subtle: { bg: theme.surface, fg: theme.text },
   };

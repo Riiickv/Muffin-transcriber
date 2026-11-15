@@ -6,7 +6,7 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
 import { Icon } from '@/components/Icon';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { SuggestedGlow } from '@/components/SuggestedGlow';
+import { useDialog } from '@/components/Dialog';
 import { ModelManager, ModelDef, modelName, modelDesc } from '@/utils/ModelManager';
 import { useDownloads, startModelDownload, pauseDownload, resumeDownload, cancelDownload } from '@/utils/downloadManager';
 import { formatEta } from '@/utils/format';
@@ -14,7 +14,7 @@ import { estimateFor, formatEstimateSeconds } from '@/utils/modelTimeEstimate';
 import { getDeviceTier } from '@/utils/deviceTier';
 import { averageSecondsByModel } from '@/utils/perfLog';
 import { useSettings } from '@/utils/settingsStore';
-import { RADIUS, SPACING } from '@/constants/tokens';
+import { RADIUS, SPACING, TYPE } from '@/constants/tokens';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
 
@@ -58,6 +58,8 @@ export function ModelDownloadList({
 }) {
   // Progress comes from the module-level manager, not local state, so a download
   // started here keeps running (and keeps reporting) after you leave the screen.
+  const dialog = useDialog();
+  const { theme } = useTheme();
   const downloads = useDownloads();
   const [downloadedModels, setDownloadedModels] = useState<Record<string, boolean>>({});
   // Which models were downloading on the previous render. When one leaves the
@@ -105,8 +107,8 @@ export function ModelDownloadList({
         : 'models.estimatePerMinute';
     const fallback = e.measured
       ? e.per === 'recording'
-        ? '{t} per recording on your phone'
-        : '{t} per minute of recording on your phone'
+        ? '{t} per recording on this phone'
+        : '{t} per minute of recording on this phone'
       : e.per === 'recording'
         ? 'about {t} per recording'
         : 'about {t} per minute of recording';
@@ -149,36 +151,48 @@ export function ModelDownloadList({
     activeIds.current = nowActive;
   }, [downloads]);
 
-  const handleDownload = async (modelId: string, url: string) => {
+  const handleDownload = (model: ModelDef) => {
     haptics.tap();
-    if (downloadedModels[modelId]) {
-      await ModelManager.deleteModel(modelId);
-      setDownloadedModels((prev) => ({ ...prev, [modelId]: false }));
+    if (!downloadedModels[model.id]) {
+      startModelDownload(model.id, model.url);
       return;
     }
-    // Hand it to the manager and walk away. It owns the download from here, so
-    // leaving this screen no longer stops it; progress flows back via useDownloads.
-    startModelDownload(modelId, url);
+    // Ask first. One stray tap used to delete the file on the spot, and for
+    // the largest model that is close to a gigabyte to download again.
+    dialog.show({
+      title: modelName(model),
+      message: (t('chat.deleteMessage') || 'Delete "{name}"?').replace('{name}', modelName(model)),
+      icon: 'delete',
+      iconTone: 'danger',
+      buttons: [
+        { label: t('common.cancel') || 'Cancel', variant: 'secondary' },
+        {
+          label: t('common.delete') || 'Delete',
+          variant: 'danger',
+          onPress: async () => {
+            await ModelManager.deleteModel(model.id);
+            setDownloadedModels((prev) => ({ ...prev, [model.id]: false }));
+          },
+        },
+      ],
+    });
   };
 
   return (
     <>
-      {models.map((model) => {
-        const row = (
+      {models.map((model, i) => (
+        <View key={model.id}>
+          {i > 0 && <View style={[styles.rule, { backgroundColor: theme.divider }]} />}
           <ModelRow
             model={model}
+            highlighted={model.id === highlightId}
             downloaded={!!downloadedModels[model.id]}
             info={downloads[model.id]}
             estimate={showEstimate ? estimateLine(model.id, measured[model.id]) : null}
-            onPress={() => handleDownload(model.id, model.url)}
+            onPress={() => handleDownload(model)}
           />
-        );
-        return (
-          <View key={model.id}>
-            {model.id === highlightId ? <SuggestedGlow>{row}</SuggestedGlow> : row}
-          </View>
-        );
-      })}
+        </View>
+      ))}
     </>
   );
 }
@@ -190,12 +204,15 @@ export function ModelDownloadList({
  */
 const ModelRow = ({
   model,
+  highlighted,
   downloaded,
   info,
   estimate,
   onPress,
 }: {
   model: ModelDef;
+  /** The one suggested for this device. */
+  highlighted?: boolean;
   downloaded: boolean;
   info?: DownloadInfo;
   /** Pre-built time line, or null when the setting is off or unknown. */
@@ -212,10 +229,13 @@ const ModelRow = ({
       : `${model.size} · ${modelDesc(model)}`;
 
   return (
-    <View>
-      <View style={styles.row}>
+    // The suggested model is a tinted block, not an outline. It was a pulsing
+    // 2px ring drawn 3dp outside the row, which overlapped the card it sat in
+    // and never stopped moving.
+    <View style={highlighted ? [styles.highlight, { backgroundColor: theme.tintFill }] : null}>
+      <View style={[styles.row, highlighted && styles.rowInset]}>
         <View style={{ flex: 1, paddingRight: SPACING.md }}>
-          <Text style={styles.name}>{modelName(model)}</Text>
+          <Text style={[styles.name, highlighted && { color: theme.tintText }]}>{modelName(model)}</Text>
           <Text style={[styles.sub, { color: theme.textMuted }]} numberOfLines={2}>
             {subtitle}
           </Text>
@@ -225,7 +245,7 @@ const ModelRow = ({
               while downloading: a progress line and a speed guess in the same
               place is two numbers competing to be read. */}
           {estimate && !isDownloading ? (
-            <Text style={[styles.est, { color: theme.tint }]} numberOfLines={1}>
+            <Text style={[styles.est, { color: theme.tintText }]} numberOfLines={1}>
               {estimate}
             </Text>
           ) : null}
@@ -265,17 +285,13 @@ const ModelRow = ({
             onPress={onPress}
             accessibilityRole="button"
             accessibilityLabel={`${downloaded ? t('settings.delete') : t('settings.get')} ${modelName(model)}`}
-            style={[
-              styles.action,
-              {
-                backgroundColor: downloaded ? theme.dangerSurface : theme.tint,
-                borderColor: downloaded ? theme.danger : 'transparent',
-                borderWidth: downloaded ? 1 : 0,
-              },
-            ]}
+            style={downloaded ? styles.remove : [styles.action, { backgroundColor: theme.tint }]}
           >
+            {/* Installed is the normal state, so it is quiet: a plain bin, no
+                red pill. Red is kept for the confirmation, where it means
+                something. */}
             {downloaded ? (
-              <Icon name="delete" size={18} color={theme.danger} />
+              <Icon name="delete" size={22} color={theme.textMuted} />
             ) : (
               <Text style={[styles.actionText, { color: theme.tintForeground }]}>{t('settings.get')}</Text>
             )}
@@ -296,7 +312,7 @@ const styles = StyleSheet.create({
   // Accent-coloured, because it is the one number on the row that changes what
   // you would choose. Smaller than the description so it reads as an annotation.
   est: {
-    fontSize: 12,
+    fontSize: TYPE.caption,
     marginTop: 2,
   },
   scroll: {
@@ -311,17 +327,40 @@ const styles = StyleSheet.create({
     minHeight: 64,
   },
   name: {
-    fontSize: 15,
+    fontSize: TYPE.body,
     fontWeight: '600',
   },
   sub: {
-    fontSize: 12,
+    fontSize: TYPE.caption,
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 18,
+  },
+  rule: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: SPACING.lg,
+  },
+  highlight: {
+    margin: 6,
+    borderRadius: RADIUS.md,
+  },
+  // Same text position as an ordinary row: the 6dp the block is inset by comes
+  // off the padding.
+  rowInset: {
+    paddingVertical: SPACING.md - 6,
+    paddingHorizontal: SPACING.lg - 6,
+    minHeight: 52,
+  },
+  remove: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   action: {
-    width: 64,
-    height: 32,
+    minWidth: 72,
+    height: 40,
+    paddingHorizontal: SPACING.lg,
     borderRadius: RADIUS.pill,
     alignItems: 'center',
     justifyContent: 'center',
@@ -337,7 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   actionText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   track: {

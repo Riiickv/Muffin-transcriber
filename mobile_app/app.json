@@ -16,7 +16,7 @@
     "android": {
       "softwareKeyboardLayoutMode": "resize",
       "allowBackup": false,
-      "versionCode": 108,
+      "versionCode": 118,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.SCHEDULE_EXACT_ALARM",
@@ -26,7 +26,8 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.VIBRATE",
-        "android.permission.FOREGROUND_SERVICE"
+        "android.permission.FOREGROUND_SERVICE",
+        "com.android.alarm.permission.SET_ALARM"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#1E1A1E",

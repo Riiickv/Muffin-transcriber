@@ -18,7 +18,7 @@ import {
   subscribeDownloads,
 } from '@/utils/downloadManager';
 import {
-  WHISPER_MODELS,
+  speechModels,
   FORMATTER_MODELS,
   CHAT_MODELS,
   EMBEDDING_MODELS,
@@ -46,7 +46,7 @@ let permissionAsked = false;
 let serviceRunning = false;
 let lastPaint = 0;
 
-const ALL_MODELS = [...WHISPER_MODELS, ...FORMATTER_MODELS, ...CHAT_MODELS, ...EMBEDDING_MODELS];
+const ALL_MODELS = [...speechModels(true), ...FORMATTER_MODELS, ...CHAT_MODELS, ...EMBEDDING_MODELS];
 const labelFor = (id: string): string => {
   const def = ALL_MODELS.find((m) => m.id === id);
   return def ? modelName(def) : id;

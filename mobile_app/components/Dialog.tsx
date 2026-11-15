@@ -1,11 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 import { Animated, Image, ImageSourcePropType, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
 import { Button } from './Button';
 import { Icon, IconName } from './Icon';
-import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
+import { RADIUS, SPACING, raisedColor } from '@/constants/tokens';
+import { usePopIn } from '@/utils/motion';
 import { t } from '@/utils/i18n';
 
 export type DialogButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -72,12 +73,7 @@ export const DialogCard = ({
   //
   // Keyed on `visible` rather than mount: the Modal stays in the tree with
   // visible=false, so a mount effect would fire once and never again.
-  const enter = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    if (!visible) return;
-    enter.setValue(0);
-    Animated.spring(enter, { toValue: 1, useNativeDriver: true, ...MOTION.springSettle }).start();
-  }, [visible, enter]);
+  const popIn = usePopIn(visible);
   const resolvedButtons: DialogButton[] = buttons ?? [{ label: t('dialog.defaultOk') || 'OK', variant: 'primary' }];
 
   const dismiss = () => {
@@ -104,11 +100,8 @@ export const DialogCard = ({
         <Animated.View
           style={[
             styles.card,
-            { backgroundColor: theme.background, borderColor: theme.divider },
-            {
-              opacity: enter,
-              transform: [{ scale: enter.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }],
-            },
+            { backgroundColor: raisedColor(theme.isDark, theme.isAmoled), borderColor: theme.divider, borderWidth: theme.isAmoled ? 1 : 0 },
+            popIn,
           ]}
         >
           {image ? (
@@ -260,8 +253,7 @@ const styles = StyleSheet.create({
     // grew to whatever its text needed and centred that, so a long one hung off
     // the top and the bottom of the screen at once.
     maxHeight: '100%',
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
+    borderRadius: RADIUS.xl,
     padding: SPACING.xxl,
     alignItems: 'center',
   },

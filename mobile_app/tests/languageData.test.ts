@@ -58,3 +58,25 @@ test('the value lists start with the Auto-Detect row and cover every language', 
   assert.equal(LANGUAGE_VALUES.length, LANGUAGES.length + 1);
   assert.equal(FORMAT_LANGUAGE_VALUES.length, LANGUAGES.length + 1);
 });
+
+test('the Fast speech model covers exactly its 25 languages, all of them known to the app', async () => {
+  const { PARAKEET_LANGUAGE_CODES, parakeetCoversCode } = await import('../utils/languageData.ts');
+  assert.equal(PARAKEET_LANGUAGE_CODES.length, 25);
+  assert.equal(new Set(PARAKEET_LANGUAGE_CODES).size, 25, 'duplicate code');
+  const known = new Set(LANGUAGES.map((l) => l.code));
+  for (const code of PARAKEET_LANGUAGE_CODES) assert.ok(known.has(code), `${code} is not in the language table`);
+  // The six languages the app itself comes in.
+  for (const code of ['en', 'it', 'es', 'fr', 'de', 'pt']) assert.ok(parakeetCoversCode(code), code);
+  assert.ok(parakeetCoversCode('IT'), 'case should not matter');
+  for (const code of ['ja', 'zh', 'ar', 'hi', 'tr', '', null, undefined]) assert.equal(parakeetCoversCode(code), false);
+});
+
+test('by stored name: Auto-Detect and covered languages pass, the rest do not', async () => {
+  const { parakeetCoversLanguage } = await import('../utils/languageData.ts');
+  assert.ok(parakeetCoversLanguage('Auto-Detect'));
+  assert.ok(parakeetCoversLanguage('Italian'));
+  assert.ok(parakeetCoversLanguage('Ukrainian'));
+  assert.equal(parakeetCoversLanguage('Japanese'), false);
+  assert.equal(parakeetCoversLanguage('Arabic'), false);
+  assert.equal(parakeetCoversLanguage('Not a language'), false);
+});

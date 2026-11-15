@@ -56,3 +56,26 @@ export function formatRelativeTime(iso: string): string {
   if (diffD < 7) return `${diffD}d`;
   return localeDate(iso, { month: 'short', day: 'numeric' }, (d) => d.toDateString().slice(4, 10));
 }
+
+// A date the Butler read out of a transcript: "Fri, Jul 17, 2026, 16:15", or
+// just the day, or just the hour when no day was said. The hour is always
+// 24-hour digits so it cannot be misread the way "4" was.
+export function formatWhen(w: {
+  year: number;
+  month: number;
+  day: number;
+  hour?: number;
+  minute?: number;
+  dateSaid: boolean;
+}): string {
+  const time = w.hour === undefined ? '' : `${pad2(w.hour)}:${pad2(w.minute ?? 0)}`;
+  if (!w.dateSaid && time) return time;
+  const d = new Date(w.year, w.month - 1, w.day);
+  let day: string;
+  try {
+    day = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    day = d.toDateString();
+  }
+  return time ? `${day}, ${time}` : day;
+}

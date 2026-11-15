@@ -122,6 +122,12 @@ const ENCODER_WEIGHT: Record<string, number> = {
   // Full large-v3, 32 decoder layers rather than Turbo's 4, so it does NOT get
   // Turbo's cheap decoding and is left where layer counting put it. Unmeasured.
   'ggml-large-v3.bin': 32,
+  // The Fast model (Parakeet). NOT a Whisper model and it has no 30 second
+  // windows, so this is not a per-window ratio: it is set so the one-minute
+  // anchor below gives what the phone measured. Pixel 9 Pro XL, 2026-11-14,
+  // one run: 11.1s for a 116s recording, which is 5.7s for a minute, and
+  // 5.7 / 4.85 is 1.2. It grows with length, without Whisper's fixed entry fee.
+  'ggml-parakeet-tdt-0.6b-v3-q4_0.bin': 1.2,
 };
 
 /**
@@ -251,6 +257,11 @@ export function estimateFor(
       measured: false,
     };
   }
+
+  // A speech file with no measured weight gets nothing. Without this the 8-bit
+  // Parakeet, whose name contains "0.6b", was read as a 0.6 billion parameter
+  // text model and given a per-minute-of-transcript estimate.
+  if (/^ggml-/i.test(modelId)) return null;
 
   const billions = billionsOfParams(modelId);
   if (billions === null) return null;

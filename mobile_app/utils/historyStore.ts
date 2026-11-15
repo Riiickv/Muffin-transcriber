@@ -1,9 +1,16 @@
+import { useEffect, useState } from 'react';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import { loadSettings } from './settingsStore';
-import { createPersistentStore } from './persistentStore';
+import { createNoteStore, isComplete, type NoteStoreStatus } from './noteStore';
+import { legacyRow, noteFiles } from './noteFiles';
 import { refreshBackup } from './transcriptBackup';
 
-const HISTORY_KEY = 'muffin.history.v1';
+// The one storage value every transcription used to share. On Android it
+// could be written past 2 MB and not read back, and a failed read was taken
+// for an empty library and saved. It is read once more to move the notes into
+// files of their own (utils/noteStore.ts) and never written again.
+// What was measured: docs/storage-research.md.
+const LEGACY_KEY = 'muffin.history.v1';
 
 export interface HistoryItem {
   id: string;
@@ -15,35 +22,49 @@ export interface HistoryItem {
   summary?: string;
   sourceFilePath?: string;
   audioDurationMs?: number;
+  /** Not written any more: vectors live in utils/searchIndex.ts. Dropped from old items when they are moved. */
   embedding?: number[];
   extractedDates?: { quote: string; name: string; type: 'date' | 'time' }[];
   /** Whisper's detected code ("it"). Names the language in LLM prompts. */
   detectedLanguage?: string;
 }
 
-const store = createPersistentStore<HistoryItem[]>(HISTORY_KEY, [], {
+const store = createNoteStore<HistoryItem>({
+  files: noteFiles,
+  legacy: legacyRow(LEGACY_KEY),
+  // Old items carry a vector of about 8 KB each, from a helper model no
+  // longer in use. It is left behind when the note moves to its file.
+  fromLegacy: (raw) => {
+    if (!raw || typeof raw !== 'object' || typeof (raw as HistoryItem).id !== 'string') return null;
+    const { embedding: _dropped, ...rest } = raw as HistoryItem;
+    return rest;
+  },
   onFirstLoad: (items) => {
     // Fire and forget so we don't block loading.
-    if (items.length > 0) pruneHistoryAudio(items);
+    if (items.length > 0) void pruneHistoryAudio(items);
   },
 });
 
 /**
- * Save, then mirror to the user's folder if they asked for that.
+ * Mirror to the user's folder if they asked for that.
  *
- * Every write goes through here rather than store.save directly, so a backup
- * cannot fall out of date because one code path forgot. Fire and forget on
- * purpose: writing to a SAF folder is somebody else's filesystem and can be
- * slow or refused, and none of that is a reason to make saving a transcript
- * wait, or fail.
+ * Called after every change rather than from each caller, so a backup cannot
+ * fall out of date because one code path forgot. Fire and forget on purpose:
+ * writing to a SAF folder is somebody else's filesystem and can be slow or
+ * refused, and none of that is a reason to make saving a transcript wait, or
+ * fail.
+ *
+ * NOT when some notes could not be read. The backup is written from what is
+ * in memory, over the file already there; memory without those notes would
+ * take them out of the one copy meant to outlive the app.
  */
-async function saveHistory(next: HistoryItem[]): Promise<void> {
-  await store.save(next);
+function mirrorToBackup(): void {
   void (async () => {
     try {
+      if (!isComplete(store.status())) return;
       const s = await loadSettings();
       if (s.keepTranscriptsAfterUninstall && s.backupFolderUri) {
-        await refreshBackup(s.backupFolderUri, next);
+        await refreshBackup(s.backupFolderUri, store.get() ?? []);
       }
     } catch {
       // A backup that cannot be written must never break the save it followed.
@@ -52,6 +73,9 @@ async function saveHistory(next: HistoryItem[]): Promise<void> {
 }
 
 export const loadHistory = () => store.load();
+
+/** After loadHistory: false when the list is missing notes that exist and could not be read. */
+export const historyIsComplete = () => isComplete(store.status());
 
 async function pruneHistoryAudio(history: HistoryItem[]) {
   try {
@@ -62,11 +86,9 @@ async function pruneHistoryAudio(history: HistoryItem[]) {
     const thresholdMs = thresholdDays * 24 * 60 * 60 * 1000;
     const now = Date.now();
 
-    // Collect which items' audio we actually delete. We DON'T persist the
-    // snapshot we were handed - any addOrUpdate/deleteItem that landed while we
-    // awaited would be clobbered. Instead we re-read the current cache and apply
-    // only the cleared ids.
-    const cleared = new Set<string>();
+    // Each cleared note is patched on its own, over whatever it is by then:
+    // an edit or a delete that landed while the audio was being removed stays.
+    let cleared = false;
     for (const item of history) {
       if (item.sourceFilePath) {
         const itemTime = new Date(item.timestampISO).getTime();
@@ -74,18 +96,11 @@ async function pruneHistoryAudio(history: HistoryItem[]) {
           try {
             await FileSystemLegacy.deleteAsync(item.sourceFilePath, { idempotent: true });
           } catch {}
-          cleared.add(item.id);
+          if (await store.patch(item.id, { sourceFilePath: undefined })) cleared = true;
         }
       }
     }
-
-    if (cleared.size > 0) {
-      const current = store.get() ?? history;
-      const next = current.map((h) =>
-        cleared.has(h.id) ? { ...h, sourceFilePath: undefined } : h
-      );
-      await saveHistory(next);
-    }
+    if (cleared) mirrorToBackup();
   } catch (e) {
     console.error('Failed to prune history audio', e);
   }
@@ -97,34 +112,57 @@ async function pruneHistoryAudio(history: HistoryItem[]) {
 // (not a caller snapshot) preserves concurrent edits like renames or the
 // audio-duration backfill.
 export async function updateHistoryItem(id: string, patch: Partial<HistoryItem>): Promise<boolean> {
-  const current = store.get() ?? (await store.load());
-  const index = current.findIndex((h) => h.id === id);
-  if (index < 0) return false;
-  const next = current.map((h, i) => (i === index ? { ...h, ...patch } : h));
-  await saveHistory(next);
-  return true;
+  const found = await store.patch(id, patch);
+  if (found) mirrorToBackup();
+  return found;
+}
+
+const NONE: HistoryItem[] = [];
+
+/** `read` must be a constant (one of the two below), or the effect would run again on every render. */
+function useStore<V>(read: () => V): V {
+  const [value, setValue] = useState<V>(read);
+
+  useEffect(() => {
+    let mounted = true;
+    const sync = () => {
+      if (mounted) setValue(read());
+    };
+    const unsubscribe = store.subscribe(sync);
+    void store.load().then(sync);
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [read]);
+
+  return value;
+}
+
+const readItems = () => store.get() ?? NONE;
+const readStatus = () => store.status();
+
+/** Whether the list on screen is everything there is. `loaded` is false until the first read has finished. */
+export function useHistoryStatus(): NoteStoreStatus & { complete: boolean } {
+  const status = useStore(readStatus);
+  return { ...status, complete: isComplete(status) };
 }
 
 export function useHistory() {
-  const items = store.useValue();
+  const items = useStore(readItems);
 
   const addOrUpdate = async (item: HistoryItem) => {
-    const current = store.get() ?? (await store.load());
-    const index = current.findIndex((h) => h.id === item.id);
-    const next =
-      index >= 0
-        ? current.map((h, i) => (i === index ? item : h))
-        : [item, ...current];
-    await saveHistory(next);
+    await store.put(item);
+    mirrorToBackup();
   };
 
   const deleteItem = async (id: string) => {
-    const current = store.get() ?? (await store.load());
-    const itemToDelete = current.find((h) => h.id === id);
+    const itemToDelete = (await store.load()).find((h) => h.id === id);
     if (itemToDelete?.sourceFilePath) {
       FileSystemLegacy.deleteAsync(itemToDelete.sourceFilePath, { idempotent: true }).catch(() => {});
     }
-    await saveHistory(current.filter((h) => h.id !== id));
+    await store.remove(id);
+    mirrorToBackup();
   };
 
   return { items, addOrUpdate, deleteItem };

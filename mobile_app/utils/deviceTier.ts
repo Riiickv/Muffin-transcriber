@@ -1,7 +1,9 @@
 import * as Device from 'expo-device';
+import { getLocales } from 'expo-localization';
 
 import { ModelDef } from './ModelManager';
 import { DeviceTier, ModelGroup, tierForMemoryBytes, recommendedForTier } from './deviceTierData';
+import { parakeetCoversCode } from './languageData';
 
 /**
  * How much model this phone can actually carry.
@@ -36,9 +38,25 @@ export function getTotalMemoryGB(): number | null {
   return Device.totalMemory ? Math.round(Device.totalMemory / GB) : null;
 }
 
+/**
+ * Is the phone set to a language the Fast speech model covers?
+ *
+ * The phone's PRIMARY language, not the app's: the app only comes in six
+ * languages and falls back to English, so a phone set to Japanese would read
+ * as English here and be pointed at a model that cannot do Japanese. Unknown
+ * is a no.
+ */
+function phoneLanguageFitsFastSpeech(): boolean {
+  try {
+    return parakeetCoversCode(getLocales()[0]?.languageCode);
+  } catch {
+    return false;
+  }
+}
+
 /** The suggested model id for this device, or null if none is honest. */
 export function recommendedModelId(group: ModelGroup, tier: DeviceTier = getDeviceTier()): string | null {
-  return recommendedForTier(group, tier);
+  return recommendedForTier(group, tier, group === 'whisper' && phoneLanguageFitsFastSpeech());
 }
 
 /**

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { preloadWhisper } from '@/utils/WhisperEngine';
-import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
+import { ModelManager, WHISPER_MODELS, isParakeetModel } from '@/utils/ModelManager';
 import { useSettings, loadSettings } from '@/utils/settingsStore';
 import { relativeCost } from '@/utils/modelTimeEstimate';
 import { pickDraftModel } from '@/utils/progressiveDraft';
@@ -43,7 +43,8 @@ export async function warmWhisperIfReady(
 
     let first = modelId;
     const settings = await loadSettings();
-    if (opts.progressive && settings.progressiveTranscription) {
+    // No draft model for Parakeet (see transcribeProgressive), so none to warm.
+    if (opts.progressive && settings.progressiveTranscription && !isParakeetModel(modelId)) {
       const downloaded: string[] = [];
       for (const m of WHISPER_MODELS) {
         if (await ModelManager.isModelDownloaded(m.id)) downloaded.push(m.id);

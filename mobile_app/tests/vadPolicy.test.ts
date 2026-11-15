@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 import { shouldRunVad } from '../utils/vadPolicy.ts';
 
-const SRC = readFileSync(new URL('../utils/ModelManager.ts', import.meta.url), 'utf8');
+const SRC = readFileSync(new URL('../utils/modelCatalog.ts', import.meta.url), 'utf8');
 const WHISPER_BLOCK = SRC.slice(SRC.indexOf('WHISPER_MODELS'), SRC.indexOf('FORMATTER_MODELS'));
 const ORDER = [...WHISPER_BLOCK.matchAll(/id: '([^']+)'/g)].map((m) => m[1]);
 

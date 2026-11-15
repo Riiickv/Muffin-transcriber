@@ -6,7 +6,6 @@ import {
   extractMemories,
   ActionableEntity,
 } from './LLMEngine';
-import { generateEmbedding } from './EmbeddingEngine';
 
 export type EnrichmentStage = 'formatting' | 'summarizing' | 'analyzing';
 
@@ -17,7 +16,6 @@ export interface EnrichmentOptions {
   format: boolean;
   summarize: boolean;
   title: boolean;
-  embedding: boolean;
   entities: boolean;
   memories: boolean;
   onStage?: (stage: EnrichmentStage) => void;
@@ -34,7 +32,6 @@ export interface EnrichmentResult {
   formatted?: string;
   summarized?: string;
   title?: string;
-  embedding?: number[];
   extractedDates?: ActionableEntity[];
 }
 
@@ -64,15 +61,42 @@ let enrichmentQueue: Promise<unknown> = Promise.resolve();
  * Do NOT call this from inside runEnrichment's steps: that would wait on a
  * queue this run already holds, and deadlock.
  */
+let llamaJobs = 0;
+
 export function queueLlama<T>(job: () => Promise<T>): Promise<T> {
-  const run = enrichmentQueue.then(job);
+  llamaJobs++;
+  const run = enrichmentQueue.then(job).finally(() => {
+    llamaJobs--;
+  });
   // Keep the chain alive even when a run rejects.
   enrichmentQueue = run.catch(() => {});
   return run;
 }
 
+/**
+ * True while a job is running or waiting on the shared llama context. The
+ * chat checks this before it unloads the text model to make room: unloading
+ * it in the middle of a note's Improve, summary or title cut those short,
+ * and the note kept its file name.
+ */
+export function llamaBusy(): boolean {
+  return llamaJobs > 0;
+}
+
 export function runEnrichment(opts: EnrichmentOptions): Promise<EnrichmentResult> {
   return queueLlama(() => runEnrichmentNow(opts));
+}
+
+/**
+ * A step that fails leaves the note without that one thing and says so in
+ * the log. These used to fail without a trace, so a note that kept its file
+ * name could not be told apart from one whose title was never asked for.
+ */
+function lost(step: string) {
+  return (e: unknown) => {
+    console.warn(`Enrichment: ${step} failed`, e);
+    return undefined;
+  };
 }
 
 async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResult> {
@@ -82,7 +106,7 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
   if (opts.format) {
     opts.onStage?.('formatting');
     result.formatted = await formatTranscript(rawText, modelPath, modelFile, opts.onFormatPartial, opts.sourceLanguage).catch(
-      () => undefined
+      lost('improve')
     );
     if (result.formatted) opts.onFormatted?.(result.formatted);
   }
@@ -90,7 +114,7 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
   if (opts.summarize) {
     opts.onStage?.('summarizing');
     result.summarized = await summarizeTranscript(rawText, modelPath, modelFile, opts.onSummaryPartial, opts.sourceLanguage).catch(
-      () => undefined
+      lost('summary')
     );
     if (result.summarized) opts.onSummarized?.(result.summarized);
   }
@@ -103,14 +127,9 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
 
   const textForAnalysis = result.formatted || rawText;
 
-  if (opts.embedding || opts.entities || opts.title) {
+  if (opts.entities || opts.title) {
     opts.onStage?.('analyzing');
   }
-
-  // Embedding runs on its own context - overlap it with the sequential llama steps.
-  const embeddingPromise = opts.embedding
-    ? generateEmbedding(textForAnalysis).catch(() => null)
-    : Promise.resolve(null);
 
   if (opts.entities) {
     // rawText, not textForAnalysis: a highlight works by finding the quote in
@@ -128,11 +147,9 @@ async function runEnrichmentNow(opts: EnrichmentOptions): Promise<EnrichmentResu
       modelPath,
       modelFile,
       opts.sourceLanguage
-    ).catch(() => undefined);
+    ).catch(lost('title'));
   }
 
-  const embedding = await embeddingPromise;
-  if (embedding) result.embedding = embedding;
 
   return result;
 }

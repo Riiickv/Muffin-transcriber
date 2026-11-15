@@ -43,8 +43,6 @@ export default function RootLayout() {
     'GoogleSansFlex-Medium': require('../assets/fonts/GoogleSansFlex-Medium.ttf'),
     'GoogleSansFlex-Title': require('../assets/fonts/GoogleSansFlex-Title.ttf'),
     'GoogleSansFlex-Bold': require('../assets/fonts/GoogleSansFlex-Bold.ttf'),
-    // Google's Material Symbols Rounded - Material 3 Expressive icon set.
-    MaterialSymbolsRounded: require('../assets/fonts/MaterialSymbolsRounded.ttf'),
   });
 
   // A font that fails to load must NOT take the whole app down. The Expo template

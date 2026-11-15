@@ -276,6 +276,7 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         });
 
         const hasLlm = !!settings.preferredFormatterModel;
+        if (!hasLlm) console.warn('Enrichment skipped: no text model selected, so no title either.');
         const llmPath = hasLlm ? ModelManager.getModelPath(settings.preferredFormatterModel) : '';
         const enrich = await runEnrichment({
           rawText: result.text,
@@ -287,7 +288,6 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
           format: settings.formatByDefault && hasLlm,
           summarize: settings.summarizeByDefault && hasLlm,
           title: hasLlm,
-          embedding: true,
           entities: hasLlm,
           memories: false,
         });
@@ -295,7 +295,6 @@ export function RecordingProvider({ children }: { children: React.ReactNode }) {
         if (enrich.title) patch.sourceFileName = enrich.title;
         if (enrich.formatted) patch.formattedTranscript = enrich.formatted;
         if (enrich.summarized) patch.summary = enrich.summarized;
-        if (enrich.embedding) patch.embedding = enrich.embedding;
         if (enrich.extractedDates) patch.extractedDates = enrich.extractedDates;
         if (Object.keys(patch).length > 0) await updateHistoryItem(id, patch);
       } catch (e) {

@@ -1,16 +1,22 @@
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { TextInput } from '@/components/Themed';
-import { SegmentedControl } from '@/components/SegmentedControl';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
 import { FadeInView } from '@/components/FadeInView';
-import ExpressiveSwitch from '@/components/ExpressiveSwitch';
 import { Card } from '@/components/Card';
-import { Collapsible } from '@/components/Collapsible';
 import { Button } from '@/components/Button';
-import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
+import { IconButton } from '@/components/IconButton';
+import { Icon } from '@/components/Icon';
+import { AnimatedPressable } from '@/components/AnimatedPressable';
+import { useRecording } from '@/components/RecordingProvider';
+import { setRecordSheetOpen } from '@/utils/recordSheet';
+import { markCoachDone } from '@/utils/coachMarks';
+import { setHeroMicOnScreen } from '@/utils/heroMic';
+import { useRecordingElapsed, formatElapsed } from '@/hooks/useRecordingElapsed';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { RADIUS, SPACING, TAB_BAR_SPACE, TYPE } from '@/constants/tokens';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as Clipboard from 'expo-clipboard';
@@ -22,34 +28,37 @@ import { TranscriptFullscreen } from '@/components/TranscriptFullscreen';
 import { TranscriptPanel, type TranscriptTab } from '@/components/TranscriptPanel';
 import { convertToWav } from '@/modules/audio-converter';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
-import { useSettings, useDebouncedSetting } from '@/utils/settingsStore';
+import { useSettings } from '@/utils/settingsStore';
 import { runEnrichment } from '@/utils/transcriptionPipeline';
-import { ModelManager, WHISPER_MODELS } from '@/utils/ModelManager';
+import { ModelManager, WHISPER_MODELS, isParakeetModel } from '@/utils/ModelManager';
 import { useModelOptions } from '@/hooks/useModelOptions';
 import { useWhisperPreload } from '@/hooks/useWhisperPreload';
 import { useResponsive } from '@/hooks/useResponsive';
 import { errorToMessage } from '@/utils/errors';
-import { SelectDropdown } from '@/components/SelectDropdown';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDialog } from '@/components/Dialog';
 import { router, useLocalSearchParams } from 'expo-router';
-import { toLanguageCode, getLanguageOptions, getFormatLanguageOptions } from '@/utils/languages';
+import { toLanguageCode, getLanguageOptions, parakeetCoversLanguage } from '@/utils/languages';
 import { haptics } from '@/utils/haptics';
+import { findHighlights } from '@/utils/entityExtraction';
+import type { ActionableEntity } from '@/utils/entityExtraction';
+import { EntityActionDialog } from '@/components/EntityActionDialog';
+import { HighlightedText } from '@/components/HighlightedText';
 import { t } from '@/utils/i18n';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
   const { addOrUpdate } = useHistory();
-  const { settings, setSetting } = useSettings();
-  const [customPrompt, setCustomPrompt] = useDebouncedSetting('customFormatSystemPrompt');
+  const { settings, setSetting, loaded: settingsLoaded } = useSettings();
   // Closed by default: optional detail, and on a short phone an always-open
   // prompt pushes the transcript off the bottom of the screen.
-  const [promptOpen, setPromptOpen] = useState(false);
   const dialog = useDialog();
 
   // Identifies the in-flight run; background LLM work checks it so a newer run can't overwrite the screen with stale results.
   const activeRunIdRef = useRef<string | null>(null);
+  /** The file the transcript on screen came from. See resetAll. */
+  const resultFileRef = useRef<string | null>(null);
 
   const [transcriptTab, setTranscriptTab] = useState<TranscriptTab>('raw');
   // Armed when enrichment starts; the effect below switches to it once the raw
@@ -59,6 +68,8 @@ export default function HomeScreen() {
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [rawText, setRawText] = useState('');
+  /** When the transcript on screen was made: the Butler counts "domani" from here. */
+  const [transcribedAt, setTranscribedAt] = useState<Date | null>(null);
   /** Live transcript while whisper runs, and how far along it is. */
   const [streamingText, setStreamingText] = useState('');
   const [transcribePercent, setTranscribePercent] = useState(0);
@@ -69,7 +80,7 @@ export default function HomeScreen() {
   const [formattedText, setFormattedText] = useState('');
   const [summaryText, setSummaryText] = useState('');
 
-  const { whisperOptions, formatterOptions, downloadedIds, ready: modelsChecked } = useModelOptions();
+  const { whisperOptions, downloadedIds, ready: modelsChecked } = useModelOptions();
   // The welcome hides BOTH the header and the tab bar, so this screen is on its
   // own for the notch and the gesture bar - normally the navigator handles them.
   const insets = useSafeAreaInsets();
@@ -80,18 +91,19 @@ export default function HomeScreen() {
 
   const selectedWhisperDef = WHISPER_MODELS.find((m) => m.id === settings.preferredWhisperModel);
   const isEnglishOnly = selectedWhisperDef?.isEnglishOnly ?? false;
+  const fastSpeech = isParakeetModel(settings.preferredWhisperModel);
 
-  const dynamicLanguageOptions = isEnglishOnly
-    ? getLanguageOptions().filter((o) => o.value === 'English' || o.value === 'Auto-Detect')
-    : getLanguageOptions();
 
   // Sync default language if current setting becomes invalid due to model switch
   useEffect(() => {
     if (isEnglishOnly && settings.defaultLanguage !== 'English' && settings.defaultLanguage !== 'Auto-Detect') {
       setSetting('defaultLanguage', 'Auto-Detect');
+    } else if (fastSpeech && !parakeetCoversLanguage(settings.defaultLanguage)) {
+      // The Fast model only knows its 25 languages and cannot be told one.
+      setSetting('defaultLanguage', 'Auto-Detect');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setSetting is a new function every render; the effect keys on the values it reads
-  }, [isEnglishOnly, settings.defaultLanguage]);
+  }, [isEnglishOnly, fastSpeech, settings.defaultLanguage]);
 
   // One-time welcome. seenWelcome is a NEW key rather than a reuse of
   // seenTesterWelcome, and deliberately: everyone who was on the closed track
@@ -102,7 +114,7 @@ export default function HomeScreen() {
   // written.
   const welcomeShownRef = useRef(false);
   useEffect(() => {
-    if (welcomeShownRef.current) return;
+    if (welcomeShownRef.current || !settingsLoaded) return;
     if (modelsChecked && downloadedIds.length > 0 && !settings.seenWelcome) {
       welcomeShownRef.current = true;
       setSetting('seenWelcome', true);
@@ -113,13 +125,18 @@ export default function HomeScreen() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- dialog/setSetting are recreated per render; the ref guard makes this fire once
-  }, [modelsChecked, downloadedIds.length, settings.seenWelcome]);
+  }, [modelsChecked, downloadedIds.length, settings.seenWelcome, settingsLoaded]);
 
   // Share intent target - copy the file into cache with the legacy API,
   // because the new expo-file-system module has no `cacheDirectory`.
   const params = useLocalSearchParams<{ uri?: string }>();
   useEffect(() => {
     if (!params.uri) return;
+    // The result view replaces the start view, so a previous transcript left
+    // on screen would hide the file that was just shared in.
+    setRawText('');
+    setFormattedText('');
+    setSummaryText('');
     const decoded = decodeURIComponent(params.uri);
     if (decoded.startsWith('content://')) {
       const destPath = `${FileSystemLegacy.cacheDirectory}shared_audio_${Date.now()}`;
@@ -262,6 +279,8 @@ export default function HomeScreen() {
       const newItemId = Date.now().toString();
       const runId = newItemId;
       activeRunIdRef.current = runId;
+      resultFileRef.current = selectedFileUri;
+      setTranscribedAt(new Date());
       const currentItem: HistoryItem = {
         id: newItemId,
         timestampISO: new Date().toISOString(),
@@ -280,7 +299,10 @@ export default function HomeScreen() {
       (async () => {
         const isCurrent = () => activeRunIdRef.current === runId;
         try {
-          if (!settings.preferredFormatterModel) return;
+          if (!settings.preferredFormatterModel) {
+            console.warn('Enrichment skipped: no text model selected, so no title either.');
+            return;
+          }
           const modelPath = ModelManager.getModelPath(settings.preferredFormatterModel);
 
           if (isCurrent()) {
@@ -302,7 +324,6 @@ export default function HomeScreen() {
             format: settings.formatByDefault,
             summarize: settings.summarizeByDefault,
             title: true,
-            embedding: false,
             entities: false,
             memories: true,
             onFormatPartial: (p) => {
@@ -362,6 +383,14 @@ export default function HomeScreen() {
 
   const currentText =
     transcriptTab === 'raw' ? rawText : transcriptTab === 'formatted' ? formattedText : summaryText;
+
+  // The Butler: dates and times in the text, tappable. "Domani" counts from
+  // the moment this transcript was made, not from whenever the tab is looked at.
+  const highlights = useMemo(
+    () => findHighlights(currentText, [], transcribedAt ?? undefined),
+    [currentText, transcribedAt]
+  );
+  const [activeEntity, setActiveEntity] = useState<ActionableEntity | null>(null);
 
   /**
    * Whatever is being generated for the tab on screen. Whisper's output is
@@ -466,203 +495,273 @@ export default function HomeScreen() {
     );
   }
 
+  /** Back to the empty screen. */
+  const resetAll = () => {
+    haptics.tap();
+    // Late format/summary output from the run being dismissed must not land on
+    // the next one. The run itself carries on and still updates History.
+    activeRunIdRef.current = null;
+    setRawText('');
+    setFormattedText('');
+    setSummaryText('');
+    setFormatPartial('');
+    setSummaryPartial('');
+    setTranscriptTab('raw');
+    setPendingAutoTab(null);
+    // Only forget the file this result came from. A file shared in while the
+    // previous one was still transcribing is waiting its turn, not finished.
+    if (selectedFileUri === resultFileRef.current) {
+      setSelectedFileUri(null);
+      setSelectedFileName(null);
+    }
+    resultFileRef.current = null;
+  };
+
+  const clearFile = () => {
+    haptics.tap();
+    setSelectedFileUri(null);
+    setSelectedFileName(null);
+  };
+
+  // One screen, two jobs, never both at once: start something, or read what
+  // came out. The old layout showed an empty transcript box under two cards of
+  // settings at all times, so neither job had the room it needed.
+  const hasResult = isTranscribing || !!rawText || !!streamingText;
+
+  const optionsSummary = [
+    getLanguageOptions().find((o) => o.value === settings.defaultLanguage)?.label ?? settings.defaultLanguage,
+    whisperOptions.find((o) => o.value === settings.preferredWhisperModel)?.label,
+    settings.formatByDefault ? t('transcribe.formatToggle') || 'Improve' : null,
+    settings.summarizeByDefault ? t('transcribe.summarizeToggle') || 'Summarize' : null,
+  ]
+    .filter(Boolean)
+    .join('  ·  ');
+
   return (
     <KeyboardScreen>
     <FadeInView index={0} style={[styles.root, { backgroundColor: theme.background }]}>
-      {/* ScrollView + flexGrow content + the ABSOLUTE transcript layer (below):
-          together they give "fill the screen normally, scroll only when it
-          genuinely doesn't fit". flexGrow makes the content at least viewport
-          tall, so on a normal phone the transcript card's flex:1 still absorbs
-          the leftover and the page does not scroll. Because the transcript's
-          CONTENT sits in an absolute layer it cannot grow the card, so a long
-          transcript can't drag the page into scrolling - the everything-scrolls
-          bug that made this a plain View for a while. What scrolls the page now
-          is fixed chrome exceeding a short or font-scaled screen (a ZTE Blade
-          A76 pushed the transcript card clean off the bottom, unreachable). */}
-      {/* Reserve the tab bar's real height: the pill (~60) plus the device's
-          bottom inset. A fixed 84 clipped the bottom on phones with a 3-button
-          nav bar, whose larger inset pushes the tab bar taller than the reserve. */}
+      {/* ScrollView + flexGrow content: fills the screen on a normal phone and
+          only scrolls when a short or font-scaled screen genuinely cannot fit
+          it (a ZTE Blade A76 once pushed the transcript off the bottom,
+          unreachable). The bottom padding is the tab bar's real height, the
+          pill plus the device inset, because a fixed number clipped phones
+          with a three-button nav bar. */}
       <ScrollView
         style={styles.root}
         contentContainerStyle={[styles.container, { paddingBottom: Math.max(TAB_BAR_SPACE, insets.bottom + 60) }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-      {/* Formatting card first - configure once, then hit Transcribe. */}
-      <Card index={0} style={{ marginBottom: isShort ? SPACING.md : SPACING.lg }}>
-        <View style={[styles.switchRow, isShort && { marginBottom: SPACING.sm }]}>
-          <Text style={styles.label}>{t('transcribe.formatToggle') || 'Improve'}</Text>
-          <ExpressiveSwitch
-            value={settings.formatByDefault}
-            onValueChange={(v) => setSetting('formatByDefault', v)}
-            activeColor={theme.tint}
-            thumbActiveColor="#000000"
-          />
-        </View>
-        <View style={[styles.switchRow, isShort && { marginBottom: SPACING.sm }]}>
-          <Text style={styles.label}>{t('transcribe.summarizeToggle') || 'Summarize'}</Text>
-          <ExpressiveSwitch
-            value={settings.summarizeByDefault}
-            onValueChange={(v) => { setSetting('summarizeByDefault', v); setPromptOpen(v); }}
-            activeColor={theme.tint}
-            thumbActiveColor="#000000"
-          />
-        </View>
+        {hasResult ? (
+          <>
+            <View style={styles.resultBar}>
+              <Icon name="audio-file" size={20} color={theme.textMuted} />
+              <Text numberOfLines={1} ellipsizeMode="middle" style={[styles.resultName, { color: theme.textMuted }]}>
+                {selectedFileName ?? ''}
+              </Text>
+              {/* Hidden while it runs: there is no cancel, and a button that
+                  only appears to abandon the work would be a lie. */}
+              {!isTranscribing && (
+                <Button variant="secondary" size="sm" icon="add" onPress={resetAll}>
+                  {t('transcribe.newTranscription') || 'New'}
+                </Button>
+              )}
+            </View>
 
-        <View style={styles.row}>
-          <View style={styles.flex1}>
-            <Text style={styles.label}>{t('transcribe.formatterModelLabel') || 'Formatter Model'}</Text>
-            <SelectDropdown
-              options={formatterOptions}
-              fieldLabel={t('transcribe.formatterModelLabel') || 'Formatter Model'}
-              value={settings.preferredFormatterModel}
-              onSelect={(val) => setSetting('preferredFormatterModel', val)}
-              placeholder="Not Set"
-            />
-          </View>
-          <View style={styles.gutter} />
-          <View style={styles.flex1}>
-            <Text style={styles.label}>{t('transcribe.formatLanguageLabel') || 'Improvement language'}</Text>
-            <SelectDropdown
-              options={getFormatLanguageOptions()}
-              fieldLabel={t('transcribe.formatLanguageLabel') || 'Improvement language'}
-              value={settings.formatLanguage}
-              onSelect={(val) => setSetting('formatLanguage', val)}
-              placeholder="Original"
-            />
-          </View>
-        </View>
+            {/* flex:1 absorbs the rest of the screen. The transcript's content
+                sits in an absolute layer inside the panel, so a long one
+                scrolls inside the card instead of stretching the page. */}
+            <Card style={{ flex: 1, minHeight: 240 }}>
+              <TranscriptPanel
+                tab={transcriptTab}
+                onTabChange={setTranscriptTab}
+                streaming={!!live || revealing}
+                revealed={revealed}
+                progressPercent={isTranscribing ? transcribePercent : null}
+                waiting={isTranscribing}
+                waitingStatus={currentText}
+                renderStatic={() =>
+                  highlights.length > 0 ? (
+                    /* The History detail's own structure, so it lays out the
+                       same way inside the panel. Only when there is something
+                       to tap; otherwise the plain field below stays. */
+                    <View style={{ flex: 1 }}>
+                      <ScrollView nestedScrollEnabled style={{ flex: 1 }}>
+                        <HighlightedText
+                          text={currentText}
+                          highlights={highlights}
+                          onPress={setActiveEntity}
+                          style={styles.highlightedText}
+                        />
+                      </ScrollView>
+                    </View>
+                  ) : (
+                    <TextInput
+                      style={[styles.transcriptText, { color: theme.text }]}
+                      placeholder={t('transcribe.transcriptPlaceholder') || 'Transcript will appear here.'}
+                      placeholderTextColor={theme.textSubtle}
+                      multiline
+                      editable={false}
+                      value={currentText}
+                    />
+                  )
+                }
+                onCopy={handleCopy}
+                copyDisabled={!currentText}
+                onFullscreen={() => {
+                  haptics.tap();
+                  setFullscreen(true);
+                }}
+                fullscreenDisabled={!currentText && !liveText}
+              />
+            </Card>
+          </>
+        ) : (
+          <>
+            <View style={styles.hero}>
+              <HeroMic compact={isShort} />
+            </View>
 
-        <View style={{ marginTop: isShort ? SPACING.md : SPACING.lg }}>
-          <Collapsible
-            label={t('transcribe.customPromptLabel') || 'Be specific'}
-            open={promptOpen}
-            onToggle={setPromptOpen}
-          >
-            <TextInput
-              style={[styles.input, isShort && { minHeight: 44, maxHeight: 56 }, { color: theme.text, borderColor: theme.divider }]}
-              value={customPrompt}
-              onChangeText={setCustomPrompt}
-              placeholder={t('transcribe.customPromptPlaceholder') || 'Use bullet points, max 100 words, etc.'}
-              placeholderTextColor={theme.textSubtle}
-              multiline
-            />
-            {/* Picked, not typed. "Use bullet points" in the box above is a
-                request a small model can ignore; this is a grammar it cannot,
-                and being an explicit choice it can never misread "don't use
-                bullet points" as a request for bullet points. */}
-            <Text style={[styles.shapeLabel, { color: theme.textMuted }]}>
-              {t('transcribe.outputShapeLabel') || 'Answer as'}
-            </Text>
-            <SegmentedControl
-              segments={[
-                { key: 'auto', label: t('transcribe.shapeAuto') || 'Auto' },
-                { key: 'bullets', label: t('transcribe.shapeBullets') || 'Bullets' },
-                { key: 'paragraph', label: t('transcribe.shapeParagraph') || 'Paragraph' },
-              ]}
-              value={settings.outputShape}
-              onChange={(v) => setSetting('outputShape', v as 'auto' | 'bullets' | 'paragraph')}
-            />
-          </Collapsible>
-        </View>
-      </Card>
+            {selectedFileUri ? (
+              <Card style={{ marginBottom: SPACING.md }}>
+                <View style={styles.fileRow}>
+                  <View style={[styles.fileIcon, { backgroundColor: theme.tintFill }]}>
+                    <Icon name="audio-file" size={22} color={theme.tintText} />
+                  </View>
+                  <Text numberOfLines={1} ellipsizeMode="middle" style={styles.fileName}>
+                    {selectedFileName}
+                  </Text>
+                  <IconButton
+                    icon="close"
+                    variant="ghost"
+                    onPress={clearFile}
+                    accessibilityLabel={t('transcribe.removeFile') || 'Remove file'}
+                  />
+                </View>
+                <Button variant="primary" size="lg" onPress={handleTranscribe} style={{ marginTop: SPACING.md }}>
+                  {t('transcribe.transcribeButton') || 'Transcribe'}
+                </Button>
+              </Card>
+            ) : (
+              <Button
+                variant="secondary"
+                size="lg"
+                icon="upload-file"
+                onPress={handlePickFile}
+                style={{ marginBottom: SPACING.md }}
+              >
+                {t('transcribe.selectFileButton') || 'Pick file'}
+              </Button>
+            )}
 
-      <Card index={1} style={{ marginBottom: isShort ? SPACING.md : SPACING.lg }}>
-        <View style={styles.row}>
-          <View style={styles.flex1}>
-            <Text style={styles.label}>{t('transcribe.languageLabel') || 'Language'}</Text>
-            <SelectDropdown
-              options={dynamicLanguageOptions}
-              fieldLabel={t('transcribe.languageLabel') || 'Language'}
-              value={settings.defaultLanguage}
-              onSelect={(val) => setSetting('defaultLanguage', val)}
-              placeholder="Auto-Detect"
-            />
-          </View>
-          <View style={styles.gutter} />
-          <View style={styles.flex1}>
-            <Text style={styles.label}>{t('transcribe.whisperModelLabel') || 'Whisper Model'}</Text>
-            <SelectDropdown
-              options={whisperOptions}
-              fieldLabel={t('transcribe.whisperModelLabel') || 'Whisper Model'}
-              value={settings.preferredWhisperModel}
-              onSelect={(val) => setSetting('preferredWhisperModel', val)}
-              placeholder="Not Set"
-            />
-          </View>
-        </View>
-
-        <View style={[styles.row, { marginTop: isShort ? SPACING.md : SPACING.lg }]}>
-          <View style={styles.flex1}>
-            <Button variant="secondary" size="lg" onPress={handlePickFile}>
-              {selectedFileName ? selectedFileName : (t('transcribe.selectFileButton') || 'Pick Audio File')}
-            </Button>
-          </View>
-          <View style={styles.gutter} />
-          <View style={styles.flex1}>
-            <Button
-              variant="primary"
-              size="lg"
-              onPress={handleTranscribe}
-              disabled={isTranscribing || !selectedFileUri}
+            <AnimatedPressable
+              onPress={() => {
+                haptics.tap();
+                setRecordSheetOpen(true);
+              }}
+              scaleTo={0.99}
+              accessibilityRole="button"
+              accessibilityLabel={t('record.optionsTitle') || 'Options'}
+              style={[styles.optionsRow, { backgroundColor: theme.surface }]}
             >
-              {isTranscribing ? t('transcribe.transcribing').split('\n')[0] || 'Transcribing...' : (t('transcribe.transcribeButton') || 'Transcribe')}
-            </Button>
-          </View>
-        </View>
-      </Card>
-
-      {/* flex:1 so this card absorbs exactly the space the other cards leave,
-          which is what makes the page fill the screen and stop scrolling.
-          minHeight is the floor for a short screen: below it the page scrolls
-          rather than crushing the transcript to nothing. */}
-      <Card index={2} style={{ flex: 1, minHeight: 200 }}>
-        {/* No heading: the Raw/Formatted/Summary control already says what this
-            card is, and the card itself does the grouping a title used to.
-            The panel is the SHARED transcript body (also used by History) -
-            layout quirks get fixed there, once. */}
-        <TranscriptPanel
-          tab={transcriptTab}
-          onTabChange={setTranscriptTab}
-          streaming={!!live || revealing}
-          revealed={revealed}
-          progressPercent={isTranscribing ? transcribePercent : null}
-          waiting={isTranscribing}
-          waitingStatus={currentText}
-          renderStatic={() => (
-            <TextInput
-              style={[styles.transcriptBox, { color: theme.text, borderColor: theme.divider, flex: 1 }]}
-              placeholder={t('transcribe.transcriptPlaceholder') || 'Transcript will appear here.'}
-              placeholderTextColor={theme.textSubtle}
-              multiline
-              editable={false}
-              value={currentText}
-            />
-          )}
-          onCopy={handleCopy}
-          copyDisabled={!currentText}
-          onFullscreen={() => {
-            haptics.tap();
-            setFullscreen(true);
-          }}
-          fullscreenDisabled={!currentText && !liveText}
-        />
-      </Card>
+              <Icon name="tune" size={22} color={theme.textMuted} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.optionsTitle}>{t('record.optionsTitle') || 'Options'}</Text>
+                <Text numberOfLines={1} style={[styles.optionsSummary, { color: theme.textMuted }]}>
+                  {optionsSummary}
+                </Text>
+              </View>
+              <Icon name="chevron-right" size={20} color={theme.textSubtle} />
+            </AnimatedPressable>
+          </>
+        )}
       </ScrollView>
 
       <TranscriptFullscreen
         visible={fullscreen}
         onClose={() => setFullscreen(false)}
-        // Only prefer the reveal while something genuinely streams: after it
-        // ends `revealed` still holds the LAST streamed text, and preferring it
-        // showed a stale (even aborted) run's words instead of the saved ones.
         text={!!live || revealing ? revealed : currentText}
         streaming={!!live || revealing}
         percent={isTranscribing ? transcribePercent : undefined}
         onCopy={currentText ? handleCopy : undefined}
       />
+      <EntityActionDialog entity={activeEntity} onClose={() => setActiveEntity(null)} />
     </FadeInView>
     </KeyboardScreen>
+  );
+}
+
+/**
+ * The record button, as the thing the screen is about.
+ *
+ * It drives the same recorder as the small mic in the tab bar (that one exists
+ * so you can record from History or Settings). Recording, stopping and the
+ * hand-off to transcription all live in RecordingProvider; this only asks.
+ */
+function HeroMic({ compact }: { compact: boolean }) {
+  const { theme } = useTheme();
+  const { isRecording, toggle } = useRecording();
+  const elapsed = useRecordingElapsed(isRecording);
+  const size = compact ? 104 : 128;
+
+  // While this is on screen the tab bar puts its own small mic away.
+  useEffect(() => {
+    setHeroMicOnScreen(true);
+    return () => setHeroMicOnScreen(false);
+  }, []);
+
+  // One plain circle. It breathes while recording and is still otherwise.
+  const pulse = useSharedValue(1);
+  useEffect(() => {
+    pulse.value = isRecording
+      ? withRepeat(withTiming(1.06, { duration: 800, easing: Easing.inOut(Easing.quad) }), -1, true)
+      : withTiming(1, { duration: 200 });
+  }, [isRecording, pulse]);
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
+
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <Animated.View style={pulseStyle}>
+        <AnimatedPressable
+          onPress={() => {
+            markCoachDone('mic');
+            toggle();
+          }}
+          onLongPress={() => {
+            haptics.select();
+            setRecordSheetOpen(true);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={isRecording ? t('transcribe.heroStop') : t('transcribe.heroRecord')}
+          accessibilityState={{ selected: isRecording }}
+          style={{
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            backgroundColor: isRecording ? theme.danger : theme.tint,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon
+            name={isRecording ? 'stop' : 'mic'}
+            filled
+            size={Math.round(size * 0.42)}
+            color={isRecording ? '#FFFFFF' : theme.tintForeground}
+          />
+        </AnimatedPressable>
+      </Animated.View>
+      {/* The small mic in the tab bar shows the running time, and it is put
+          away while this one is on screen, so the time is shown here. */}
+      <Text style={[styles.heroTitle, isRecording && styles.heroTime]}>
+        {isRecording ? formatElapsed(elapsed) : t('transcribe.heroRecord') || 'Tap to record'}
+      </Text>
+      {isRecording && (
+        <Text style={[styles.heroHint, { color: theme.textMuted }]}>
+          {t('transcribe.heroStop') || 'Recording. Tap to stop'}
+        </Text>
+      )}
+    </View>
   );
 }
 
@@ -671,8 +770,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   welcome: {
-    // flexGrow, not flex: fills the screen when it fits, exceeds it when it
-    // doesn't, rather than clipping the button off the bottom.
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -686,60 +783,94 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   welcomeBody: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: TYPE.body,
+    lineHeight: 24,
     textAlign: 'center',
   },
-  // Content container: flexGrow (not flex) so it fills a tall screen but is
-  // free to exceed a short one and scroll.
   container: {
     flexGrow: 1,
     padding: SPACING.lg,
     paddingBottom: TAB_BAR_SPACE,
   },
-  row: {
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-  },
-  gutter: {
-    width: SPACING.md,
-  },
-  flex1: {
+  hero: {
     flex: 1,
-    backgroundColor: 'transparent',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: SPACING.xs + 2,
-    opacity: 0.8,
-  },
-  shapeLabel: { fontSize: 12, marginTop: SPACING.md, marginBottom: SPACING.xs },
-  input: {
-    borderWidth: 1,
-    borderRadius: RADIUS.sm,
-    padding: SPACING.md,
-    minHeight: 60,
-    maxHeight: 80,
-    textAlignVertical: 'top',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    minHeight: 280,
     alignItems: 'center',
-    marginBottom: SPACING.lg,
-    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    paddingVertical: SPACING.xl,
   },
-  sectionTitle: {
-    fontSize: 18,
+  heroTitle: {
+    fontSize: TYPE.title,
     fontWeight: 'bold',
-    marginBottom: SPACING.md,
+    textAlign: 'center',
+    marginTop: SPACING.lg,
   },
-  transcriptBox: {
-    borderWidth: 1,
-    borderRadius: RADIUS.sm,
-    padding: SPACING.md,
-    minHeight: 150,
+  heroTime: {
+    fontSize: TYPE.display,
+    fontVariant: ['tabular-nums'],
+  },
+  heroHint: {
+    fontSize: TYPE.label,
+    textAlign: 'center',
+    marginTop: SPACING.xs,
+  },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  fileIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fileName: {
+    flex: 1,
+    fontSize: TYPE.body,
+    fontWeight: '600',
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    minHeight: 64,
+    borderRadius: RADIUS.lg,
+  },
+  optionsTitle: {
+    fontSize: TYPE.label,
+    fontWeight: '600',
+  },
+  optionsSummary: {
+    fontSize: TYPE.caption,
+    marginTop: 2,
+  },
+  resultBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    minHeight: 40,
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.xs,
+  },
+  resultName: {
+    flex: 1,
+    fontSize: TYPE.label,
+    fontWeight: '600',
+  },
+  transcriptText: {
+    flex: 1,
+    fontSize: 17,
+    lineHeight: 27,
+    padding: 0,
     textAlignVertical: 'top',
+  },
+  // Same type as above, minus the input-only properties.
+  highlightedText: {
+    fontSize: 17,
+    lineHeight: 27,
   },
 });

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { View, StyleSheet, FlatList, Animated, Easing, Keyboard, Pressable } from 'react-native';
+import { View, StyleSheet, FlatList, Animated, Keyboard, Pressable } from 'react-native';
 import { TextInput } from '@/components/Themed';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useFocusEffect } from 'expo-router';
 
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/components/ThemeProvider';
@@ -11,10 +11,12 @@ import { IconButton } from '@/components/IconButton';
 import { KeyboardStickyView } from 'react-native-keyboard-controller';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
 import { SPACING, RADIUS, TAB_BAR_SPACE, MOTION, FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
+import { spring } from '@/utils/motion';
 import { useSettings } from '@/utils/settingsStore';
 import { ModelManager } from '@/utils/ModelManager';
-import { chatStream, ChatMessage } from '@/utils/ChatEngine';
+import { chatStream, indexNotesForSearch, ChatMessage } from '@/utils/ChatEngine';
 import { extractMemories, parseModelJson } from '@/utils/LLMEngine';
+import { queueLlama } from '@/utils/transcriptionPipeline';
 import { haptics } from '@/utils/haptics';
 import { useHistory, updateHistoryItem, HistoryItem } from '@/utils/historyStore';
 import { useChats, addChatSession, updateChatMessages, renameChatSession, deleteChatSession, appendActionNote, titleFromMessage } from '@/utils/chatStore';
@@ -24,6 +26,7 @@ import { InlineSettingControl } from '@/components/InlineSettingControl';
 import { getSettingSpec } from '@/utils/appCapabilities';
 import { useDialog, DialogCard } from '@/components/Dialog';
 import { EntityActionDialog } from '@/components/EntityActionDialog';
+import { resolveQuote } from '@/utils/entityExtraction';
 import { errorToMessage } from '@/utils/errors';
 import { t } from '@/utils/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
@@ -53,7 +56,13 @@ const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 // back verbatim, so the user sees "[action result] The user answered: renamed
 // X to Y" as if the app were talking to itself. Anything wearing that shape is
 // ours, never a reply.
-const MECHANICS_TALK = /tool[ _-]?calls?|<tool|\bjson\b|\bemit\b|\bpayload\b|history_index|app_settings|transcript_id|new_name|\[action result\]|the user answered|\bdialog\b|\bconfirmation\b|the app (shows|will|asks)|\bthe user (will|can|cannot|sees|see)\b/i;
+//
+// Kept to words that cannot occur in an answer about someone's notes. It used
+// to include "dialog", "confirmation", "json" and "the user can": fine while
+// the model was reciting a prompt full of them, but the answer step no longer
+// sees any of that, and a note about a booking confirmation lost the very
+// sentence that answered the question.
+const MECHANICS_TALK = /tool[ _-]?calls?|<tool|history_index|app_settings|transcript_id|new_name|\[action result\]|the user answered/i;
 
 function parseToolCalls(text: string): { actions: any[]; cleanText: string } {
   const actions: any[] = [];
@@ -130,6 +139,14 @@ export default function ChatScreen() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const { items: historyItems, deleteItem } = useHistory();
+  // Search by meaning: the helper model reads new and changed notes while
+  // the chat is open, never during a transcription elsewhere in the app.
+  const noteCount = historyItems.length;
+  useFocusEffect(
+    useCallback(() => {
+      if (noteCount > 0) void indexNotesForSearch();
+    }, [noteCount])
+  );
   const dialog = useDialog();
 
   // Set when the assistant asks for a rename without saying what to call it.
@@ -353,15 +370,10 @@ export default function ChatScreen() {
       await updateChatMessages(targetChatId, finalMessages);
 
       if (settings.enableContextLearning) {
-        // REVIEW FLAG (2026-07-20): extractMemories runs on LLMEngine's MAIN
-        // context, but chat generates on ChatEngine's SEPARATE context. This
-        // loads the model a SECOND time (RAM pressure / possible OOM on device),
-        // and it's unqueued, so if a recording's enrichment is running on the
-        // main context it can collide with it. Only reachable with BOTH chat
-        // beta AND context-learning on (both default off), so it's flagged not
-        // fixed - the real fix is a design call: run this on the chat context,
-        // or skip memory extraction while chatting.
-        extractMemories(userMsg.content, modelPath, activeModel).catch(console.warn);
+        // On the text model's own context, so it waits its turn there: run
+        // unqueued, it could land in the middle of a note's Improve, summary
+        // or title and wedge the context for everything after it.
+        queueLlama(() => extractMemories(userMsg.content, modelPath, activeModel)).catch(console.warn);
       }
 
       const botResponse = finalMessages[finalMessages.length - 1].content;
@@ -946,7 +958,13 @@ function buildSearchTerms(historyItems: HistoryItem[]): SearchTerm[] {
     if (h.extractedDates) {
       h.extractedDates.forEach((entity) => {
         if (entity.quote && entity.quote.length > 2) {
-          terms.push({ text: entity.quote, type: 'entity', data: entity });
+          // The stored entity has no resolved date; read it from the quote,
+          // against the day that transcript was recorded.
+          terms.push({
+            text: entity.quote,
+            type: 'entity',
+            data: { ...entity, when: resolveQuote(entity.quote, new Date(h.timestampISO)) },
+          });
         }
       });
     }
@@ -1043,13 +1061,20 @@ function renderToolAction(
   if (a === 'RENAME_TRANSCRIPT') {
     return getTarget(act) ? null : <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
-  if (!EXECUTED_ACTIONS.has(a) || !isActionable(act, getTarget, renameTargetName)) {
+  // Delete asks first too. While the note still exists nothing has happened
+  // (the dialog is open, or was cancelled), so nothing is claimed. "Done" only
+  // once the note it named is really gone. A delete that named no note never
+  // had anything to act on.
+  if (a === 'DELETE_TRANSCRIPT') {
+    if (!act.transcript_id && !act.transcript_name) return <ActionFailedChip key={`fail-${i}`} theme={theme} />;
+    if (getTarget(act)) return null;
+  } else if (!EXECUTED_ACTIONS.has(a) || !isActionable(act, getTarget, renameTargetName)) {
     return <ActionFailedChip key={`fail-${i}`} theme={theme} />;
   }
   return (
     <View key={`act-${i}`} style={{ marginTop: 8, padding: 8, backgroundColor: theme.tint + '20', borderRadius: 8, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center' }}>
       <Icon name="check-circle" size={16} color={theme.tint} />
-      <Text style={{ color: theme.tint, marginLeft: 6, fontSize: 12, fontWeight: 'bold' }}>{t('chat.actionExecuted') || 'Done'}: {act.action}</Text>
+      <Text style={{ color: theme.tint, marginLeft: 6, fontSize: 12, fontWeight: 'bold' }}>{t('chat.actionExecuted') || 'Done'}</Text>
     </View>
   );
 }
@@ -1144,15 +1169,10 @@ const MessageBubble = React.memo(function MessageBubble({
   getTarget,
   renameTargetName,
 }: MessageBubbleProps) {
-  // Gentle entrance: fade in and rise 6px when the bubble mounts.
+  // Entrance: fades in and rises on the bottom bar's spring when the bubble mounts.
   const entrance = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(entrance, {
-      toValue: 1,
-      duration: 180,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(entrance, { toValue: 1, useNativeDriver: true, ...spring('drop') }).start();
   }, [entrance]);
 
   const isUser = message.role === 'user';
@@ -1162,8 +1182,8 @@ const MessageBubble = React.memo(function MessageBubble({
       ? [styles.userBubble, { backgroundColor: theme.tint }]
       : [styles.assistantBubble, { backgroundColor: theme.surface, borderColor: theme.divider }],
     {
-      opacity: entrance,
-      transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [6, 0] }) }],
+      opacity: entrance.interpolate({ inputRange: [0, 0.6], outputRange: [0, 1], extrapolate: 'clamp' }),
+      transform: [{ translateY: entrance.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
     },
   ];
 
@@ -1187,7 +1207,8 @@ const MessageBubble = React.memo(function MessageBubble({
   // leaving a blank pill sitting in the thread - so draw no bubble at all. The
   // streaming row is exempt: it starts empty by definition and the typing
   // indicator lives there.
-  if (!isStreamingRow && !cleanContent && actions.length === 0) return null;
+  const chips = actions.map((act, i) => renderToolAction(act, i, theme, getTarget, renameTargetName)).filter(Boolean);
+  if (!isStreamingRow && !cleanContent && chips.length === 0) return null;
 
   return (
     <Animated.View style={bubbleStyle}>
@@ -1197,7 +1218,7 @@ const MessageBubble = React.memo(function MessageBubble({
           )
         : !!cleanContent &&
           renderHighlighted(cleanContent, searchTerms, isUser, theme, onOpenTranscript, onEntityPress)}
-      {actions.map((act, i) => renderToolAction(act, i, theme, getTarget, renameTargetName))}
+      {chips}
     </Animated.View>
   );
 });

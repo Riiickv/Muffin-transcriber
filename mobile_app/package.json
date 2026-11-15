@@ -42,7 +42,7 @@
     "react-native-svg": "15.15.4",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.10.0",
-    "whisper.rn": "^0.6.0"
+    "whisper.rn": "0.7.4"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
@@ -58,7 +58,7 @@
     "web": "expo start --web",
     "postinstall": "patch-package",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/streamingDrip.test.ts tests/segmentAccumulator.test.ts tests/entityExtraction.test.ts tests/textCleanup.test.ts tests/transcribeProgress.test.ts tests/languageData.test.ts tests/format.test.ts tests/deviceTierData.test.ts tests/waveform.test.ts tests/wavHeader.test.ts tests/splitForModel.test.ts tests/modelTimeEstimate.test.ts tests/progressiveDraft.test.ts tests/outputShape.test.ts tests/vadPolicy.test.ts tests/transcriptExport.test.ts",
+    "test": "node --experimental-strip-types --test tests/pauseCut.test.ts tests/streamingDrip.test.ts tests/segmentAccumulator.test.ts tests/entityExtraction.test.ts tests/butlerDates.test.ts tests/chatPlan.test.ts tests/textCleanup.test.ts tests/transcribeProgress.test.ts tests/languageData.test.ts tests/format.test.ts tests/deviceTierData.test.ts tests/waveform.test.ts tests/wavHeader.test.ts tests/splitForModel.test.ts tests/modelTimeEstimate.test.ts tests/progressiveDraft.test.ts tests/outputShape.test.ts tests/vadPolicy.test.ts tests/transcriptExport.test.ts tests/noteStore.test.ts tests/valueStore.test.ts",
     "typecheck:tests": "tsc -p tests/tsconfig.json",
     "lint": "eslint . --max-warnings 0"
   },

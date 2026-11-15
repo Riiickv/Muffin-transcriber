@@ -8,12 +8,13 @@ import { useTheme } from '@/components/ThemeProvider';
 import { Button } from '@/components/Button';
 import { FadeInView } from '@/components/FadeInView';
 import { ModelDownloadList } from '@/components/ModelDownloadList';
-import { WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS } from '@/utils/ModelManager';
+import { FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, speechModels } from '@/utils/ModelManager';
 import { withRecommendedFirst, recommendedModelId } from '@/utils/deviceTier';
 import { SPACING, RADIUS } from '@/constants/tokens';
 import { useResponsive } from '@/hooks/useResponsive';
 import { haptics } from '@/utils/haptics';
 import { t } from '@/utils/i18n';
+import { CHAT_SHIPPED } from '@/utils/features';
 
 /**
  * First-run setup: pick the models that make the app work.
@@ -46,7 +47,7 @@ export default function SetupScreen() {
       body: t('setup.transcriberBody'),
       content: (
         <ModelDownloadList
-          models={withRecommendedFirst(WHISPER_MODELS, 'whisper')}
+          models={withRecommendedFirst(speechModels(), 'whisper')}
           highlightId={recommendedModelId('whisper')}
         />
       ),
@@ -71,7 +72,7 @@ export default function SetupScreen() {
               saying so plainly beats suggesting one that would crawl - and the
               list stays, because it's their phone and their call. */}
           {!chatSuggestion && (
-            <View style={[styles.warning, { borderColor: theme.divider }]}>
+            <View style={[styles.warning, { backgroundColor: theme.surfaceStrong }]}>
               <Text style={[styles.warningText, { color: theme.textMuted }]}>
                 {t('setup.chatNoneSuggested')}
               </Text>
@@ -82,11 +83,12 @@ export default function SetupScreen() {
             highlightId={chatSuggestion}
           />
 
-          <Text style={[styles.sectionTitle, { marginTop: SPACING.xl }]}>
-            {t('setup.butlerSectionTitle')}
-          </Text>
-          <Text style={[styles.body, { color: theme.textMuted, textAlign: 'left', marginBottom: SPACING.sm }]}>
-            {t('setup.butlerBody')}
+          {/* The helper model is what the chat searches notes by meaning with.
+              It used to sit under a "Butler!" title, but the Butler (dates and
+              times in a transcript) reads patterns and the text model, never
+              this one. */}
+          <Text style={[styles.body, { color: theme.textMuted, textAlign: 'left', marginTop: SPACING.xl, marginBottom: SPACING.sm }]}>
+            {t('settings.embeddingModelsHeader')}
           </Text>
           <ModelDownloadList
             models={withRecommendedFirst(EMBEDDING_MODELS, 'embedding')}
@@ -95,7 +97,7 @@ export default function SetupScreen() {
         </>
       ),
     },
-  ];
+  ].slice(0, CHAT_SHIPPED ? 3 : 2); // the third page is chat and helper models only
 
   const isLast = page === pages.length - 1;
   const current = pages[page];
@@ -190,7 +192,6 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   warning: {
-    borderWidth: 1,
     borderRadius: RADIUS.md,
     padding: SPACING.md,
     marginBottom: SPACING.md,

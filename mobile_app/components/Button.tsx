@@ -23,9 +23,9 @@ interface ButtonProps {
 }
 
 const SIZE_STYLES = {
-  sm: { padV: SPACING.xs + 2, padH: SPACING.md, font: 13, icon: 16, stackIcon: 20, gap: SPACING.xs + 2 },
-  md: { padV: SPACING.sm, padH: SPACING.lg, font: 14, icon: 20, stackIcon: 24, gap: SPACING.sm - 2 },
-  lg: { padV: SPACING.md, padH: SPACING.xl, font: 16, icon: 22, stackIcon: 26, gap: SPACING.sm },
+  sm: { padV: SPACING.xs + 2, padH: SPACING.md, font: 14, icon: 18, stackIcon: 20, gap: SPACING.xs + 2, minH: 36 },
+  md: { padV: SPACING.sm, padH: SPACING.lg, font: 15, icon: 20, stackIcon: 24, gap: SPACING.sm - 2, minH: 44 },
+  lg: { padV: SPACING.md, padH: SPACING.xl, font: 16, icon: 22, stackIcon: 26, gap: SPACING.sm, minH: 52 },
 } as const;
 
 export const Button = ({
@@ -44,8 +44,8 @@ export const Button = ({
 
   const palette: Record<ButtonVariant, { bg: string; fg: string; border?: string }> = {
     primary: { bg: theme.tint, fg: theme.tintForeground },
-    secondary: { bg: theme.surface, fg: theme.text, border: theme.divider },
-    ghost: { bg: 'transparent', fg: theme.tint },
+    secondary: { bg: theme.surfaceStrong, fg: theme.text },
+    ghost: { bg: 'transparent', fg: theme.tintText },
     danger: { bg: theme.danger, fg: '#FFFFFF' },
   };
   const v = palette[variant];
@@ -64,8 +64,12 @@ export const Button = ({
           alignItems: 'center',
           justifyContent: 'center',
           paddingVertical,
-          paddingHorizontal: s.padH,
-          borderRadius: RADIUS.md,
+          paddingHorizontal: stacked ? SPACING.sm : s.padH,
+          minHeight: stacked ? undefined : s.minH,
+          // Stacked buttons are tiles, everything else is a pill: the same
+          // shape as the tab bar and the segmented control, so the app has one
+          // kind of roundness instead of three.
+          borderRadius: stacked ? RADIUS.lg : RADIUS.pill,
           backgroundColor: v.bg,
           borderWidth: v.border ? 1 : 0,
           borderColor: v.border ?? 'transparent',
@@ -76,9 +80,15 @@ export const Button = ({
       ]}
     >
       {icon && <Icon name={icon} size={iconSize} color={v.fg} filled={iconFilled} />}
+      {/* A label that does not fit shrinks before it is cut. A stacked tile
+          gets a second line only when the label has a space to break at
+          ("Neu transkribieren"): given two lines, "Re-Transcribe" broke at
+          its hyphen instead of shrinking. */}
       <Text
-        numberOfLines={1}
-        style={{ fontSize: s.font, fontWeight: 'bold', color: v.fg }}
+        numberOfLines={stacked && typeof children === 'string' && children.includes(' ') ? 2 : 1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.8}
+        style={{ fontSize: stacked ? s.font - 1 : s.font, fontWeight: 'bold', color: v.fg, textAlign: 'center', flexShrink: 1 }}
       >
         {children}
       </Text>

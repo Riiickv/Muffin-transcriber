@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { setModelsPresent } from '@/utils/modelPresence';
 import { ensureModelSelections } from '@/utils/modelSelection';
-import { ModelManager, WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, ModelDef, modelName } from '@/utils/ModelManager';
+import { ModelManager, FORMATTER_MODELS, CHAT_MODELS, ModelDef, modelName, speechModels } from '@/utils/ModelManager';
+import { useSettings } from '@/utils/settingsStore';
 
 export interface DropdownOption {
   label: string;
@@ -21,40 +22,51 @@ const toOptions = (models: readonly ModelDef[], downloaded: string[]): DropdownO
 // refreshed whenever the screen regains focus so a model just downloaded on the
 // Models tab shows up without a manual reload. Replaces the copy-pasted
 // useState + getDownloadedModelIds effect + filter/map block on every screen.
-export function useModelOptions() {
+//
+// `refreshWhen` is for a caller that is NOT a screen. The focus effect below
+// only ever fires inside a screen: in an app-wide overlay (the Options sheet,
+// mounted in the root layout) it never runs, so the list stays empty and the
+// picker says "No models installed yet" with models on disk. Such a caller
+// passes its own "I am showing" flag and the disk is read each time it turns
+// true.
+export function useModelOptions(refreshWhen?: boolean) {
   const [downloadedIds, setDownloadedIds] = useState<string[]>([]);
   // downloadedIds is [] before the disk has been read, which is indistinguishable
   // from "you have no models" - and screens that key off emptiness would flash
   // their empty state at every existing user on every launch. `ready` says the
   // answer is real.
   const [ready, setReady] = useState(false);
+  const { settings } = useSettings();
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      ModelManager.getDownloadedModelIds().then((ids) => {
-        if (active) {
-          setDownloadedIds(ids);
-          setReady(true);
-          // Publish for the header and tab bar, which can't ask for themselves.
-          setModelsPresent(ids.length > 0);
-          // Here, because this is the moment we know what's on disk. Fills in a
-          // preference that's empty or points at a deleted model, so nobody
-          // downloads a model and is then told "No model selected". Never
-          // overrides a choice the user made, and only writes on a real change.
-          ensureModelSelections(ids).catch(() => {});
-        }
-      });
-      return () => {
-        active = false;
-      };
-    }, [])
-  );
+  const read = useCallback(() => {
+    let active = true;
+    ModelManager.getDownloadedModelIds().then((ids) => {
+      if (active) {
+        setDownloadedIds(ids);
+        setReady(true);
+        // Publish for the header and tab bar, which can't ask for themselves.
+        setModelsPresent(ids.length > 0);
+        // Here, because this is the moment we know what's on disk. Fills in a
+        // preference that's empty or points at a deleted model, so nobody
+        // downloads a model and is then told "No model selected". Never
+        // overrides a choice the user made, and only writes on a real change.
+        ensureModelSelections(ids).catch(() => {});
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useFocusEffect(read);
+  useEffect(() => {
+    if (refreshWhen) return read();
+  }, [refreshWhen, read]);
 
   return {
     downloadedIds,
     ready,
-    whisperOptions: toOptions(WHISPER_MODELS, downloadedIds),
+    whisperOptions: toOptions(speechModels(settings.showTestModels), downloadedIds),
     formatterOptions: toOptions(FORMATTER_MODELS, downloadedIds),
     chatOptions: toOptions(CHAT_MODELS, downloadedIds),
   };

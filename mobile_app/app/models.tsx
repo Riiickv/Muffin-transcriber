@@ -6,9 +6,10 @@ import { SettingsGroup, SettingsRow } from '@/components/SettingsGroup';
 import ExpressiveSwitch from '@/components/ExpressiveSwitch';
 import { useSettings } from '@/utils/settingsStore';
 import { ModelDownloadList } from '@/components/ModelDownloadList';
-import { WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, ModelDef } from '@/utils/ModelManager';
+import { FORMATTER_MODELS, CHAT_MODELS, EMBEDDING_MODELS, TEST_SPEECH_MODELS, speechModels, ModelDef } from '@/utils/ModelManager';
 import { withRecommendedFirst, recommendedModelId, ModelGroup } from '@/utils/deviceTier';
 import { SPACING } from '@/constants/tokens';
+import { CHAT_SHIPPED } from '@/utils/features';
 import { useResponsive } from '@/hooks/useResponsive';
 import { t } from '@/utils/i18n';
 
@@ -47,10 +48,16 @@ export default function ModelsScreen() {
     <View style={{ flex: 1, backgroundColor: theme.background, maxWidth: contentWidth, width: '100%', alignSelf: 'center' }}>
       <Stack.Screen options={{ title: t('settings.segmentModels') }} />
       <ScrollView contentContainerStyle={styles.scroll}>
-        {group(t('settings.whisperModelsHeader'), WHISPER_MODELS, 'whisper', 0)}
+        {group(t('settings.whisperModelsHeader'), speechModels(), 'whisper', 0)}
+        {/* Only with the hidden switch on. Not translated: not shipped UI. */}
+        {settings.showTestModels && (
+          <SettingsGroup title="Test" index={0}>
+            <ModelDownloadList models={TEST_SPEECH_MODELS} />
+          </SettingsGroup>
+        )}
         {group(t('settings.formatterModelsHeader'), FORMATTER_MODELS, 'formatter', 1)}
-        {group(t('settings.chatModelsHeader'), CHAT_MODELS, 'chat', 2)}
-        {group(t('settings.embeddingModelsHeader'), EMBEDDING_MODELS, 'embedding', 3)}
+        {CHAT_SHIPPED && group(t('settings.chatModelsHeader'), CHAT_MODELS, 'chat', 2)}
+        {CHAT_SHIPPED && group(t('settings.embeddingModelsHeader'), EMBEDDING_MODELS, 'embedding', 3)}
 
         {/* Last, because it changes how the lists above read rather than being
             something you came here to do. */}
@@ -59,14 +66,14 @@ export default function ModelsScreen() {
             label={t('settings.showModelNames') || 'Show model names'}
             description={
               t('settings.showModelNamesDesc') ||
-              'List them by what they are called instead of what they do.'
+              'Technical model names.'
             }
             right={
               <ExpressiveSwitch
                 value={settings.showModelNames}
                 onValueChange={(v) => setSetting('showModelNames', v)}
                 activeColor={theme.tint}
-                thumbActiveColor="#000000"
+                thumbActiveColor={theme.tintForeground}
               />
             }
           />
@@ -74,14 +81,14 @@ export default function ModelsScreen() {
             label={t('settings.showTimeEstimate') || 'Show estimated time'}
             description={
               t('settings.showTimeEstimateDesc') ||
-              'Adds a line with how long each model is likely to take on this phone.'
+              'Expected time per model on this phone.'
             }
             right={
               <ExpressiveSwitch
                 value={settings.showModelTimeEstimate}
                 onValueChange={(v) => setSetting('showModelTimeEstimate', v)}
                 activeColor={theme.tint}
-                thumbActiveColor="#000000"
+                thumbActiveColor={theme.tintForeground}
               />
             }
           />

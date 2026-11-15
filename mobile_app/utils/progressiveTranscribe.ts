@@ -1,4 +1,4 @@
-import { ModelManager, WHISPER_MODELS } from './ModelManager';
+import { ModelManager, WHISPER_MODELS, isParakeetModel } from './ModelManager';
 import { loadWhisper, transcribeFile, isWhisperLoaded, TranscribeCallbacks } from './WhisperEngine';
 import { relativeCost } from '@/utils/modelTimeEstimate';
 import { pickDraftModel, shouldDraft } from './progressiveDraft';
@@ -52,7 +52,9 @@ export async function transcribeProgressive(
   // chosen model, and this function immediately discarded it. A draft is only
   // worth it when the accurate model has not been paid for yet.
   const chosenAlreadyWarm = isWhisperLoaded(chosenPath);
-  if (enabled && !chosenAlreadyWarm && shouldDraft(audioMs)) {
+  // Never for Parakeet: a rough pass exists to hide a long wait, and a model
+  // that is itself the fast one would only be slowed by loading a second.
+  if (enabled && !chosenAlreadyWarm && !isParakeetModel(chosenModelId) && shouldDraft(audioMs)) {
     const downloaded: string[] = [];
     for (const m of WHISPER_MODELS) {
       if (await ModelManager.isModelDownloaded(m.id)) downloaded.push(m.id);

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Modal, View, StyleSheet, ScrollView } from 'react-native';
+import { Animated, Modal, View, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
 import { SPACING, RADIUS } from '@/constants/tokens';
+import { usePopIn } from '@/utils/motion';
 import { IconButton } from './IconButton';
 import { Icon } from './Icon';
 import { AnimatedPressable } from './AnimatedPressable';
@@ -50,6 +51,7 @@ export function SelectDropdown({
   const { theme } = useTheme();
   const router = useRouter();
   const [visible, setVisible] = useState(false);
+  const popIn = usePopIn(visible);
 
   const selectedOption = options.find((o) => o.value === value);
   const displayLabel = selectedOption ? selectedOption.label : placeholder;
@@ -80,14 +82,12 @@ export function SelectDropdown({
       ) : (
         <AnimatedPressable
           style={{
-            borderWidth: 1,
-            borderRadius: RADIUS.sm,
-            borderColor: theme.divider,
+            borderRadius: RADIUS.md,
             padding: compact ? SPACING.sm : SPACING.md,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            backgroundColor: disabled ? theme.surface : 'transparent',
+            backgroundColor: theme.surfaceStrong,
             opacity: disabled ? 0.5 : 1,
           }}
           onPress={handleOpen}
@@ -111,10 +111,11 @@ export function SelectDropdown({
             style={StyleSheet.absoluteFill}
             onPress={() => setVisible(false)}
           />
-          <View
+          <Animated.View
             style={[
               styles.modalContent,
               { backgroundColor: theme.background, borderColor: theme.divider },
+              popIn,
             ]}
           >
             <View style={[styles.header, { borderBottomColor: theme.divider }]}>
@@ -139,7 +140,7 @@ export function SelectDropdown({
                 </Text>
                 <Text style={[styles.emptyDesc, { color: theme.textMuted }]}>
                   {t('models.noneInstalledDesc') ||
-                    "Models are what let the app work offline. Download one and it'll show up here."}
+                    'Downloaded model required.'}
                 </Text>
                 {/* Explicit height - an unsized Button balloons inside a
                     centered container (see WaitingCard). */}
@@ -196,7 +197,7 @@ export function SelectDropdown({
               })}
             </ScrollView>
             )}
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </>

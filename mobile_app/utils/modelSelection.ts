@@ -1,4 +1,4 @@
-import { WHISPER_MODELS, FORMATTER_MODELS, CHAT_MODELS, ModelDef } from './ModelManager';
+import { FORMATTER_MODELS, CHAT_MODELS, ModelDef, speechModels } from './ModelManager';
 import { loadSettings, saveSettings } from './settingsStore';
 import { recommendedModelId, ModelGroup } from './deviceTier';
 
@@ -47,7 +47,7 @@ export async function ensureModelSelections(installedIds: string[]): Promise<voi
 
   const next = {
     ...settings,
-    preferredWhisperModel: pickFor(WHISPER_MODELS, 'whisper', settings.preferredWhisperModel, installed),
+    preferredWhisperModel: pickFor(speechModels(), 'whisper', settings.preferredWhisperModel, installed),
     preferredFormatterModel: pickFor(FORMATTER_MODELS, 'formatter', settings.preferredFormatterModel, installed),
     preferredChatModel: pickFor(CHAT_MODELS, 'chat', settings.preferredChatModel, installed),
   };

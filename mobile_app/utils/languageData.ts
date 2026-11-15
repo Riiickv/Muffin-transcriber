@@ -144,3 +144,26 @@ export function languageNameFromCode(code: string | undefined | null): string | 
 // know what's allowed - never the labels, which are for humans and localized.
 export const LANGUAGE_VALUES = ['Auto-Detect', ...LANGUAGES.map((l) => l.name)];
 export const FORMAT_LANGUAGE_VALUES = ['Auto-Detect / Original', ...LANGUAGES.map((l) => l.name)];
+
+/**
+ * The 25 languages the Fast speech model (NVIDIA Parakeet TDT 0.6B v3) can
+ * transcribe, from its model card. It cannot be TOLD the language, it detects
+ * among these on its own, and anything outside the list comes out as nonsense
+ * in the wrong alphabet. So nothing outside it may be routed to that model,
+ * and it is only suggested to a phone set to one of them.
+ */
+export const PARAKEET_LANGUAGE_CODES: readonly string[] = [
+  'bg', 'hr', 'cs', 'da', 'nl', 'en', 'et', 'fi', 'fr', 'de', 'el', 'hu', 'it',
+  'lv', 'lt', 'mt', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'es', 'sv', 'uk',
+];
+
+/** By ISO 639-1 code, e.g. the phone's own language. Unknown is a no. */
+export function parakeetCoversCode(code: string | undefined | null): boolean {
+  return !!code && PARAKEET_LANGUAGE_CODES.includes(code.toLowerCase());
+}
+
+/** By the stored display name. Auto-Detect is allowed: detecting is all it does. */
+export function parakeetCoversLanguage(displayName: string | undefined | null): boolean {
+  if (!displayName || displayName === 'Auto-Detect') return true;
+  return parakeetCoversCode(LANGUAGES.find((l) => l.name === displayName)?.code);
+}

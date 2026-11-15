@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleProp, ViewStyle } from 'react-native';
 import { AnimatedPressable } from './AnimatedPressable';
 import { useTheme } from './ThemeProvider';
-import { MOTION, RADIUS, SPACING } from '@/constants/tokens';
+import { RADIUS, SPACING } from '@/constants/tokens';
+import { spring } from '@/utils/motion';
 import { useResponsive } from '@/hooks/useResponsive';
 
 interface CardProps {
@@ -32,9 +33,9 @@ export const Card = ({ children, style, padded = true, onPress, index }: CardPro
   useEffect(() => {
     if (index === undefined) return;
     const timer = setTimeout(() => {
-      Animated.timing(anim, {
+      Animated.spring(anim, {
         toValue: 1,
-        duration: MOTION.timingBase.duration,
+        ...spring('drop'),
         // The native driver only cares which properties are ANIMATED, not what
         // else the style carries - and this animates opacity and translateY,
         // both of which it handles. It used to be false "because the style may
@@ -52,11 +53,12 @@ export const Card = ({ children, style, padded = true, onPress, index }: CardPro
   }, [anim, index]);
 
   const baseStyle: ViewStyle = {
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    // Softer than `divider` - the fill does the separating now, so the stroke
-    // only needs to catch the edge.
-    borderColor: theme.isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
+    borderRadius: RADIUS.lg,
+    // Fill only. A fill AND a stroke on every card drew each group twice, and
+    // a screen of three cards read as six nested boxes. The stroke survives on
+    // pure black alone, where a 6% fill is too close to the page to see.
+    borderWidth: theme.isAmoled ? 1 : 0,
+    borderColor: 'rgba(255,255,255,0.10)',
     backgroundColor: theme.surface,
     // Compact preset on short windows: every card sheds 4dp per side, which
     // across a three-card screen buys back ~24dp of height for the transcript.
@@ -69,8 +71,9 @@ export const Card = ({ children, style, padded = true, onPress, index }: CardPro
     index === undefined
       ? null
       : {
-          opacity: anim,
-          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }],
+          // Clamped: the spring goes past 1 and opacity must not.
+          opacity: anim.interpolate({ inputRange: [0, 0.6], outputRange: [0, 1], extrapolate: 'clamp' }),
+          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }],
         };
 
   if (onPress) {

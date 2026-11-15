@@ -1,89 +1,33 @@
 import React from 'react';
-import { Platform, StyleProp, StyleSheet, Text, TextStyle } from 'react-native';
+import type { ColorValue, StyleProp, ViewStyle } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
-// Codepoints from Google Material Symbols. Add more as the UI needs them -
-// full list at https://fonts.google.com/icons.
-// (Names are our own short aliases so the API reads like Ionicons.)
-const CODEPOINTS = {
-  home: '',
-  mic: '',
-  history: '',
-  settings: '',
-  stop: '',
-  play: '',
-  pause: '',
-  copy: '',
-  'delete': '',
-  edit: '',
-  'chevron-right': '',
-  close: '',
-  warning: '',
-  waveform: '',
-  wand: '',
-  library: '',
-  download: '',
-  share: '',
-  check: String.fromCharCode(0xe5ca),
-  // 0xe0b7 is the real 'chat' bubble - 0xe0b2 is 'call_made', an arrow.
-  chat: String.fromCharCode(0xe0b7),
-  forum: String.fromCharCode(0xe0bf),
-  menu: String.fromCharCode(0xe5d2),
-  'arrow-upward': String.fromCharCode(0xe5d8),
-  'more-horiz': String.fromCharCode(0xe5d3),
-  add: String.fromCharCode(0xe145),
-  'arrow-forward': String.fromCharCode(0xe5c8),
-  favorite: String.fromCharCode(0xe87d),
-  compress: String.fromCharCode(0xe94d),
-  // Diagonal arrows apart / together. Both verified present in the bundled
-  // MaterialSymbolsRounded cmap, so neither renders as a tofu box.
-  'open-in-full': String.fromCharCode(0xf1ce),
-  'close-fullscreen': String.fromCharCode(0xf1cf),
-  'check-circle': String.fromCharCode(0xe86c),
-} as const;
+import { ICON_PATHS } from './iconPaths';
 
-export type IconName = keyof typeof CODEPOINTS;
+// The icons are Phosphor's, drawn as vector paths (see iconPaths.ts for the
+// set and its licence). They replaced the Material Symbols icon font: Phosphor's
+// bold weight has round caps and round corners on every stroke, and a path
+// needs no font to load, so an icon can never show up as an empty box.
+//
+// The names are still the Material ones the screens were written with, so no
+// call site had to change.
+
+export type IconName = keyof typeof ICON_PATHS;
 
 interface IconProps {
   name: IconName;
   size?: number;
-  color?: string;
-  /**
-   * Material Symbols is a variable font - `filled` toggles the FILL axis
-   * between outlined (default, 0) and filled (1). Works on iOS + modern
-   * Android; gracefully degrades to outlined if the OS ignores the axis.
-   */
+  color?: ColorValue;
+  /** The solid version, where the icon has one. Otherwise the outline. */
   filled?: boolean;
-  style?: StyleProp<TextStyle>;
+  style?: StyleProp<ViewStyle>;
 }
 
-export const Icon = ({ name, size = 24, color, filled = false, style }: IconProps) => {
+export const Icon = ({ name, size = 24, color = '#888888', filled = false, style }: IconProps) => {
+  const paths: readonly string[] = ICON_PATHS[name];
   return (
-    <Text
-      selectable={false}
-      allowFontScaling={false}
-      style={[
-        styles.base,
-        {
-          fontSize: size,
-          lineHeight: size,
-          color,
-          // TS TextStyle doesn't include fontVariationSettings by default.
-          ...(Platform.OS !== 'web'
-            ? ({ fontVariationSettings: filled ? "'FILL' 1" : "'FILL' 0" } as TextStyle)
-            : null),
-        },
-        style,
-      ]}
-    >
-      {CODEPOINTS[name]}
-    </Text>
+    <Svg width={size} height={size} viewBox="0 0 256 256" style={style}>
+      <Path d={(filled && paths[1]) || paths[0]} fill={color} />
+    </Svg>
   );
 };
-
-const styles = StyleSheet.create({
-  base: {
-    fontFamily: 'MaterialSymbolsRounded',
-    // On Android, glyphs sit inside their em-square with padding; remove it.
-    ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
-  } as TextStyle,
-});

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-import { tierForMemoryBytes, recommendedForTier, RECOMMENDED } from '../utils/deviceTierData.ts';
+import { tierForMemoryBytes, recommendedForTier, RECOMMENDED, FAST_SPEECH_MODEL_ID } from '../utils/deviceTierData.ts';
 
 const GB = 1024 * 1024 * 1024;
 
@@ -35,7 +35,7 @@ test('every tier recommends whisper/formatter/embedding, and only low opts out o
 
 test('INVARIANT: every recommended id exists in the model catalog', () => {
   // Read the catalog source rather than importing ModelManager (native imports).
-  const catalog = readFileSync(new URL('../utils/ModelManager.ts', import.meta.url), 'utf8');
+  const catalog = readFileSync(new URL('../utils/modelCatalog.ts', import.meta.url), 'utf8');
   const catalogIds = new Set([...catalog.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1]));
   assert.ok(catalogIds.size >= 8, 'catalog parse looks wrong');
 
@@ -43,7 +43,20 @@ test('INVARIANT: every recommended id exists in the model catalog', () => {
     .flatMap((byGroup) => Object.values(byGroup))
     .filter((id): id is string => id !== null);
 
-  for (const id of recommendedIds) {
+  for (const id of [...recommendedIds, FAST_SPEECH_MODEL_ID]) {
     assert.ok(catalogIds.has(id), `recommended model "${id}" is not in the catalog - it would silently not highlight`);
   }
+});
+
+test('Fast is the speech suggestion on mid and high when the phone language fits, and only then', () => {
+  assert.equal(recommendedForTier('whisper', 'high', true), FAST_SPEECH_MODEL_ID);
+  assert.equal(recommendedForTier('whisper', 'mid', true), FAST_SPEECH_MODEL_ID);
+  // Unmeasured on a 4 GB phone, so low keeps the small model.
+  assert.equal(recommendedForTier('whisper', 'low', true), RECOMMENDED.low.whisper);
+  // A phone set to a language it does not cover gets what it got before.
+  assert.equal(recommendedForTier('whisper', 'high', false), RECOMMENDED.high.whisper);
+  assert.equal(recommendedForTier('whisper', 'high'), RECOMMENDED.high.whisper);
+  // It is a speech model: it never leaks into the other groups.
+  assert.equal(recommendedForTier('formatter', 'high', true), RECOMMENDED.high.formatter);
+  assert.equal(recommendedForTier('chat', 'low', true), null);
 });

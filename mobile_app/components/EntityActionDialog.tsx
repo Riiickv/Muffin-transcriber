@@ -8,8 +8,11 @@ import { useTheme } from './ThemeProvider';
 import { useDialog, DialogCard } from './Dialog';
 import { RADIUS, SPACING } from '@/constants/tokens';
 import { t } from '@/utils/i18n';
+import { intentFor, isAlarm } from '@/utils/entityExtraction';
+import type { ActionableEntity } from '@/utils/entityExtraction';
+import { formatWhen } from '@/utils/format';
 
-export type ActionableEntityLike = { quote: string; name: string; type: 'date' | 'time' };
+export type ActionableEntityLike = ActionableEntity;
 
 /**
  * "Add to Calendar / Add to Alarms" for a tapped date or time highlight.
@@ -19,6 +22,9 @@ export type ActionableEntityLike = { quote: string; name: string; type: 'date' |
  * app's dialogs (it now gets this one, so the two entry points finally look
  * the same). Owns the editable event name and the intent launching; a caller
  * only tracks WHICH entity is active.
+ *
+ * The dialog shows the day and hour the Butler worked out, and the calendar or
+ * clock opens with them already filled in (utils/entityExtraction intentFor).
  */
 export function EntityActionDialog({
   entity,
@@ -35,26 +41,17 @@ export function EntityActionDialog({
   // previous entity's edit.
   useEffect(() => setName(''), [entity]);
 
+  const alarm = entity ? isAlarm(entity) : false;
+
   const submit = async () => {
     if (!entity) return;
     const finalName = name.trim() || entity.name;
     try {
-      if (entity.type === 'date') {
-        await IntentLauncher.startActivityAsync('android.intent.action.INSERT', {
-          data: 'content://com.android.calendar/events',
-          extra: {
-            title: finalName,
-            description: `Quote: "${entity.quote}"`,
-          },
-        });
-      } else {
-        await IntentLauncher.startActivityAsync('android.intent.action.SET_ALARM', {
-          extra: {
-            'android.intent.extra.alarm.MESSAGE': finalName,
-            'android.intent.extra.alarm.SKIP_UI': false,
-          },
-        });
-      }
+      const intent = intentFor(entity, finalName);
+      await IntentLauncher.startActivityAsync(intent.action, {
+        ...(intent.data ? { data: intent.data } : {}),
+        extra: intent.extra,
+      });
     } catch (e) {
       console.error(e);
       dialog.show({
@@ -67,13 +64,20 @@ export function EntityActionDialog({
     onClose();
   };
 
+  // The resolved value first, then the words it was read from.
+  const message = entity
+    ? entity.when
+      ? `${formatWhen(entity.when)}\n"${entity.quote}"`
+      : `"${entity.quote}"`
+    : undefined;
+
   return (
     <DialogCard
       visible={entity !== null}
       onRequestClose={onClose}
-      icon={entity?.type === 'date' ? 'history' : 'warning'}
-      title={`${t('chat.addTo') || 'Add to'} ${entity?.type === 'date' ? (t('chat.calendar') || 'Calendar') : (t('chat.alarms') || 'Alarms')}`}
-      message={entity ? `"${entity.quote}"` : undefined}
+      icon={alarm ? 'warning' : 'history'}
+      title={`${t('chat.addTo') || 'Add to'} ${alarm ? (t('chat.alarms') || 'Alarms') : (t('chat.calendar') || 'Calendar')}`}
+      message={message}
       buttons={[
         { label: t('dialog.confirmDelete.cancel') || 'Cancel', variant: 'secondary', onPress: onClose },
         { label: t('chat.openNativeApp') || 'Open Native App', variant: 'primary', onPress: submit },

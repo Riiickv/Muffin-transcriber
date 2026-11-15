@@ -1,0 +1,31 @@
+PROBE sdk_int=34 os.name=Windows 11
+PROBE config_cursorWindowSize_kb=2048
+PROBE sqlite_version=3.32.2
+PROBE page_size=4096 journal_mode=memory encoding=UTF-8 max_page_count=1536
+PROBE getMaximumSize=6291456
+PROBE ascii n=1000000 write=ok read=ok chars=1000000
+PROBE ascii n=1900000 write=ok read=ok chars=1900000
+PROBE ascii n=2000000 write=ok read=ok chars=2000000
+PROBE ascii n=2090000 write=ok read=ok chars=2090000
+PROBE ascii n=2097152 write=ok read=android.database.sqlite.SQLiteBlobTooBigException: Row too big to fit into CursorWindow requiredPos=0, totalRows=1
+PROBE ascii n=2200000 write=ok read=android.database.sqlite.SQLiteBlobTooBigException: Row too big to fit into CursorWindow requiredPos=0, totalRows=1
+PROBE ascii n=3000000 write=ok read=android.database.sqlite.SQLiteBlobTooBigException: Row too big to fit into CursorWindow requiredPos=0, totalRows=1
+PROBE ascii n=5000000 write=ok read=android.database.sqlite.SQLiteBlobTooBigException: Row too big to fit into CursorWindow requiredPos=0, totalRows=1
+PROBE largest_readable_ascii_chars=2097099 (1 byte each in UTF-8)
+PROBE one_more_char_read=android.database.sqlite.SQLiteBlobTooBigException: Row too big to fit into CursorWindow requiredPos=0, totalRows=1
+PROBE largest_readable_e_grave_chars=1048549 (2 bytes each in UTF-8) utf8_bytes=2097098
+PROBE largest_readable_euro_chars=699033 (3 bytes each in UTF-8) utf8_bytes=2097099
+PROBE small_key_write=null small_key_read=null big_key_read=android.database.sqlite.SQLiteBlobTooBigException: Row too big to fit into CursorWindow requiredPos=0, totalRows=1
+PROBE largest_single_value_written=6264525 next_error=android.database.sqlite.SQLiteFullException: database or disk is full (code 13 SQLITE_FULL)
+PROBE replace n=2000000 first=ok second=ok third=ok
+PROBE replace n=2900000 first=ok second=ok third=ok
+PROBE replace n=3100000 first=ok second=ok third=ok
+PROBE replace n=4000000 first=ok second=ok third=ok
+PROBE replace n=5500000 first=ok second=ok third=ok
+PROBE rows_of_100000_written=62 total_chars=6200000 error=android.database.sqlite.SQLiteFullException: database or disk is full (code 13 SQLITE_FULL)
+PROBE after_full small_write=null read_k0=null
+PROBE page_count=1525 freelist_count=0
+PROBE pieces write=null whole_read=android.database.sqlite.SQLiteBlobTooBigException: Row too big to fit into CursorWindow requiredPos=0, totalRows=1
+PROBE pieces length_sql=5000024 length_java=5000024 queries=26 identical=true
+RESCUE NUL case: The value did not come back exactly as stored
+RESCUE read 3400012 chars, 3800012 bytes: identical

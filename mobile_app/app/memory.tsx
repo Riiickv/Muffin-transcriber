@@ -72,11 +72,11 @@ export default function MemoryScreen() {
         <Card style={styles.addCard}>
           <Text style={styles.sectionTitle}>{t('settings.addMemory') || 'Add Memory'}</Text>
           <Text style={[styles.description, { color: theme.textMuted }]}>
-            {t('settings.addMemoryDesc') || 'Teach the AI specific names, jargon, or facts so it transcribes them perfectly.'}
+            {t('settings.addMemoryDesc') || 'Names, terms or facts for transcription.'}
           </Text>
           <View style={styles.addRow}>
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.divider }]}
+              style={[styles.input, { color: theme.text, backgroundColor: theme.surfaceStrong }]}
               value={newMemory}
               onChangeText={setNewMemory}
               placeholder={t('settings.addMemoryPlaceholder') || 'Add a custom memory'}
@@ -105,12 +105,12 @@ export default function MemoryScreen() {
               </Button>
             </View>
             <Text style={[styles.description, { color: theme.textMuted }]}>
-              {t('memory.suggestedDesc') || "I picked these up from your recordings. I'm often wrong, so nothing is saved until you say yes."}
+              {t('memory.suggestedDesc') || 'Detected in recordings. Saved only when accepted.'}
             </Text>
             {suggested.map((sug) => (
               <View
                 key={sug.id}
-                style={[styles.memoryRow, { borderColor: theme.divider, backgroundColor: theme.surface }]}
+                style={[styles.memoryRow, { backgroundColor: theme.surface }]}
               >
                 <Text style={{ flex: 1, fontSize: 15 }}>{sug.text}</Text>
                 <IconButton
@@ -139,7 +139,7 @@ export default function MemoryScreen() {
             </Text>
           ) : (
             items.map((item) => (
-              <View key={item.id} style={[styles.memoryRow, { borderColor: theme.divider, backgroundColor: theme.surface }]}>
+              <View key={item.id} style={[styles.memoryRow, { backgroundColor: theme.surface }]}>
                 {editingId === item.id ? (
                   <TextInput
                     style={[styles.editInput, { color: theme.text, borderColor: theme.tint }]}
@@ -212,8 +212,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     padding: SPACING.md,
     fontSize: 16,
   },
@@ -226,9 +225,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: SPACING.md,
-    borderWidth: 1,
-    borderRadius: RADIUS.md,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.lg,
   },
   memoryText: {
     flex: 1,

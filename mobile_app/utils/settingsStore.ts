@@ -66,6 +66,8 @@ export interface Settings {
    * means something once you already know.
    */
   showModelNames: boolean;
+  /** Hidden switch: offer the speech models under test. Hold the version line in Settings. */
+  showTestModels: boolean;
   /**
    * Mirror every transcription into a folder the user picked, so it survives
    * uninstalling the app.
@@ -118,6 +120,7 @@ export const DEFAULT_SETTINGS: Settings = {
   seenWelcome: false,
   showModelTimeEstimate: false,
   showModelNames: false,
+  showTestModels: false,
   keepTranscriptsAfterUninstall: false,
   backupFolderUri: '',
 };
@@ -167,7 +170,17 @@ export function useSettings() {
     await store.save({ ...current, [key]: value });
   };
 
-  return { settings, setSetting };
+  // False until the saved settings have been read. `settings` holds DEFAULTS
+  // before that, so anything that acts on a default (show the welcome because
+  // seenWelcome is false) must wait for this or it fires on every launch.
+  //
+  // It compares against what THIS render holds, not only whether the store has
+  // read the file: the store fills its cache a moment before React is handed
+  // the value, and a render in that gap had "loaded" true with the defaults
+  // still in `settings`, which is how the welcome kept coming back.
+  const loaded = store.get() !== null && settings === store.get();
+
+  return { settings, setSetting, loaded };
 }
 
 // Binding a text input to a Settings key lags on mobile: every keystroke writes

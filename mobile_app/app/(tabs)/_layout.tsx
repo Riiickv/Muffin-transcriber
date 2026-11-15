@@ -23,6 +23,9 @@ export default function TabLayout() {
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
+        // Switching tabs slides the screen a little and fades it, instead of
+        // swapping one for the other in a single frame.
+        animation: 'shift',
         // Hidden while the welcome takes over: a header with a title and a
         // support button frames it as one screen among many, when it's the whole
         // app until a model exists.

@@ -66,9 +66,9 @@ test('swallows optional minutes so "alle 16:15" keeps the :15', () => {
   assert.ok(!quotes(r).includes('alle 4 e un quarto'), 'raw-only phrasing dropped on the summary tab');
 });
 
-test('caps at 5 highlights', () => {
-  const many = '1 luglio, 2 luglio, 3 luglio, 4 luglio, 5 luglio, 6 luglio, 7 luglio';
-  assert.equal(mergeEntities([], many).length, 5);
+test('caps the highlights so a transcript is not all underline', () => {
+  const many = Array.from({ length: 20 }, (_, i) => `${i + 1} luglio`).join(', ');
+  assert.equal(mergeEntities([], many).length, 12);
 });
 
 test('findHighlights is empty for empty text', () => {

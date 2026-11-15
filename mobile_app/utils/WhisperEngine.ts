@@ -8,6 +8,16 @@ import { ensureVadModel } from './vadModel';
 import { shouldRunVad } from './vadPolicy';
 import { readAudioInfo, describeAudio } from './audioInfo';
 import { startRun, noteModelLoad } from './perfLog';
+import { isParakeetModel } from './modelCatalog';
+import {
+  loadParakeet,
+  unloadParakeet,
+  isParakeetLoaded,
+  isParakeetLoading,
+  whenParakeetSettled,
+  stopParakeetWork,
+  transcribeWithParakeet,
+} from './ParakeetEngine';
 
 export { createSegmentAccumulator };
 
@@ -32,6 +42,26 @@ let currentModelPath = '';
 let loadPromise: Promise<void> | null = null;
 
 export async function loadWhisper(modelPath: string): Promise<void> {
+  // The speech model under test is a different engine behind the same door,
+  // so every caller (recorder, re-transcribe, share, preload) reaches it
+  // without knowing. One speech engine resident at a time, either way.
+  if (isParakeetModel(modelPath)) {
+    while (loadPromise) {
+      try {
+        await loadPromise;
+      } catch {
+        // A failed whisper preload must not doom this load.
+      }
+    }
+    if (whisperContext) await unloadWhisper();
+    await loadParakeet(modelPath);
+    return;
+  }
+  // Wait out a Parakeet load in flight first, or it would finish after this
+  // check and leave two sets of weights in memory.
+  await whenParakeetSettled();
+  if (isParakeetLoaded()) await unloadParakeet();
+
   if (whisperContext && currentModelPath === modelPath) {
     return;
   }
@@ -86,11 +116,12 @@ export async function loadWhisper(modelPath: string): Promise<void> {
  * large one away and pays for it twice. Anything that might swap should check.
  */
 export function isWhisperLoaded(modelPath: string): boolean {
+  if (isParakeetModel(modelPath)) return isParakeetLoaded(modelPath);
   return !!whisperContext && currentModelPath === modelPath;
 }
 
 export function preloadWhisper(modelPath: string): void {
-  if (whisperContext || loadPromise) return;
+  if (whisperContext || loadPromise || isParakeetLoaded() || isParakeetLoading()) return;
   loadWhisper(modelPath).catch(() => {});
 }
 
@@ -108,6 +139,7 @@ let stopCurrentTranscription: (() => Promise<void>) | null = null;
  * new one can start straight away.
  */
 export async function stopWhisperWork(): Promise<void> {
+  await stopParakeetWork();
   try {
     await stopCurrentTranscription?.();
   } catch (e) {
@@ -117,10 +149,17 @@ export async function stopWhisperWork(): Promise<void> {
 
 /** Serializes work on the single shared whisper context. */
 let whisperChain: Promise<unknown> = Promise.resolve();
+let whisperJobs = 0;
 function whisperQueue<T>(job: () => Promise<T>): Promise<T> {
-  const run = whisperChain.then(job);
+  whisperJobs++;
+  const run = whisperChain.then(job).finally(() => { whisperJobs--; });
   whisperChain = run.catch(() => {});
   return run;
+}
+
+/** True while a transcription is running or waiting: not the moment to unload the speech model. */
+export function speechBusy(): boolean {
+  return whisperJobs > 0;
 }
 
 export type TranscribeCallbacks = {
@@ -168,6 +207,8 @@ function endOfLastSegment(segments?: Array<{ t1: number }>): number | undefined 
  */
 let vadKeptSeconds: number | null = null;
 let vadSegmentCount: number | null = null;
+/** whisper logged that it reused the language detection pass (patched in). */
+let detectPassReused = false;
 let nativeLogArmed = false;
 
 function armNativeLog(): void {
@@ -179,7 +220,12 @@ function armNativeLog(): void {
     w.addNativeLogListener((_level: string, text: string) => {
       // Cheap on purpose: this sees every native log line, including the noisy
       // ones during a model load, so it must do almost nothing for a non-match.
-      if (typeof text !== 'string' || text.indexOf('speech segments') < 0) return;
+      if (typeof text !== 'string') return;
+      if (text.indexOf('reusing the language detection') >= 0) {
+        detectPassReused = true;
+        return;
+      }
+      if (text.indexOf('speech segments') < 0) return;
       const kept = /total duration of speech segments:\s*([\d.]+)/.exec(text);
       if (kept) vadKeptSeconds = parseFloat(kept[1]);
       const count = /detected (\d+) speech segments/.exec(text);
@@ -251,6 +297,11 @@ export async function transcribeFile(
   languageCode: string = 'auto',
   callbacks?: TranscribeCallbacks
 ): Promise<{ text: string; segments: Segment[]; language?: string }> {
+  // Whichever engine loadWhisper put in place does the work. Parakeet takes
+  // no language and no prompt, so neither is passed.
+  if (isParakeetLoaded()) {
+    return whisperQueue(() => transcribeWithParakeet(audioPath, callbacks));
+  }
   if (!whisperContext) {
     throw new Error('Whisper not loaded. Call loadWhisper first.');
   }
@@ -426,6 +477,7 @@ export async function transcribeFile(
   perf.mark('probe');
 
   return whisperQueue(async () => {
+    detectPassReused = false;
     const attempt = (useVad: boolean) => {
       const opts = useVad
         ? {
@@ -509,6 +561,9 @@ export async function transcribeFile(
           // previous run's numbers and report them as its own.
           vadNote(usedVad, takeVadReading(), vadFailure, !shouldRunVad(modelId)),
           describeWindows(windowMs) || '',
+          // Proof on the phone that the patch is live: on Auto-Detect the
+          // first window should be encoded once, not twice.
+          detectPassReused ? 'detect pass reused' : '',
           // What whisper decided the language was. Free, already in hand, and
           // the only way to tell from a pasted report whether a bad
           // transcription was a slow model or auto-detect picking the wrong
@@ -538,6 +593,9 @@ export async function transcribeFile(
 }
 
 export async function unloadWhisper(): Promise<void> {
+  // Callers use this to free memory before loading something else, so it
+  // must release whichever speech engine is resident.
+  await unloadParakeet();
   if (whisperContext) {
     try {
       await whisperContext.release();

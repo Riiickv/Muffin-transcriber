@@ -5,6 +5,7 @@ import { Text } from './Themed';
 import { useTheme } from './ThemeProvider';
 import { Icon } from './Icon';
 import { MOTION, SPACING } from '@/constants/tokens';
+import { spring } from '@/utils/motion';
 import { haptics } from '@/utils/haptics';
 
 interface CollapsibleProps {
@@ -56,13 +57,12 @@ export function Collapsible({ label, open, onToggle, children }: CollapsibleProp
   useEffect(() => {
     // Put the animated height back before moving, in both directions.
     setSettled(false);
-    const run = Animated.parallel([
-      // Two values with two drivers, deliberately. Height is a layout property
-      // and cannot run on the native driver, and one value cannot be driven
-      // both ways.
-      Animated.timing(turn, { toValue: open ? 1 : 0, useNativeDriver: true, ...MOTION.timingQuick }),
-      Animated.timing(reveal, { toValue: open ? 1 : 0, useNativeDriver: false, ...MOTION.timingQuick }),
-    ]);
+    // Two values with two drivers, deliberately. Height is a layout property
+    // and cannot run on the native driver, and one value cannot be driven
+    // both ways. The chevron swings past and back on the bottom bar's spring
+    // and is started on its own, so the body does not wait for it to stop.
+    Animated.spring(turn, { toValue: open ? 1 : 0, useNativeDriver: true, ...spring('drop') }).start();
+    const run = Animated.timing(reveal, { toValue: open ? 1 : 0, useNativeDriver: false, ...MOTION.timingQuick });
     run.start(({ finished }) => {
       if (finished && open) setSettled(true);
     });

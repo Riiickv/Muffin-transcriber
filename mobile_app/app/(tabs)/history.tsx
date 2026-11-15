@@ -10,8 +10,8 @@ import { IconButton } from '@/components/IconButton';
 import { Button } from '@/components/Button';
 import { Icon } from '@/components/Icon';
 import { AnimatedPressable } from '@/components/AnimatedPressable';
-import { RADIUS, SPACING, TAB_BAR_SPACE } from '@/constants/tokens';
-import { useHistory, HistoryItem } from '@/utils/historyStore';
+import { RADIUS, SPACING, TAB_BAR_SPACE, raisedColor } from '@/constants/tokens';
+import { useHistory, useHistoryStatus, HistoryItem } from '@/utils/historyStore';
 import { useDialog } from '@/components/Dialog';
 import { formatDuration, formatHistoryDate } from '@/utils/format';
 import { t } from '@/utils/i18n';
@@ -29,6 +29,7 @@ const formatItem = (item: HistoryItem) => ({
 export default function HistoryScreen() {
   const { theme } = useTheme();
   const { items, deleteItem, addOrUpdate } = useHistory();
+  const status = useHistoryStatus();
   const dialog = useDialog();
   const [pendingRename, setPendingRename] = useState<HistoryItem | null>(null);
   const [renameInput, setRenameInput] = useState('');
@@ -66,11 +67,25 @@ export default function HistoryScreen() {
             />
           );
         }}
+        // Transcripts that are stored and could not be opened. Without this
+        // line a short or empty list would read as "they are gone".
+        ListHeaderComponent={
+          status.loaded && !status.complete ? (
+            <View style={[styles.notice, { backgroundColor: theme.dangerSurface }]}>
+              <Icon name="warning" size={18} color={theme.danger} />
+              <Text style={styles.noticeText}>{t('history.unreadable') || 'Some transcripts could not be read.'}</Text>
+            </View>
+          ) : null
+        }
+        // "No transcripts yet" only once that is known to be true: not while
+        // the first read is still running, and not next to the notice above.
         ListEmptyComponent={
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }}>
-            <Icon name="history" size={64} color={theme.textSubtle} />
-            <Text style={{ marginTop: SPACING.md, color: theme.textMuted, fontSize: 16 }}>{t('history.noHistory') || 'No transcripts yet.'}</Text>
-          </View>
+          status.complete ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }}>
+              <Icon name="history" size={64} color={theme.textSubtle} />
+              <Text style={{ marginTop: SPACING.md, color: theme.textMuted, fontSize: 16 }}>{t('history.noHistory') || 'No transcripts yet.'}</Text>
+            </View>
+          ) : null
         }
       />
 
@@ -83,10 +98,10 @@ export default function HistoryScreen() {
         <View style={styles.modalOverlay}>
           {/* Scrim tap cancels the rename, same as the back button. */}
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setPendingRename(null)} />
-          <View style={[styles.modalContent, { backgroundColor: theme.background, borderColor: theme.divider }]}>
+          <View style={[styles.modalContent, { backgroundColor: raisedColor(theme.isDark, theme.isAmoled), borderColor: theme.divider, borderWidth: theme.isAmoled ? 1 : 0 }]}>
             <Text style={styles.modalTitle}>{t('history.renameTranscript') || 'Rename Transcript'}</Text>
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.divider, width: '100%' }]}
+              style={[styles.input, { color: theme.text, backgroundColor: theme.surfaceStrong, width: '100%' }]}
               value={renameInput}
               onChangeText={setRenameInput}
               autoFocus
@@ -185,10 +200,22 @@ const styles = StyleSheet.create({
     paddingBottom: TAB_BAR_SPACE,
   },
   card: {
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.lg,
     marginBottom: SPACING.md,
+  },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.lg,
+    marginBottom: SPACING.md,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -223,8 +250,7 @@ const styles = StyleSheet.create({
     marginLeft: 36 + SPACING.md,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: RADIUS.sm,
+    borderRadius: RADIUS.md,
     padding: SPACING.md,
     fontSize: 16,
   },
@@ -238,9 +264,8 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     padding: SPACING.xxl,
-    borderWidth: 1,
     alignItems: 'center',
   },
   modalTitle: {

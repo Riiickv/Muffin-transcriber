@@ -1,0 +1,16 @@
+plugins { id 'java' }
+repositories { mavenCentral(); google() }
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+  testImplementation files('libs/monitor-classes.jar')
+  testImplementation 'org.robolectric:robolectric:4.16.1'
+  testImplementation 'org.robolectric:android-all:14-robolectric-10818077'
+}
+test {
+  useJUnit()
+  maxHeapSize = '3g'
+  outputs.upToDateWhen { false }
+  testLogging { showStandardStreams = true; events 'passed', 'failed', 'skipped'; exceptionFormat 'full' }
+}
+// The reader under test, straight from the app (RowReaderTest).
+sourceSets { test { java { srcDir '../../mobile_app/modules/storage-rescue/android/src/main/java' } } }

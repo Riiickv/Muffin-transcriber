@@ -23,6 +23,12 @@ export interface Theme {
   tintString: string;
   /** Black or white, whichever stays legible ON the accent. */
   tintForeground: string;
+  /**
+   * The accent as TEXT or an icon on the page background. In dark themes this
+   * is the accent itself; in light ones it is darkened, because muffin pink on
+   * white is too faint to read and every ghost button and active label used it.
+   */
+  tintText: any;
   tintSurface: any;
   tintFill: any;
   tintStrong: any;
@@ -62,6 +68,12 @@ function accentForeground(hex: string): string {
   // which went muddy on purple.
   return L > 0.4 ? '#000000' : '#FFFFFF';
 }
+
+/** Mix a hex colour toward black. 0 leaves it alone, 1 is black. */
+const darken = (hex: string, amount: number): string => {
+  const ch = (i: number) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - amount)).toString(16).padStart(2, '0');
+  return `#${ch(1)}${ch(3)}${ch(5)}`.toUpperCase();
+};
 
 const withAlpha = (color: string, alpha: number): string => {
   if (typeof color !== 'string' || !color.startsWith('#') || color.length < 7) return color;
@@ -116,8 +128,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       isDark,
       isAmoled,
       text,
-      textMuted: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
-      textSubtle: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+      textMuted: isDark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.68)',
+      textSubtle: isDark ? 'rgba(255,255,255,0.46)' : 'rgba(0,0,0,0.55)',
       background,
       surface: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
       surfaceStrong: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
@@ -125,12 +137,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       tint: PlatformColor('@android:color/system_accent1_500'),
       tintString: isDark ? '#FF9EBB' : '#FF9EBB', // Muffin brand color fallback for React Navigation
       tintForeground: '#FFFFFF', // accent1_500 is a saturated mid-tone; white is the safe pairing
+      tintText: PlatformColor(isDark ? '@android:color/system_accent1_200' : '@android:color/system_accent1_700'),
       tintSurface: PlatformColor(isDark ? '@android:color/system_accent1_900' : '@android:color/system_accent1_100'),
       tintFill: PlatformColor(isDark ? '@android:color/system_accent1_800' : '@android:color/system_accent1_200'),
       tintStrong: PlatformColor(isDark ? '@android:color/system_accent1_700' : '@android:color/system_accent1_300'),
       danger: DANGER_LIGHT,
       dangerSurface: isDark ? 'rgba(237,111,98,0.20)' : 'rgba(237,111,98,0.12)',
-      tabIconDefault: isDark ? '#444444' : '#CCCCCC',
+      tabIconDefault: isDark ? '#8A8A8A' : '#6E6E6E',
       tabIconSelected: PlatformColor('@android:color/system_accent1_500'),
     };
   } else {
@@ -140,8 +153,8 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       isDark,
       isAmoled,
       text,
-      textMuted: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)',
-      textSubtle: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+      textMuted: isDark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.68)',
+      textSubtle: isDark ? 'rgba(255,255,255,0.46)' : 'rgba(0,0,0,0.55)',
       background,
       surface: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
       surfaceStrong: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)',
@@ -149,12 +162,13 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       tint,
       tintString: tint,
       tintForeground: accentForeground(tint),
+      tintText: isDark ? tint : darken(tint, 0.48),
       tintSurface: withAlpha(tint, 0.10),
       tintFill: withAlpha(tint, 0.15),
       tintStrong: withAlpha(tint, 0.30),
       danger: DANGER_LIGHT,
       dangerSurface: isDark ? 'rgba(237,111,98,0.20)' : 'rgba(237,111,98,0.12)',
-      tabIconDefault: isDark ? '#444444' : '#CCCCCC',
+      tabIconDefault: isDark ? '#8A8A8A' : '#6E6E6E',
       tabIconSelected: tint,
     };
   }

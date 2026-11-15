@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePathname } from 'expo-router';
 
 import { CoachMark } from './CoachMark';
 import { useCoachDone } from '@/utils/coachMarks';
@@ -19,6 +20,13 @@ export function MicCoachMark() {
   const done = useCoachDone('mic');
   const isFirstRun = useIsFirstRun();
   const [show, setShow] = useState(false);
+  // The hint points at the mic in the tab bar, so it only makes sense where
+  // the tab bar is. It used to float over a transcript on the detail screen,
+  // pointing at a button that was not there. Home is left out too: it has its
+  // own record button with a label and an Options row, which say both halves
+  // of this hint already.
+  const pathname = usePathname();
+  const onTabs = pathname === '/history' || pathname === '/chat' || pathname === '/settings';
 
   useEffect(() => {
     if (done || isFirstRun) {
@@ -37,7 +45,7 @@ export function MicCoachMark() {
     <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
       <CoachMark
         text={t('coach.micHint') || 'Click to record/stop, hold for options!'}
-        visible={show && !done && !isFirstRun}
+        visible={show && !done && !isFirstRun && onTabs}
         onDismiss={() => setShow(false)}
         arrowRight={18}
         containerStyle={{ position: 'absolute', right: SPACING.lg, bottom: insets.bottom + 76 }}

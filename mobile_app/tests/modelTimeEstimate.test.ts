@@ -13,7 +13,7 @@ import {
 // out of the source keeps the invariant honest anyway - if someone adds a model
 // and forgets an estimate for it, this fails.
 function catalogIds(group: string): string[] {
-  const src = readFileSync(new URL('../utils/ModelManager.ts', import.meta.url), 'utf8');
+  const src = readFileSync(new URL('../utils/modelCatalog.ts', import.meta.url), 'utf8');
   const start = src.indexOf(`export const ${group}: readonly ModelDef[] = [`);
   if (start < 0) throw new Error(`${group} not found in ModelManager`);
   const end = src.indexOf('\n];', start);
@@ -126,4 +126,19 @@ test('durations are rounded, not spuriously precise', () => {
   assert.equal(formatEstimateSeconds(700), '12m');
   // Nothing ever reads "0s", which would say the work is free.
   assert.equal(formatEstimateSeconds(0.1), '1s');
+});
+
+test('the Fast speech model is estimated per recording, from the phone run', () => {
+  const fast = estimateFor('ggml-parakeet-tdt-0.6b-v3-q4_0.bin', 'high');
+  assert.ok(fast, 'no estimate for the Fast model');
+  assert.equal(fast!.per, 'recording');
+  // Measured: 11.1s for 116s, so about 5.7s for the one minute the anchor uses.
+  assert.ok(fast!.seconds > 4.5 && fast!.seconds < 7, `got ${fast!.seconds}`);
+  const accurate = estimateFor('ggml-large-v3-turbo-q8_0.bin', 'high');
+  assert.ok(accurate!.seconds / fast!.seconds > 4, 'Fast should be several times quicker than Most accurate');
+});
+
+test('a speech file nobody measured gets no estimate, not a text model one', () => {
+  // "0.6b" in the name used to be read as a 0.6 billion parameter text model.
+  assert.equal(estimateFor('ggml-parakeet-tdt-0.6b-v3-q8_0.bin', 'high'), null);
 });

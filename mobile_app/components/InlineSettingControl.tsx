@@ -5,7 +5,41 @@ import ExpressiveSwitch from '@/components/ExpressiveSwitch';
 import { SelectDropdown } from '@/components/SelectDropdown';
 import { useSettings } from '@/utils/settingsStore';
 import { getSettingSpec } from '@/utils/appCapabilities';
+import { getLanguageOptions, getFormatLanguageOptions } from '@/utils/languages';
+import { t } from '@/utils/i18n';
 import { SPACING, RADIUS } from '@/constants/tokens';
+
+// The same words the Settings screen uses for these choices. Anything not
+// listed here shows its stored value.
+function optionLabels(key: string): Record<string, string> {
+  if (key === 'defaultLanguage') return Object.fromEntries(getLanguageOptions().map((o) => [o.value, o.label]));
+  if (key === 'formatLanguage') return Object.fromEntries(getFormatLanguageOptions().map((o) => [o.value, o.label]));
+  if (key === 'autoDeleteCacheDuration') {
+    return {
+      Never: t('settings.autoDeleteNever') || 'Never',
+      '1 Week': t('settings.autoDelete1Week') || '1 Week',
+      '1 Month': t('settings.autoDelete1Month') || '1 Month',
+    };
+  }
+  if (key === 'themeMode') {
+    return {
+      system: t('settings.themeAuto') || 'Auto',
+      light: t('settings.themeLight') || 'Light',
+      dark: t('settings.themeDark') || 'Dark',
+      amoled: t('settings.themeBlack') || 'Black',
+    };
+  }
+  if (key === 'accentColor') {
+    return {
+      system: t('settings.accentSystem') || 'System',
+      muffin: t('settings.accentMuffin') || 'Muffin',
+      green: t('settings.accentGreen') || 'Green',
+      purple: t('settings.accentPurple') || 'Purple',
+      red: t('settings.accentRed') || 'Red',
+    };
+  }
+  return {};
+}
 
 // Live control for one setting; writes the same stores as the Settings screen, so edits apply everywhere.
 export function InlineSettingControl({ settingKey }: { settingKey: string }) {
@@ -19,6 +53,8 @@ export function InlineSettingControl({ settingKey }: { settingKey: string }) {
     ? (spec.key === 'themeMode' ? themeMode : accentColor)
     : (settings as any)[spec.key];
 
+  const labels = optionLabels(spec.key);
+
   const apply = (v: any) => {
     if (spec.store === 'theme') {
       if (spec.key === 'themeMode') setThemeMode(v as ThemeMode);
@@ -31,15 +67,15 @@ export function InlineSettingControl({ settingKey }: { settingKey: string }) {
   return (
     <View style={[styles.card, { backgroundColor: theme.background, borderColor: theme.divider }]}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.label}>{spec.label}</Text>
-        <Text style={[styles.location, { color: theme.textMuted }]}>{spec.location}</Text>
+        <Text style={styles.label}>{t(spec.labelKey) || spec.label}</Text>
+        <Text style={[styles.location, { color: theme.textMuted }]}>{spec.where.map((k) => t(k)).join(' › ')}</Text>
       </View>
       {spec.type === 'boolean' ? (
-        <ExpressiveSwitch value={!!value} onValueChange={apply} activeColor={theme.tint} thumbActiveColor="#000000" />
+        <ExpressiveSwitch value={!!value} onValueChange={apply} activeColor={theme.tint} thumbActiveColor={theme.tintForeground} />
       ) : (
         <View style={{ minWidth: 150 }}>
           <SelectDropdown
-            options={(spec.options || []).map((o) => ({ label: o, value: o }))}
+            options={(spec.options || []).map((o) => ({ label: labels[o] ?? o, value: o }))}
             value={String(value)}
             onSelect={apply}
             compact

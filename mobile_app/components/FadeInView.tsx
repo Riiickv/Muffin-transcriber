@@ -2,6 +2,7 @@ import React, { useCallback, useRef } from 'react';
 import { Animated, StyleProp, ViewStyle } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { MOTION } from '@/constants/tokens';
+import { spring } from '@/utils/motion';
 
 // Cross-instance singleton so each newly-focused FadeInView can slide from the
 // correct direction (forward = +30px, backward = -30px). Each tab mounts its
@@ -28,7 +29,7 @@ export const FadeInView = ({ children, style, index = 0 }: FadeInViewProps) => {
 
       Animated.parallel([
         Animated.timing(fadeAnim, { toValue: 1, useNativeDriver: true, ...MOTION.timingBase }),
-        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, ...MOTION.springSettle }),
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, ...spring('drop') }),
       ]).start();
     }, [index, fadeAnim, slideAnim])
   );

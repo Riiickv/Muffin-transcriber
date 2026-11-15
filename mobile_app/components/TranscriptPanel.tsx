@@ -7,7 +7,7 @@ import { IconButton } from './IconButton';
 import { StreamingText } from './StreamingText';
 import { ProgressBar } from './ProgressBar';
 import { WaitingCard } from './WaitingCard';
-import { SPACING, RADIUS } from '@/constants/tokens';
+import { SPACING } from '@/constants/tokens';
 import { t } from '@/utils/i18n';
 
 export type TranscriptTab = 'raw' | 'formatted' | 'summary';
@@ -86,40 +86,20 @@ export function TranscriptPanel({
 
   return (
     <>
-      <View style={styles.tabRow}>
-        <SegmentedControl
-          style={{ flex: 1, marginRight: SPACING.md }}
-          segments={getTranscriptTabs()}
-          value={tab}
-          onChange={onTabChange}
-        />
-        {/* ghost-tint + sm: same look as the ghost Button they replaced, so
-            they read as part of the row rather than a new kind of control. */}
-        {onToggleEdit && (
-          <IconButton
-            icon={editing ? 'check' : 'edit'}
-            variant={editing ? 'tint' : 'ghost-tint'}
-            size="sm"
-            onPress={onToggleEdit}
-            disabled={editDisabled}
-            accessibilityLabel={editing ? t('historyDetail.doneEditing') || 'Done' : t('historyDetail.editTranscript') || 'Edit transcript'}
-          />
-        )}
-        <IconButton icon="copy" variant="ghost-tint" size="sm" onPress={onCopy} disabled={copyDisabled} />
-        <IconButton
-          icon="open-in-full"
-          variant="ghost-tint"
-          size="sm"
-          style={{ marginLeft: SPACING.xs }}
-          onPress={onFullscreen}
-          disabled={fullscreenDisabled}
-        />
-      </View>
+      {/* The tabs get the whole width. Sharing the row with three icon
+          buttons left them about 200dp, which is why "Improved" and "Summary"
+          were cut off in every language. */}
+      <SegmentedControl
+        style={{ marginBottom: SPACING.md }}
+        segments={getTranscriptTabs()}
+        value={tab}
+        onChange={onTabChange}
+      />
 
       <View style={styles.transcriptArea}>
         <View style={StyleSheet.absoluteFill}>
           {streaming ? (
-            <View style={[styles.transcriptBox, { borderColor: theme.divider }]}>
+            <View style={styles.transcriptBox}>
               <ScrollView
                 ref={streamScrollRef}
                 nestedScrollEnabled
@@ -143,7 +123,7 @@ export function TranscriptPanel({
               )}
             </View>
           ) : waiting ? (
-            <View style={[styles.transcriptBox, { borderColor: theme.divider }]}>
+            <View style={styles.transcriptBox}>
               <WaitingCard status={waitingStatus} />
             </View>
           ) : (
@@ -151,16 +131,42 @@ export function TranscriptPanel({
           )}
         </View>
       </View>
+
+      {/* Actions under the text, at full 40dp size. They were 32dp squares
+          wedged beside the tabs, below the 44dp a finger needs. */}
+      <View style={styles.toolbar}>
+        {onToggleEdit && (
+          <IconButton
+            icon={editing ? 'check' : 'edit'}
+            variant={editing ? 'tint' : 'ghost-tint'}
+            onPress={onToggleEdit}
+            disabled={editDisabled}
+            accessibilityLabel={editing ? t('historyDetail.doneEditing') || 'Done' : t('historyDetail.editTranscript') || 'Edit transcript'}
+          />
+        )}
+        <IconButton icon="copy" variant="ghost-tint" onPress={onCopy} disabled={copyDisabled} accessibilityLabel={t('common.copy') || 'Copy'} />
+        <IconButton
+          icon="open-in-full"
+          variant="ghost-tint"
+          onPress={onFullscreen}
+          disabled={fullscreenDisabled}
+
+        />
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  tabRow: {
+  toolbar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
+    justifyContent: 'flex-end',
+    gap: SPACING.xs,
+    marginTop: SPACING.sm,
+    // Pull the buttons to the card's edge: their glyphs are inset 9dp inside a
+    // 40dp box, so without this they look indented from the text above.
+    marginRight: -SPACING.sm,
+    marginBottom: -SPACING.sm,
   },
   /** The transcript's bounded home: flex height inside the card, with a floor so
    *  it stays usable when a short screen forces the page to scroll. Its only
@@ -169,15 +175,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 180,
   },
+  // No border, no padding: the card around the panel is already the box.
+  // A bordered box inside a bordered card was the transcript drawn twice.
   transcriptBox: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: RADIUS.sm,
-    padding: SPACING.md,
   },
   /** Live transcript: matches the finished one so nothing shifts when it lands. */
   streamingText: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 17,
+    lineHeight: 27,
   },
 });

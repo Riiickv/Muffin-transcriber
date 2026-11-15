@@ -16,7 +16,7 @@ const pickDraftModel = (
 // The catalog cannot be IMPORTED here: ModelManager pulls in expo modules and
 // resolves '@/utils/...', neither of which exists in plain Node. Read its ids
 // out of the source instead, so these tests break if the real order changes.
-const SRC = readFileSync(new URL('../utils/ModelManager.ts', import.meta.url), 'utf8');
+const SRC = readFileSync(new URL('../utils/modelCatalog.ts', import.meta.url), 'utf8');
 const WHISPER_BLOCK = SRC.slice(
   SRC.indexOf('WHISPER_MODELS'),
   SRC.indexOf('FORMATTER_MODELS'),

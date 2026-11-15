@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from './Themed';
 import Animated, {
@@ -19,10 +19,13 @@ import { FLOATING_CHROME, floatingChromeColors } from '@/constants/tokens';
 import { setRecordSheetOpen } from '@/utils/recordSheet';
 import { markCoachDone } from '@/utils/coachMarks';
 import { haptics } from '@/utils/haptics';
+import { useRecordingElapsed, formatElapsed } from '@/hooks/useRecordingElapsed';
 
 // Matches the tab-bar pill height (item 40 + padding 5*2 + border 1*2), so the
 // circle lines up as a sibling of the bar, not a button hovering next to it.
 const SIZE = 52;
+/** The button's diameter. The tab bar needs it to fold the button away. */
+export const recordFabSize = (isShort: boolean) => (isShort ? 46 : SIZE);
 // A distinctly darker red than the danger accent, so "recording" reads as a
 // deliberate state.
 const RECORDING_RED = '#B3261E';
@@ -41,7 +44,7 @@ export function RecordFab() {
   // Compact preset on short windows - matches the slimmed tab-bar pill beside
   // it. 46dp still clears the 44dp tap-target minimum for the primary action.
   const { isShort } = useResponsive();
-  const size = isShort ? 46 : SIZE;
+  const size = recordFabSize(isShort);
 
   const pulse = useSharedValue(1);
   useEffect(() => {
@@ -92,21 +95,12 @@ export function RecordFab() {
 // see how long you've been going. Counts from when recording started; resets
 // and hides on stop.
 function RecordingTimer({ visible }: { visible: boolean }) {
-  const [elapsed, setElapsed] = useState(0);
+  const elapsed = useRecordingElapsed(visible);
   const anim = useSharedValue(0);
 
   useEffect(() => {
     anim.value = withTiming(visible ? 1 : 0, { duration: 220, easing: Easing.out(Easing.quad) });
-    if (!visible) {
-      setElapsed(0);
-      return;
-    }
-    const start = Date.now();
-    setElapsed(0);
-    const iv = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 500);
-    return () => clearInterval(iv);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- anim is a stable shared value
-  }, [visible]);
+  }, [visible, anim]);
 
   // Fades in and rises the last 10px, so it reads as emerging from under the mic.
   const style = useAnimatedStyle(() => ({
@@ -114,13 +108,10 @@ function RecordingTimer({ visible }: { visible: boolean }) {
     transform: [{ translateY: (1 - anim.value) * 10 }],
   }));
 
-  const mm = Math.floor(elapsed / 60);
-  const ss = String(elapsed % 60).padStart(2, '0');
-
   return (
     <Animated.View pointerEvents="none" style={[styles.timerWrap, style]}>
       <View style={styles.timerPill}>
-        <Text style={styles.timerText}>{`${mm}:${ss}`}</Text>
+        <Text style={styles.timerText}>{formatElapsed(elapsed)}</Text>
       </View>
     </Animated.View>
   );

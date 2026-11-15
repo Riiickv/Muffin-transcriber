@@ -7,6 +7,7 @@ import { Card } from './Card';
 import { Icon, IconName } from './Icon';
 import { AnimatedPressable } from './AnimatedPressable';
 import { RADIUS, SPACING } from '@/constants/tokens';
+import { haptics } from '@/utils/haptics';
 
 /**
  * A titled card holding related settings, hairline-divided.
@@ -133,6 +134,30 @@ export const SettingsRow = ({
     </View>
   );
 
+  // A row whose control is a switch is a switch: the whole line flips it, not
+  // only the 52dp at the right end. The switch is recognised by its shape (a
+  // boolean `value` and a change handler) so no call site had to say so.
+  const sw = !onPress && React.isValidElement(right) ? (right.props as Record<string, unknown>) : null;
+  const flip = sw && typeof sw.value === 'boolean' ? ((sw.onValueChange ?? sw.onChange) as unknown) : null;
+  if (typeof flip === 'function' && !disabled) {
+    const next = !sw!.value;
+    return (
+      <AnimatedPressable
+        onPress={() => {
+          haptics.toggle(next);
+          (flip as (v: boolean) => void)(next);
+        }}
+        scaleTo={0.99}
+        accessibilityRole="switch"
+        accessibilityState={{ checked: !next }}
+        accessibilityLabel={label}
+        style={{ borderRadius: RADIUS.sm }}
+      >
+        {body}
+      </AnimatedPressable>
+    );
+  }
+
   if (!onPress || disabled) return body;
   return (
     <AnimatedPressable onPress={onPress} onLongPress={onLongPress} scaleTo={0.99} style={{ borderRadius: RADIUS.sm }}>
@@ -173,21 +198,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   label: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
   },
   description: {
-    fontSize: 12,
+    fontSize: 13,
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   value: {
-    fontSize: 14,
+    fontSize: 15,
     maxWidth: 130,
   },
   footer: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
     marginTop: SPACING.sm,
     marginLeft: SPACING.xs,
   },

@@ -38,13 +38,13 @@ export const RECOMMENDED: Record<DeviceTier, Record<ModelGroup, string | null>> 
     whisper: 'ggml-tiny-q8_0.bin',
     formatter: 'Qwen3-0.6B-Q4_0.gguf',
     chat: null, // nothing here is honest on 4 GB
-    embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',
+    embedding: 'multilingual-e5-small-q8_0.gguf',
   },
   mid: {
     whisper: 'ggml-small-q8_0.bin',
     formatter: 'qwen2.5-1.5b-instruct-q4_0.gguf',
     chat: 'Llama-3.2-1B-Instruct-Q4_K_M.gguf',
-    embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',
+    embedding: 'multilingual-e5-small-q8_0.gguf',
   },
   high: {
     // Back to Turbo, and this reverses a change made earlier the same day on
@@ -76,11 +76,26 @@ export const RECOMMENDED: Record<DeviceTier, Record<ModelGroup, string | null>> 
     whisper: 'ggml-large-v3-turbo-q8_0.bin',
     formatter: 'qwen2.5-1.5b-instruct-q4_k_m.gguf',
     chat: 'Phi-3-mini-4k-instruct-q4.gguf',
-    embedding: 'all-MiniLM-L6-v2-q4_k_m.gguf',
+    embedding: 'multilingual-e5-small-q8_0.gguf',
   },
 };
 
-/** The suggested model id for a given tier, or null if none is honest. */
-export function recommendedForTier(group: ModelGroup, tier: DeviceTier): string | null {
+/** The Fast speech model (Parakeet, 4-bit). Must exist in the catalog, like the ids above. */
+export const FAST_SPEECH_MODEL_ID = 'ggml-parakeet-tdt-0.6b-v3-q4_0.bin';
+
+/**
+ * The suggested model id for a given tier, or null if none is honest.
+ *
+ * `fastSpeechFits` is "this phone is set to a language the Fast speech model
+ * covers" (deviceTier.ts works it out). When it does, Fast is the suggestion
+ * on mid and high: measured on the Pixel 9 Pro XL at 5.9 times the speed of
+ * Most accurate with text Ricky judged better (docs/speed-research.md, 15).
+ *
+ * NOT on low, and that is my caution rather than a measurement: nobody has run
+ * the 356 MB file on a 4 GB phone, and this table's rule is that a suggestion
+ * which then fails to load is worse than a smaller one that works.
+ */
+export function recommendedForTier(group: ModelGroup, tier: DeviceTier, fastSpeechFits = false): string | null {
+  if (group === 'whisper' && fastSpeechFits && tier !== 'low') return FAST_SPEECH_MODEL_ID;
   return RECOMMENDED[tier][group] ?? null;
 }

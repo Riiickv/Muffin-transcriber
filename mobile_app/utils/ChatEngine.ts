@@ -1,13 +1,20 @@
 import { Platform } from 'react-native';
 import { recordLlm } from './perfLog';
 import type { LlamaContext } from 'llama.rn';
-import { loadSettings } from './settingsStore';
+import { loadSettings, Settings } from './settingsStore';
 import { loadHistory, HistoryItem } from './historyStore';
 import { loadMemories } from './memoryStore';
-import { generateEmbedding, cosineSimilarity } from './EmbeddingEngine';
-import { buildCapabilitiesBlock, TOOL_INSTRUCTIONS } from './appCapabilities';
+import { holdIndexing, indexNotes, noteByMeaning } from './searchIndex';
+import { SETTINGS_REGISTRY } from './appCapabilities';
+import {
+  answerSystem, asksNoteCount, commandGuess, commandRequest, contentStems, isSmallTalk, notesForTurns, readCommandReply, sourceOf, talkSystem,
+  toolCallText, turnsForAnswer,
+  wrapPrompt, promptBudget, ANSWER_SIZES, ANSWER_TOKENS, STOP_TOKENS,
+} from './chatPlan';
+import type { CommandGuess, PlanNote, PlanSetting } from './chatPlan';
 import { t } from '@/utils/i18n';
-import { unloadWhisper } from './WhisperEngine';
+import { speechBusy, unloadWhisper } from './WhisperEngine';
+import { llamaBusy, queueLlama } from './transcriptionPipeline';
 import { unloadLLM } from './LLMEngine';
 
 let initLlama: any;
@@ -20,6 +27,7 @@ function getInitLlama() {
 
 let llamaContext: LlamaContext | null = null;
 let currentModelPath = '';
+let currentContextSize = 0;
 let loadPromise: Promise<void> | null = null;
 
 export async function loadChatLLM(modelPath: string): Promise<void> {
@@ -41,50 +49,71 @@ export async function loadChatLLM(modelPath: string): Promise<void> {
     // the THIRD model stacked into native heap, and llama.cpp's weight
     // allocation can fail with the same bare "Failed to load model" a broken
     // file produces. Chat is what the user is doing right now; idle engines
-    // reload on their next use (Whisper re-warms when Record gains focus). A
-    // background enrichment running at this exact moment loses its context and
-    // logs an error - rare, and its runEnrichment caller catches it.
-    try { await unloadWhisper(); } catch {}
-    try { await unloadLLM(); } catch {}
+    // reload on their next use (Whisper re-warms when Record gains focus).
+    //
+    // The text model is left alone while it is working. Unloading it then
+    // was called rare; it is what happens every time someone records a note
+    // and opens the chat straight after, and the note lost its Improve,
+    // summary and title without a word. If the chat model then does not fit
+    // next to it, the load below waits for that work to end and tries again.
+    // The speech model is left alone too while it is transcribing.
+    if (!speechBusy()) {
+      try { await unloadWhisper(); } catch {}
+    }
+    const textModelKept = llamaBusy();
+    if (!textModelKept) {
+      try { await unloadLLM(); } catch {}
+    }
 
     const init = getInitLlama();
 
-    // Try the biggest context first, drop down if the device won't give us the
-    // memory for it.
+    // 4096 first, 2048 if the device will not give the memory for it.
     //
-    // 8192 is what we WANT: the system prompt alone (persona + tools + every
-    // app setting + the transcript index + RAG context) measures ~5000 tokens,
-    // so 4096 overflows before the user has typed anything, and llama.cpp
-    // silently drops the FRONT of the prompt - taking the persona and <tools>
-    // with it. That is what made the model answer "I can't perform that action"
-    // to everything.
+    // This used to start at 8192, because the old single prompt measured about
+    // 3,000 tokens before the user had typed anything and grew with every saved
+    // note. The prompts built by chatPlan.ts are bounded whatever the library
+    // size and chatStream trims them to a token budget, so 8192 would only buy
+    // a KV cache twice as large, allocated up front, on top of a model of up to
+    // 2.3 GB. It bought nothing for Phi-3 Mini either, which stops making sense
+    // past about 2,200 tokens whatever the window (docs/chat-research.md).
     //
-    // But the KV cache is allocated up front and scales with n_ctx, and a 3.8B
-    // model (Phi-3) at 8192 asks for a lot on top of a ~2.3 GB model. If that
-    // allocation fails, init throws and the chat is dead - strictly worse than
-    // a smaller window. 4096 still fits the trimmed prompt with room for a few
-    // turns; 2048 is the "at least it answers" floor.
-    const sizes = [8192, 4096, 2048];
+    // Phi-3 Mini gets 2048 outright: its prompts are held to 1,500 tokens plus
+    // a 400-token answer, and its cache is the expensive one (measured on PC:
+    // about 0.77 GB per 2,048 tokens of window, against 0.06 GB for the 1.5B
+    // text model), so the old 8192 cost it 2.3 GB it could never use.
+    const sizes = modelPath.toLowerCase().includes('phi-3') ? [2048] : [4096, 2048];
     let lastError: unknown;
-    for (const n_ctx of sizes) {
-      try {
-        llamaContext = await init({
-          n_ctx,
-          model: modelPath,
-          // Bounded threads, same as LLMEngine. See the note there before
-          // adding cache/flash-attn options: they hard-fail init on OpenCL
-          // devices.
-          n_threads: 4,
-        });
-        if (n_ctx !== sizes[0]) {
-          console.warn(`Chat LLM: ${sizes[0]} context failed, running at ${n_ctx}.`);
+    const tryLoad = async (): Promise<boolean> => {
+      for (const n_ctx of sizes) {
+        try {
+          llamaContext = await init({
+            n_ctx,
+            model: modelPath,
+            // Bounded threads, same as LLMEngine. See the note there before
+            // adding cache/flash-attn options: they hard-fail init on OpenCL
+            // devices.
+            n_threads: 4,
+          });
+          if (n_ctx !== sizes[0]) {
+            console.warn(`Chat LLM: ${sizes[0]} context failed, running at ${n_ctx}.`);
+          }
+          currentModelPath = modelPath;
+          currentContextSize = n_ctx;
+          return true;
+        } catch (e) {
+          lastError = e;
+          llamaContext = null;
         }
-        currentModelPath = modelPath;
-        return;
-      } catch (e) {
-        lastError = e;
-        llamaContext = null;
       }
+      return false;
+    };
+    if (await tryLoad()) return;
+    if (textModelKept) {
+      // No room next to the working text model: let it finish, then free it.
+      await queueLlama(async () => {
+        try { await unloadLLM(); } catch {}
+      });
+      if (await tryLoad()) return;
     }
     // Every size failed, so this is not about memory: the file itself did not
     // load. The classic cause is a truncated download from before downloads
@@ -118,6 +147,7 @@ export async function unloadChatLLM(): Promise<void> {
     }
     llamaContext = null;
     currentModelPath = '';
+    currentContextSize = 0;
   }
 }
 
@@ -128,151 +158,88 @@ export interface ChatMessage {
   id?: string;
 }
 
-async function searchTranscripts(query: string): Promise<HistoryItem[]> {
-  const history = await loadHistory();
-  if (!history || history.length === 0) return [];
-  
-  const sortedHistory = [...history].sort((a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime());
+// ---------------------------------------------------------------------------
+// The chat, in two small steps. Both are planned in utils/chatPlan.ts, which is
+// pure and tested; the measurements behind the design are in
+// docs/chat-research.md.
+//
+//   An order for the app ("delete the gym note", "dark theme") is recognised in
+//   code, then a step whose output is forced into a fixed shape picks the
+//   action. The model cannot claim an action it did not write, because the
+//   action is the only thing it is able to write.
+//
+//   Anything else gets a short prompt holding only the notes that match, and
+//   nothing about actions.
+//
+// The old single prompt asked one small model to hold eight rules, a tool
+// syntax, every setting and three notes at once: 5 of 17 requests correct.
+// ---------------------------------------------------------------------------
 
-  const queryEmbedding = await generateEmbedding(query);
-  if (queryEmbedding) {
-    const scored = history.map(item => {
-      let score = 0;
-      if (item.embedding) {
-        score = cosineSimilarity(queryEmbedding, item.embedding);
-      }
-      return { item, score };
-    });
-    
-    scored.sort((a, b) => b.score - a.score);
-    const semanticResults = scored.filter(s => s.score > 0.1).slice(0, 3).map(s => s.item);
-    
-    if (semanticResults.length > 0) {
-      return semanticResults;
-    }
-  }
+const noteName = (h: HistoryItem) => h.sourceFileName.replace(/\.[^/.]+$/, '');
 
-  // Fallback to BM25 keyword search if embeddings fail or return nothing
-  const lowerQuery = query.toLowerCase();
-  const stopWords = ['and', 'the', 'check', 'what', 'see', 'this', 'that', 'with', 'from', 'about'];
-  const queryWords = lowerQuery.split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
-  
-  if (queryWords.length === 0) return sortedHistory.slice(0, 3);
-
-  const scored = history.map(item => {
-    let score = 0;
-    const text = [
-      item.sourceFileName,
-      item.rawTranscript,
-      item.formattedTranscript,
-      item.summary
-    ].filter(Boolean).join(' ').toLowerCase();
-    
-    for (const word of queryWords) {
-      if (item.sourceFileName?.toLowerCase().includes(word)) score += 5;
-      
-      let index = text.indexOf(word);
-      while (index !== -1) {
-        score += 1;
-        index = text.indexOf(word, index + 1);
-      }
-    }
-    return { item, score };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  const results = scored.filter(s => s.score > 0).slice(0, 3).map(s => s.item);
-  
-  // ALWAYS ensure the absolute newest transcript is in the context, even if search misses it.
-  const absoluteNewest = sortedHistory[0];
-  if (absoluteNewest && !results.find(r => r.id === absoluteNewest.id)) {
-    results.unshift(absoluteNewest);
-    if (results.length > 3) results.pop();
-  }
-
-  if (results.length === 0 && absoluteNewest) {
-    return [absoluteNewest];
-  }
-  
-  return results;
+function settingsForPlan(settings: Settings, theme: { themeMode: string; accentColor: string }): PlanSetting[] {
+  return SETTINGS_REGISTRY.map((s) => ({
+    key: s.key,
+    type: s.type,
+    options: s.options,
+    about: s.about,
+    current: s.store === 'theme' ? (s.key === 'themeMode' ? theme.themeMode : theme.accentColor) : String((settings as any)[s.key]),
+  }));
 }
 
-// Build the system prompt: who the assistant is, what it can see (transcripts +
-// every setting), and what it can do (the tools).
-function buildRAGPrompt(modelFile: string, messages: ChatMessage[], contextText: string, memoryText: string, historyCount: number, capabilitiesBlock: string): string {
-  const lower = modelFile.toLowerCase();
+/** What the helper model reads of a note: the same text the chat shows. */
+const noteText = (h: HistoryItem) => h.formattedTranscript || h.rawTranscript || '';
 
-  // Ordered stable-first so llama.rn's common-prefix KV reuse survives across
-  // turns: persona/tools/capabilities rarely change within a conversation; the
-  // RAG <context> changes per message, so it goes LAST. The date is day-
-  // granular for the same reason - a minute-level timestamp invalidated the
-  // whole cached prefix every turn.
-  let systemContent = `You are Muffin Chat, the built-in assistant for the Muffin transcription app. You help the user with their transcripts and you can operate the app for them - change settings, jump to a screen, or delete a transcript.
+/**
+ * Has the helper model read the notes it has not read yet, in the
+ * background. Called when the chat opens; does nothing without the helper.
+ */
+export async function indexNotesForSearch(): Promise<void> {
+  const history = await loadHistory();
+  await indexNotes(history.map((h) => ({ id: h.id, text: noteText(h) })));
+}
 
-You can see the user's transcripts (<context> and <history_index>) and every app setting with its current value and location (<app_settings>). Use them to answer accurately, including "where is setting X?" and "what is X set to right now?".
-
-Each transcript in <context> has three variants: <variant_raw> (exact words), <variant_formatted> (cleaned up), <variant_summary> (short summary).
-
-CRITICAL RULES:
-1. Be concise, friendly and direct. ONE short sentence is almost always the whole answer - two at the very most. Do not restate the question, do not list what you could do, do not explain yourself.
-2. Refer to a transcript by its exact <name> so the UI can link it - say "In the transcript called Meeting Notes..." not "In the latest transcript...".
-3. Never make things up. If you don't know, say so.
-4. Put the exact transcript ID from <history_index> INSIDE the tool_call, but NEVER say an ID out loud. To the user a transcript has a name, not an ID.
-5. Never mention tools, tool_call, JSON, actions, settings keys, IDs, or anything about how this app is built. The user is not a programmer and none of it means anything to them. Describe what happened in everyday words instead.
-6. NEVER say you have done something unless you emitted the tool_call for it IN THE SAME REPLY. No tool_call means it did not happen, and telling the user it did is a lie they will discover. If you cannot do it, say what you need from them instead.
-7. Messages beginning with [action result] are the app telling YOU, privately, what your last action actually did. The user cannot see them. Use them to know what happened - never repeat them, quote them, or copy their wording into your reply.
-8. You can operate this app through <tools>. If the user asks for something a tool covers, DO it by emitting the tool_call - never answer that you are unable to.
-
-${TOOL_INSTRUCTIONS}
-
-${capabilitiesBlock}`;
-
-  const realMemory = memoryText ? memoryText.split('\n__HISTORY_INDEX__\n')[0] : '';
-  if (realMemory) {
-    systemContent += `\n\n<memory>\nThings you've learned about the user:\n${realMemory}\n</memory>`;
+/**
+ * The command step. Returns the reply (action blocks the chat screen runs), or
+ * null when the model found no action in the message after all.
+ */
+async function runCommand(
+  context: LlamaContext,
+  modelFile: string,
+  ask: string,
+  guess: CommandGuess,
+  notes: PlanNote[],
+  settings: PlanSetting[],
+  now: Date
+): Promise<string | null> {
+  // Opening a screen needs no model.
+  if (guess.kinds.length === 1 && guess.kinds[0] === 'navigate' && guess.tab) {
+    return toolCallText([{ action: 'NAVIGATE_TO', tab: guess.tab }]);
   }
 
-  systemContent += `
-
-<global_state>
-Current date: ${new Date().toLocaleDateString()}
-Total transcripts saved: ${historyCount}
-
-<history_index>
-Every transcript you have, newest first:
-${memoryText ? memoryText.split('\n__HISTORY_INDEX__\n')[1] : ''}
-</history_index>
-</global_state>
-
-<context>
-${contextText}
-</context>`;
-
-  // Build full prompt string based on model type
-  let fullPrompt = '';
-  
-  if (lower.includes('llama-3')) {
-    fullPrompt += `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemContent}<|eot_id|>`;
-    for (const m of messages) {
-      fullPrompt += `<|start_header_id|>${m.role}<|end_header_id|>\n\n${m.content}<|eot_id|>`;
-    }
-    fullPrompt += `<|start_header_id|>assistant<|end_header_id|>\n\n`;
-  } else if (lower.includes('phi-3')) {
-    fullPrompt += `<|system|>\n${systemContent}<|end|>\n`;
-    for (const m of messages) {
-      fullPrompt += `<|${m.role}|>\n${m.content}<|end|>\n`;
-    }
-    fullPrompt += `<|assistant|>\n`;
-  } else {
-    // ChatML Default (Qwen)
-    fullPrompt += `<|im_start|>system\n${systemContent}<|im_end|>\n`;
-    for (const m of messages) {
-      fullPrompt += `<|im_start|>${m.role}\n${m.content}<|im_end|>\n`;
-    }
-    fullPrompt += `<|im_start|>assistant\n`;
+  const request = commandRequest(ask, guess, notes, settings, now);
+  if (!request) {
+    // A delete or rename that matches no note. An action with no target draws
+    // the "couldn't do that" chip; guessing would put a delete dialog for the
+    // wrong note in front of the user.
+    return toolCallText([{ action: guess.kinds.includes('delete') ? 'DELETE_TRANSCRIPT' : 'RENAME_TRANSCRIPT' }]);
   }
-  
-  return fullPrompt;
+
+  try {
+    const result = await context.completion({
+      prompt: wrapPrompt(modelFile, request.system, [{ role: 'user', content: ask }]),
+      n_predict: 200,
+      temperature: 0.0,
+      // Compiled to a grammar by llama.cpp: only a valid action list can come out.
+      response_format: { type: 'json_schema', json_schema: { strict: true, schema: request.schema } },
+    });
+    void recordLlm('chat', modelFile, (result as any)?.timings, result.text.length);
+    const actions = readCommandReply(result.text, request.ids);
+    return actions.length ? toolCallText(actions) : null;
+  } catch (error) {
+    console.warn('Chat command step failed, answering instead:', error);
+    return null;
+  }
 }
 
 export async function chatStream(
@@ -282,83 +249,107 @@ export async function chatStream(
   onToken: (token: string) => void,
   appContext: { themeMode: string; accentColor: string } = { themeMode: 'system', accentColor: 'system' }
 ): Promise<string> {
+  holdIndexing(true);
+  try {
+    return await answerStream(messages, modelPath, modelFile, onToken, appContext);
+  } finally {
+    holdIndexing(false);
+  }
+}
+
+async function answerStream(
+  messages: ChatMessage[],
+  modelPath: string,
+  modelFile: string,
+  onToken: (token: string) => void,
+  appContext: { themeMode: string; accentColor: string }
+): Promise<string> {
   await loadChatLLM(modelPath);
-  if (!llamaContext) throw new Error("Chat LLM not loaded");
+  const context = llamaContext;
+  if (!context) throw new Error("Chat LLM not loaded");
 
   const settings = await loadSettings();
   const history = await loadHistory();
-  
-  const lastUserMsg = messages[messages.length - 1].content;
-  const searchResults = await searchTranscripts(lastUserMsg);
-  
-  let contextText = "No relevant transcripts found.";
-  if (searchResults.length > 0) {
-    const truncate = (text: string, limit: number) =>
-      text.length > limit ? text.substring(0, limit) + "... (truncated)" : text;
+  const notes: PlanNote[] = history.map((h) => ({
+    id: h.id,
+    name: noteName(h),
+    // Improved text is the same words as the raw one, punctuated: the better
+    // one to read. Raw is the fallback when Improve has not run.
+    text: noteText(h),
+    summary: h.summary,
+    timestampISO: h.timestampISO,
+  }));
+  const now = new Date();
+  const ask = messages[messages.length - 1].content;
 
-    contextText = searchResults.map(item => {
-      // ONE body variant, not three.
-      //
-      // This used to send summary(1000) + formatted(2000) + raw(2000) chars for
-      // each of 3 transcripts - ~3900 tokens of THE SAME WORDS three times over.
-      // Against n_ctx 4096 that alone blew the window: ~5000 tokens of system
-      // prompt before the history index, memories or the conversation even
-      // arrived. llama.cpp then drops the FRONT of the prompt - exactly where
-      // the persona and <tools> live - so the model lost the instructions
-      // telling it what it could do, and answered "I can't perform that action"
-      // to everything, including "Why".
-      //
-      // Formatted is the same words as raw, just punctuated, so it's strictly
-      // the better one to send; raw is only the fallback when formatting hasn't
-      // run. The summary stays because it's short and it's what answers "what
-      // was that about".
-      const body = item.formattedTranscript || item.rawTranscript || 'None';
-      const summaryLine = item.summary
-        ? `\n  <variant_summary>${truncate(item.summary, 400)}</variant_summary>`
-        : '';
-
-      return `<transcript>
-  <name>${item.sourceFileName.replace(/\.[^/.]+$/, "")}</name>
-  <id>${item.id}</id>
-  <created_at>${new Date(item.timestampISO).toLocaleString()}</created_at>${summaryLine}
-  <text>${truncate(body, 1200)}</text>
-</transcript>`;
-    }).join('\n');
-  }
-
-  let memoryText = "";
-  if (settings.enableContextLearning) {
-    const memories = await loadMemories();
-    if (memories.length > 0) {
-      memoryText = memories.map(m => "- " + m.text).join('\n');
+  const guess = commandGuess(ask);
+  if (guess) {
+    const reply = await runCommand(context, modelFile, ask, guess, notes, settingsForPlan(settings, appContext), now);
+    if (reply) {
+      onToken(reply);
+      return reply;
     }
   }
-  
-  // Hack to pass history index through the memoryText argument without changing signature
-  const sortedHistory = [...history].sort((a, b) => new Date(b.timestampISO).getTime() - new Date(a.timestampISO).getTime());
-  const historyIndex = sortedHistory.map(h => `- ID: ${h.id} | Name: ${h.sourceFileName.replace(/\.[^/.]+$/, "")} | Date: ${new Date(h.timestampISO).toLocaleString()}`).join('\n');
-  memoryText += '\n__HISTORY_INDEX__\n' + historyIndex;
 
-  const capabilitiesBlock = buildCapabilitiesBlock(settings, appContext);
-  const prompt = buildRAGPrompt(modelFile, messages, contextText, memoryText, history.length, capabilitiesBlock);
+  const memories = settings.enableContextLearning ? (await loadMemories()).map((m) => m.text) : [];
+  const found = notesForTurns(messages, notes, now, memories);
+  // A greeting never goes looking for a note. Anything with a topic does:
+  // by its words first, then by meaning. One topic word is enough ("the
+  // note about money"); it used to need two, which skipped exactly that.
+  const talk = isSmallTalk(ask);
+  const topical = !talk && contentStems(ask).length >= 1;
+  let shown = talk ? [] : found.shown;
+  if (shown.length === 0 && topical) {
+    const id = await noteByMeaning(ask, notes);
+    const note = id ? notes.find((n) => n.id === id) : undefined;
+    shown = note ? [note] : [];
+  }
+  // Asked about something no note holds: the app says so itself. Given no
+  // note, a small model invents one (measured: 3 right of 15 on Llama 3.2
+  // 1B, 8 of 15 on Qwen 2.5 1.5B).
+  const missing = t('chat.notFound') || 'Not found in the notes.';
+  if (shown.length === 0 && topical) {
+    onToken(missing);
+    return missing;
+  }
+  // A count is the app's to give, not the model's.
+  if (shown.length === 0 && asksNoteCount(ask)) {
+    const text = (t('chat.noteCount') || 'Transcriptions: {count}.').replace('{count}', String(notes.length));
+    onToken(text);
+    return text;
+  }
+
+  // Counted with the model's own tokenizer, and shrunk until it fits: less of
+  // each note, then fewer notes and fewer earlier turns. The budget is per
+  // model because Phi-3 Mini breaks far below its nominal window (measured).
+  const budget = promptBudget(modelFile, currentContextSize);
+  let prompt = '';
+  for (const step of ANSWER_SIZES) {
+    const system = shown.length
+      ? answerSystem(shown.slice(0, step.notes), found.search, notes, memories, now, step.scale, missing)
+      : talkSystem(ask, notes);
+    prompt = wrapPrompt(modelFile, system, turnsForAnswer(messages, step.turns));
+    let size = Infinity;
+    try {
+      size = (await context.tokenize(prompt)).tokens.length;
+    } catch {
+      // No count available: a rough three characters per token, on the safe side.
+      size = Math.ceil(prompt.length / 3);
+    }
+    if (size <= budget) break;
+  }
 
   let fullResponse = "";
-
-  // Note: no "```" here - it can appear inside a tool call and would cut it off.
-  const stopTokens = [
-    "<|im_end|>", "<|end|>", "<|eot_id|>", "<|endoftext|>"
-  ];
-
   try {
-    const chatResult = await llamaContext.completion(
+    const chatResult = await context.completion(
       {
         prompt,
-        n_predict: 768,
-        temperature: 0.3, // low, so tool-call JSON stays well-formed
+        n_predict: ANSWER_TOKENS,
+        temperature: 0.3,
       },
       (data) => {
         const text = data.token;
-        if (stopTokens.some(token => text.includes(token))) {
+        if (STOP_TOKENS.some(token => text.includes(token))) {
           return;
         }
         fullResponse += text;
@@ -373,5 +364,13 @@ export async function chatStream(
     throw error;
   }
 
+  // The model is not asked to name the note; the app adds it, and the chat
+  // screen turns the name into a link.
+  const source = sourceOf(fullResponse, shown, missing);
+  if (source) {
+    const line = `\n\n${source.name}`;
+    onToken(line);
+    fullResponse += line;
+  }
   return fullResponse.trim();
 }

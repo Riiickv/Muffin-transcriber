@@ -89,6 +89,10 @@ export const APP_STRINGS = {
     whisperModelLabel: "Transcription quality",
     selectFileButton: "Pick file",
     transcribeButton: "Go!",
+    heroRecord: "Tap to record",
+    heroStop: "Recording. Tap to stop",
+    newTranscription: "New",
+    removeFile: "Remove file",
     listenButton: "Listen",
 
     // -- The transcript card at the bottom --
@@ -135,7 +139,7 @@ export const APP_STRINGS = {
     silentTitle: "Muffin can't hear anything",
     silentBody: "This recording has been silent so far. Check that the right microphone is selected and nothing else is using it. Recording is still running.",
 
-    optionsTitle: "Recording options",
+    optionsTitle: "Options",
     readyToTranscribe: "Ready to Transcribe",
     listening: "Listening...",
     using: "Using",
@@ -168,6 +172,8 @@ export const APP_STRINGS = {
   history: {
     header: "History",
     noHistory: "No transcripts yet.",
+    // Shown above the list when some transcripts are stored but could not be opened.
+    unreadable: "Some transcripts could not be read.",
     emptyDesc: "Record or transcribe an audio file to see it here.",
     renameTranscript: "Rename Transcript",
     saveRename: "Save",
@@ -279,6 +285,8 @@ export const APP_STRINGS = {
     // but was never told the new name.
     renameAskTitle: "What should I call it?",
     renameAskMessage: "Renaming \"{name}\"",
+    notFound: "Not found in the notes.",
+    noteCount: "Transcriptions: {count}.",
     deleteTitle: "Delete transcript?",
     deleteMessage: "Delete “{name}”? This can't be undone.",
     // Shown when the assistant is asked to delete several at once.
@@ -300,12 +308,12 @@ export const APP_STRINGS = {
   // ==========================================================================
   memory: {
     header: "Memories",
-    noMemories: "No memories saved yet. Keep chatting or add them.",
+    noMemories: "No memories saved.",
     addCustom: "Add a memory",
     // The review list: things the assistant guessed while transcribing.
     // Nothing is saved until the user taps yes.
     suggestedTitle: "Did I get this right?",
-    suggestedDesc: "I picked these up from your recordings. I'm often wrong, so nothing is saved until you say yes.",
+    suggestedDesc: "Detected in recordings. Saved only when accepted.",
     dismissAll: "No to all",
     dismissOne: "No",
     acceptOne: "Yes, remember this",
@@ -318,17 +326,24 @@ export const APP_STRINGS = {
   // ==========================================================================
   settings: {
     exportTranscripts: "Export transcriptions",
-    exportTranscriptsDesc: "Save every transcription to a folder you choose. Nothing is uploaded.",
+    exportTranscriptsDesc: "Copy of all transcriptions in a chosen folder.",
     exportEmpty: "There is nothing to export yet.",
     exportDone: "Exported",
     exportDoneDesc: "Saved {count} transcriptions.",
     exportFailed: "Export failed",
     keepAfterUninstall: "Keep transcriptions after uninstalling",
-    keepAfterUninstallDesc: "Off, uninstalling Muffin deletes everything. On, a copy is kept in a folder you pick, which stays on your phone.",
+    keepAfterUninstallDesc: "Copy in a chosen folder on the phone.",
     speedReport: "Speed report",
     copyReport: "Copy",
     clearReport: "Clear",
     chatBetaLabel: "Chat with Muffin",
+    defaultLanguageDesc: "Language spoken in the recordings.",
+    preferredFormatterDesc: "Model for Improve and Summarize.",
+    chatBetaDesc: "Questions about saved transcriptions.",
+    preferredChatDesc: "Model for chat.",
+    compressProfileDesc: "Merged, shorter memories.",
+    autoDeleteDesc: "Retention period for stored audio.",
+    speedReportDesc: "Timings of recent transcriptions.",
     header: "Settings",
 
     // -- The two buttons at the bottom that switch the page --
@@ -337,34 +352,34 @@ export const APP_STRINGS = {
 
     // ---- PREFERENCES PAGE ----
     general: "General",
-    defaultLanguage: "Default Language",
+    defaultLanguage: "Default language",
 
-    autoDeleteLabel: "Auto-Delete Audio Files",
+    autoDeleteLabel: "Auto-delete audio files",
     autoDeleteNever: "Never",
     autoDelete1Week: "1 Week",
     autoDelete1Month: "1 Month",
 
     normalizeAudio: "Normalize audio",
-    normalizeAudioDesc: "Boosts low volume for a cleaner transcription.",
+    normalizeAudioDesc: "Volume boost for quiet recordings.",
     progressive: "Fast draft first",
-    progressiveDesc: "Show a quick rough transcript straight away, then replace it with the accurate one. Uses more battery.",
+    progressiveDesc: "Rough text first, accurate text after. Higher battery use.",
     autoCopy: "Auto-copy transcript",
-    autoCopyDesc: "Copies to clipboard when done",
+    autoCopyDesc: "Finished transcript to the clipboard.",
     typewriter: "Typewriter effect",
-    typewriterDesc: "Type transcriptions out as they arrive",
+    typewriterDesc: "Letter-by-letter text display.",
     typewriterSpeed: "Typing speed",
     speedSlow: "Slow",
     speedBalanced: "Balanced",
     speedFast: "Fast",
     formatByDefault: "Improve by default",
-    formatByDefaultDesc: "Improves the transcript after transcribing",
-    summarizeByDefault: "Summarize by Default",
-    summarizeByDefaultDesc: "Summarizes transcript after transcription",
+    formatByDefaultDesc: "Improve after every transcription.",
+    summarizeByDefault: "Summarize by default",
+    summarizeByDefaultDesc: "Summarize after every transcription.",
 
     contextLearning: "Memory",
-    contextLearningDesc: "Memory helps with filling the blanks when the audio is unclear.",
+    contextLearningDesc: "Saved terms for unclear audio.",
     memoryContext: "Memory Context",
-    memoryDesc: "Allow the transcription to use memories. Higher accuracy but slower.",
+    memoryDesc: "Saved memories in transcription. Slower.",
 
     manageMemory: "Manage memories",
     compressProfile: "Optimize memories",
@@ -374,18 +389,27 @@ export const APP_STRINGS = {
 
     // -- Add-a-memory box --
     addMemory: "Add memory",
-    addMemoryDesc: "Teach Muffin specific names, terms, or facts.",
+    addMemoryDesc: "Names, terms or facts for transcription.",
     addMemoryPlaceholder: "Add a memory",
     addMemoryBtn: "Add",
     saveMemory: "Save memory",
     deleteMemoryAction: "Delete memory",
     deleteMemoryTitle: "Delete memory?",
-    noMemories: "No memories saved yet. Keep chatting or add them.",
+    noMemories: "No memories saved.",
 
     // -- Appearance --
     appearance: "Appearance",
     themeMode: "Theme",
     accentColor: "Accent color",
+    themeAuto: "Auto",
+    themeLight: "Light",
+    themeDark: "Dark",
+    themeBlack: "Black",
+    accentSystem: "System",
+    accentMuffin: "Muffin",
+    accentGreen: "Green",
+    accentPurple: "Purple",
+    accentRed: "Red",
     uiScale: "UI size",
     uiScaleCompact: "Compact",
     uiScaleNormal: "Normal",
@@ -395,11 +419,11 @@ export const APP_STRINGS = {
     uiScaleApply: "Apply",
     // -- The app's own language (this picker) --
     appLanguage: "App language",
-    appLanguageDesc: "Automatic follows your phone's language.",
+    appLanguageDesc: "Automatic: the phone's language.",
 
     // -- Custom prompts --
     customPrompts: "Custom prompts",
-    customPromptsFooter: "Leave empty to use Muffin's defaults. These apply to every transcript.",
+    customPromptsFooter: "Empty: default prompts. Applied to every transcript.",
     storageHeader: "Storage",
     customPrompt: "Custom prompt",
     formatSystemPrompt: "Improvement default prompt",
@@ -422,12 +446,12 @@ export const APP_STRINGS = {
     whisperModelsHeader: "Transcriber models",
     formatterModelsHeader: "Formatter models",
     chatModelsHeader: "Chat models",
-    embeddingModelsHeader: "Helper models (mandatory for the chat to be helpful)",
+    embeddingModelsHeader: "Helper models (optional)",
     modelListOptions: "List options",
     showModelNames: "Show model names",
-    showModelNamesDesc: "List them by what they are called instead of what they do.",
+    showModelNamesDesc: "Technical model names.",
     showTimeEstimate: "Show estimated time",
-    showTimeEstimateDesc: "Adds a line with how long each model is likely to take on this phone.",
+    showTimeEstimateDesc: "Expected time per model on this phone.",
 
     // -- The button on each model card --
     get: "Get",
@@ -487,30 +511,32 @@ export const APP_STRINGS = {
     // modelName()/modelDesc(), so these are what makes the pickers translate.
     tierFastest: "Fastest",
     tierFast: "Fast",
+    tierFastQuality: "Fast, high quality",
     tierBalanced: "Balanced",
     tierBest: "Best quality",
     tierAccurate: "Most accurate",
     tierSmartSearch: "Smart search",
 
     // One-line blurb per model.
-    descWhisperFastest: "Roughest wording. Fine for short, clear notes.",
-    descWhisperBalanced: "The sweet spot for most voice notes.",
-    descWhisperAccurate: "Best with accents and background noise. Slowest.",
+    descWhisperFastest: "Short, clear speech. Lowest accuracy.",
+    descWhisperBalanced: "General speech. All languages.",
+    descWhisperAccurate: "Accents, background noise. All languages.",
+    descSpeechFast: "Speech in 25 European languages.",
     estimatePerRecording: "about {t} per recording",
     estimatePerMinute: "about {t} per minute of recording",
-    measuredPerRecording: "{t} per recording on your phone",
-    measuredPerMinute: "{t} per minute of recording on your phone",
-    descFmtFastest: "Tuned for newer phone chips.",
-    descFmtFast: "Slightly better wording than Fastest.",
-    descFmtBalanced: "Bigger, still quick on newer phones.",
-    descFmtBest: "Cleanest wording. Slowest.",
-    descChatFast: "Quick replies, simpler answers.",
-    descChatBest: "Smarter answers. Wants a newer phone.",
-    descEmbed: "Lets Chat find the right transcript by meaning, not just words.",
+    measuredPerRecording: "{t} per recording on this phone",
+    measuredPerMinute: "{t} per minute of recording on this phone",
+    descFmtFastest: "Improve, Summarize. Lowest quality.",
+    descFmtFast: "Improve, Summarize. Low quality.",
+    descFmtBalanced: "Improve, Summarize. Medium quality.",
+    descFmtBest: "Improve, Summarize. Highest quality.",
+    descChatFast: "Chat. Short answers.",
+    descChatBest: "Chat. Detailed answers. High memory use.",
+    descEmbed: "Chat search by meaning. All languages.",
 
     // Shown inside a picker when there is nothing to pick yet.
     noneInstalled: "No models installed yet",
-    noneInstalledDesc: "Models are what let the app work offline. Download one and it'll show up here.",
+    noneInstalledDesc: "Downloaded model required.",
     goToModels: "Get a model",
   },
 

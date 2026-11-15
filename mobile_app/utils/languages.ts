@@ -4,7 +4,8 @@
 // importer of '@/utils/languages' keeps working.
 
 import { t } from '@/utils/i18n';
-import { LANGUAGES } from './languageData';
+import { LANGUAGES, parakeetCoversLanguage } from './languageData';
+import { isParakeetModel } from './modelCatalog';
 
 export {
   LANGUAGES,
@@ -13,6 +14,8 @@ export {
   FORMAT_LANGUAGE_VALUES,
   toLanguageCode,
   languageNameFromCode,
+  parakeetCoversCode,
+  parakeetCoversLanguage,
 } from './languageData';
 export type { Language } from './languageData';
 
@@ -27,6 +30,20 @@ export function getLanguageOptions() {
     { label: t('languages.autoDetect') || 'Auto-Detect', value: 'Auto-Detect' },
     ...LANGUAGES.map((l) => ({ label: l.endonym, value: l.name })),
   ];
+}
+
+/**
+ * The languages the chosen speech model can be asked for.
+ *
+ * Every picker of the transcription language goes through this, so a model is
+ * never offered a language it cannot do. The Fast model gets its 25; an
+ * English-only model gets English.
+ */
+export function getLanguageOptionsForModel(modelId: string, isEnglishOnly = false) {
+  const all = getLanguageOptions();
+  if (isEnglishOnly) return all.filter((o) => o.value === 'English' || o.value === 'Auto-Detect');
+  if (isParakeetModel(modelId)) return all.filter((o) => parakeetCoversLanguage(o.value));
+  return all;
 }
 
 // Output language for the LLM formatter/summarizer. "Original" keeps whatever

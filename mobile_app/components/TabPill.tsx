@@ -34,7 +34,7 @@ export function TabPill<T extends string>({ tabs, value, onChange, style }: TabP
               backgroundColor: active ? theme.tint : theme.surface,
             }}
           >
-            <Text style={{ fontSize: 14, fontWeight: 'bold', color: active ? '#000000' : theme.textMuted }}>
+            <Text style={{ fontSize: 14, fontWeight: 'bold', color: active ? theme.tintForeground : theme.textMuted }}>
               {tab.label}
             </Text>
           </AnimatedPressable>

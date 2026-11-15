@@ -25,7 +25,7 @@ import {
   SUMMARY_CHUNK_CHARS,
 } from './textCleanup';
 // Re-exported so existing importers of these from LLMEngine keep working.
-export { findHighlights } from './entityExtraction';
+export { findHighlights, resolveQuote } from './entityExtraction';
 export type { ActionableEntity } from './entityExtraction';
 export { echoesPrompt, ensureBasicPunctuation } from './textCleanup';
 
